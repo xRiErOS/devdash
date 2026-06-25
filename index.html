@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <!-- viewport-fit=cover ist Pflicht für env(safe-area-inset-*) auf iOS Standalone (DD-229). -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <!-- DD-225 / DD-226: iOS-Standalone-PWA Pflicht-Tags. apple-touch-icon wird in DD-226 generiert. -->
+  <!-- DD-391: explizites sizes="180x180" (iOS-Best-Practice) + ?v=2 Cache-Bust. iOS
+       cached das apple-touch-icon aggressiv per voller URL — ein zuvor (ohne/mit altem
+       Icon) zum Home-Screen hinzugefügter Eintrag behält sonst das Stale-Icon. Die neue
+       URL erzwingt beim erneuten Hinzufügen einen Re-Fetch. -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2" />
+  <!-- mobile-web-app-capable: moderner Standard (Chrome/Edge/Firefox); apple-* bleibt für iOS-Backward-Compat. -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="DD Issues" />
+  <meta name="theme-color" content="#89b4fa" />
+  <title>DevD — Developer Dashboard</title>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as SegmentBarStories from './SegmentBar.stories.jsx'
+
+<Meta of={SegmentBarStories} />
+
+# SegmentBar
+
+`status:stable` · Atom · Cluster `03.20 Display`
+
+## Zweck
+
+Mehrsegmentige Verhältnis-Leiste (Stacked-Bar). Verallgemeinert die ProgressBar auf N farbcodierte Segmente für Status-Verteilungen — z.B. die Issue-Status-Mischung eines Sprints (done / to_review / open) als eine Leiste. Token-sauber, props-driven, keine Domänen-Logik (DD-481).
+
+## Wann verwenden
+
+- **Ja:** Anteils-/Verteilungsdarstellung mehrerer kategorialer Werte in einer kompakten Leiste (Sprint-Status-Mix, Quoten).
+- **Nein:** einzelner Fortschrittswert → `ProgressBar`. Klickbare Auswahl → `Tabs`/`Button`. Lange Wertelisten → Tabelle/Chart.
+
+## Props
+
+<ArgTypes of={SegmentBarStories} />
+
+Jedes Segment ist `{ value:number, tone:string, label?:string }`. `value <= 0` wird übersprungen; Breiten werden anteilig zur Summe berechnet. `tone` ∈ `success`/`warning`/`danger`/`info`/`primary`/`lavender`/`mauve`/`neutral`.
+
+## Zustände
+
+- **Appearance** — `track` (`surface0`/`surface1`/`surface2`) steuert die Rest-/Track-Fläche der Rundungs-Gaps.
+- **Sizes** — `size` (`xs`/`sm`/`md`/`lg`) steuert die Track-Höhe.
+- **Composition** — Segment-Mischung von voll-fertig über teils bis leer (leeres `segments` → nur Track sichtbar).
+
+<Canvas of={SegmentBarStories.Appearance} />
+<Canvas of={SegmentBarStories.Sizes} />
+<Canvas of={SegmentBarStories.Composition} />
+
+## Barrierefreiheit
+
+- Wurzel ist `role="img"` mit `aria-label` (`label`-Prop) — die Gesamtaussage wird als Text getragen, nicht nur über Farbe.
+- Jedes Segment führt `title` (Hover-Label) und `data-tone`; Bedeutung darf nicht allein an der Farbe hängen.
+
+## Beispiele
+
+<Canvas of={SegmentBarStories.Default} />
+<Controls of={SegmentBarStories.Default} />

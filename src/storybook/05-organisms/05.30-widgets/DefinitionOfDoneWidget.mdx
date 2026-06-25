@@ -1,0 +1,60 @@
+{/* GF-258 — DefinitionOfDoneWidget Doku-Tab (V2-Rewrite, D09). KEIN rohes Kleiner-Zeichen (LL01). */}
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as DoDStories from './DefinitionOfDoneWidget.stories.jsx'
+
+<Meta of={DoDStories} />
+
+# DefinitionOfDoneWidget
+
+`status:stable` · Organism · Cluster `05.30 Widgets` · OR-23 · GF-258 · **nur Milestone**
+
+## Zweck
+
+Titellose DoD-Checkliste eines Milestones in der Terminal-Token-Sprache (V2). Komponiert
+`CaptureWidget` (präsentationale Erfass-Shell, randlos) mit `DoDItem`-Zeilen im body,
+Erfassen-Button im create-Slot und der Fortschritts-Metrik unten-rechts. Erfassen und der
+Detail-Drill je Kriterium (`dod-item.detail`) öffnen dasselbe `DefinitionOfDoneForm`-Modal
+(internes Öffnen/Schließen; Persistenz über die gehobenen Callbacks). Der Titel kommt
+zentral aus dem AccordionBody-Slot (D02), nicht aus dem Widget.
+
+## Ebene-6-Capability-Gegencheck (A4)
+
+OR-23 = 6 Caps: `milestone-read`, `milestone-dod-list`, `milestone-dod-add`,
+`milestone-dod-set`, `milestone-dod-reorder`, `milestone-dod-delete` (`_ebene6.md`).
+
+## Wann verwenden
+
+- **Ja:** DoD-Region einer **Milestone**-Detail-Ansicht. Entity-exklusiv → im
+  EntityDetail-Skelett (GF-251) zählt diese als 1 MS-exklusive Widget-Region (R1, E01).
+- **Nein:** Issue/Sprint haben keine DoD-Liste.
+
+## Props
+
+<ArgTypes of={DoDStories} />
+
+`items` = `{ id, label, done?, details? }[]`. `onToggle(id, e)` toggelt ein Kriterium;
+`onCreate(label, details?)` erfasst ein neues; `onPatch(id, patch)` patcht Label/
+Beschreibung/Status aus dem Detail-Modal. `framed` rahmt das Widget (Standalone); im
+Accordion-Slot bleibt es randlos.
+
+## Zustände
+
+Befüllt (Items + Fortschritt) · leer (Hinweis, Erfassen bleibt verfügbar). Fortschritt =
+erfüllte / gesamt (Content-Identität `dod-widget.progress`).
+
+<Canvas of={DoDStories.Default} />
+<Canvas of={DoDStories.State_Empty} />
+
+## Klickpfad (Req 5)
+
+Klick auf Erfassen öffnet das DoD-Modal (create); `dod-item.detail` öffnet es im edit-Modus.
+Die `Interaction_Create`-Story beweist den Pfad per `play`.
+
+<Canvas of={DoDStories.Interaction_Create} />
+
+## Barrierefreiheit
+
+- Checkbox ist das `Checkbox`-Atom (Tastatur-Toggle); erfüllte Kriterien sind zusätzlich
+  durchgestrichen (Bedeutung nicht nur farblich).
+- Erfassen-/Detail-Trigger und die Modal-Aktionen sind echte Buttons mit Label.
+- Kriterium-/Beschreibungsfeld tragen `aria-label`.

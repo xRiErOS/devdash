@@ -1,0 +1,61 @@
+{/* docs.mdx = DIE Doku-Quelle dieser Story (Norm: specs-DD/00-Agent-Context/sources/storybook/Docs-mdx-Norm.md).
+    Pflicht: VOR Arbeit lesen, NACH jeder Story-Änderung nachziehen. Insel-Screen (08.60), Default-Export.
+    Plan-Sekundär-Promotion des git-ignored Mockup-Drafts. */}
+import { Meta, Canvas } from '@storybook/addon-docs/blocks'
+import { Status } from '../../../../.storybook/Status.jsx'
+import * as Stories from './IssueDetails.stories.jsx'
+
+<Meta of={Stories} />
+
+# IssueDetails — Screen (08.60 Issues)
+
+**Kurzbeschreibung**
+Das IssueDetails-Organism (EntityDetail V2, 06.60 Feature) eingerastet im kanonischen AppShell-Frame
+(05.80) = der reale Screen, den die Route `/:slug/issues/:id` rendert. Promotion des git-ignored
+Mockup-Drafts in die Insel (GF-2 Plan-Sekundär — beweist den „BACK" der Greenfield-Kette).
+
+## Status
+
+<Status of={Stories.Default} />
+
+## Bezug (Kette)
+
+- Organism-Quelle: `06.60 Entity Details/IssueDetails` (`status:review`) + AppShell (05.80).
+- Fixture: `issueDetails.fixture.js` (self-contained, gemappte `data`-Shape von DD-251). Geteilt mit der
+  AppShell-08.10-Story (Such-Navigationsziel).
+
+## Aktueller Stand
+
+### Frame + Detail
+- AppShell-Default-Chrome (Topbar + Rail) + IssueDetails im Content-Outlet (`screen.issue-details.pane`).
+- Wiring-Stand: präsentational (fixture-getrieben). Die eigenen Organism-Interaktionen (Description-Edit
+  etc.) sind in 06.60 gehärtet → hier `qa_behavioral:n/a`.
+
+## Anker (data-ui)
+
+| Anker | Element / Zweck |
+|---|---|
+| `screen.issue-details.default` / `.main` | Screen-Wrapper je Export |
+| `screen.issue-details.pane` | IssueDetails-Content-Outlet |
+| `app-shell.root` / `app-shell.content` | AppShell-Frame (05.80) |
+
+## Verwendung
+
+### Wann verwenden
+Als realer Issue-Detail-Screen (Route `/:slug/issues/:id`) und als Navigationsziel der AppShell-Suche.
+
+### Wann nicht verwenden
+Für die isolierte Organism-Härtung (Slots/States) → `06.60 Entity Details/IssueDetails`. Kein roher
+Markup hier — nur Komposition (Tier-5).
+
+## Default Story
+
+<Canvas of={Stories.Default} />
+
+Root-Minimal: nur Header-Felder, Slots leer → Placeholder-Pfad (kein Crash).
+
+## Kanonische States
+
+### Minimal / Voll
+`Default` (Header-only, Placeholder) ↔ `Main` (alle Slots belegt, DD-251). Slot-States selbst sind im
+Organism (06.60) abgedeckt.

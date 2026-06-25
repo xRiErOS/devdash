@@ -1,0 +1,140 @@
+{/* GF — 01.15 Color Hierarchy Begleit-MDX. Pflichtabschnitte: Zweck · Wann · Abschnitte · a11y · Beispiele.
+    <Meta of={…}> hängt diese Seite als Doku-Tab der Color-Hierarchy-Story ein. */}
+import { Meta, Canvas } from '@storybook/addon-docs/blocks'
+import * as ColorHierarchyStories from './ColorHierarchy.stories.jsx'
+
+<Meta of={ColorHierarchyStories} />
+
+# Color Hierarchy
+
+`status:review` · Foundation · Cluster `01.15 Color Hierarchy`
+
+## Zweck
+
+Die Catppuccin-Palette trägt für den Terminal-Look eine echte **Tiefen-Leiter**. Diese
+Studie legt fest, welcher Surface-Token welche Z-Rolle „von hinten nach vorne" spielt —
+damit AppShell (Hintergrund `base`/`mantle`) und EntityDetail (`surface0`) nicht ad-hoc,
+sondern als eine zusammenhängende Elevations-Hierarchie gewählt werden.
+
+Token-Master bleibt `src/index.css` (D02). Diese Seite ist die **Single-Source der
+Verwendungs-Regel**; die Story spiegelt sie visuell. Bei Konflikt gewinnt `index.css`.
+
+## Kern-Prinzip — eine Leiter, zwei Luminanz-Richtungen
+
+Die **semantische Reihenfolge** `crust → mantle → base → surface0 → surface1 → surface2 → overlay`
+ist in beiden Themes identisch. Nur die **Luminanz-Richtung kippt**:
+
+- **Macchiato (dark):** je näher am Betrachter, desto **heller** (Surfaces heben sich nach oben auf).
+- **Latte (light):** je näher am Betrachter, desto **dunkler** (Surfaces tinten gegen das helle Canvas).
+
+Komponenten wählen also nie eine Helligkeit, sondern immer die **Rolle** — die Richtung
+erledigt das Theme. Side-by-Side:
+
+<Canvas of={ColorHierarchyStories.ThemeComparison} />
+
+## Das 6-Ebenen-Modell (PO 2026-06-20) — die verbindliche Anwendungs-Leiter
+
+Die abstrakte Token-Ramp (unten) wird über **sechs benannte semantische Ebenen** angewandt.
+Jede UI-Schicht liest ein `--layer-*`-Token (Master `index.css`), NICHT direkt ein Surface-Token —
+so ist die Leiter in beiden Themes **monoton** (Dark dunkel→hell, Light hell→dunkel nach vorne):
+
+| Ebene | Token | Schicht | Dark | Light |
+|---|---|---|---|---|
+| Background | `--layer-bg` | App-Fläche + content-outlet | `crust` | `base` |
+| Layer-1 | `--layer-1` | AppShell-Rail/Topbar · PageTitle · Page-Base | `mantle` | `mantle` |
+| Layer-2 | `--layer-2` | ContentWrapper (Accordion — Titel **+** Content, EINE Ebene) | `base` | `crust` |
+| Layer-3 | `--layer-3` | DetailsWrapper (WidgetBase) | `surface0` | `surface0` |
+| Layer-4 | `--layer-4` | DetailsSection (Bausteine/Abschnitte im Widget) | `surface1` | `surface1` |
+| Layer-5 | `--heading-accent` + Text/Pills | Vordergrund (kein Fill) | `peach` | `red` |
+
+**Eleganz:** Layer-1/3/4 (`mantle/surface0/surface1`) sind **auto-theme-monoton** — eine
+Definition in `:root`, die Reihenfolge kippt durch die lazy `var()`-Auflösung mit dem Theme
+von selbst. Nur **Background + Layer-2** swappen `crust↔base` (Override in den Theme-Blöcken).
+
+**Layer-5 a11y (Latte):** keine helle Catppuccin-Akzentfarbe trägt kleinen Heading-Text AA
+(peach 1.93 · yellow 1.70 · teal 2.43 auf `surface0`). Daher `--heading-accent` Light = `red`
+(3.52 auf `surface0` = AA-large; Slot-Headings bold/≥15px). Dark = `peach` (5.79 ✓).
+Sub-Heading-Akzent (teal) in Latte noch zu härten.
+
+## Die Hierarchie (back-to-front) — Token-Ramp (Grundlage)
+
+| Z-Ebene | Token | Rolle | Typische Anwendung |
+|---|---|---|---|
+| 0 (hinten) | `--crust` | Tiefster Grund · Wells | App-Außenrand, Eingabe-Wells, Code-/Terminal-Blöcke |
+| 1 | `--mantle` | Chrome · Gerüst | **AppShell Rail + Topbar**, Nav-Leisten, fixe Rahmenflächen |
+| 2 | `--base` | Canvas · Default-Fläche | Body, Seiten-Hintergrund, **AppShell.content-Outlet** |
+| 3 | `--surface0` | Panel · Karte | **EntityDetail-Card**, Milestone-Tiles, gehobene Panels |
+| 4 | `--surface1` | Karte-in-Karte · Trennlinie | verschachtelte Felder, Default-Border-Ton (`--border`) |
+| 5 | `--surface2` | 4. Rang · dichte Differenzierung | Child-im-Child, dichte Dashboards/Listen — die vorderste **statische** Fläche |
+| 6 (vorne) | `--overlay0` | Vordergrund-Marker | Grip-Icons, Disabled-Text, Index-/Zähler-Glyphen (Text/Marker, **kein** Fill) |
+
+**Statische Tiefe endet bei 4 Sprossen** (`base → surface0 → surface1 → surface2`). `overlay0/1`
+ist Marker/Text, nie Fläche. Tiefere Schachtelung trennt über Spacing/Border/Text — nicht über weitere Töne.
+
+Faustregel: **eine Komponente steigt pro Schachtelungs-Tiefe genau eine Stufe.** `mantle`
+(Chrome) → `base` (Content) → `surface0` (Card) → `surface1` (Feld-in-Card). Mehr als ein
+Sprung wirkt unruhig; null Sprung lässt die Schichten verschmelzen.
+
+<Canvas of={ColorHierarchyStories.Overview} />
+
+## Full-Stack — die anderen Achsen
+
+Hintergrund ist nur eine der vier Tiefen-Achsen. Sie laufen **parallel**:
+
+- **Border:** `--border` (= `text·14%`) = Hairline-Divider (dekorativ, &lt;3:1). `--border-elevated`
+  (= `subtext0`, ≥3:1 beide Themes) = sichtbare Kante, wenn sie der **alleinige** Item-Identifier ist
+  (transparente/flush Items). `surface1` ist als Border zu schwach (1.18:1 Light) — nicht mehr nutzen.
+- **Text-Tiefe:** `text` (Primär) → `subtext0` (Sekundär) → `overlay0` (Tertiär/Meta).
+  **B02' (AA, 2026-06-20):** `subtext0` ist in Latte nur auf `base`/`mantle` AA-safe (Bump
+  `#5f6279` → 5.29 / 4.92); auf `surface0+` bleibt es &lt;AA (3.88). Daher: **funktionale
+  Mikro-Labels** (uppercase/tracking, Slot-`//`/`///`-Header) auf erhöhten Flächen nutzen
+  `text`; muted-`subtext0` nur für Prosa/Hints auf `base`/`mantle`. Gate `gf-b02-label-contrast`.
+- **Akzent:** `--accent-primary` (peach) **sparsam** — nur interaktiv/aktiv (Prompt `❯`,
+  aktive Rail-Kante `▸`, Primär-Tag). Niemals als großflächiger Hintergrund. **Layer-5-Ausnahme:**
+  `--heading-accent` (peach/red) ist eine sanktionierte *stehende* Akzent-Rolle für Slot-Headings —
+  klein gehalten (Dot + kurzer Titel), beide Themes AA bzw. AA-large.
+- **Schatten:** `shadow-card` (Panels heben sich), `shadow-pop` (Overlays/Dropdowns).
+- **State:** `--state-hover` (text·6%) / `--state-active` (text·10%) — rang-agnostisches
+  text-mix-Overlay. Funktioniert auf jeder Sprosse (surface0…surface2), **verbraucht die
+  statische Leiter nicht** und kollidiert nie mit Tiefe.
+
+## Widget-Schicht — EntityDetail-Innenleben (6-Ebenen-Anwendung)
+
+Die Slots des `EntityDetailBase`-Akkordeons werden von Widgets gefüllt, die `IssueDetails`
+(und Sprint-/Milestone-/MemoryDetails) komponieren. Verbindliche Regel (PO 2026-06-20) —
+**supersedet** die frühere „Widget-Root transparent, kein Fill / Lift nur über `--border-elevated`-
+Kante"-Studie (D02b): PoC-Evidenz aus der realen Gesamtkomposition zeigt, dass der Fill die
+Hierarchie sichtbar trägt; der Kanon zieht nach (Design-getrieben, nicht Canon-gebeugt):
+
+- **ContentWrapper (Accordion) = `--layer-2`** — Titel UND Content-Background sind EINE Ebene.
+- **WidgetBase = `--layer-3`** (`surface0`) — das Widget-Panel BEKOMMT Fill (Layer-3), nicht transparent.
+- **Bausteine / DetailsSection = `--layer-4`** (`surface1`) — Felder/Abschnitte im Widget tragen Layer-4-Fill.
+- **Slot-Heading = `--heading-accent`** (peach/red) + farbiger Dot; Sub-Heading (Baustein-Label) als
+  sekundärer Akzent (teal — Latte-AA noch zu härten).
+- **`--border`** (theme-aware Hairline) trennt die Ebenen zusätzlich — in Latte sind die Fill-Stufen
+  eng, die Border sichert die Kante (kein alleiniger Bedeutungsträger, WCAG).
+- **State** quer über `--state-*` (≤1.27:1) — als alleinige Affordanz nur transienter Hover; für
+  **persistente** Selected/Active-Zustände immer zweiter Cue (Kante/Marker/Weight, WCAG 1.4.11).
+- **Meta-Spalte** folgt derselben Leiter; Sekundär-Text trägt die Text-Achse (`subtext0` auf `base`/`mantle`).
+
+<Canvas of={ColorHierarchyStories.WidgetLayer} />
+
+## Angewandt — AppShell & Card-in-Card
+
+<Canvas of={ColorHierarchyStories.Applied} />
+
+## Do / Don't
+
+- **Do:** Rolle wählen (`surface0` = „Card"), nicht Helligkeit. Theme erledigt die Richtung.
+- **Do:** pro Schachtelung genau eine Stufe steigen.
+- **Don't:** `base`-Card auf `base`-Content (Schichten kollabieren — `--border` rettet das nur notdürftig).
+- **Don't:** zwei Stufen überspringen (`mantle`-Card direkt auf `base` ohne Zwischenebene wirkt zu hart).
+- **Don't:** Akzent (peach) als Flächen-Hintergrund — bricht die ruhige Surface-Leiter.
+
+## Barrierefreiheit
+
+- Tiefe ist nie **alleiniger** Bedeutungsträger — Border + Text-Hierarchie + Abstand tragen mit.
+- Benachbarte Surface-Stufen haben geringen Kontrast (Designabsicht); Lesbarkeit kommt aus
+  der **Text-Achse** (`text`/`subtext0`), nicht aus dem Flächen-Delta.
+- `--border` (theme-aware aus `--text` abgeleitet) sichert sichtbare Kanten auch dort, wo
+  zwei gleiche Surfaces aufeinandertreffen.

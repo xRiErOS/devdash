@@ -1,0 +1,52 @@
+{/* GF-360 — ActivityList Doku-Tab. Pflichtabschnitte: Zweck · Wann · Props ·
+    Zustände · a11y · Beispiele. KEIN rohes Kleiner-Zeichen (LL01). */}
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as ActivityListStories from './ActivityList.stories.jsx'
+
+<Meta of={ActivityListStories} />
+
+# ActivityList
+
+`status:stable` · Organism · Cluster `05.30 Widgets` · GF-332
+
+## Zweck
+
+Chronologische Audit-Timeline einer Entität: wer hat wann was geändert. Jeder Eintrag zeigt
+Aktion, Zeitstempel (relativ), alte/neue Werte bei Status- und Sprint-Wechseln sowie eine
+Agent-Herkunfts-Pill (z.B. `claude-opus`, `archon-runner`). Rein präsentational — kein
+Live-Fetch, keine Mutations.
+
+## Ebene-6-Capability-Gegencheck
+
+ActivityList deckt `issue-activity` (read-only). Schreibende Operationen liegen bei
+TransitionActionsWidget (OR-13) und EntityMeta (OR-12). Kein Overlap mit anderen
+Display-Widgets des 05.30-Clusters.
+
+## Wann verwenden
+
+- **Ja:** Audit-Tab oder Timeline-Region einer Issue-/Sprint-/Milestone-Detailseite.
+- **Nein:** Direkte Aktionsauslösung → `TransitionActionsWidget`. Gespeicherter Kontext
+  (Memories) → `AttachmentsAndMemories`.
+
+## Props
+
+<ArgTypes of={ActivityListStories} />
+
+`activity` = `{ id, action, timestamp, agent_id?, old_value?, new_value? }[]`.
+`loading` schaltet einen Lade-Skeleton ein.
+
+## Zustände
+
+**Default** — befüllte Timeline mit heterogenen Aktionstypen und Agent-Pills.
+**Loading** — Skeleton-Platzhalter während des Datenabrufs.
+**Empty** — leere Timeline mit Hinweistext (noch keine Aktivität).
+
+<Canvas of={ActivityListStories.Default} />
+<Canvas of={ActivityListStories.State_Loading} />
+<Canvas of={ActivityListStories.State_Empty} />
+
+## Barrierefreiheit
+
+- Timeline-Items sind semantisch als Liste gerendert.
+- Agent-Herkunfts-Pill ist dekorativ — die Bedeutung trägt der Aktionstext.
+- Zeitstempel trägt den ISO-Vollwert als `title`-Attribut (Tooltip für absolute Zeit).

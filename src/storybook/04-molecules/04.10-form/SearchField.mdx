@@ -1,0 +1,52 @@
+{/* GF-208-Muster — SearchField-MDX. Pflichtabschnitte:
+    Zweck · Wann · Props · Zustände · a11y · Beispiele. */}
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as SearchFieldStories from './SearchField.stories.jsx'
+
+<Meta of={SearchFieldStories} />
+
+# SearchField
+
+`status:stable` · Molecule · Cluster `04.10 Form`
+
+## Zweck
+
+Such-Eingabe mit führendem Such-Icon und einem Clear-Button, der erscheint, sobald
+ein Wert anliegt. Komponiert das `Input`-Atom (leadingIcon) + ein `IconButton`-Atom
+(Reset).
+
+Dumb-Molecule (CONV-molecule-boundary): rein präsentational, KEINE Such-, Fetch-
+oder Debounce-Logik. Vollständig controlled — `value`/`onChange` und der Reset
+(`onClear`) kommen vom konsumierenden Organismus (Toolbar, FilterBar).
+
+## Wann verwenden
+
+- **Ja:** Filtern/Durchsuchen einer Liste, bei der ein Reset-Affordance erwartet
+  wird.
+- **Nein:** normale Texteingabe → `Input`. Passwort → `PasswordField`. Globale
+  Command-/Sprung-Suche (⌘K) → Organismus (CommandPalette), nicht hier.
+
+## Props
+
+<ArgTypes of={SearchFieldStories} />
+
+## Zustände
+
+Leer (kein Clear-Button), gefüllt (Clear sichtbar), gesperrt (`disabled` — Feld
+und Clear inaktiv). Der Clear-Button leitet sich rein aus `value` ab.
+
+<Canvas of={SearchFieldStories.Variant_States} />
+
+## Barrierefreiheit
+
+- `<input type="search">` — native Such-Semantik + iOS-Zoom-Schutz (16px).
+- Such-Icon ist `aria-hidden` (Dekoration); das `placeholder`/Label trägt die
+  Bedeutung.
+- Clear-Button trägt `aria-label="Suche leeren"`; sein X-Icon ist `aria-hidden`.
+
+## Beispiele
+
+Interaktiver Default — Controls-Panel steuert value/placeholder/disabled:
+
+<Canvas of={SearchFieldStories.Default} />
+<Controls of={SearchFieldStories.Default} />

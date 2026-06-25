@@ -1,0 +1,57 @@
+# DD-230: keep build context lean. node_modules + dist are rebuilt in-image;
+# data/ + bak files are runtime state and MUST NOT be baked into the image.
+
+# Build artifacts
+node_modules
+dist
+.vite
+*.tsbuildinfo
+
+# VCS + IDE
+.git
+.gitignore
+.gitattributes
+.vscode
+.idea
+*.swp
+
+# Local config + secrets
+.env
+.env.*
+!.env.example
+
+# Runtime state (mounted via volume, never copy into image).
+# Exception: data/migrations IS shipped — the migrate.js runner needs the .sql
+# files baked into the image so `node scripts/migrate.js` works on first boot.
+data/*
+!data/migrations
+*.db
+*.db-shm
+*.db-wal
+*.db.bak.*
+uploads
+public/uploads
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Test + coverage
+coverage
+.nyc_output
+test-results
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Documentation that does not belong in image
+*.md
+!README.md
+docs
+
+# Editor / scratch
+.cache
+tmp

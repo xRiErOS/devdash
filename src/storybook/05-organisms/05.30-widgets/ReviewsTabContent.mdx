@@ -1,0 +1,62 @@
+{/* GF-360 — ReviewsTabContent Doku-Tab. Pflichtabschnitte: Zweck · Wann · Props ·
+    Zustände · a11y · Beispiele. KEIN rohes Kleiner-Zeichen (LL01). */}
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as ReviewStories from './ReviewsTabContent.stories.jsx'
+
+<Meta of={ReviewStories} />
+
+# ReviewsTabContent
+
+`status:stable` · Organism · Cluster `05.30 Widgets` · GF-332
+
+## Zweck
+
+Review-Anzeige für ein Issue: zeigt die Runden-Historie (Verdikt-Badge je Runde + Notes)
+und optional eine UserStory-Granularität (Goal/Background-Kontext + je Review-Eintrag
+eine ItemList mit `accepted`/`rejected`-Verdikten je UserStory). Geteilt zwischen
+SprintReviewPage und IssueDetailsPage (D12). Rein präsentational — Aggregation
+`passed`/`rejected` ist Backend-Verantwortung (BE2).
+
+## Zwei Modi
+
+| Modus | Beschreibung | Schlüssel-Props |
+|---|---|---|
+| **Runden-Historie** | Chronologische Liste der Review-Runden mit Gesamt-Verdikt | `reviews` |
+| **UserStory-Granularität** | Goal/Background-Kontext + je Runde eine UserStory-ItemList | `goal`, `background`, `reviews[].userStories` |
+
+Der Modus wird durch das Vorhandensein von `goal`/`background` und `reviews[].userStories`
+gesteuert — keine separate Mode-Prop nötig.
+
+## Ebene-6-Capability-Gegencheck
+
+OR-14 deckt `issue-review-list` (read-only Anzeige). Das Setzen eines Verdikts (`review-set-verdict`)
+liegt beim Consumer (SprintReviewPage) — ReviewsTabContent delegiert via `onSelectRound`.
+
+## Wann verwenden
+
+- **Ja:** Review-Tab einer Issue-Detailseite oder im SprintReview-Kontext.
+- **Nein:** Aktives Setzen eines Verdikts → Consumer-Layer. UserStory-CRUD → `UserStoriesWidget`.
+
+## Props
+
+<ArgTypes of={ReviewStories} />
+
+`reviews` = `{ id, review_status, created_at, notes?, userStories? }[]`.
+`userStories` je Runde = `{ key, title, verdict }[]` mit `verdict` in `accepted | rejected | open`.
+
+## Zustände
+
+**Default** — Runden-Historie (Bestandsmodell) ohne UserStory-Granularität.
+**UserStoryGranularity** — Goal/Background + UserStory-ItemList je Runde.
+**Empty** — noch keine Reviews; Hinweistext.
+
+<Canvas of={ReviewStories.Default} />
+<Canvas of={ReviewStories.Main} />
+<Canvas of={ReviewStories.State_Empty} />
+
+## Barrierefreiheit
+
+- Verdikt-Badge ist textuell (`passed` / `not_passed`) — keine rein farb-basierte Bedeutung.
+- Zeitstempel trägt den ISO-Vollwert als `title`-Attribut.
+- UserStory-ItemList nutzt semantische Listenstruktur; accepted/rejected ist textuell
+  zusätzlich zum Icon kommuniziert.

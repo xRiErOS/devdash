@@ -1,0 +1,54 @@
+{/* GF-208-Muster — TagChip-MDX. Pflichtabschnitte:
+    Zweck · Wann · Props · Zustände · a11y · Beispiele. */}
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as TagChipStories from './TagChip.stories.jsx'
+
+<Meta of={TagChipStories} />
+
+# TagChip
+
+`status:stable` · Molecule · Cluster `04.40 Data Display`
+
+## Zweck
+
+Die interaktive Variante des read-only `Tag`-Atoms (D06): Tag + optionaler
+Count-Badge (z.B. Häufigkeit) + optionaler Remove-Button. Komponiert `Tag`,
+`Badge` und `IconButton`.
+
+Dumb-Molecule (CONV-molecule-boundary): präsentational, kein eigener State.
+`onRemove` ist der Consumer-Callback (Entfernen aus der Auswahl); der Remove-
+Button erscheint nur, wenn `onRemove` gesetzt ist.
+
+## Wann verwenden
+
+- **Ja:** entfernbare Tag-Auswahl (Filter-Chips, Label-Editor), optional mit
+  Häufigkeits-Count.
+- **Nein:** reiner read-only Metadaten-Marker → `Tag`-Atom. Status-Anzeige →
+  `StatusBadge`. Entitäts-Referenz (DD-42) → `EntityPill`.
+
+## Props
+
+<ArgTypes of={TagChipStories} />
+
+## Zustände
+
+Farbe folgt dem `color`-Token; `count` blendet einen Badge ein; `onRemove`
+schaltet den Remove-Button frei (`disabled` sperrt ihn). Ohne `onRemove` ist der
+Chip nicht entfernbar.
+
+<Canvas of={TagChipStories.Variant_Colors} />
+<Canvas of={TagChipStories.Variant_Composition} />
+
+## Barrierefreiheit
+
+- Der Remove-Button (`IconButton`) trägt ein `aria-label` (z.B. „Label
+  entfernen"); sein X-Icon ist `aria-hidden`.
+- Der Farb-Punkt des Tags ist `aria-hidden` (Dekoration); das Label trägt die
+  Bedeutung — Farbe ist nie das alleinige Signal.
+
+## Beispiele
+
+Interaktiver Default — Controls-Panel steuert color/count/label/disabled:
+
+<Canvas of={TagChipStories.Default} />
+<Controls of={TagChipStories.Default} />

@@ -1,0 +1,32 @@
+import { Meta, Primary, Controls, Stories } from '@storybook/addon-docs/blocks'
+import * as SprintBoardColumnStories from './SprintBoardColumn.stories.jsx'
+
+<Meta of={SprintBoardColumnStories} />
+
+# SprintBoardColumn
+
+Die **Status-Lane** des SprintBoards (04.40 Data Display, GF-325). Komponiert die Basis
+`BoardColumn` (filled) — bewusst minimal gegenüber MilestoneBoardColumn (D01/D02-Split).
+
+## Zweck
+
+Status-Lanes (New/In Arbeit/Erledigt) brauchen weder Reorder noch Ziel-/Progress-Meta.
+Die schmale Prop-Menge spiegelt das — kein Durchschleifen ungenutzter Milestone-Props.
+
+## Was sie hat (vs MilestoneBoardColumn)
+
+- **Count-Pill** (D04-Variante b) — Issue-Anzahl der Lane.
+- **KEIN DragHandle** (D05) — Status-Lanes sind konsekutiv, nicht umsortierbar.
+- **KEIN Subheader** — keine Ziel-/Progress-Meta.
+- optionaler **footer**-Slot — AssignDropZone als Drag-Ziel.
+
+## Props
+
+`label` · `count` · `footer` · `empty`/`emptyHint` · `children` (Issue-Cards).
+
+`data-ui` — Parent-Scope (D01): `sprint-board.lane-<key>` → `.count` +
+BoardColumn-`.header` / `.title` / `.empty-hint`.
+
+<Primary />
+<Controls />
+<Stories />

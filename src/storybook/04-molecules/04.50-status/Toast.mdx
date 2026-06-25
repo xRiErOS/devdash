@@ -1,0 +1,49 @@
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as ToastStories from './Toast.stories.jsx'
+
+<Meta of={ToastStories} />
+
+# Toast
+
+`status:review` · Molecule · Cluster `04.50 Status`
+
+## Zweck
+
+Präsentationale Feedback-Molecule: rendert EINE Toast-Zeile — führendes
+kind-Icon, Message und optionalen Dismiss-Button. Single-Source des
+Toast-Auftritts; mappt `kind` auf Icon-Rolle und Akzent-Token.
+
+## Wann verwenden
+
+Für eine einzelne, kurzlebige Erfolgs-, Fehler- oder Hinweis-Meldung. Das
+Einsammeln des window-Events `devd-toast`, Auto-Dismiss und Stacking sind
+HOST-Sache (ToastHost) — diese Molecule trägt keine Interaktionslogik
+(`qa_behavioral:n/a`).
+
+## Props
+
+`message` (Text) · `kind` (`success` | `error` | `info`) · `onDismiss`
+(Callback — gesetzt blendet den Dismiss-Button ein).
+
+## Zustände
+
+`kind` steuert Icon-Rolle und Akzent: `success` (grün) · `error` (rot) ·
+`info` (surface1). Mit und ohne Dismiss.
+
+<Canvas of={ToastStories.Main} />
+<Canvas of={ToastStories.Variant_Error} />
+<Canvas of={ToastStories.Variant_Info} />
+
+## Barrierefreiheit
+
+Wrapper trägt `role="status"` und `aria-live="polite"`, damit Screenreader die
+Meldung ansagen. Der Dismiss-Button ist ein `IconButton` mit
+`aria-label="Schließen"`; das kind-Icon ist `aria-hidden` (Bedeutung trägt die
+Message).
+
+## Beispiele
+
+Interaktiver Default-Render — Controls-Panel steuert `message` und `kind`:
+
+<Canvas of={ToastStories.Default} />
+<Controls of={ToastStories.Default} />

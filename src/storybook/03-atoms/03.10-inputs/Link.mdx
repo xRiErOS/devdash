@@ -1,0 +1,51 @@
+{/* Begleit-MDX. Pflichtabschnitte: Zweck · Wann · Props · Zustände · a11y ·
+    Beispiele. <Meta of={…}> hängt diese Seite als Doku-Tab des Components ein. */}
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as LinkStories from './Link.stories.jsx'
+
+<Meta of={LinkStories} />
+
+# Link
+
+`status:stable` · Atom · Cluster `03.10 Inputs`
+
+## Zweck
+
+Styled Navigations-Link auf nativem `<a href>`. Trägt jede Navigation (intern
+oder extern), token-sauber und props-driven — kein Store, kein Fetch.
+
+## Wann verwenden
+
+- **Ja:** Navigation zu einer URL/Route (intern oder extern).
+- **Nein:** ausgelöste Aktion (Speichern, Löschen) → `Button`. Reines Icon ohne
+  Text → `IconButton`.
+
+## Props
+
+<ArgTypes of={LinkStories} />
+
+## Zustände
+
+- `variant` — `default` (Akzent `--accent-info`) vs. `muted` (`--subtext0`).
+- `external` — öffnet in neuem Tab (`target=_blank` + `rel=noopener noreferrer`)
+  und hängt ein `ExternalLink`-Indikator-Icon an.
+- `obsidian` — kennzeichnet Obsidian-URIs (`obsidian://…`): hängt ein Gem-Icon
+  an und härtet via `rel=noopener noreferrer`.
+- Hover unterstreicht den Text (`hover:underline`).
+
+<Canvas of={LinkStories.Variants} />
+<Canvas of={LinkStories.States} />
+
+## Barrierefreiheit
+
+- Natives `<a href>` — Fokus + Enter gratis, semantisch korrekt für Navigation.
+- `external` härtet via `rel=noopener noreferrer` gegen `window.opener`-Leaks.
+- Das Extern-Icon ist `aria-hidden` — die Bedeutung trägt der Link-Text.
+- Eigenes `aria-label` lässt sich via `...rest` überschreiben.
+
+## Beispiele
+
+Interaktiver Default-Render — Controls-Panel steuert alle Props:
+
+<Canvas of={LinkStories.Default} />
+<Controls of={LinkStories.Default} />

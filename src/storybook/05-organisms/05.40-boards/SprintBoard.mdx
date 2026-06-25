@@ -1,0 +1,55 @@
+{/* GF-261 — SprintBoard Doku-Tab. KEIN rohes Kleiner-Zeichen (LL01). */}
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as SprintBoardStories from './SprintBoard.stories.jsx'
+
+<Meta of={SprintBoardStories} />
+
+# SprintBoard
+
+`status:stable` · Organism · Cluster `05.40 Boards` · OR-14 · GF-261
+
+## Zweck
+
+Swimlanes je Status: eine Lane je Status (In Arbeit / Review / Done) mit den
+zugehörigen Issue-Cards (`EntityItem`) und — wenn `assignable` — einer `AssignDropZone`
+(OR-15) als Drag-Ziel. Desktop-Drag-Assign (Touch deferred, D09).
+
+## Ebene-6-Capability-Gegencheck (A4)
+
+OR-14 trägt **keine gemined Capability** (`_ebene6.md`) — präsentationale Board-Sicht.
+Die Status-Transition selbst ist `TransitionActionsWidget` (OR-18) / `StatusBadgeSelect`.
+
+## Reflow-Vertrag (D10-G, LL16)
+
+Die Lanes liegen in einem `Grid`-Primitiv (Auto-Fit, `minmax(laneMin, 1fr)`):
+intrinsischer Umbruch ohne Viewport-Breakpoint, kein `@container var()`-Verstoß
+(`var()` ist in Feature-Conditions spec-verboten). `laneMin` (Default 15rem) ist die
+einzige Reflow-Schwelle; auf schmalem Container stacken die Lanes.
+
+## Wann verwenden
+
+- **Ja:** Issues eines Sprints nach Status (Kanban-Lanes) + Drag-Assign.
+- **Nein:** Milestones/Sprints-Übersicht → `RoadmapBoard` (OR-13).
+
+## Props
+
+<ArgTypes of={SprintBoardStories} />
+
+`lanes` = `{ key, label, status?, issues? }[]`; `issues` = `{ key, name, status?, priority? }[]`.
+`assignable` blendet je Lane eine AssignDropZone ein.
+
+## Zustände
+
+Lanes mit Issues + AssignDropZone · leere Lane (Hinweis) · leeres Board (Hinweis).
+
+<Canvas of={SprintBoardStories.State_Empty} />
+
+## Barrierefreiheit
+
+- Issue-Cards sind `EntityItem`-Organismen (Drag-Handle, Tastatur über die Atome).
+- AssignDropZone ist `role="button"` + `aria-label` (DropZone-Molekül).
+
+## Beispiele
+
+<Canvas of={SprintBoardStories.Default} />
+<Controls of={SprintBoardStories.Default} />

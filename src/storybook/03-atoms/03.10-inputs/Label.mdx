@@ -1,0 +1,54 @@
+{/* GF-2 Begleit-MDX (Muster = Button.mdx). Pflichtabschnitte:
+    Zweck · Wann · Props · Zustände · a11y · Beispiele. <Meta of={…}> hängt
+    diese Seite als Doku-Tab des Components ein. */}
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as LabelStories from './Label.stories.jsx'
+
+<Meta of={LabelStories} />
+
+# Label
+
+`status:stable` · Atom · Cluster `03.10 Inputs`
+
+## Zweck
+
+Token-saubere Form-Feld-Beschriftung auf nativem `<label htmlFor>`. Bindet die
+Beschriftung an ein Feld (`htmlFor` → `id`): Klick auf den Text fokussiert das
+Feld, Screenreader lesen die Beschriftung beim Fokus vor. Props-driven, kein
+Store — Begleiter der Inputs-Familie neben `Input`, `Select` und `Checkbox`.
+
+## Wann verwenden
+
+- **Ja:** sichtbare Beschriftung über/neben einem `Input`, `Select`, `Textarea`.
+- **Nein:** rein dekorativer Text → normales `span`. Eingebettetes Label
+  innerhalb der `Checkbox` (die bringt ihr eigenes `label` mit) → `label`-Prop
+  der `Checkbox`.
+
+## Props
+
+<ArgTypes of={LabelStories} />
+
+## Zustände
+
+`required` rendert einen reinen Deko-`*`-Marker (`--accent-danger`,
+`aria-hidden`). `size` (`sm` = `text-xs`, `md` = `text-sm`). Über `htmlFor`
+wird die Feld-Bindung gesetzt; `...rest` (z.B. `id`, `onClick`) wird an das
+native `label` geforwardet.
+
+<Canvas of={LabelStories.States} />
+
+## Barrierefreiheit
+
+- Natives `<label htmlFor>` — Klick fokussiert das Zielfeld, Screenreader-Bindung gratis.
+- Der `*`-Marker ist `aria-hidden` (reine Deko). Die maschinenlesbare
+  Pflicht-Semantik gehört ans Feld selbst (`required` / `aria-required` am Input),
+  nicht ans Label.
+- Farbe ist nicht der einzige Bedeutungsträger: der `*` ist zusätzlich textlich
+  vorhanden, nicht nur farblich kodiert.
+
+## Beispiele
+
+Interaktiver Default-Render — Controls-Panel steuert alle Props:
+
+<Canvas of={LabelStories.Default} />
+<Controls of={LabelStories.Default} />

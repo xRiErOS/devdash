@@ -1,0 +1,47 @@
+{/* GF-2 P1 — Skeleton-Doku. Pflichtabschnitte: Zweck · Wann · Props · Zustände · a11y · Beispiele. */}
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as SkeletonStories from './Skeleton.stories.jsx'
+
+<Meta of={SkeletonStories} />
+
+# Skeleton
+
+`status:stable` · Atom · Cluster `03.20 Display`
+
+## Zweck
+
+Basis-Atom: token-sauberer Lade-Platzhalter (`animate-pulse`, Fläche `--surface1`,
+`rounded`). Überbrückt die Zeit, bis echte Inhalte geladen sind, und hält das
+Layout stabil (kein Content-Shift). Props-driven.
+
+## Wann verwenden
+
+- **Ja:** Platzhalter für noch ladende Text-Zeilen (`line`), Karten-/Flächen-Inhalte
+  (`block`) oder Avatare/Icons (`circle`).
+- **Nein:** indeterminierter Fortschritt ohne Layout-Bezug → `ProgressBar`/`ProgressDots`.
+  Leerer Zustand mit Hinweistext → eigenes Empty-State-Markup, kein Skeleton.
+
+## Props
+
+<ArgTypes of={SkeletonStories} />
+
+## Zustände
+
+`variant` steuert die Form: `line` (schlanke Textzeile, `rounded`), `block`
+(Flächen-Platzhalter, `rounded-lg`), `circle` (1:1, `rounded-full`). `width` und
+`height` setzen die Maße über Tailwind-Arbitrary-Tokens (`w-[…]`/`h-[…]`) — kein
+inline-style.
+
+<Canvas of={SkeletonStories.Variants} />
+
+## Barrierefreiheit
+
+- Reiner visueller Platzhalter → `aria-hidden="true"`, damit Screenreader den
+  Skeleton überspringen (kein semantischer Inhalt).
+- Trägt keinen Text und keine Bedeutung; der Lade-Status sollte parallel über die
+  umgebende Region (`aria-busy`) kommuniziert werden.
+
+## Beispiele
+
+<Canvas of={SkeletonStories.Default} />
+<Controls of={SkeletonStories.Default} />

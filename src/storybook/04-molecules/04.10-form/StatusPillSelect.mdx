@@ -1,0 +1,55 @@
+{/* GF-208-Muster — StatusPillSelect-MDX. Pflichtabschnitte:
+    Zweck · Wann · Props · Zustände · a11y · Beispiele. */}
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as StatusPillSelectStories from './StatusPillSelect.stories.jsx'
+
+<Meta of={StatusPillSelectStories} />
+
+# StatusPillSelect
+
+`status:stable` · Molecule · Cluster `04.10 Form`
+
+## Zweck
+
+Zeigt den aktuellen Status als `StatusBadge` und bietet daneben ein `Select`-Atom
+zum Wechsel. Komponiert beide Atome zu einer Statuswechsel-Affordanz.
+
+Bewusst **dumb** (CONV-molecule-boundary, I02): rein präsentational, KEINE
+Lifecycle-/Transition-/Validierungs-Logik. Das Select ist controlled über
+`status`; welche Übergänge erlaubt sind und was beim Wechsel passiert (Persistenz,
+erlaubte Transitions), verdrahtet der konsumierende Organismus über `onChange`.
+Mit Transition-Logik wäre es ein Organismus.
+
+## Wann verwenden
+
+- **Ja:** kompakte Statuswechsel-Stelle, an der der aktuelle Status sichtbar
+  bleiben soll (Issue-Row, Detail-Header).
+- **Nein:** freie Auswahl ohne Status-Semantik → `Select`. Nur-Anzeige ohne
+  Wechsel → `StatusBadge`. Mehrstufiger Lifecycle mit Guards → Organismus, der
+  diese Molecule komponiert.
+
+## Props
+
+<ArgTypes of={StatusPillSelectStories} />
+
+## Zustände
+
+Pro Status-Schlüssel folgt der Badge-Tone (`new`→gelb, `in_progress`→peach,
+`done`→teal …, aus dem `StatusBadge`-Enum); `disabled` sperrt das Select.
+
+<Canvas of={StatusPillSelectStories.Variant_States} />
+
+## Barrierefreiheit
+
+- Das Select ist ein natives `<select>` — Tastatur + mobiler Picker gratis.
+- Der Badge trägt den Status als Klartext-Label (nicht nur Farbe) → kein
+  Farb-allein-Signal.
+- `font-size: 16px` am Select (iOS-Zoom-Schutz, vom Select-Atom).
+
+## Beispiele
+
+Interaktiver Default — Controls-Panel steuert Status/disabled (`onChange` ist
+Consumer-Sache):
+
+<Canvas of={StatusPillSelectStories.Default} />
+<Controls of={StatusPillSelectStories.Default} />

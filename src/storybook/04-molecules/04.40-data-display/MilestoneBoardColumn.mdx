@@ -1,0 +1,40 @@
+import { Meta, Primary, Controls, Stories } from '@storybook/addon-docs/blocks'
+import * as MilestoneBoardColumnStories from './MilestoneBoardColumn.stories.jsx'
+
+<Meta of={MilestoneBoardColumnStories} />
+
+# MilestoneBoardColumn
+
+Die **Milestone-Spalte** des RoadmapBoards (04.40 Data Display, GF-324). Komponiert die
+Basis `BoardColumn` (filled) und füllt sie milestone-spezifisch.
+
+## Zweck
+
+D01/D02-Split: statt EINER generischen Spalte mit Prop-Polymorphie gibt es zwei
+typisierte Wrapper. MilestoneBoardColumn trägt das, was eine Milestone-Spalte braucht —
+und nur das.
+
+## Was sie hat (vs SprintBoardColumn)
+
+- **DragHandle** (D05) — Milestones sind umsortierbar (`reorderable`, Default an).
+- **Trailing** (D04) — `status` → `StatusBadge` (`.status`) ODER `count` → `Pill`
+  (`.count`, z.B. „NICHT ZUGEORDNET").
+- **Subheader-Meta** (D06) — `description` + `target` (Ziel-Datum) + `progress`
+  (ProgressBar) + `counts` (Sp·Iss). Liegt im subheader-Slot, NICHT im lean Header-Bar.
+
+## Props
+
+`name` · `status` | `count` · `description` · `target` · `progress={value,max}` ·
+`counts` · `reorderable` (Default true) · `empty`/`emptyHint` · `children` (Sprint-Cards).
+
+`data-ui` — Parent-Scope (D01/D07): `roadmap-board.column-<id>` → `.drag-handle` /
+`.status` / `.count` / `.target` / `.progress` / `.counts` + BoardColumn-`.header` /
+`.title` / `.subheader` / `.empty-hint`.
+
+## a11y
+
+Erbt von BoardColumn (echtes `<header>`); DragHandle ist ein fokussierbarer Button.
+
+<Primary />
+<Controls />
+<Stories />

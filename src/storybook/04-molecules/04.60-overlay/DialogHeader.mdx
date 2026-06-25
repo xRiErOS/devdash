@@ -1,0 +1,49 @@
+{/* GF-243 — DialogHeader-MDX. Pflichtabschnitte: Zweck · Wann · Props · Zustände · a11y · Beispiele. */}
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as DialogHeaderStories from './DialogHeader.stories.jsx'
+
+<Meta of={DialogHeaderStories} />
+
+# DialogHeader
+
+`status:stable` · Molecule · Cluster `04.60 Overlay`
+
+## Zweck
+
+Die Kopfzeile eines Dialogs: Titel-Text (+ optionaler Subtitle) links, optionale
+Actions + Close-IconButton rechts. Paart mit `ModalShell` (headerless-Modus) —
+liefert den Close-X, den ModalShells eigener Header bewusst nicht mitbringt.
+
+Dumb-Molecule (CONV-molecule-boundary): reine Slots/Callbacks, kein State.
+
+## Wann verwenden
+
+- **Ja:** Dialog-/Sheet-Kopf mit Titel und Close-Affordanz, optional mit
+  Hilfe-/Extra-Action.
+- **Nein:** der schlichte ModalShell-Titel-Header genügt → `ModalShell` `title`.
+  Aktionsleiste → `DialogFooter`.
+
+## Props
+
+<ArgTypes of={DialogHeaderStories} />
+
+## Zustände
+
+`onClose` schaltet den Close-IconButton frei (ohne → statischer Header).
+`subtitle` blendet eine Unterzeile ein; `actions` setzt Extra-Buttons vor den
+Close.
+
+<Canvas of={DialogHeaderStories.Variant_Composition} />
+<Canvas of={DialogHeaderStories.Variant_States} />
+
+## Barrierefreiheit
+
+- `<h2>` als Titel; `titleId` koppelt ihn via `aria-labelledby` an den Dialog.
+- Der Close-IconButton trägt ein `aria-label` („Schließen"); sein X ist `aria-hidden`.
+
+## Beispiele
+
+Interaktiver Default — Controls-Panel steuert title/subtitle:
+
+<Canvas of={DialogHeaderStories.Default} />
+<Controls of={DialogHeaderStories.Default} />

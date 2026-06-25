@@ -1,0 +1,46 @@
+{/* GF-243 — DialogFooter-MDX. Pflichtabschnitte: Zweck · Wann · Props · Zustände · a11y · Beispiele. */}
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as DialogFooterStories from './DialogFooter.stories.jsx'
+
+<Meta of={DialogFooterStories} />
+
+# DialogFooter
+
+`status:stable` · Molecule · Cluster `04.60 Overlay`
+
+## Zweck
+
+Die Aktionsleiste am Fuß eines Dialogs: ein Button-Slot, per Default
+rechtsbündig. Paart mit `ModalShell` (footer-Slot) oder steht standalone.
+
+Dumb-Molecule (CONV-molecule-boundary): reiner Slot — die Button-Atome und ihre
+Callbacks bringt der Consumer mit.
+
+## Wann verwenden
+
+- **Ja:** Bestätigen/Abbrechen-Leiste eines Dialogs, optional mit destruktiver
+  Aktion oder `between`-Ausrichtung (Hilfe links).
+- **Nein:** Dialog-Kopf → `DialogHeader`. Listen-Aktionsleiste → `StickyActionBar`.
+
+## Props
+
+<ArgTypes of={DialogFooterStories} />
+
+## Zustände
+
+`align` steuert die Ausrichtung (`end` Default · `between` · `start`). Der Inhalt
+ist ein freier Button-Slot.
+
+<Canvas of={DialogFooterStories.Variant_Composition} />
+
+## Barrierefreiheit
+
+- Reiner Layout-Container; die Button-Atome bringen Fokus + Semantik mit. Die
+  primäre Aktion steht rechts (LTR-Konvention).
+
+## Beispiele
+
+Interaktiver Default — Controls-Panel steuert align:
+
+<Canvas of={DialogFooterStories.Default} />
+<Controls of={DialogFooterStories.Default} />

@@ -1,0 +1,55 @@
+{/* GF-208-Muster — ActionMenuItem-MDX. Pflichtabschnitte:
+    Zweck · Wann · Props · Zustände · a11y · Beispiele. */}
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as ActionMenuItemStories from './ActionMenuItem.stories.jsx'
+
+<Meta of={ActionMenuItemStories} />
+
+# ActionMenuItem
+
+`status:stable` · Molecule · Cluster `04.30 Action`
+
+## Zweck
+
+Eine Zeile in einem Overflow-/Bulk-Menü: führendes Icon + Label + optionaler
+Tastatur-Shortcut (rechtsbündig). Rendert ihr eigenes `role="menuitem"`-Button-
+Root und komponiert das `Kbd`-Atom für den Shortcut.
+
+Dumb-Molecule (CONV-molecule-boundary): präsentational, kein Menü-/Focus-State.
+Den Klick und die Menü-Mechanik (Roving-Tabindex, Schließen) verdrahtet der
+konsumierende Organismus (ActionMenu/BulkActionBar).
+
+## Wann verwenden
+
+- **Ja:** Einträge in einem Dropdown-/Kontext-/Bulk-Menü, gern mit Shortcut-Hinweis.
+- **Nein:** Sidebar-Navigation → `NavItem`. Freistehende Aktion → `Button`.
+  Tab-Leiste → `TabButton`.
+
+## Props
+
+<ArgTypes of={ActionMenuItemStories} />
+
+## Zustände
+
+Default vs. gesperrt (`disabled`) vs. destruktiv (`danger` → Danger-Akzent am
+Label). Der Shortcut-Slot rendert ein oder mehrere `Kbd` (Kombo via Array). Ohne
+`children` rendert die Zeile icon-only (kompakt, `label` als `aria-label` Pflicht).
+
+<Canvas of={ActionMenuItemStories.Variant_States} />
+
+## Barrierefreiheit
+
+- `role="menuitem"` auf nativem `<button>` — Fokus/Enter/Space gratis; der
+  Organismus klammert die Items in `role="menu"`.
+- Das führende Icon ist dekorativ (`mono`/role, aria-hidden); das Label trägt die
+  Bedeutung.
+- Der Shortcut ist als `<kbd>` ausgezeichnet (semantisch + visuell).
+
+## Beispiele
+
+Interaktiver Default — Controls-Panel steuert Label/shortcut/danger/disabled:
+
+<Canvas of={ActionMenuItemStories.Default} />
+<Controls of={ActionMenuItemStories.Default} />
+
+<Canvas of={ActionMenuItemStories.Variant_Composition} />

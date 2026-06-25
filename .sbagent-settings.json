@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm test)",
+      "Bash(npm test *)",
+      "Bash(npm run test:*)",
+      "Bash(npx vitest *)",
+      "Bash(npx vitest)",
+      "Bash(npm run lint)",
+      "Bash(npm run lint:*)",
+      "Bash(npx eslint *)",
+      "Bash(npx stylelint *)",
+      "Bash(npm run build-storybook)",
+      "Bash(npm run build-storybook *)",
+      "Bash(npm run storybook)",
+      "Bash(npm run storybook *)",
+      "Bash(npx storybook *)",
+      "Bash(npx playwright *)",
+      "Bash(lsof *)",
+      "Bash(pkill -f storybook*)"
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "/bin/bash ~/.claude/statusline-command.sh"
+  },
+  "enabledPlugins": {
+    "caveman@caveman": true,
+    "context-mode@context-mode": true
+  },
+  "extraKnownMarketplaces": {
+    "context-mode": {
+      "source": { "source": "github", "repo": "mksglu/context-mode" }
+    },
+    "caveman": {
+      "source": { "source": "github", "repo": "JuliusBrussee/caveman" }
+    }
+  }
+}

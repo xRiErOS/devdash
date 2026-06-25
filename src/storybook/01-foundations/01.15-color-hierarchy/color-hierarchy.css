@@ -1,0 +1,386 @@
+/* GF — 01.15 Color Hierarchy Study-Styling. Liest ausschließlich var(--*) aus
+   src/index.css (Token-Master, D02). Kein inline-style; Hex NUR im sanktionierten
+   Theme-Mirror unten (für Side-by-Side, siehe dort). Theme-reaktiv (data-theme-Decorator). */
+
+/* ============================================================================
+   1) ELEVATION-LEITER — back-to-front Z-Stapel (theme-reaktiv, ein Theme)
+   ========================================================================== */
+.ch-ladder {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 720px;
+}
+.ch-layer {
+  display: grid;
+  grid-template-columns: 132px 1fr;
+  align-items: stretch;
+  border: 1px solid var(--surface1);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  /* Treppen-Versatz: hintere Schichten leicht eingerückt → Tiefenillusion. */
+  margin-inline-start: var(--ch-indent, 0);
+}
+.ch-layer__chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 54px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--subtext0);
+  border-inline-end: 1px solid var(--surface1);
+}
+.ch-layer__meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--base);
+}
+.ch-layer__role {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.ch-layer__use {
+  font-size: 12px;
+  color: var(--subtext0);
+  line-height: 1.4;
+}
+.ch-layer__token {
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: var(--overlay1);
+}
+
+/* Chip-Hintergründe = die Schicht-Farbe selbst (Tiefen-Leiter). */
+.ch-chip--crust { background: var(--crust); }
+.ch-chip--mantle { background: var(--mantle); }
+.ch-chip--base { background: var(--base); }
+.ch-chip--surface0 { background: var(--surface0); }
+.ch-chip--surface1 { background: var(--surface1); }
+.ch-chip--surface2 { background: var(--surface2); }
+.ch-chip--overlay0 { background: var(--overlay0); color: var(--crust); }
+
+/* Versatz-Stufen (vorne = mehr Einrückung). */
+.ch-indent-0 { --ch-indent: 0; }
+.ch-indent-1 { --ch-indent: var(--space-4); }
+.ch-indent-2 { --ch-indent: calc(var(--space-4) * 2); }
+.ch-indent-3 { --ch-indent: calc(var(--space-4) * 3); }
+.ch-indent-4 { --ch-indent: calc(var(--space-4) * 4); }
+.ch-indent-5 { --ch-indent: calc(var(--space-4) * 5); }
+.ch-indent-6 { --ch-indent: calc(var(--space-4) * 6); }
+
+/* ============================================================================
+   2) FULL-STACK Achsen-Rail — Border / Text-Tiefe / Akzent / Schatten
+   ========================================================================== */
+.ch-axes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+  max-width: 760px;
+}
+.ch-axis {
+  border: 1px solid var(--surface1);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  background: var(--base);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.ch-axis__title {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+.ch-axis__row { display: flex; align-items: center; gap: var(--space-2); font-size: 12px; }
+.ch-swatch-dot { width: 16px; height: 16px; border-radius: var(--radius-sm); flex: 0 0 auto; border: 1px solid var(--border); }
+.ch-dot--text { background: var(--text); }
+.ch-dot--subtext0 { background: var(--subtext0); }
+.ch-dot--overlay0 { background: var(--overlay0); }
+.ch-dot--peach { background: var(--peach); }
+.ch-dot--surface1 { background: var(--surface1); }
+.ch-axis__label { color: var(--subtext0); }
+.ch-axis__label b { color: var(--text); font-weight: 600; }
+.ch-text-text { color: var(--text); }
+.ch-text-subtext0 { color: var(--subtext0); }
+.ch-text-overlay0 { color: var(--overlay0); }
+.ch-shadow-card { box-shadow: var(--shadow-card); }
+.ch-shadow-pop { box-shadow: var(--shadow-pop); }
+.ch-shadow-box {
+  height: 30px; border-radius: var(--radius-md);
+  background: var(--surface0); border: 1px solid var(--surface1);
+  display: flex; align-items: center; padding-inline: var(--space-2);
+  font-family: var(--font-display); font-size: 11px; color: var(--subtext0);
+}
+
+/* ============================================================================
+   3) APPLIED MOCK — AppShell (base→mantle→base→surface0) + Card-in-Card
+   ========================================================================== */
+.ch-shell {
+  background: var(--base);
+  border: 1px solid var(--surface1);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-family: var(--font-display);
+}
+.ch-shell__topbar,
+.ch-shell__rail {
+  background: var(--mantle);
+  border: 1px solid var(--surface1);
+  border-radius: var(--radius-sm);
+}
+.ch-shell__topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px var(--space-3);
+  font-size: 12px;
+  color: var(--subtext1);
+}
+.ch-shell__prompt { color: var(--peach); }
+.ch-shell__pathlast { color: var(--text); font-weight: 700; }
+.ch-shell__body { display: flex; gap: var(--space-2); }
+.ch-shell__rail {
+  width: 132px;
+  flex: 0 0 auto;
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+}
+.ch-rail__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border-inline-start: 2px solid transparent;
+  color: var(--subtext0);
+  border-radius: var(--radius-sm);
+}
+.ch-rail__item--active {
+  border-inline-start-color: var(--accent-primary);
+  color: var(--text);
+}
+.ch-rail__caret { color: var(--accent-primary); }
+.ch-rail__idx { color: var(--overlay0); }
+.ch-shell__content {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: var(--base);
+  border: 1px solid var(--surface1);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.ch-card {
+  background: var(--surface0);
+  border: 1px solid var(--surface1);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ch-card__title { font-size: 13px; font-weight: 700; color: var(--text); }
+.ch-card__line { font-size: 12px; color: var(--subtext0); font-family: var(--font-body); }
+.ch-card__nested {
+  background: var(--surface1);
+  border: 1px solid var(--surface2);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+  font-size: 11px;
+  color: var(--subtext1);
+}
+.ch-tag {
+  align-self: flex-start;
+  background: var(--accent-primary);
+  color: var(--on-accent);
+  border-radius: var(--radius-sm);
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.ch-shell__caption {
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: var(--overlay1);
+  padding-top: 2px;
+}
+
+/* ============================================================================
+   3b) STATE-Achse — rang-agnostische --state-* Tokens (color-mix)
+   ========================================================================== */
+.ch-state-row { display: flex; align-items: center; gap: var(--space-2); }
+.ch-state-chip {
+  flex: 1 1 0;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: var(--subtext0);
+}
+/* State = text-mix-Overlay ÜBER der jeweiligen Ruhefläche (hier surface1). */
+.ch-state-chip--rest { background-color: var(--surface1); }
+.ch-state-chip--hover { background-color: var(--surface1); background-image: linear-gradient(var(--state-hover), var(--state-hover)); }
+.ch-state-chip--active { background-color: var(--surface1); background-image: linear-gradient(var(--state-active), var(--state-active)); }
+
+/* ============================================================================
+   3c) WIDGET-SCHICHT — IssueDetail-Innenleben back-to-front:
+       base → surface0 (Akkordeon-Panel) → Widget (transparent) → surface1 (Child)
+       → surface2 (4. Rang) · State quer via --state-*
+   ========================================================================== */
+.ch-wl { display: flex; flex-direction: column; gap: var(--space-2); max-width: 720px; }
+/* ContentWrapper (Accordion) = layer-2 (Titel + Content = EINE Ebene, 6-Ebenen-Modell). */
+.ch-wl__panel {
+  background: var(--layer-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.ch-wl__panelhead {
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: var(--overlay1);
+}
+/* WidgetBase = layer-3 — das Widget-Panel BEKOMMT Fill (supersedet die transparent-Studie, PO 2026-06-20). */
+.ch-wl__widget {
+  background: var(--layer-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+/* Slot-Heading = Layer-5 Vordergrund: --heading-accent + Dot (kein //-Slash, kein Fill). */
+.ch-wl__widgetlabel {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--heading-accent);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ch-wl__dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 2px;
+  background: var(--heading-accent);
+}
+/* Baustein / DetailsSection = layer-4 (Felder/Abschnitte im Widget). */
+.ch-wl__child {
+  background: var(--layer-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ch-wl__child--hover {
+  background-color: var(--layer-4);
+  background-image: linear-gradient(var(--state-hover), var(--state-hover));
+}
+.ch-wl__childtitle { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--text); }
+.ch-wl__childline { font-size: 12px; color: var(--subtext0); font-family: var(--font-body); }
+/* Layer-5 = Vordergrund (Text/Pills) — kein eigener Flächen-Fill, nur Typo-Ton. */
+.ch-wl__inner {
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: var(--subtext1);
+  padding-top: 4px;
+}
+.ch-wl__tokentag { font-family: var(--font-display); font-size: 10px; color: var(--overlay1); }
+
+/* ============================================================================
+   4) THEME-COMPARISON Side-by-Side Wrapper
+   ========================================================================== */
+.ch-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+@media (width < 768px) {
+  .ch-compare { grid-template-columns: 1fr; }
+}
+.ch-compare__col { display: flex; flex-direction: column; gap: var(--space-2); }
+.ch-compare__head {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.ch-compare__pane {
+  background: var(--base);
+  border: 1px solid var(--surface1);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+}
+
+/* ----------------------------------------------------------------------------
+   SANKTIONIERTER THEME-MIRROR (Side-by-Side erfordert beide Paletten gleichzeitig
+   auf EINER html-data-theme-Ebene → Container-Scoping statt html-Attribut).
+   Master bleibt src/index.css (D02); dies ist eine bewusste 1:1-Spiegelung der
+   Catppuccin-Paletten, ausschließlich für diese Studie. Bei Konflikt gewinnt
+   index.css. --border/--shadow leiten in index.css aus --text ab und flippen
+   hier durch das gescopte --text automatisch mit.
+   ---------------------------------------------------------------------------- */
+/* stylelint-disable color-no-hex -- sanktionierter Study-Mirror der Token-Single-Source */
+.ch-theme--latte {
+  --crust: #dce0e8; --mantle: #e6e9ef; --base: #eff1f5;
+  --surface0: #ccd0da; --surface1: #bcc0cc; --surface2: #acb0be;
+  --overlay0: #9ca0b0; --overlay1: #8c8fa1;
+  --text: #4c4f69; --subtext0: #6c6f85; --subtext1: #5c5f77;
+  --peach: #fe640b; --accent-primary: #fe640b; --on-accent: #ffffff;
+  --border: color-mix(in srgb, var(--text) 14%, transparent);
+  --shadow-card: 0 1px 2px rgba(76, 79, 105, 0.06), 0 2px 6px rgba(76, 79, 105, 0.04);
+  --shadow-pop: 0 8px 24px rgba(76, 79, 105, 0.15);
+  color-scheme: light;
+}
+.ch-theme--macchiato {
+  --crust: #181926; --mantle: #1e2030; --base: #24273a;
+  --surface0: #363a4f; --surface1: #494d64; --surface2: #5b6078;
+  --overlay0: #6e738d; --overlay1: #8087a2;
+  --text: #cad3f5; --subtext0: #a5adcb; --subtext1: #b8c0e0;
+  --peach: #f5a97f; --accent-primary: #f5a97f; --on-accent: #11111b;
+  --border: color-mix(in srgb, var(--text) 14%, transparent);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
+}
+/* stylelint-enable color-no-hex */
+
+.ch-theme--latte,
+.ch-theme--macchiato {
+  background: var(--base);
+  color: var(--text);
+  border-radius: var(--radius-lg);
+}

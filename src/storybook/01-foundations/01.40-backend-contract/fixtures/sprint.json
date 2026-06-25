@@ -1,0 +1,38 @@
+{
+  "id": 25,
+  "key": "DD#1",
+  "name": "Dogfooding & Tooling",
+  "goal": "Erste Iteration: DevD selbst pflegen",
+  "notes": "Erste Iteration: DevD selbst pflegen",
+  "status": "completed",
+  "project_id": 2,
+  "project_prefix": "DD",
+  "project_number": 1,
+  "milestone_id": 26,
+  "capacity": null,
+  "wip_limit": null,
+  "position": 0,
+  "start_date": null,
+  "end_date": null,
+  "review_submitted_at": null,
+  "items": [
+    {
+      "id": 192,
+      "key": "DD-1",
+      "title": "Multi-Tenant Dashboard fertigstellen",
+      "type": "feature",
+      "status": "done",
+      "priority": 1,
+      "milestone": "M0 Initialer Meilenstein",
+      "assigned_sprint": 25,
+      "feedback_id": 61,
+      "review_status": "pending",
+      "review_comment": "",
+      "review_round": 1,
+      "tags": [],
+      "subtasks": [],
+      "screenshot_files": [],
+      "deps": { "blockers": 0, "blocked_by": 0 }
+    }
+  ]
+}

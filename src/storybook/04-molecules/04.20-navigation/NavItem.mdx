@@ -1,0 +1,59 @@
+{/* GF-208-Muster — NavItem-MDX. Pflichtabschnitte:
+    Zweck · Wann · Props · Zustände · a11y · Beispiele. */}
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as NavItemStories from './NavItem.stories.jsx'
+
+<Meta of={NavItemStories} />
+
+# NavItem
+
+`status:stable` · Molecule · Cluster `04.20 Navigation`
+
+## Zweck
+
+Eine Navigations-Zeile (Sidebar/NavRail/Menü): führendes Icon + Label +
+optionaler Count-Badge. Rendert als Link (`href`) oder Button (`onClick`).
+Komponiert das `Badge`-Atom (Count) und nimmt das Icon als Node (foundations
+`Icon`, A2).
+
+Dumb-Molecule (CONV-molecule-boundary): präsentational, KEIN Routing-/Active-
+State-Management. `active` ist ein Prop, das der konsumierende Organismus
+(Sidebar/NavRail) aus der Route ableitet.
+
+## Wann verwenden
+
+- **Ja:** Einträge in Sidebar/NavRail/Dropdown-Menü mit optionalem Count.
+- **Nein:** horizontale Tab-Leiste → `TabButton`. Breadcrumb-Segment →
+  `BreadcrumbItem`. Reine Aktion ohne Navigation → `Button`.
+
+## Props
+
+<ArgTypes of={NavItemStories} />
+
+## Zustände
+
+Aktiv (`active` → getönte Fläche, `aria-current="page"`, neutraler Count) vs.
+inaktiv (gedämpft, Hover-Fläche). `disabled` wirkt nur im Button-Modus. Render-
+Modus folgt `href` (Link) bzw. `onClick` (Button). `iconOnly` rendert die
+NavRail-Variante (44px-Quadrat, Label nur als `aria-label`, Count als Eck-Overlay).
+
+<Canvas of={NavItemStories.Variant_All} />
+<Canvas of={NavItemStories.Variant_States} />
+<Canvas of={NavItemStories.Variant_IconRail} />
+
+## Barrierefreiheit
+
+- Link-Modus nutzt natives `<a href>`, Button-Modus `<button type="button">` —
+  Fokus + Tastatur gratis.
+- Aktiver Eintrag trägt `aria-current="page"` (nicht nur Farbe).
+- Das Icon ist dekorativ (`mono`, vom konsumierenden Story als `aria-hidden`-Icon
+  übergeben); die Bedeutung trägt das Label.
+
+## Beispiele
+
+Interaktiver Default — Controls-Panel steuert Label/count/active/href:
+
+<Canvas of={NavItemStories.Default} />
+<Controls of={NavItemStories.Default} />
+
+<Canvas of={NavItemStories.Variant_Composition} />

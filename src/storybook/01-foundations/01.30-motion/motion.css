@@ -1,0 +1,14 @@
+/* GF-214 — 01.30 Motion-Story-Styling. Liest die Motion-Tokens aus index.css
+   (Master): --duration-fast/base/slow (:root), --ease-standard/-emphasized (@theme).
+   Hover über die Spur demonstriert die Transition. 0 Raw-Hex, 0 inline-style. */
+.motion-grid { display: flex; flex-direction: column; gap: var(--space-3); }
+.motion-row { display: flex; align-items: center; gap: var(--space-4); }
+.motion-label { width: 180px; flex-shrink: 0; font-family: var(--font-display); font-size: 11px; color: var(--subtext0); }
+.motion-track { flex: 1; height: 24px; background: var(--surface0); border-radius: var(--radius-md); overflow: hidden; cursor: ew-resize; }
+.motion-bar { height: 100%; width: 24%; background: var(--accent-primary); border-radius: var(--radius-md); }
+.motion-track:hover .motion-bar { width: 100%; }
+
+.motion-bar--fast { transition: width var(--duration-fast) var(--ease-standard); }
+.motion-bar--base { transition: width var(--duration-base) var(--ease-standard); }
+.motion-bar--slow { transition: width var(--duration-slow) var(--ease-standard); }
+.motion-bar--emphasized { transition: width var(--duration-slow) var(--ease-emphasized); }

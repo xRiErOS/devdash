@@ -1,0 +1,521 @@
+/* DD-50: JetBrains Mono als Display-Font fuer Headings (Body bleibt system-ui).
+   DD-330: muss VOR `@import "tailwindcss"` stehen — sonst landet der Font-Import
+   nach Tailwinds expandierten Regeln und CSS verwirft ihn ("@import must precede"). */
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap");
+@import "tailwindcss";
+
+/* DD-483: Radius-Skala technisch/scharf (PO 2026-06-03). Tailwind-v4 @theme =
+   Single-Source — speist die rounded-*-Utilities UND var(--radius-*) in manuellen
+   Regeln. Behebt die DD-469-Kollision (--radius-* lagen im :root und überschrieben
+   Tailwinds Defaults nach OBEN → wirkte kindisch rund). Bare .rounded bleibt 4px. */
+/* stylelint-disable at-rule-no-unknown */
+@theme {
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 3px;
+  --radius-xl: 4px;
+  /* GF-228 Container-Query-Schwellen (PO 2026-06-16, D01). Reflow-Thresholds für
+     die Layout-Primitive (LP-04 Switcher row->stack, LP-05 Sidebar wrap) — token-
+     gebunden statt nackter px (D10-C, CONV-token-units). --cq-md spiegelt den
+     bestehenden DD-636-Viewport-Cut (768px) semantisch. Genutzt via
+     @container (width < var(--cq-*)). @theme = Single-Source (wie --radius-*). */
+  --cq-sm: 480px;
+  --cq-md: 768px;
+  --cq-lg: 1024px;
+  /* GF-214 Motion-Easing (Tailwind-v4 ease-* Namespace -> ease-standard/-emphasized). */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.05, 0.7, 0.1, 1);
+}
+/* stylelint-enable at-rule-no-unknown */
+
+/* DD-637 / DD-598 — F5 Safe-Area-Foundation (Single-Source). viewport-fit=cover
+   (index.html, DD-229) füllt env(safe-area-inset-*). Diese Utils sind die EINE
+   Quelle statt verstreuter pb-[env(...)]-Arbitraries: bottom-fixierte interaktive
+   Elemente (Sticky-Action-Bar, Floating-Bars, künftige F1-Bottom-Tab/FAB) heben
+   sich damit über die iOS-Home-Indicator-Zone (iPhone 14 Pro = 34px). */
+/* stylelint-disable at-rule-no-unknown */
+@utility pb-safe {
+  /* additives Inset-Padding für Scroll-Container (z.B. CaptureView-Root). */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@utility pb-safe-bar {
+  /* Bottom-Bar mit Eigen-Padding: floor = --space-3, sonst Inset (was größer ist). */
+  padding-bottom: max(var(--space-3), env(safe-area-inset-bottom));
+}
+@utility bottom-safe {
+  /* fixed-positionierte Floating-Bars: Offset hebt sich über die Inset-Zone. */
+  bottom: max(var(--space-4), env(safe-area-inset-bottom));
+}
+/* stylelint-enable at-rule-no-unknown */
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+/* DD-50 (Erweiterung): Buttons + Section-Headings global auf Display-Font.
+   Body, Inputs, Selects und Textareas bleiben system-ui (Lesbarkeit). */
+button,
+[role="tab"],
+[role="radio"],
+h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+/* Inputs / Selects / Textareas explizit zurueck auf System (sonst erbt button-Regel teilweise). */
+input, select, textarea {
+  font-family: var(--font-body);
+  letter-spacing: normal;
+}
+
+/* stylelint-disable color-no-hex -- sanktionierte Token-Single-Source (D02): Catppuccin Latte-Palette */
+:root {
+  /* Catppuccin Latte (Light) — Default */
+  --crust: #dce0e8;
+  --mantle: #e6e9ef;
+  --base: #eff1f5;
+  --surface0: #ccd0da;
+  --surface1: #bcc0cc;
+  --surface2: #acb0be;
+  /* GF-2 Surface-Ebenen-Leiter (6-Ebenen-Modell, PO 2026-06-20). Semantische
+     Elevations-Ränge, monoton pro Theme (Light hell→dunkel nach vorne):
+     Background → Layer-1 → Layer-2 → Layer-3 (DetailsWrapper/WidgetBase) →
+     Layer-4 (DetailsSection/Bausteine). Layer-1/3/4 (mantle/surface0/surface1)
+     sind auto-theme-monoton (eine Definition, kippt mit dem Theme); Background +
+     Layer-2 swappen crust↔base (Override in den Theme-Blöcken). Layer-5 (Text/Pills):
+     --heading-accent Light=gehärtetes Dunkel-Rot #8f0a29 (rohes red #d20f39 nur 3.52 auf
+     surface0 → AA-normal-FAIL bei 15px/600; gehärtet 6.06 surface0 / 5.15 surface1, AA beide.
+     Helle Catppuccin-Akzente failen ohnehin — peach 1.93, yellow 1.70. GF-432, RS-07-WCAG-Veto),
+     Dark=peach. */
+  --layer-bg: var(--base);
+  --layer-1: var(--mantle);
+  --layer-2: var(--crust);
+  --layer-3: var(--surface0);
+  --layer-4: var(--surface1);
+  --heading-accent: #8f0a29;
+  /* Sub-Heading-Akzent (Layer-5, Baustein-Label). Latte: gehärtetes Dunkel-Teal
+     (teal-roh 2.43 < AA auf surface0 → 5.94 surface0 / 5.04 surface1, AA beide).
+     Dark = pastell teal (6.65 surface0 / 4.93 surface1). D-SH, RS-07-WCAG-Veto. */
+  --subheading-accent: #0a5055;
+  --overlay0: #9ca0b0;
+  --overlay1: #8c8fa1;
+  --text: #4c4f69;
+  /* --subtext0 B02' (2026-06-20): Latte 6c6f85→5f6279 — AA-Fix muted Sekundärtext
+     (war app-weit <AA: base 4.37/mantle 4.06); jetzt base 5.29 / mantle 4.92 ≥ AA 4.5,
+     bleibt muted (heller als --text). surface0+ bleibt <AA → funktionale Labels nutzen --text. */
+  --subtext0: #5f6279;
+  --subtext1: #5c5f77;
+  --red: #d20f39;
+  --peach: #fe640b;
+  --yellow: #df8e1d;
+  --green: #40a02b;
+  --teal: #179299;
+  --blue: #1e66f5;
+  --sapphire: #209fb5;
+  --lavender: #7287fd;
+  --mauve: #8839ef;
+  /* Lesbarer Text auf farbigen Akzent-Buttons.
+     Latte: gesättigte Farben → Weiß OK.
+     Macchiato: pastellig → dunkler Text noetig. */
+  --on-accent: #ffffff;
+  --hint: #6c6f85;
+  /* Semantische Akzente — DD-47.
+     Disziplin: Komponenten nutzen diese Tokens, nicht direkt --green/--red/etc.
+     Catppuccin-Tokens (mauve, lavender, teal, sapphire, etc.) bleiben fuer
+     Tags + Priority-Borders verfuegbar. */
+  --accent-primary: var(--peach);
+  --accent-success: var(--green);
+  --accent-danger: var(--red);
+  --accent-warning: var(--yellow);
+  --accent-info: var(--sapphire);
+  /* 4px-Spacing-Grid Tokens (DD-50) — pragmatische Anwendung in Komponenten. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --font-display: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  /* DD-282 R3: Elevation-Tokens aus DD39-Mockup (Card + Popover). */
+  --shadow-card: 0 1px 2px rgba(76,79,105,0.06), 0 2px 6px rgba(76,79,105,0.04);
+  --shadow-pop: 0 8px 24px rgba(76,79,105,0.15);
+  /* GF-214 Motion-Durations (theme-agnostisch; via duration-[var(--duration-*)]). */
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 280ms;
+  /* GF-215 Borders & Focus. --border = subtile Kontrast-Linie (theme-aware via
+     text-mix, sichtbar auf jeder Surface, behebt Surface0-auf-Surface0-Kollaps);
+     --focus-ring = uniforme Keyboard-Affordance (folgt --lavender pro Theme). */
+  --border: color-mix(in srgb, var(--text) 14%, transparent);
+  /* --border-elevated (DesignStudie D02b, 2026-06-20): sichtbare Kante als ALLEINIGER
+     Item-Identifier (WCAG 1.4.11, 3:1). In Latte tragen surface1/surface2 weder Body-
+     Text (4.39/3.69 < AA) noch eine 3:1-Kante (surface1-Border = 1.18) — Elevation läuft
+     daher über diese subtext0-starke Kante (Light 3.20 / Dark 5.03 vs surface0), NICHT
+     über tieferen Fill. Text-tragende Fills bleiben bei surface0 gedeckelt. */
+  --border-elevated: var(--subtext0);
+  --focus-ring: var(--lavender);
+  /* Surface-Elevation-Canon (Color-Hierarchy 01.15, GF grill 2026-06-20): State
+     (Hover/Active/Selected) ist rang-AGNOSTISCH — kein eigener Surface-Schritt,
+     sondern ein text-mix-Overlay, das auf JEDER statischen Sprosse (base..surface2)
+     funktioniert. Theme-aware via --text (wie --border). Statische Tiefe bleibt der
+     Surface-Leiter (base→surface0→surface1→surface2) vorbehalten; overlay = Marker/Text. */
+  --state-hover: color-mix(in srgb, var(--text) 6%, transparent);
+  --state-active: color-mix(in srgb, var(--text) 10%, transparent);
+  /* Border-Width-Skala (GF-215, via border-[length:var(--border-width-*)]).
+     s = Hairline (Default-Card), m = Emphasis, l = Strong = Focus-Ring-Stärke. */
+  --border-width-s: 1px;
+  --border-width-m: 2px;
+  --border-width-l: 3px;
+  /* Radius-Skala: jetzt im @theme-Block oben (DD-483) — Single-Source für Tailwind
+     rounded-* UND var(--radius-*). KEINE --radius-* hier (würden @theme überschreiben
+     und die rounded-Utilities verfälschen, vgl. DD-469-Bug). */
+  /* z-index-Skala (DD-469) — semantische Stacking-Stufen für Overlays. */
+  --z-index-sticky: 100;
+  --z-index-dropdown: 500;
+  --z-index-popover: 800;
+  --z-index-modal: 1000;
+  --z-index-tooltip: 1500;
+}
+/* stylelint-enable color-no-hex */
+
+/* GF-214 D04 — prefers-reduced-motion: zentral + token-gesteuert (WCAG 2.3.3).
+   Durations kollabieren (jede getimte Transition wird ~instant); Drawer-Slides
+   + Button-Press-Transform werden neutralisiert. Jede Komponente zieht ohne
+   eigenes Opt-in mit. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 1ms;
+    --duration-base: 1ms;
+    --duration-slow: 1ms;
+  }
+  .devd-anim-slide-right,
+  .devd-anim-slide-left,
+  .devd-anim-fade {
+    animation: none;
+  }
+  [data-ui="button"]:active {
+    transform: none;
+  }
+}
+
+/* DD-636 (F4) — Responsive Density (Single-Source). Die manuellen Spacing-Tokens
+   --space-1..6 (oben im :root) werden auf Mobile (<768px) radikal reduziert. Alles,
+   was sie liest, zieht automatisch mit: Stack/Cluster-Gaps (gap.js → gap-[var(--space-N)]),
+   Card-Padding (p-[var(--space-N)]), Content-Grid-Padding (ProjectHomeLayout px/pt/gap
+   var(--space-5)) und die Safe-Area-Floors (pb-safe-bar/bottom-safe max(var(--space-*),…)).
+   KEIN per-Komponenten-Override.
+   Bewusst NICHT Tailwinds globaler --spacing-Multiplikator: der speist auch h-11/w-11/px-*
+   (= 44px-Touch-Targets, F5/F8) — die bleiben unangetastet. Darum tragen die Density-Tokens
+   eine eigene --space-Skala statt der Tailwind-Basis.
+   Tokens leben im :root (NICHT @theme): nichts in @theme liest --space-*, daher ist der
+   Media-Override kollisionsfrei — die DD-483-@theme-Lesson galt für rounded-* (die @theme
+   lesen), nicht hier. PO 2026-06-14: radikal gering; fehlende Gate-Verifizierbarkeit per
+   ADR akzeptiert (Master = project_memory, anchor F4-DENSITY, DD-636). */
+@media (width < 768px) {
+  :root {
+    --space-1: 2px;
+    --space-2: 4px;
+    --space-3: 6px;
+    --space-4: 8px;
+    --space-5: 12px;
+    --space-6: 14px;
+  }
+
+  /* DD-639 (F7) — Mobile Scroll-Snap-Primitive (Single-Source, geteilt). Bewusst
+     mobil-gegatet: Desktop behält freies Scrollen (viele Spalten nebeneinander),
+     auf <768px rastet die Navigation ein. Consumer:
+       - .snap-scroll-x + .snap-col → Roadmap-Spalten-Swipe (DD-601);
+       - .snap-scroll-y + .snap-mark → lange Textfelder / Swimlane (DD-599, F3-Edit).
+     scroll-snap ist reines CSS (kein JS-Runtime) und greift im echten Browser-Scroll;
+     im env=node-Test nur als Source-/Markup-Guard prüfbar (project_memory 333). */
+  .snap-scroll-x {
+    scroll-snap-type: x mandatory;
+  }
+  .snap-col {
+    scroll-snap-align: center;
+  }
+  .snap-scroll-y {
+    scroll-snap-type: y proximity;
+  }
+  .snap-mark {
+    scroll-snap-align: start;
+  }
+}
+
+/* stylelint-disable color-no-hex -- sanktionierte Token-Single-Source (D02): Catppuccin Macchiato-Palette */
+html[data-theme="dark"] {
+  /* Catppuccin Macchiato (Dark) */
+  --crust: #181926;
+  --mantle: #1e2030;
+  --base: #24273a;
+  --surface0: #363a4f;
+  --surface1: #494d64;
+  --surface2: #5b6078;
+  /* GF-2 Leiter-Override (Macchiato, dunkel→hell nach vorne): Background=crust,
+     Layer-2=base (Layer-1/3/4 = mantle/surface0/surface1 aus :root, auto-theme-aware).
+     Heading-Akzent peach (AA-safe auf surface0 in Dark: 5.79). */
+  --layer-bg: var(--crust);
+  --layer-2: var(--base);
+  --heading-accent: var(--peach);
+  --subheading-accent: var(--teal);
+  --overlay0: #6e738d;
+  --overlay1: #8087a2;
+  --text: #cad3f5;
+  --subtext0: #a5adcb;
+  --subtext1: #b8c0e0;
+  --red: #ed8796;
+  --peach: #f5a97f;
+  --yellow: #eed49f;
+  --green: #a6da95;
+  --teal: #8bd5ca;
+  --blue: #8aadf4;
+  --sapphire: #7dc4e4;
+  --lavender: #b7bdf8;
+  --mauve: #c6a0f6;
+  --on-accent: #11111b;
+  --hint: #a5adcb;
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.25);
+  --shadow-pop: 0 8px 24px rgba(0,0,0,0.5);
+}
+/* stylelint-enable color-no-hex */
+
+@media (prefers-color-scheme: dark) {
+  /* stylelint-disable color-no-hex -- sanktionierte Token-Single-Source (D02): Catppuccin System-Dark-Fallback */
+  html:not([data-theme]) {
+    --crust: #181926;
+    --mantle: #1e2030;
+    --base: #24273a;
+    --surface0: #363a4f;
+    --surface1: #494d64;
+    --surface2: #5b6078;
+    /* GF-2 Leiter-Override (System-Dark-Fallback, spiegelt html[data-theme=dark]). */
+    --layer-bg: var(--crust);
+    --layer-2: var(--base);
+    --heading-accent: var(--peach);
+    --subheading-accent: var(--teal);
+    --overlay0: #6e738d;
+    --overlay1: #8087a2;
+    --text: #cad3f5;
+    --subtext0: #a5adcb;
+    --subtext1: #b8c0e0;
+    --red: #ed8796;
+    --peach: #f5a97f;
+    --yellow: #eed49f;
+    --green: #a6da95;
+    --teal: #8bd5ca;
+    --blue: #8aadf4;
+    --sapphire: #7dc4e4;
+    --lavender: #b7bdf8;
+    --mauve: #c6a0f6;
+    --on-accent: #11111b;
+    --hint: #a5adcb;
+    --shadow-card: 0 1px 2px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.25);
+    --shadow-pop: 0 8px 24px rgba(0,0,0,0.5);
+  }
+  /* stylelint-enable color-no-hex */
+}
+
+body {
+  background: var(--base);
+  color: var(--text);
+  font-family: var(--font-body);
+  transition: background 200ms ease, color 200ms ease;
+}
+
+/* GF-2 Full-Height-SPA-Kette: der stabile AppShell-Organismus ist `h-full`
+   (height:100%) und braucht viewport-gepinnte Vorfahren. Ohne diese Regel
+   kollabiert die Kette html/body/#root auf Content-Hoehe → Shell endet bei
+   ~2/3 des Screens. Single-Source statt Self-Pin im Shell. */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/* DD-97: Sichtbarer Peach-Focus-Outline fuer Tab-Navigation. :focus-visible
+   greift nur bei Keyboard-Fokus, Maus-Klicks bleiben dezent. */
+*:focus-visible {
+  outline: 2px solid var(--peach);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline-offset: 0;
+  box-shadow: 0 0 0 2px var(--peach);
+}
+
+/* DD-80 Round 2: In Radio-Gruppen mit overflow-hidden Container wuerde der
+   ausgelagerte Outline geclipt werden — daher Inset-Outline fuer Buttons mit
+   role="radio" oder innerhalb von role="radiogroup". */
+[role="radiogroup"] > button:focus-visible,
+button[role="radio"]:focus-visible {
+  outline-offset: -2px;
+  border-radius: 0;
+}
+
+/* Im Dark Mode haben Catppuccin-Macchiato-Akzentfarben (red/peach/green/...) eine
+   pastellige Sättigung. Weißer Text darauf hat zu wenig Kontrast.
+   Wir mappen Tailwinds text-white automatisch auf --on-accent (dunkles crust). */
+html[data-theme="dark"] .text-white {
+  color: var(--on-accent);
+}
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme]) .text-white {
+    color: var(--on-accent);
+  }
+}
+
+/* DD-168: Lesbarkeit fuer markierten Text im Dark Mode (Macchiato).
+   Default-Selection (UA) ist im Dark Mode zu blass. Lavender-Background mit
+   crust-Vordergrund liefert >10:1 Kontrast (WCAG AAA). Light Mode bleibt UA-Default. */
+html[data-theme="dark"] ::selection {
+  background: var(--lavender);
+  color: var(--crust);
+}
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme]) ::selection {
+    background: var(--lavender);
+    color: var(--crust);
+  }
+}
+
+/* Priority-Tokens — DD-48. Eigene Skala, NICHT --accent-* (Priorities sind keine Actions). */
+:root {
+  --priority-1: var(--red);
+  --priority-2: var(--peach);
+  --priority-3: var(--blue);
+  --priority-4: var(--teal);
+  --priority-5: var(--overlay0);
+}
+
+.badge-p1 { background: var(--priority-1); color: white; }
+.badge-p2 { background: var(--priority-2); color: white; }
+.badge-p3 { background: var(--priority-3); color: white; }
+.badge-p4 { background: var(--priority-4); color: white; }
+.badge-p5 { background: var(--priority-5); color: white; }
+
+.status-open { border-left: 4px solid var(--blue); }
+.status-in_progress { border-left: 4px solid var(--peach); }
+.status-done { border-left: 4px solid var(--green); }
+.status-blocked { border-left: 4px solid var(--red); }
+.status-deferred { border-left: 4px solid var(--overlay0); }
+
+.review-passed { background: color-mix(in srgb, var(--green) 15%, transparent); }
+.review-not_passed { background: color-mix(in srgb, var(--red) 15%, transparent); }
+
+/* DD-46: Slide-in Animationen fuer Off-Canvas Drawer (Right-Sidebar + Mobile-Nav). */
+@keyframes devd-slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes devd-slide-in-left {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+@keyframes devd-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.devd-anim-slide-right { animation: devd-slide-in-right var(--duration-slow) var(--ease-standard); }
+.devd-anim-slide-left  { animation: devd-slide-in-left  var(--duration-slow) var(--ease-standard); }
+.devd-anim-fade        { animation: devd-fade-in var(--duration-base) var(--ease-standard); }
+
+/* Erik-Feedback: dezente Scrollbars im Catppuccin-Stil (Webkit + Firefox).
+   Track transparent, Thumb auf surface1, hover auf surface2; horizontal 8px,
+   vertikal 10px. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface1) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--surface1);
+  border-radius: var(--radius-sm);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--surface2);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* =====================================================================
+   DD-344 (DD#47 R2): Milestone-Tile im Tool-Design — Vorlage Mockup
+   sprint-board-refactor-v4-active-sprint (.tile). Ersetzt die bisherigen
+   schlichten Inline-Cards der Roadmap.
+   ===================================================================== */
+.milestone-tile {
+  background: var(--base);
+  border: 1px solid var(--surface0);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3, 12px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+  cursor: pointer;
+  transition: border-color 140ms, box-shadow 140ms, transform 140ms;
+}
+.milestone-tile:hover {
+  border-color: var(--surface1);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+}
+.milestone-tile__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.milestone-tile__grip {
+  cursor: grab;
+  color: var(--overlay0);
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px;
+  user-select: none;
+  touch-action: none;
+}
+.milestone-tile__name {
+  font-family: var(--font-display, inherit);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent-info);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent-info) 45%, transparent);
+  text-underline-offset: 3px;
+  line-height: 1.3;
+  transition: text-decoration-color 120ms, text-underline-offset 120ms;
+}
+.milestone-tile:hover .milestone-tile__name {
+  text-decoration-color: var(--accent-info);
+  text-underline-offset: 4px;
+}
+.milestone-tile__spacer {
+  flex: 1;
+}
+.milestone-tile__desc {
+  color: var(--subtext0);
+  font-size: 12px;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.milestone-tile__foot {
+  margin-top: auto;
+  padding-top: var(--space-2, 8px);
+  border-top: 1px solid var(--surface1);
+}

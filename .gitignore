@@ -1,0 +1,73 @@
+node_modules/
+node-compile-cache/
+dist/
+uploads/
+.DS_Store
+.env
+.env.*
+!.env.example
+*.log
+
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/*.bak.*
+
+/devd.db
+
+.superpowers/brainstorm/
+devd-result-*.md
+
+# Worktree + Session-Cache
+.claude/worktrees/
+.claude/scheduled_tasks.lock
+.session-cache/
+
+# Obsidian (PO 2026-06-17): .obsidian-Config komplett aus Git (überstimmt D08/D12).
+# Vault läuft über specs-DD/, aber .obsidian-State bleibt lokal/Sync-only — nie ins Repo.
+# Doku-Content (specs-DD/**.md) bleibt getrackt (D01), nur .obsidian/ ist ignoriert.
+**/.obsidian/
+
+# NAS-Cutover Archive
+.mcp.json.bak-*
+data/devd.db*.archive
+data/devd.db*.archive-*
+
+# Storybook build artifact (DD-470)
+storybook-static/
+
+# Build-/Report-Artefakte (PO D08/I01 2026-06-16): jscpd u.a. generierte Reports
+report/
+
+# Test/Migration Artefacts
+test-results/
+playwright-report/
+playwright/.cache/
+.playwright-mcp/
+data/migrations-log/
+data/migrations-log-e2e/
+data/devd.e2e.db*
+data/devd.dd267-e2e.db*
+
+# Editor swapfiles
+*.swp
+.*.swp
+__pycache__/
+
+# draw.io Autosave-Backups
+.$*.bkp
+
+# Datei-Austausch Mac↔Thinkpad: git-ignored Scratch-Ordner, rsync/Syncthing-synced.
+# Nur die README ist getrackt (erklärt den Ordner + kommt via git auf beide Maschinen);
+# der Inhalt bleibt lokal/synced, nie im Repo.
+/exchange/*
+!/exchange/README.md
+
+# Mockup-Room (Phase 0): git-ignored Wegwerf-Drafts. Nur Setup ist getrackt
+# (CLAUDE.md + README + _template/), die eigentlichen Drafts (<screen>.stories.jsx,
+# _components/) bleiben lokal. Erscheinen nur via `npm run storybook:mock`.
+/mockups/**
+!/mockups/CLAUDE.md
+!/mockups/README.md
+!/mockups/_template/
+!/mockups/_template/**

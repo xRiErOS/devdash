@@ -1,0 +1,19 @@
+{
+  "id": 4101,
+  "key": "DD-7",
+  "title": "Multi-Tenant Projekt-Switcher",
+  "type": "feature",
+  "status": "to_review",
+  "priority": 1,
+  "goal": "PO kann zwischen Projekten wechseln; project_id filtert alle Endpoints.",
+  "background": "Vorbereitung Multi-Tenant-Rollout.",
+  "review_status": "pending",
+  "assigned_sprint": 25,
+  "sprint_key": "DD#1",
+  "user_stories": [
+    { "key": "US-1", "title": "Als PO wechsle ich das aktive Projekt", "details": "Switcher im Header, Persistenz pro Session.", "qa": "Wechsel auf Projekt B → alle Listen zeigen nur B-Daten; Reload behält B.", "verdict": "open" },
+    { "key": "US-2", "title": "Als PO sehe ich nur Issues des aktiven Projekts", "details": "project_id-Filter in /api/backlog.", "qa": "Projekt A: 10 Issues, Projekt B: 4 Issues; Summe nie gemischt.", "verdict": "open" }
+  ],
+  "feedback": [],
+  "attachments": []
+}

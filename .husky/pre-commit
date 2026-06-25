@@ -1,0 +1,4 @@
+# DD-410: Secret-Scanner zuerst (husky core.hooksPath haengt .git/hooks/* aus —
+# der frueher dort lebende Scanner muss hier gespiegelt werden, sonst laeuft er nie).
+bash "$(dirname "$0")/../scripts/secret-scan.sh"
+npx lint-staged

@@ -1,0 +1,16 @@
+{
+  "_comment": "MEM-25 T09/T10 — geteilte Trigger-Quelle (Grill 2026-06-21 D08). Kuratierter Subset der teuersten-zu-re-erklaerenden Register-Tags. Gelesen vom UserPromptSubmit-Hook (scripts/memory-trigger-match.mjs) UND als Rendered-Copy in CLAUDE.md (Knowledge-Trigger). Keys MUESSEN in scripts/memory-tag-register.data.mjs CANONICAL stehen.",
+  "tailscale": "tailscale serve scheitert mit MagicDNS — feste Tailnet-IP nutzen",
+  "portainer": "NAS-Deploy ausschliesslich PO via Portainer; KI deployt nie selbst",
+  "deploy": "Deploy-Kette CI-billing-tot: lokaler buildx amd64 -> GHCR push -> Portainer re-pull",
+  "docker": "Image ghcr.io/xrieros/devdashboard; amd64-buildx noetig (NAS DS725+)",
+  "storybook": "GF-2-Insel, data-ui-Anker, Atom-Achsen, Drift-Gates; Storybook = Design-Wahrheit",
+  "sstd": "6 Prosa-Slots in DevDash-DB; journal read-only; Entscheidungen -> project_memory",
+  "worktree": "Parallele Agenten: git worktree Pflicht; checkout im Haupt-Workdir verboten (Shared-HEAD)",
+  "gf-2": "Greenfield-2 laeuft NICHT im DevDash; Status aus specs-DD/-Markdown lesen",
+  "migration": "SQLite migrations/NNN_*.sql; libs migration-aware (hasXCols-Probe)",
+  "entity-detail": "EntityDetail V2 Terminal-Design: Tokens/Bausteine/Regeln (Wissensdatei)",
+  "archetypes": "specs-DD/02-RPDs/Greenfield-2/archetypes — Slot-Topologie, kanonisch (kein Visual)",
+  "drift-prevention": "CI-Drift-Gates ueber die Plan-Kette PRD->FSD->C4->Storybook->Code",
+  "lifecycle": "Status-Transitions nur via server/lib/lifecycle.js, nie direkt SQL"
+}

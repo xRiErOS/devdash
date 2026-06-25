@@ -1,0 +1,58 @@
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as TabButtonStories from './TabButton.stories.jsx'
+
+<Meta of={TabButtonStories} />
+
+# TabButton
+
+`status:stable` · Molecule · Cluster `04.20 Navigation`
+
+## Zweck
+
+Eine einzelne Tab-Schaltfläche. Molecule, weil sie mehrere Atome komponiert:
+das **Badge-Atom** (Count) + optional ein **TabIcon-Atom** + Label, zusammen mit
+dem aktiven Unterstrich-/Farb-State. Props-driven, kein Store/Routing — die
+Tablist-Logik (welcher Tab aktiv) trägt der Consumer (z.B. `Tabs`-Molecule).
+
+## Wann verwenden
+
+- **Ja:** eine Tab-Leiste bauen (über die `Tabs`-Molecule oder direkt in einem
+  Organismus wie ProjectHomeTabs/BottomTabBar).
+- **Nein:** generischer Button → `Button`-Atom. Reiner Count-Chip ohne Tab →
+  `Badge`-Atom.
+
+## Props
+
+<ArgTypes of={TabButtonStories} />
+
+`count` (number) wird als Badge-Atom gerendert; `icon` nimmt ein TabIcon-Atom
+(oder beliebiges Icon). `active` setzt den Unterstrich-Akzent (Desktop) bzw. die
+aktive Textfarbe (Mobile).
+
+## Zustände
+
+Device-Achse **Desktop** (horizontal, Border-Bottom-Akzent) vs **Mobile**
+(`mobile`-Prop: vertikal, Icon über Label, 44px Touch-Target). Aktiv vs inaktiv.
+Slot-Komposition (Label / +Icon / +Count).
+
+<Canvas of={TabButtonStories.Variant_All} />
+<Canvas of={TabButtonStories.Variant_States} />
+<Canvas of={TabButtonStories.Variant_Composition} />
+
+**Tablet** ist KEINE eigene Component-Variante, sondern ein **Storybook-Viewport**
+(PLAN I05): Desktop-Layout im Tablet-Viewport der Toolbar prüfen. Nur die zwei
+echten Code-Varianten Desktop/Mobile existieren — bewusst NICHT vermischt.
+
+## Barrierefreiheit
+
+- `role="tab"` + `aria-selected` spiegelt den aktiven Zustand.
+- Mobile-Layout erfüllt 44px Touch-Target (Pflicht).
+- Count ist als Badge-Atom textuell ausgewiesen, nicht nur farblich.
+- Eltern-Container trägt `role="tablist"`.
+
+## Beispiele
+
+Interaktiver Default-Render — Controls steuern `active`/`count`/`mobile`:
+
+<Canvas of={TabButtonStories.Default} />
+<Controls of={TabButtonStories.Default} />

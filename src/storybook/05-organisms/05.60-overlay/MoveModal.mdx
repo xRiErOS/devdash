@@ -1,0 +1,50 @@
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as MoveModalStories from './MoveModal.stories.jsx'
+
+<Meta of={MoveModalStories} />
+
+# MoveModal
+
+`status:stable` · Organism · Cluster `05.60 Overlay` · GF-289
+
+## Zweck
+
+Overlay zum Verschieben der selektierten Issues in einen anderen Backlog/ein
+anderes Projekt — von der `BulkActionBar` getriggert (MOD-2; `CAP-issue-move`).
+Komponiert ModalShell (headerless) + DialogHeader/DialogFooter + das **molecule-
+`Select`** (R2-MOD-2): Custom-Dropdown mit Suche statt nativem `<select>` —
+dieselbe Shared-Komponente wie in `AssignSprintModal`.
+
+Stateful: hält das gewählte Ziel intern bis Apply; die eigentliche Verschiebung
+macht der Consumer (`onMove(targetId)`).
+
+## Wann verwenden
+
+- **Ja:** Bulk-Verschiebung selektierter Issues in ein anderes Ziel.
+- **Nein:** Sprint-Zuweisung → `AssignSprintModal`. Löschen → `ConfirmDialog`.
+
+## Props
+
+<ArgTypes of={MoveModalStories} />
+
+`targets[]` = `{value, label}` der Ziel-Backlogs/Projekte. `selectedCount` zeigt
+einen Hinweis („N Issues verschieben nach:"). „Verschieben" ist disabled, solange
+kein Ziel gewählt ist.
+
+## Zustände
+
+Leer (kein Ziel → Verschieben disabled) · Ziel gewählt.
+
+<Canvas of={MoveModalStories.Variant_States} />
+
+## Barrierefreiheit
+
+- ModalShell trägt ESC/Backdrop-Close + Fokus-Management.
+- Ziel-Auswahl ist das molecule-`Select` (Trigger `aria-haspopup="listbox"`,
+  durchsuchbares `role="listbox"`-Dropdown, Tastatur-Navigation) mit `ariaLabel`.
+- Cancel/Verschieben sind echte `<button>` (Button-Atome) mit Label.
+
+## Beispiele
+
+<Canvas of={MoveModalStories.Default} />
+<Controls of={MoveModalStories.Default} />

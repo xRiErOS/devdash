@@ -1,0 +1,107 @@
+{/* GF-359 — 01.10 Design Tokens Begleit-MDX. Pflichtabschnitte: Zweck · Wann · Abschnitte · a11y · Beispiele.
+    <Meta of={…}> hängt diese Seite als Doku-Tab der Design-Tokens-Story ein. */}
+import { Meta, Canvas } from '@storybook/addon-docs/blocks'
+import * as DesignTokenStories from './DesignTokens.stories.jsx'
+
+<Meta of={DesignTokenStories} />
+
+# Design Tokens
+
+`status:stable` · Foundation · Cluster `01.10 Design Tokens`
+
+## Zweck
+
+Token-Master ist `src/index.css` (D02) — alle Farb-, Spacing-, Radius-, Elevations- und
+Typografie-Werte werden dort definiert. Diese Story spiegelt den Token-Master visuell;
+bei Konflikt gewinnt immer `index.css`. Catppuccin Latte/Macchiato als Theme-Basis,
+ergänzt durch semantische `--accent-*`-Rollen (DD-47).
+
+0 inline-`style`, 0 Roh-Hex — jede Farb-/Spacing-Angabe in Komponenten läuft über
+`var(--token)` oder Tailwind-Utilities.
+
+## Wann verwenden (als Referenz)
+
+- **Farbe:** semantische Akzente (`--accent-primary/success/danger/warning/info`) für
+  interaktive Elemente; Palette-Töne (`--base`, `--surface0/1/2`, …) für Hintergründe.
+- **Spacing:** 4px-Grid (space-1 = 4px, space-2 = 8px, …). Mikro-Abstände unter 8px
+  und Border-Widths als feste px-Tokens (CONV-token-units, LL05).
+- **Radius:** `rounded-sm/md/lg/xl` — Tokens in `@theme`, nicht `:root` (LL04).
+- **Elevation:** `shadow-card` für Karten, `shadow-pop` für Overlays/Dropdowns.
+- **Typografie:** `font-display` (JetBrains Mono) für Labels/Überschriften; `font-body`
+  (system-ui) für Fließtext.
+
+## Token-Abschnitte
+
+### Farb-Palette
+
+Catppuccin Base/Surface-Skala + Text-Töne + Catppuccin-Akzente (Tags/Priority).
+
+<Canvas of={DesignTokenStories.Palette} />
+
+### Semantische Akzente
+
+DD-47-Rollen: `--accent-primary/success/danger/warning/info` — die verbindlichen
+Farb-Anker für alle interaktiven Komponenten.
+
+<Canvas of={DesignTokenStories.SemanticAccents} />
+
+### Spacing
+
+4px-Grid-Skala (space-1..6). Logische Utilities (`ps-/pe-`) bei neuem Markup.
+
+<Canvas of={DesignTokenStories.Spacing} />
+
+### Radius
+
+sm/md/lg/xl — Tailwind-v4 `rounded-*` liest aus `@theme` (LL04).
+
+<Canvas of={DesignTokenStories.Radius} />
+
+### Typografie
+
+Schriftfamilien, Größen (xs..xl), Gewichte, Hinweis-Texte, Überschriften.
+
+Die Sektion **Text-Hierarchie — Anwendung** dokumentiert die 3-Tier-Konvention
+der EntityDetail-Kompositionen (Section-Titel → `//` Slot-Heading → `///`
+Inline-Label → Body/Value). Sie führt **keinen neuen Scale-Token** ein, sondern
+staffelt die bestehenden rem-Sprossen relational. Regel: Heading nie kleiner als
+Body; rem-relational; `//` = Slot, `///` = Inline.
+
+<Canvas of={DesignTokenStories.Typography} />
+
+### Borders und Focus-Ring
+
+Border-Width-Skala (s/m/l) + `--border`-Default + `--focus-ring`-Token (Größe l).
+
+<Canvas of={DesignTokenStories.BordersFocus} />
+
+### Z-Index
+
+sticky/dropdown/popover/modal/tooltip — feste Layering-Werte als `var(--z-index-*)`.
+
+<Canvas of={DesignTokenStories.ZIndex} />
+
+### Breakpoints
+
+Tailwind-v4-Defaults; `md` (768px) = Mobile-Density-Breakpoint, `lg` (1024px) = Two-Pane.
+
+<Canvas of={DesignTokenStories.Breakpoints} />
+
+### Zeilenhöhe
+
+tight/snug/normal — Mehrzeilen-Lese-Rhythmus.
+
+<Canvas of={DesignTokenStories.LineHeight} />
+
+### Elevation
+
+`shadow-card` (Karten-Tiefe) · `shadow-pop` (Overlay/Popup-Tiefe).
+
+<Canvas of={DesignTokenStories.Elevation} />
+
+## Barrierefreiheit
+
+- Farbe ist nie alleiniger Bedeutungsträger — semantische Töne sind redundant durch
+  Label-Text oder Icon.
+- Kontrast: `--accent-*`-Tokens WCAG-AA gegen `--on-accent` getestet.
+- `--focus-ring` (Token-Größe l) sichert sichtbare Tastatur-Fokus-Indikatoren.

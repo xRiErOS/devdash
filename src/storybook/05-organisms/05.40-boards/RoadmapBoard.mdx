@@ -1,0 +1,63 @@
+{/* GF-260 — RoadmapBoard Doku-Tab. KEIN rohes Kleiner-Zeichen (LL01). */}
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as RoadmapStories from './RoadmapBoard.stories.jsx'
+
+<Meta of={RoadmapStories} />
+
+# RoadmapBoard
+
+`status:stable` · Organism · Cluster `05.40 Boards` · OR-13 · GF-260
+
+## Zweck
+
+Milestone-Spalten × SprintCards: je Milestone eine Spalte (Header + Sprint-Liste).
+SprintCards sind `EntityItem` (entity='sprint'); Desktop-Reorder über den Drag-Handle
+(Touch deferred, D09).
+
+## Ebene-6-Capability-Gegencheck (A4)
+
+OR-13 = 6 Caps: `milestone-list`, `milestone-reorder`, `milestone-assign-sprint`,
+`milestone-deferred-stats`, `sprint-create`, `sprint-reorder` (`_ebene6.md`).
+
+## Reflow-Vertrag (D10-G, LL16)
+
+Die Spalten liegen in einem `Grid`-Primitiv (Auto-Fit, `minmax(columnMin, 1fr)`):
+
+- **Intrinsisch, kein Viewport-Breakpoint.** Die Spaltenzahl ergibt sich aus der
+  verfügbaren Container-Breite geteilt durch `columnMin` (Default 16rem) — kein
+  `lg:`/`md:`-Gefummel.
+- **Umbruch statt Scroll.** Unterschreitet der Container N×`columnMin`, brechen Spalten
+  in die nächste Reihe. Auf schmalem Container landet man bei einer Spalte (Stack).
+- **Kein `@container var()`-Verstoß (LL16).** Die Schwelle steckt in der `minmax`-
+  Spaltenbreite, nicht in einer `@container`/`@media`-Feature-Condition mit `var()`
+  (dort ist `var()` spec-verboten). `columnMin` ist die einzige Stellschraube.
+
+## Wann verwenden
+
+- **Ja:** Roadmap-Übersicht (Milestones nebeneinander, Sprints je Milestone).
+- **Nein:** Issues innerhalb eines Sprints nach Status → `SprintBoard` (OR-14).
+
+## Props
+
+<ArgTypes of={RoadmapStories} />
+
+`milestones` = `{ key, name, status?, deferred?, sprints? }[]`; `sprints` =
+`{ key, name, status? }[]`. `columnMin` steuert die Reflow-Schwelle.
+
+## Zustände
+
+Spalten mit Sprints · Milestone mit deferred-Zähler + sprintlose Spalte (Hinweis) ·
+leeres Board (Hinweis).
+
+<Canvas of={RoadmapStories.Variant_WithDeferred} />
+<Canvas of={RoadmapStories.State_Empty} />
+
+## Barrierefreiheit
+
+- SprintCards sind `EntityItem`-Organismen (Drag-Handle als sichtbarer Anfasser).
+- Milestone-Status trägt der `StatusBadge` (Text + Tönung), der deferred-Zähler ein Pill.
+
+## Beispiele
+
+<Canvas of={RoadmapStories.Default} />
+<Controls of={RoadmapStories.Default} />

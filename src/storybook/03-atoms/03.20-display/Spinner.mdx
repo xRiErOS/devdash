@@ -1,0 +1,48 @@
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as SpinnerStories from './Spinner.stories.jsx'
+
+<Meta of={SpinnerStories} />
+
+# Spinner
+
+`status:stable` · Atom · Cluster `03.20 Display`
+
+## Zweck
+
+Token-sauberer Lade-Indikator: ein rotierendes `Loader2`-Icon (`animate-spin`) für indeterminierte Wartezustände. Props-driven, kein Store, keine Domänen-Logik.
+
+## Wann verwenden
+
+- **Ja:** indeterminiertes Laden (Fetch läuft, Dauer unbekannt) — inline neben Text oder in einem Button.
+- **Nein:** bekannter Fortschritt mit Prozent → `ProgressBar`. Diskreter Status → `Pill`/`Badge`.
+
+## Props
+
+<ArgTypes of={SpinnerStories} />
+
+`size` steuert die Kantenlänge (`sm` 14px, `md` 18px, `lg` 24px). `label` setzt das `aria-label`.
+
+## Achsen N/A
+
+**Variants** — N/A: `Spinner` hat keine `variant`-Prop und kein strukturelles Alternativdesign.
+Die einzige Dimension ist die Größe (`size`).
+
+**Appearance** — N/A: keine visuellen Darstellungsmodi (kein outline/filled/bare).
+Die Farbe ist immer `--accent-primary`, unveränderlich.
+
+## Zustände
+
+Indeterminiert (einziger Zustand) × Size (`sm`/`md`/`lg`). Die Farbe folgt dem `--accent-primary`-Token.
+
+<Canvas of={SpinnerStories.Sizes} />
+
+## Barrierefreiheit
+
+- Root trägt `role="status"` + `aria-label` (Default `Lädt`) — Screenreader kündigen den Ladezustand an.
+- Das `svg` selbst ist `aria-hidden` (dekorativ); die Bedeutung trägt das `aria-label`.
+- Farbe folgt `--accent-primary`; Bedeutung wird nicht allein über Farbe transportiert.
+
+## Beispiele
+
+<Canvas of={SpinnerStories.Default} />
+<Controls of={SpinnerStories.Default} />

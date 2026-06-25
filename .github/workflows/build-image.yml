@@ -1,0 +1,104 @@
+# DD-250: Container Build → GHCR
+#
+# Bei push auf main (oder manueller workflow_dispatch) baut diese Action das
+# DevDashboard-Image für linux/amd64 und published nach
+# ghcr.io/xrieros/devdashboard mit folgenden Tags:
+#
+#   - latest                  (immer auf HEAD von main)
+#   - sha-<7-stellig>         (eindeutig per Commit für Pinning/Rollback)
+#   - <semver>                (nur wenn Push einen vX.Y.Z-Tag setzt)
+#
+# Layer-Cache liegt im GitHub Actions Cache (type=gha) — beschleunigt
+# Folge-Builds (better-sqlite3 kompiliert sonst ~60s neu).
+#
+# Plattform: linux/amd64 reicht — Synology DS725+ ist x86_64 (AMD R1600).
+# ARM64 via QEMU braucht >2h für better-sqlite3 + sharp Native-Build und
+# wurde deshalb entfernt. Falls ARM-Target nötig: native ARM-Runner statt
+# QEMU-Emulation oder pre-built binaries.
+#
+# Pull-on-NAS:
+#   docker pull ghcr.io/xrieros/devdashboard:latest
+# Portainer Auto-Update Polling: 15min (Webhook oder polling mode).
+
+# ─── Deploy-Race mitigation (DD-359) ──────────────────────────────────────
+# Mehrere build-image-Runs taggen alle `latest`. Ohne Serialisierung gewinnt
+# der Run, der ZULETZT fertig wird — nicht der mit dem neuesten main-Commit.
+# Incident (Actions-Outage): ein extra `gh workflow run` auf einem ALTEN Commit
+# wurde NACH dem Push-Build fertig → `latest` zeigte auf ein veraltetes Image.
+# Regeln für Operatoren:
+#   - Während einer Actions-Outage KEINE zusätzlichen workflow_dispatch feuern.
+#   - Deploy nicht am Image-Digest allein verifizieren — den ausgelieferten
+#     BUNDLE-Inhalt prüfen (z.B. Commit-Hash im /health-Endpoint).
+#   - Im Zweifel den immutablen `sha-<7>`-Tag pullen statt `latest`.
+# Siehe auch MIGRATED-TO-NAS.md → "Deploy-Race mitigation".
+
+name: build-image
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+# `latest`-Race-Schutz: Runs auf demselben Ref (z.B. refs/heads/main) teilen sich
+# eine Concurrency-Group. github.ref ist die richtige Gruppen-Wahl, weil sowohl
+# der push-Build als auch ein workflow_dispatch auf main denselben Ref melden →
+# ein verspäteter (z.B. auf altem Commit manuell gestarteter) Run wird gecancelt,
+# bevor er den frischeren `latest`-Build überschreiben kann. So bleibt
+# `latest = neuester main-Commit`. (Tag-Pushes refs/tags/vX.Y.Z laufen in eigener
+# Gruppe und stören main nicht.)
+concurrency:
+  group: build-image-${{ github.ref }}
+  cancel-in-progress: true
+
+# Image-Owner muss lowercase sein (GHCR-Constraint). Repo-Owner "xRiErOS"
+# wird hier explizit auf "xrieros" gemappt.
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: xrieros/devdashboard
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata (tags + labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=sha,format=short,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push (linux/amd64)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

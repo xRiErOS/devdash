@@ -1,0 +1,58 @@
+{/* GF-359 — 01.20 Iconography Begleit-MDX. Pflichtabschnitte: Zweck · Wann · Abschnitte · a11y · Beispiele.
+    <Meta of={…}> hängt diese Seite als Doku-Tab der Iconography-Story ein. */}
+import { Meta, Canvas } from '@storybook/addon-docs/blocks'
+import * as IconographyStories from './Iconography.stories.jsx'
+
+<Meta of={IconographyStories} />
+
+# Iconography
+
+`status:stable` · Foundation · Cluster `01.20 Iconography`
+
+## Zweck
+
+Kuratoriertes Icon-Registry (`iconRegistry.js`) — Single-Source für alle Icons im
+Developer Dashboard. KEIN freeform-Import aus `lucide-react`; jede Verwendung läuft
+über `Icon.jsx` (mechanischer Guard: `gf213-no-raw-lucide.test.js`).
+
+Jedes Icon trägt Bedeutung. Farbe folgt der Semantik-**Rolle** (`role` → Token, fix),
+nicht dem Icon selbst. Rolle wird **pro Verwendung** gewählt — dasselbe Icon kann
+mehrere Rollen belegen (Mehrrolligkeit).
+
+## Konventionen
+
+- **Icon-Primitive:** `src/storybook/01-foundations/01.20-iconography/Icon.jsx` — einzige
+  erlaubte Import-Stelle für Icons in Stories und Komponenten.
+- **Rollen** (ROLE_CLASS, DD-47): `neutral` · `primary` · `success` · `danger` · `warning`
+  · `info`. `roles[0]` im Registry-Eintrag = Default-Rolle.
+- **Neues Icon** = bewusster Eintrag in `iconRegistry.js` (Cmp + label + roles). Nie
+  ad-hoc per Lucide-Import, keine semantischen Dubletten.
+- **mono-Prop:** unterdrückt Rolle/Farbe → Mono-Darstellung (z.B. im Catalog).
+
+## Catalog
+
+Alle Registry-Einträge mit Name, Label und sanktionierten Rollen.
+
+<Canvas of={IconographyStories.Default} />
+
+## Rollen
+
+Ein Repräsentant je Rolle zeigt das fixe `role` → Token-Mapping.
+
+<Canvas of={IconographyStories.Roles} />
+
+## Mehrrolligkeit
+
+Dasselbe Icon in verschiedenen Rollen — Bedeutung entsteht durch Rolle, nicht durch
+Icon-Wahl. Beispiel `brain`: neutral (Denken), success (KI-Vorschlag gut), danger
+(KI-Vorschlag schlecht).
+
+<Canvas of={IconographyStories.MultiRole} />
+
+## Barrierefreiheit
+
+- Icons sind `aria-hidden` — die umgebende Komponente trägt die semantische Aussage
+  (Label, `aria-label`).
+- `IconButton` (Icon-only) muss immer `aria-label` gesetzt haben.
+- Rolle-zu-Token-Mapping ist WCAG-AA-konform gegen den jeweiligen Hintergrund getestet.
+- Farbe ist nie alleiniger Bedeutungsträger: Rolle ist redundant durch Label oder Kontext.

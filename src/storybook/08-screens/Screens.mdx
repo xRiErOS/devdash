@@ -1,0 +1,11 @@
+import { Meta } from '@storybook/addon-docs/blocks'
+
+<Meta title="08 SCREENS/Overview" />
+
+# 08 SCREENS
+
+Komponierter Zustand mit Mock-Daten (DR2) — die SOLL-Story IST der Vertrag (Stories-First). Modelliert die *vollständigen* realen Controls (Story-Wahrheit, AOS-Heartbeat).
+
+- **08.10 Auth** · **08.20 Dashboard** · **08.30 Projects** · **08.40 Milestones** · **08.50 Sprints** · **08.60 Issues** · **08.70 Settings** · **08.80 Review**
+
+**08.80 Review** (GF-2, erste 08-Story): Sprint-/Issue-Review-Screen — der V2-View-Container (`SprintReviewV2` → `ReviewFlow`, 06.80 Deps & Review) eingebettet in die AppShell (05.80). Daten pre-Cutover gegen die SOLL-Fixture (`user_stories[]`); die fetch-Verdrahtung gegen die `user_stories[]`-API folgt im Cutover (T13).

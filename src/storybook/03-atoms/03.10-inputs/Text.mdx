@@ -1,0 +1,59 @@
+{/* GF-2 — Text-Doku. Pflichtabschnitte: Zweck · Wann · Props · Zustände · a11y · Beispiele. */}
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as TextStories from './Text.stories.jsx'
+
+<Meta of={TextStories} />
+
+# Text
+
+`status:stable` · Atom · Cluster `03.10 Inputs`
+
+## Zweck
+
+Token-sauberes Texteingabe-Primitive (`Input`). Ersetzt die ~30× kopierte
+className `rounded-lg px-3 py-2 border-0 outline-none`. Props-driven, kein
+Store — komponierbar in Molecules/Organisms (Such-Felder, Formulare).
+
+## Wann verwenden
+
+- **Ja:** freie Texteingabe (Suche, Titel, Werte) sowie verwandte native
+  `type`-Varianten (`date`, `number`, `email`, `password`).
+- **Nein:** Auswahl aus fixem Optionssatz → `Select`. Boolean-Toggle →
+  `Checkbox`. Mehrzeiliger Text → `Textarea`.
+
+## Props
+
+<ArgTypes of={TextStories} />
+
+## Varianten
+
+Die `type`-Achse zeigt denselben Primitive mit nativen HTML-input-Typen
+(`text`, `date`, `number`, `email`, `password`). Ein Passwort-Show/Hide-Toggle
+ist **bewusst nicht** Teil des Atoms — das wäre ein eigenes Organism
+(Slot-Komposition aus `Input` + `IconButton`).
+
+<Canvas of={TextStories.Variants} />
+
+## Zustände
+
+`disabled` (opacity + `not-allowed`-Cursor). Befüllt vs. leer über `value` /
+`defaultValue`. Optionaler `leadingIcon`-Slot blendet links ein Icon ein und
+schiebt das Padding nach (`pl-9`).
+
+<Canvas of={TextStories.States} />
+<Canvas of={TextStories.Composition} />
+
+## Barrierefreiheit
+
+- Natives `<input>` — Fokus + Tastatur gratis.
+- `font-size: 16px` (`text-base`) verhindert iOS-Auto-Zoom beim Fokus.
+- `disabled` blockt Fokus und Eingabe.
+- Das eingebettete Icon ist dekorativ (`aria-hidden`); die Bedeutung trägt der
+  Platzhalter bzw. das zugehörige Label des Konsumenten.
+
+## Beispiele
+
+Interaktiver Default-Render — Controls-Panel steuert alle Props:
+
+<Canvas of={TextStories.Default} />
+<Controls of={TextStories.Default} />

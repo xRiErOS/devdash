@@ -1,0 +1,40 @@
+{
+  "id": 26,
+  "project_id": 2,
+  "name": "M0 Initialer Meilenstein",
+  "description": "Sammlung der Sprinte",
+  "target_date": "2026-08-30",
+  "status": "completed",
+  "position": 12,
+  "deferred": 0,
+  "created_at": "2026-06-01 13:11:36",
+  "sprints": [
+    {
+      "id": 25,
+      "key": "DD#1",
+      "name": "Dogfooding & Tooling",
+      "goal": "Erste Iteration: DevD selbst pflegen",
+      "status": "completed",
+      "milestone_id": 26,
+      "project_prefix": "DD",
+      "project_number": 1,
+      "position": 0,
+      "start_date": null,
+      "end_date": null,
+      "issue_total": 2,
+      "issue_done": 2,
+      "issue_cancelled": 3
+    }
+  ],
+  "dod_items": [],
+  "dependencies_in": [
+    { "id": 8, "name": "M5 — Mobile UX", "status": "completed", "dependency_id": 1 }
+  ],
+  "dependencies_out": [
+    { "id": 18, "name": "M4 — CLI/MCP Tooling & Contract-first", "status": "completed", "dependency_id": 2 }
+  ],
+  "total": 157,
+  "done": 157,
+  "cancelled": 17,
+  "terminal_count": 174
+}

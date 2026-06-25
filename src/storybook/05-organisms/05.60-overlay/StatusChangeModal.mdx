@@ -1,0 +1,60 @@
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as StatusChangeModalStories from './StatusChangeModal.stories.jsx'
+
+<Meta of={StatusChangeModalStories} />
+
+# StatusChangeModal
+
+`status:stable` · Organism · Cluster `05.60 Overlay` · GF-290
+
+## Zweck
+
+Overlay zum Status-Wechsel der selektierten Issues — getriggert aus der
+`BulkActionBar` (MOD-3). Komponiert ModalShell (headerless) + DialogHeader/
+DialogFooter + Button-Atome. Stateful: der gewählte Ziel-Status lebt intern bis
+zum Apply.
+
+## Wann verwenden
+
+- **Ja:** Bulk-Status-Wechsel mehrerer Issues aus der Listen-Selektion.
+- **Nein:** Status eines einzelnen Issues in der Detail-Ansicht ändern →
+  `StatusBadgeSelect` / `DetailStatusStepper`.
+
+## Nur valide Transitions
+
+`allowedStatuses` enthält ausschließlich die für die aktuelle Auswahl **erlaubten
+Ziel-Stati** — der Consumer berechnet sie aus den Lifecycle-Regeln, der Dialog
+zeigt nur diese als wählbare Optionen. Das Backend (`canTransition`) bleibt
+autoritativ und rejected Edge-Cases.
+
+## Props
+
+<ArgTypes of={StatusChangeModalStories} />
+
+`allowedStatuses` = `[{value, label}]`. `value` = vorgewählter Ziel-Status.
+`selectedCount` erscheint als Kontext im Header. `onApply(status)` liefert den
+gewählten Ziel-Status; Apply ist deaktiviert, solange nichts gewählt ist.
+
+## Optionen-Darstellung (R2-MOD-3)
+
+Jede Status-Option ist eine **bordered surface0-Zeile** — sie hebt sich klar vom
+Modal-Hintergrund ab (statt lieblos transparenter ghost-Buttons). Die gewählte
+Option trägt Akzent-Border + Akzent-Text + ein Check-Icon und ist via
+`aria-pressed` ausgewiesen.
+
+## Zustände
+
+Nichts vorgewählt (Apply disabled) · vorgewählter Status (Akzent-Border + Check).
+
+<Canvas of={StatusChangeModalStories.Variant_States} />
+
+## Barrierefreiheit
+
+- Optionen sind echte `<button>` (Button-Atome) mit Label + `aria-pressed`.
+- Die aktive Auswahl ist visuell (Akzent-Border/-Text + Check-Icon) ausgewiesen.
+- ModalShell trägt ESC/Backdrop-Close + Fokus-Management.
+
+## Beispiele
+
+<Canvas of={StatusChangeModalStories.Default} />
+<Controls of={StatusChangeModalStories.Default} />

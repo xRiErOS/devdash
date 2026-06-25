@@ -1,0 +1,57 @@
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as SortDialogStories from './SortDialog.stories.jsx'
+
+<Meta of={SortDialogStories} />
+
+# SortDialog
+
+`status:stable` · Organism · Cluster `05.60 Overlay` · OR-10
+
+## Zweck
+
+Die Schwester des `FilterDialog` mit kleinerem Scope: ein Overlay zur Wahl von
+Sort-Feld + Richtung (asc/desc). Stateful — hält den Sort-Entwurf intern, bis der
+Consumer Apply auslöst. Komponiert `ModalShell` (headerless) + `DialogHeader`/
+`DialogFooter` + Button-Atome.
+
+Der Richtungs-Toggle nutzt **zwei Button-Atome** (aktiv = primary): das `SegmentBar`-
+Atom ist ein Fortschritts-/Display-Balken, kein Segmented-Control.
+
+## Ebene-6 Capability-Gegencheck (OR-10)
+
+| CAP | Verb | frontend | Anmerkung |
+|---|---|---|---|
+| CAP-issue-list | issue/list | 🟢 present | sortieren — Achsen aus den list-fähigen Feldern |
+
+## Wann verwenden
+
+- **Ja:** als Sort-Trigger-Ziel der ListActionBar.
+- **Nein:** Filtern → `FilterDialog` (GF-248). Export → `TransferDialog` (GF-250).
+
+## Props
+
+<ArgTypes of={SortDialogStories} />
+
+`fields` = `{value,label}[]`. `sortBy`/`direction` setzen den initialen Entwurf.
+`onApply({sortBy,direction})` liefert die Wahl, `onReset` setzt auf das erste Feld
++ aufsteigend zurück.
+
+## Zustände
+
+Aufsteigend nach Feld · absteigend nach Feld (aktives Feld + Richtung tragen den
+Primary-Akzent).
+
+<Canvas of={SortDialogStories.Variant_States} />
+
+## Barrierefreiheit
+
+- Modal ist `role="dialog"` `aria-modal`; ESC schließt.
+- Feld-/Richtungswahl sind echte `<button>` (Button-Atome) mit Label; die aktive
+  Wahl ist durch den Primary-Akzent **und** die Reihenfolge ausgewiesen.
+
+## Beispiele
+
+Interaktiver Default — Controls steuern `direction`:
+
+<Canvas of={SortDialogStories.Default} />
+<Controls of={SortDialogStories.Default} />

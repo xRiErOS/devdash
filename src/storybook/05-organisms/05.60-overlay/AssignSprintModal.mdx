@@ -1,0 +1,52 @@
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as AssignSprintModalStories from './AssignSprintModal.stories.jsx'
+
+<Meta of={AssignSprintModalStories} />
+
+# AssignSprintModal
+
+`status:stable` · Organism · Cluster `05.60 Overlay` · GF-288 · MOD-1
+
+## Zweck
+
+Overlay zum Zuweisen eines Sprints zu den aktuell selektierten Issues — von der
+`BulkActionBar` (Aktion „Sprint zuweisen") getriggert. Komponiert ModalShell
+(headerless) + DialogHeader/DialogFooter + das **molecule-`Select`** (R2-MOD-1):
+ein Custom-Dropdown mit Suchfeld (`searchable`) statt des nativen `<select>` —
+bei vielen offenen Sprints lässt sich die Liste nach ID/Titel filtern. Shared mit
+`MoveModal`.
+
+stateful: hält den gewählten `sprintId` intern, bis der Consumer „Zuweisen"
+auslöst (`onAssign(sprintId)`). Dumb bzgl. Daten — die `sprints`-Optionen kommen
+als Props, die Mutation macht der Consumer.
+
+## Wann verwenden
+
+- **Ja:** Mehrfachauswahl → einem Sprint zuordnen (Bulk-Edit).
+- **Nein:** Status ändern → `StatusChangeModal`. Verschieben → `MoveModal`.
+  Löschen → `ConfirmDialog` (danger).
+
+## Props
+
+<ArgTypes of={AssignSprintModalStories} />
+
+`selectedCount` setzt den Titel-Kontext („N Issues — Sprint zuweisen").
+„Zuweisen" ist disabled, solange kein Sprint gewählt ist.
+
+## Zustände
+
+Leer (kein Sprint vorgewählt) · vorbelegt (`value` gesetzt).
+
+<Canvas of={AssignSprintModalStories.Variant_States} />
+
+## Barrierefreiheit
+
+- ModalShell trägt ESC/Backdrop-Close + Fokus-Management.
+- Sprint-Wahl ist das molecule-`Select` (Trigger `aria-haspopup="listbox"`,
+  `role="listbox"`-Dropdown, Tastatur-Navigation + Suche) mit `ariaLabel`.
+- Cancel/Zuweisen sind echte `<button>` (Button-Atome) mit Label.
+
+## Beispiele
+
+<Canvas of={AssignSprintModalStories.Default} />
+<Controls of={AssignSprintModalStories.Default} />

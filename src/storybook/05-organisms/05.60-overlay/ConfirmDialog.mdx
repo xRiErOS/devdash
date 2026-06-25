@@ -1,0 +1,50 @@
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as ConfirmDialogStories from './ConfirmDialog.stories.jsx'
+
+<Meta of={ConfirmDialogStories} />
+
+# ConfirmDialog
+
+`status:stable` · Organism · Cluster `05.60 Overlay` · GF-287
+
+## Zweck
+
+Generisches Bestätigungs-Overlay: Titel + Nachricht + Cancel/Confirm. `danger`
+rendert die Confirm-Aktion als danger-Akzent für destruktive Bestätigungen
+(z.B. Löschen aus der `BulkActionBar`, MOD-4). Komponiert ModalShell (headerless)
++ DialogHeader/DialogFooter + Button-Atome.
+
+Wiederverwendbarer Baustein — jede „Sind Sie sicher?"-Interaktion nutzt diesen
+Dialog statt eines eigenen Overlays.
+
+## Wann verwenden
+
+- **Ja:** destruktive oder folgenreiche Aktion bestätigen (Löschen, Verwerfen,
+  irreversible Transitions).
+- **Nein:** Formular-Eingabe → spezifischer Modal (AssignSprint/Move/StatusChange/
+  TagEdit). Reine Info ohne Entscheidung → Toast/Inline.
+
+## Props
+
+<ArgTypes of={ConfirmDialogStories} />
+
+`danger:true` → Confirm-Button in danger-Akzent. `busy:true` → Spinner + disabled
+(während der Consumer mutiert). `message` ist ein Slot/String.
+
+## Zustände
+
+Neutral (primary Confirm) · Danger (Löschen-Bestätigung) · busy.
+
+<Canvas of={ConfirmDialogStories.Variant_States} />
+
+## Barrierefreiheit
+
+- ModalShell trägt ESC/Backdrop-Close (Callback) + Fokus-Management.
+- Confirm/Cancel sind echte `<button>` (Button-Atome) mit Label.
+- Destruktive Aktion ist durch danger-Akzent **und** Label („Endgültig löschen")
+  ausgewiesen — Farbe ist nicht der einzige Träger.
+
+## Beispiele
+
+<Canvas of={ConfirmDialogStories.Default} />
+<Controls of={ConfirmDialogStories.Default} />

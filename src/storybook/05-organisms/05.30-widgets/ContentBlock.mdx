@@ -1,0 +1,79 @@
+{/* GF-360 — ContentBlock Doku-Tab (V2-blocks[]-Design, ex-GF-368 entblockt).
+    Pflichtabschnitte: Zweck · Wann · Props · Zustände · a11y · Beispiele.
+    KEIN rohes Kleiner-Zeichen (LL01). */}
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as CBStories from './ContentBlock.stories.jsx'
+
+<Meta of={CBStories} />
+
+# ContentBlock
+
+`status:stable` · Organism · Cluster `05.30 Widgets` · GF-335
+
+## Zweck
+
+V2-Textblock-Widget in der Terminal-Token-Sprache: variable benannte Blöcke (`blocks[]`,
+D02), titellos by default (heading opt-in, D03). **Pro Block ein EditButton** — Klick öffnet
+das `ContentBlockForm` fokussiert auf genau diesen Block (D04 rev). Controlled und
+präsentational; das Form-Öffnen/Schließen liegt beim Consumer-Wrapper.
+
+Das V2-Design löst die provisorischen Cohesion-Varianten (Grouped/Carded/List) vollständig
+ab — die PO-Entscheidung war durch den V2-Rewrite (GF-335/336, `14122c5`) bereits getroffen
+(GF-368 gegenstandslos).
+
+## blocks[]-Design (D02)
+
+`blocks` ist ein Array mit consumer-definierten Feldern:
+
+```
+{ key: string, label: string, value: string, placeholder?: string }[]
+```
+
+Der Consumer mappt bestehende DB-Spalten auf Blöcke (z.B. `goal`, `background`,
+`acceptance`). Kein User-Anlegen neuer Felder — die Felder sind fix für die jeweilige
+Entität. Die Block-Anzahl ist variabel (2 Blöcke für Issue, mehr für andere Entitäten).
+
+## Pro Block ein EditButton (D04 rev)
+
+Jeder Block hat einen eigenen EditButton (`IconButton` Pencil). Ein Klick auf den
+Goal-EditButton öffnet das `ContentBlockForm` mit **nur dem Goal-Feld** — fokussiert.
+So bleibt der Schreibfokus minimal und der PO sieht sofort, was bearbeitet wird.
+
+Die `EditFlow`-Story beweist diesen Klickpfad automatisch per `play` (Gleis-2-Evidenz).
+
+## Wann verwenden
+
+- **Ja:** Goal/Background-Block einer Issue-Detailseite. Beliebige benannte Freitext-
+  Blöcke einer Entität.
+- **Nein:** Tabellarische Meta-Felder (Typ, Status, …) → `EntityMeta`/`MetaCardWidget`.
+  UserStory-Liste → `UserStoriesWidget`.
+
+## Props
+
+<ArgTypes of={CBStories} />
+
+`blocks` = `{ key, label, value, placeholder? }[]`. `heading` (optional) zeigt eine
+Widget-Caption (`// label`). `onEdit(key)` — der Consumer empfängt den geklickten
+Block-Key und öffnet das Form (CONV-molecule-boundary).
+
+## Zustände
+
+**Default** — titellos, 2 Blöcke, pro Block ein EditButton; Klick öffnet das Form live.
+**Heading** — gleiche Blöcke mit optionaler Widget-Caption.
+**ManyBlocks** — 4 Blöcke (Beweis der variablen Block-Anzahl).
+**Empty** — leere Blöcke mit Platzhaltern; EditButton je Block verfügbar.
+**EditFlow** — automatischer Klickpfad-Beweis per `play` (Goal-EditButton → Form → Feld fokussiert).
+
+<Canvas of={CBStories.Default} />
+<Canvas of={CBStories.Variant_Heading} />
+<Canvas of={CBStories.Main} />
+<Canvas of={CBStories.State_Empty} />
+<Canvas of={CBStories.Interaction_Edit} />
+
+## Barrierefreiheit
+
+- EditButton-Trigger ist `IconButton` mit `aria-label` (z.B. „Goal bearbeiten").
+- Freitext-Inhalt ist als `<p>` oder MarkdownField gerendert — semantische Struktur.
+- Leere-Platzhalter sind textuell (`aria-hidden` nur wenn rein dekorativ).
+- Das `ContentBlockForm`-Modal erbt die a11y-Eigenschaften von `ModalShell`
+  (Focus-Trap, `role="dialog"`, `aria-labelledby`).

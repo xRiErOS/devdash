@@ -1,0 +1,79 @@
+{/* GF-253 — TransitionActionsWidget Doku-Tab. KEIN rohes Kleiner-Zeichen (LL01). */}
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as TxStories from './TransitionActionsWidget.stories.jsx'
+
+<Meta of={TxStories} />
+
+# TransitionActionsWidget
+
+`status:stable` · Organism · Cluster `05.30 Widgets` · OR-18 · GF-253 / GF-337 (V2)
+
+## Zweck
+
+Zeigt die für eine Entität (Issue/Sprint/Milestone) zulässigen Lifecycle-Transitions
+als Aktions-Buttons. Der Consumer liefert nur die gültigen `transitions`; der Klick
+ruft `onTransition(key)`. Die Lifecycle-Validierung bleibt autoritativ beim Backend.
+
+## Ebene-6-Capability-Gegencheck (A4)
+
+OR-18 = 8 Caps: `issue-status-transition`, `issue-set-result`, `milestone-create`,
+`milestone-update`, `milestone-transition`, `milestone-close`, `sprint-start`
+(`_ebene6.md`). Das Widget rendert die Verben als Buttons; die Ausführung delegiert
+es an den Consumer.
+
+## Wann verwenden
+
+- **Ja:** Aktions-Region einer Detail-Ansicht — alle erlaubten Lifecycle-Schritte
+  einer Entität gebündelt.
+- **Nein:** reiner Status-Wechsel inline an einer Zeile → `StatusBadgeSelect`
+  (Badge-Trigger-Menü). Vollständiger Lifecycle-Walk → `DetailStatusStepper`.
+
+## Props
+
+<ArgTypes of={TxStories} />
+
+`transitions` = `{ key, label, variant?, disabled?, hint? }[]`.
+
+## V2-Terminal-Token (GF-337)
+
+- **Titellos per Default** (`showTitle=false`) — der Titel kommt zentral aus dem
+  EntityDetail-Slot; die BaseStory `Default` togglet ihn über den `showTitle`-Control.
+- **`dataUiScope`** parametrierbar (Consumer-Parent-Scope, CONV-461) — alle Sub-Anker
+  (`.title` / `.empty-hint` / `.action-<key>` / `.select`) werden abgeleitet.
+- **Terminal-Tint:** Buttons rendern `appearance="tint"` (border-driven, ton-getönter
+  Rand + BG, scharfe Kante) statt gefüllter Akzent-Blocks — Terminal-Sprache.
+- **Kompaktierung:** Übergänge sind dynamisch (meist 2). Ab 5 zulässigen Übergängen
+  rendert das Widget statt des Button-Clusters ein **Select-Field** (`.select`).
+- **Kein PO-Marker** (PO 2026-06-19): KI nutzt MCP, nicht das Frontend — der DD-186-
+  UI-Guard entfällt; Backend + Consumer bleiben der Gate.
+
+## Zustände
+
+Aktiv (klickbar) · disabled (regulär gesperrt, z.B. Backend-Reject) · leer (kein
+zulässiger Übergang → Leer-Hinweis) · viele (≥5 → Select).
+
+<Canvas of={TxStories.Variant_AtSprint} />
+<Canvas of={TxStories.Variant_ManyTransitions} />
+<Canvas of={TxStories.State_Empty} />
+
+## Barrierefreiheit
+
+- Aktionen sind echte `Button`-Atome (Fokus + Enter/Space nativ).
+- Gesperrte Buttons tragen `disabled` und einen erklärenden `title`.
+- Tint-Buttons tragen die Bedeutung in Text + Tönung (nicht nur Farbe).
+
+## Beispiele
+
+<Canvas of={TxStories.Default} />
+<Controls of={TxStories.Default} />
+
+<Canvas of={TxStories.Main} />
+<Canvas of={TxStories.Variant_AtMilestone} />
+
+## Interaktiv — dynamischer Transition-Walk
+
+Klick auf einen Übergang advanced den Status entlang der Kette und recomputed die
+verfügbaren Übergänge (nur tatsächlich mögliche). Im Storybook über die `play`-Funktion
+abgesichert.
+
+<Canvas of={TxStories.Interaction_Walk} />

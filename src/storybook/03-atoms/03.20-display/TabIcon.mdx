@@ -1,0 +1,69 @@
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as TabIconStories from './TabIcon.stories.jsx'
+
+<Meta of={TabIconStories} />
+
+# TabIcon
+
+`status:stable` · Atom · Cluster `03.20 Display`
+
+## Zweck
+
+Reines SVG-Icon-Dispatch nach Key: ein String-Key
+(`overview`/`backlog`/`roadmap`/`todo`/`sstd`/`memory`/`settings`) wählt das
+Pfad-Set. Präsentiert EINEN Wert (ein Icon) → Atom. Es ist das Icon, das die
+`TabButton`-Molecule (04.20 Navigation) komponiert. Props-driven, kein
+Store/Fetch, keine Domänen-Logik — Keys sind generische Icon-Selektoren.
+
+## Wann verwenden
+
+- **Ja:** Tab-Glyphen in der Navigations-Leiste (via TabButton).
+- **Nein:** allgemeines App-Icon → `Icon`-Foundation. Status-Marker → `Badge`.
+
+## Props
+
+<ArgTypes of={TabIconStories} />
+
+`name` wählt das Icon; `size` (px) skaliert die Kantenlänge (viewBox 0 0 24 24,
+`stroke="currentColor"` → erbt die Textfarbe).
+
+## Zustände
+
+Sieben Icon-Keys · variable Größe.
+
+<Canvas of={TabIconStories.Variants} />
+<Canvas of={TabIconStories.Sizes} />
+
+## Icon-Registry-Bypass (Canon-Regel-6-Ausnahme, by-design)
+
+Canon-Regel 6 fordert für alle Icons den Weg über die Registry
+`01.20-iconography/Icon.jsx`. `TabIcon` ist **absichtlich ausgenommen** (mem 414,
+Designentscheidung GF-208):
+
+- `TabIcon` ist selbst ein Atom auf Tier 03.20 Display — kein Konsument der
+  Foundation-Registry, sondern deren Geschwister-Ebene.
+- Die sieben Tab-Glyphen (`overview`/`backlog`/`roadmap`/`todo`/`sstd`/`memory`/
+  `settings`) existieren nicht als Lucide-Icons; sie sind verbatim aus dem
+  DD39-Mockup extrahierte SVG-Pfad-Sets (viewBox 0 0 24 24, stroke currentColor).
+- Ein Umweg über `Icon.jsx` würde erfordern, die Pfade als Custom-Einträge in die
+  Registry zu injizieren — ohne Mehrwert, da `TabIcon` bereits ein gekapseltes
+  Dispatch-Atom ist.
+- `TabIcon` wird ausschließlich von `TabButton` (04.20 Navigation) komponiert, nicht
+  als allgemeiner App-Icon-Endpunkt verwendet.
+
+**Wenn allgemeine App-Icons benötigt werden:** `01.20-iconography/Icon.jsx` nutzen —
+`TabIcon` ist kein Ersatz.
+
+## Barrierefreiheit
+
+- `aria-hidden="true"` — das Icon ist dekorativ; die Bedeutung trägt das
+  Tab-Label (TabButton).
+- `stroke="currentColor"` erbt Kontrast aus der Textfarbe (WCAG-AA via Tokens).
+- Unbekannter Key → `null` (kein leeres SVG).
+
+## Beispiele
+
+Interaktiver Default-Render — Controls steuern `name`/`size`:
+
+<Canvas of={TabIconStories.Default} />
+<Controls of={TabIconStories.Default} />

@@ -1,0 +1,107 @@
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as ListViewStories from './ListView.stories.jsx'
+
+<Meta of={ListViewStories} />
+
+# ListView
+
+`status:stable` · Organism · Cluster `05.10 Lists` · OR-05 · D03/D04
+
+## Zweck
+
+Die **EINE** kanonische Listen-Familie statt N bespoke Listen. Config-getrieben
+`{entity, scope, columns, allowedBulkActions}` für Backlog · EntityList ·
+Tag-Ergebnis (Trash = deferred, s.u.). Komponiert `ListActionBar` (Kopf, GF-246) +
+`EntityItem[]` (Items, GF-245) + `BulkActionBar` (bei Selektion, GF-247) +
+`EmptyState`/`Skeleton` (Empty/Loading).
+
+Organism-Tier: trägt die Selektions-/Such-Orchestrierung; der Daten-Fetch bleibt
+Consumer/Screen (P3 verdrahtet die Daten — die Story ist präsentational mit Mock-Props).
+
+## Ebene-6 Capability-Gegencheck (OR-05)
+
+| CAP | Verb | frontend | Anmerkung |
+|---|---|---|---|
+| CAP-issue-list | issue/list | 🟢 present | Backlog-Config |
+| CAP-project-list | project/list | 🟢 present | EntityList-Config |
+| CAP-project-sstd-read | project/read | 🟢 present | — |
+| CAP-tag-list | tag/list | 🟢 present | Tag-Ergebnis-Config |
+| CAP-trash-lost-issues | trash/list | 🔴 missing | **Trash-Config DEFERRED → GF-280/sprint-06 (D02)**, kein Fake-Backend |
+| CAP-trash-soft-delete-status | trash/filter | 🟡 partial | cancelled-Toggle (deferred mit Trash) |
+
+Die Trash-Variante ist als deferred-Hinweis im `States`-Panel dokumentiert (GF-367) — die
+Capability fehlt im Backend (🔴) und wird mit GF-280 nachgezogen.
+
+## Reflow-Vertrag (D10-G) — VERBINDLICH
+
+Der card↔row-Wechsel erfolgt über eine **Container-Query**, NICHT über den Viewport:
+
+- Container: der ListView-Root trägt `@container/list` (Tailwind Container-Context).
+- Schwelle: **token-gebunden** an `--cq-md` (768px Container-Breite, GF-228) —
+  keine nackten px, keine `lg:`-Viewport-Media-Query.
+- Verhalten: unterhalb `--cq-md` rendern die Items als `card` (gestapelt),
+  ab `--cq-md` als `row` (tabellarisch). Die Schwelle hängt an der **Container**-
+  Breite → eine schmale ListView in einer breiten Viewport bleibt card.
+- Der `layout`-Prop setzt die Darstellung explizit (Story/Mock); P3 verdrahtet die
+  intrinsische Container-Query-Klasse gegen `--cq-md`.
+
+Begründung (D10-B): Mobile-Readiness-Fundament ohne Viewport-Kopplung — derselbe
+Baustein reflowt korrekt, egal in welcher Spalte/Drawer er steckt.
+
+## Wann verwenden
+
+- **Ja:** jede Sammlung von Entities (Backlog, Projektliste, Tag-Ergebnis, MemoryView).
+- **Nein:** eine einzelne Zeile → `EntityItem` (GF-245). Detail einer Entity → EntityDetail (P4).
+
+## Props
+
+<ArgTypes of={ListViewStories} />
+
+`config` = `{entity, scope, columns, allowedBulkActions}`. `items[]` speist die
+`EntityItem`s. `triggerActions`/`bulkActions` sind action-as-data (D10-F).
+`selectedIds` schaltet die `BulkActionBar` (gefiltert auf `allowedBulkActions`).
+`loading` → Skeleton, leere `items` → EmptyState.
+
+`size` (`sm|md|lg|xl`, SZ-1) reicht 1:1 an **alle** `EntityItem`s durch und skaliert
+deren Padding/Abstände. Dichte = Padding-Skalierung, **kein** Ausblenden von Inhalt:
+für ein Power-Tool bleibt die Zeilen-Information (Pill, Status, Progress, Chevron)
+über alle Stufen lesbar — `sm` verdichtet nur, es kürzt nicht.
+
+Select-Mode (EI-2 / R3-LAB-1): `onToggleSelectMode` aktiviert den Kopf-Toggle; ein
+Klick öffnet den **`SelectAllModal`** (GF-292), in dem die „Alle auswählen"-Steuerung
+lebt (`selectAllOpen`/`onSelectAllClose`/`onToggleSelectAll`/`onSelectAllConfirm`).
+`selectMode` reicht die Item-Checkbox an jede `EntityItem` durch. `allSelected`/
+`someSelected` berechnet die ListView aus `selectedIds` vs. `items` (Voll- vs.
+Teil-Auswahl → `indeterminate`) und gibt sie an den Modal weiter.
+
+## Zustände
+
+Variants (Config-Familie: Backlog/EntityList/Tag) · Appearance (card/row) · Loading (Skeleton) · Empty (EmptyState) ·
+Selection (Select-Mode-Kopf + BulkActionBar) · Sizes (sm/md/lg/xl) · Trash (deferred, in States integriert).
+
+**Selection** (R3-LAB-1/LV-2): der Kopf trägt im Select-Mode den Toggle; die „Alle
+auswählen"-Steuerung liegt im offen gezeigten **`SelectAllModal`** (2/3 selektiert →
+`indeterminate`). Die **BulkActionBar** ist vollständig verdrahtet — Count-Badge,
+„Auswahl aufheben" und die `allowedBulkActions`-Buttons (hier `assign`/`delete`).
+
+Die Items rendern als **Text-Grid** (EntityItem R3-EI-1: id · type · name · progress
+· status als Text, keine Pills/Badges).
+
+<Canvas of={ListViewStories.Variant_All} />
+<Canvas of={ListViewStories.Variant_Appearance} />
+<Canvas of={ListViewStories.Variant_States} />
+<Canvas of={ListViewStories.State_Selected} />
+<Canvas of={ListViewStories.Variant_Sizes} />
+
+## Barrierefreiheit
+
+- Suche ist ein echtes `type="search"`-Input (SearchField-Kette).
+- Items sind `EntityItem`-Organismen (Selektion via Checkbox, `aria-selected`).
+- Empty/Loading sind eigenständig ausgewiesen (EmptyState-Text bzw. Skeleton-Blöcke).
+
+## Beispiele
+
+Interaktiver Default — Backlog-Config, Controls steuern `layout`/`loading`:
+
+<Canvas of={ListViewStories.Default} />
+<Controls of={ListViewStories.Default} />

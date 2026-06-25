@@ -1,0 +1,61 @@
+{/* GF-255 — DependencyForm Doku-Tab. KEIN rohes Kleiner-Zeichen (LL01). */}
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as DepFormStories from './DependencyForm.stories.jsx'
+
+<Meta of={DepFormStories} />
+
+# DependencyForm
+
+`status:stable` · Organism · Cluster `05.60 Overlay` · OR-20 · GF-255
+
+## Zweck
+
+Erfasst Abhängigkeitskanten einer Entität in zwei Sektionen (Vorgänger / Nachfolger).
+Der Picker (Select) legt bei Auswahl sofort an (`onAdd`); bestehende Kanten sind je
+Item entfernbar (`onRemove`). Eine Abhängigkeit ist immer **gleichtypig**
+(MS↔MS, SP↔SP, IS↔IS) — `variant` bestimmt nur die Begriffe.
+
+Diese Story dokumentiert die **bestehende** token-saubere `DependencyForm`
+(DD-481-Harvest) als OR-20-Vertrag — konsolidieren statt duplizieren (PRODUCT.md),
+kein neues Primitiv.
+
+## Ebene-6-Capability-Gegencheck (A4)
+
+OR-20 = 3 Caps: `dependency-create` (mit Zyklus-Schutz), `dependency-delete`,
+`milestone-dep-add` (`_ebene6.md`). Anzeige bestehender Kanten ist `DependencyWidget`
+(OR-19, GF-254).
+
+## Wann verwenden
+
+- **Ja:** neue Abhängigkeit erfassen / bestehende entfernen (Detail oder Modal).
+- **Nein:** reine Anzeige → `DependencyWidget`.
+
+## Props
+
+<ArgTypes of={DepFormStories} />
+
+`deps` = `{ predecessors?, successors? }` mit Items `{ id, name, dependency_id }`.
+`candidates` = `{ id, name }[]` (intern via `availableCandidates` gefiltert — kein
+Self-Link, keine Dubletten). `error` = `{ kind, msg }` rendert den Backend-Fehler
+(Zyklus/409). `onClose` (gesetzt) schaltet eigene Chrome (Header-X + Footer-Fertig)
+für den Modal-Embed-Fall.
+
+## Zustände
+
+Mit Kanten · leer (Hinweis je Sektion) · Fehler-Toast (Zyklus) · eigene Chrome (Modal).
+
+<Canvas of={DepFormStories.State_Empty} />
+<Canvas of={DepFormStories.State_Error} />
+
+## Barrierefreiheit
+
+- Picker ist das `Select`-Molekül (`role="listbox"`, Tastatur-Navigation, `ariaLabel`).
+- Entfernen ist ein `IconButton` mit sprechendem `aria-label` (`Vorgänger M-X entfernen`).
+- Fehler-Toast ist `role="alert"`.
+
+## Beispiele
+
+<Canvas of={DepFormStories.Default} />
+<Controls of={DepFormStories.Default} />
+
+<Canvas of={DepFormStories.Variant_Modal} />

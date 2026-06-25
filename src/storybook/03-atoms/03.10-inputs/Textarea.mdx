@@ -1,0 +1,52 @@
+{/* GF-2 P1 — Textarea-Doku. Pflichtabschnitte: Zweck · Wann · Props · Zustände ·
+    a11y · Beispiele. <Meta of={…}> hängt die Seite als Doku-Tab ein. */}
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as TextareaStories from './Textarea.stories.jsx'
+
+<Meta of={TextareaStories} />
+
+# Textarea
+
+`status:stable` · Atom · Cluster `03.10 Inputs`
+
+## Zweck
+
+Token-saubere mehrzeilige Freitext-Eingabe — das mehrzeilige Pendant zu `Input`
+(Pattern P05/P19). Reines Display-Primitiv: props-driven, kein Store, kein Fetch,
+keine Domänen-Begriffe. Vertikal resizebar über den nativen `resize-y`-Handle.
+
+## Wann verwenden
+
+- **Ja:** Längere, mehrzeilige Eingaben (Beschreibung, Notiz, Kommentar,
+  Background-Feld eines Issues).
+- **Nein:** Einzeiliger Text → `Input`. Auswahl aus fester Liste → `Select`.
+  Boolean → `Checkbox`.
+
+## Props
+
+<ArgTypes of={TextareaStories} />
+
+## Zustände
+
+`disabled` (opacity + `not-allowed`), `placeholder` (Prompt im leeren Feld),
+`rows` (sichtbare Zeilenzahl, Default 3). Keine `variant`-/`color`-/`size`-Achse —
+Textarea ist ein flaches Single-Element-Atom.
+
+<Canvas of={TextareaStories.States} />
+
+## Barrierefreiheit
+
+- Natives `<textarea>` — Tastatur-Navigation und Screenreader-Support gratis.
+- `font-size: 16px` (`text-base`) verhindert iOS-Zoom beim Fokussieren.
+- Label/Fehlertext gehören ans umgebende Feld-Molecule (das Atom trägt keine
+  eigene Beschriftung).
+- Kontrast: `--surface0`/`--text` erfüllen WCAG-AA.
+
+## Beispiele
+
+Interaktiver Default-Render — Controls-Panel steuert alle Props:
+
+<Canvas of={TextareaStories.Default} />
+<Controls of={TextareaStories.Default} />
+
+<Canvas of={TextareaStories.Composition} />

@@ -1,0 +1,44 @@
+# DD-231: Portainer-Stack manifest for DevDashboard on Synology NAS.
+#
+# Deploy mode: Portainer Stack 85. The image is pulled from GHCR
+# (ghcr.io/xrieros/devdashboard:latest, built by the build-image GH Action —
+# DD-250) with pull_policy: always. mem_limit caps container RAM at 256m for
+# NAS stability (HL-22); keep this in git so a redeploy never drops it.
+#
+# Networking: published on host port 3001. NPM (nginx-proxy-manager) reaches
+# the API via host-IP 192.168.178.185:3001 — same pattern the mybaby
+# container already uses. No shared overlay network needed.
+#
+# Persistence: bind-mounts under /volume2/docker/devd/{data,uploads} survive
+# container/stack recreation. The DB file lives on the host volume; the
+# image bakes the .sql migrations under /app/migrations (DD-249 — moved
+# out of /app/data/migrations to avoid bind-mount masking).
+
+services:
+  devd:
+    image: ghcr.io/xrieros/devdashboard:latest
+    pull_policy: always
+    mem_limit: 256m
+    container_name: devd
+    restart: unless-stopped
+    init: true
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3001
+      TZ: Europe/Berlin
+      # DD-221: AUTHELIA_DEV_BYPASS MUST stay unset in production. The
+      # forward-auth header X-Authelia-User is the only legit identity source.
+      # ANTHROPIC_API_KEY: set via Portainer "Environment variables" UI to
+      # keep the secret out of git.
+    volumes:
+      - /volume2/docker/devd/data:/app/data
+      - /volume2/docker/devd/uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s

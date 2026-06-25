@@ -1,0 +1,18 @@
+{
+  "// DD-559": "Inkrementelle CI-Typprüfung ohne .ts-Rename (AOS-konform). checkJs ist GLOBAL AUS — eine Datei opt-in via '// @ts-check' am Kopf. So wächst die Typ-Abdeckung Datei für Datei statt im Big-Bang. Typen werden aus den Zod-Contracts via z.infer (JSDoc @typedef) inferiert. Frontend (src/) bleibt deprioritisiert (Storybook + Atomic-Korsett + Ratchets sichern es strukturell).",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noImplicitAny": false,
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["contracts/**/*.js", "server/**/*.js", "mcp/**/*.js", "bin/**/*.js"],
+  "exclude": ["node_modules", "dist", "src", "tests", "e2e", ".storybook", "report"]
+}

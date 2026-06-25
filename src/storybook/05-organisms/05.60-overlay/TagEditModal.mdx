@@ -1,0 +1,50 @@
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as TagEditModalStories from './TagEditModal.stories.jsx'
+
+<Meta of={TagEditModalStories} />
+
+# TagEditModal
+
+`status:stable` · Organism · Cluster `05.60 Overlay` · GF-291
+
+## Zweck
+
+Overlay zum **Tag-Hinzufügen/-Entfernen** für die selektierten Issues — getriggert
+aus der `BulkActionBar` (`edit_tags`, MOD-5 / BAB-4). Komponiert ModalShell
+(headerless) + DialogHeader/DialogFooter + `TagChip` (zugewiesene Tags, per X
+entfernbar) + `Button` (verfügbare Tags, per Klick hinzufügbar).
+
+Ebene-6: `CAP-issue-tag-set` 🟢 (Issue-Tags vollständig neu setzen). Stateful: hält
+die gewählte Tag-Menge intern bis Apply; die Mutation macht der Consumer.
+
+## Wann verwenden
+
+- **Ja:** Tags mehrerer selektierter Issues in einem Schritt ändern (Bulk).
+- **Nein:** nach Tag(s) filtern → `FilterDialog` (Tag-Achse). Einzelnes Tag anzeigen
+  → `TagChip`/`Tag`.
+
+## Props
+
+<ArgTypes of={TagEditModalStories} />
+
+`tagOptions` = `{value, label, color?}[]`. `value` = initial zugewiesene Tag-Values.
+`onApply(tags)` liefert die finale Tag-Menge. `selectedCount` erscheint als
+Header-Subtitle (betroffene Issues).
+
+## Zustände
+
+Leer (keine Tags zugewiesen) · zugewiesen (TagChips entfernbar) · verfügbare Tags
+hinzufügbar.
+
+<Canvas of={TagEditModalStories.Variant_States} />
+
+## Barrierefreiheit
+
+- ModalShell trägt ESC/Backdrop-Close + Fokus-Management.
+- Zugewiesene Tags: TagChip mit Remove-IconButton (`aria-label`).
+- Verfügbare Tags: echte `<button>` (Button-Atom) mit Label.
+
+## Beispiele
+
+<Canvas of={TagEditModalStories.Default} />
+<Controls of={TagEditModalStories.Default} />

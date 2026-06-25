@@ -1,0 +1,71 @@
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as TransferDialogStories from './TransferDialog.stories.jsx'
+
+<Meta of={TransferDialogStories} />
+
+# TransferDialog
+
+`status:stable` · Organism · Cluster `05.60 Overlay` · OR-11
+
+## Zweck
+
+Overlay zum Kopieren/Exportieren der (gefilterten) Liste: Format-Auswahl
+(Markdown / CSV / JSON) + Vorschau-Block + Copy-to-Clipboard (`CopyButton`,
+GF-237) + Download. Komponiert `ModalShell` (headerless) + `DialogHeader`/
+`DialogFooter` (GF-243).
+
+Stateful nur bzgl. der **Format-Selektion** (welcher Tab aktiv ist) → Organism.
+Dumb bzgl. Daten: die serialisierten Strings kommen als `previews`-Props; den
+Clipboard-Write und den Datei-Download löst der Consumer aus
+(CONV-molecule-boundary gilt analog).
+
+## Ebene-6 Capability-Gegencheck (OR-11)
+
+OR-11 trug **keine** gemined Capability in `_ebene6.md` → Gegencheck bei Bau
+(sprint-04-Acceptance). **Befund: kein Coverage-Gap — Export-Capability ist
+PRESENT:**
+
+| CAP/Surface | Quelle (file:line) | frontend | Anmerkung |
+|---|---|---|---|
+| Sprint-Export md/csv | `server/api.js:3418` `GET /api/sprints/:id/export` | 🟢 present | `?format=md\|csv` |
+| Backlog-Export md/csv | `server/api.js:3485` `GET /api/backlog-export` | 🟢 present | `?format=md\|csv`, Filter status/search |
+| MCP `devd_backlog_export` | `mcp/devd-mcp.js:828` | 🟢 present | READ, md (default)/csv |
+
+JSON ist im UI-Vertrag mitgeführt (Tab vorhanden); die Serialisierung übernimmt
+der Consumer. Damit ist der Dialog präsentational vollständig durch reale
+Capabilities gedeckt (md/csv) bzw. trivial erweiterbar (json).
+
+## Wann verwenden
+
+- **Ja:** „Liste exportieren/kopieren" aus der ListView-Action-Leiste (Transfer-Trigger).
+- **Nein:** einzelner Copy-Button inline → `CopyButton` (Molecule). Filter/Sort →
+  `FilterDialog`/`SortDialog`.
+
+## Props
+
+<ArgTypes of={TransferDialogStories} />
+
+`previews` = `{md?, csv?, json?}` (serialisierte Strings). `value.format` setzt den
+initialen Tab. `copyState` (`idle`/`success`/`error`) steuert den CopyButton-Zustand.
+`onCopy(format)` / `onDownload(format)` sind Consumer-Callbacks.
+
+## Zustände
+
+Format-Tabs Markdown · CSV · JSON — je Tab die passende Vorschau:
+
+<Canvas of={TransferDialogStories.Variant_All} />
+
+## Barrierefreiheit
+
+- Format-Tabs sind echte `<button>` (Button-Atome) in einem `role="tablist"`.
+- Der aktive Tab ist über den primary-Akzent **und** die sichtbare Vorschau
+  ausgewiesen.
+- Vorschau ist ein `<pre><code>`-Block (scrollbar, kein Layout-Bruch).
+- CopyButton spiegelt Erfolg/Fehler über `state` (nicht nur Farbe — Tooltip/Label).
+
+## Beispiele
+
+Interaktiver Default — Controls steuern `copyState`/`open`:
+
+<Canvas of={TransferDialogStories.Default} />
+<Controls of={TransferDialogStories.Default} />

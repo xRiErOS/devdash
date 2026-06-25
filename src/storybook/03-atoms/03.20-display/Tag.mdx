@@ -1,0 +1,47 @@
+{/* GF-227 — Tag-Doku (Muster Button.mdx). Pflichtabschnitte: Zweck · Wann ·
+    Props · Zustände · a11y · Beispiele. */}
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as TagStories from './Tag.stories.jsx'
+
+<Meta of={TagStories} />
+
+# Tag
+
+`status:stable` · Atom · Cluster `03.20 Display`
+
+## Zweck
+
+Read-only Metadaten-Marker für genau EINEN Wert (Label + Farb-Token). Macht eine
+Kategorie/Eigenschaft auf einen Blick lesbar — Farb-Punkt plus Text. Basis-Atom
+für das interaktive `TagChip`-Molecule (sprint-02).
+
+## Wann verwenden
+
+- **Ja:** statische Auszeichnung — ProjectTags-Liste, EntityItem-Metazeile, MetaRow.
+- **Nein:** entfernbarer/klickbarer Tag → `TagChip` (Molecule). Status mit fester
+  Semantik → `StatusBadge`. Zähler/Label-Badge → `Pill`.
+
+## Props
+
+<ArgTypes of={TagStories} />
+
+## Zustände
+
+Tag ist zustandslos (read-only). Einzige Achse ist `color` (semantisches
+Akzent-Token, DD-47); `neutral` ist die Vorgabe.
+
+<Canvas of={TagStories.Appearance} />
+
+## Barrierefreiheit
+
+- Der Farb-Punkt ist `aria-hidden` — Farbe trägt nie allein die Bedeutung, das
+  Label ist die textliche Wahrheit (WCAG 1.4.1).
+- Akzent-Tokens sind theme-aware (Latte/Macchiato) und gegen die Tag-Fläche
+  kontrastgeprüft.
+
+## Beispiele
+
+Interaktiver Default — Controls-Panel steuert color und Label:
+
+<Canvas of={TagStories.Default} />
+<Controls of={TagStories.Default} />

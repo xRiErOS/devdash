@@ -1,0 +1,42 @@
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as ProgressBarStories from './ProgressBar.stories.jsx'
+
+<Meta of={ProgressBarStories} />
+
+# ProgressBar
+
+`status:stable` · Atom · Cluster `03.20 Display`
+
+## Zweck
+
+Token-saubere Fortschritts-/Auslastungs-Leiste (Track + Fill). Props-driven, kein Store, keine Domänen-Logik. Harvested aus den 5 ehemaligen inline-Bar-Varianten (Sprint-Kapazität, Sprint-Progress, Roadmap done/total, Status-Bar, DoD-Progress).
+
+## Wann verwenden
+
+- **Ja:** linearer Fortschritt (DoD, Sprint-Burndown) oder Auslastung (`capacity`-Modus mit Schwellen-Farbe).
+- **Nein:** diskreter Status-Marker → `Pill`/`Badge`. Numerischer Zähler ohne Leiste. Indeterminierter Spinner.
+
+## Props
+
+<ArgTypes of={ProgressBarStories} />
+
+Fortschritt wird entweder direkt über `percent` oder aus `value`/`max` errechnet (`percent` gewinnt), auf 0–100 geklemmt und gerundet.
+
+## Zustände
+
+Tone (semantische Fill-Akzente) × Size (Track-Höhe `xs`/`sm`/`md`/`lg`) × `capacity` (Schwellen-Farbe: ≥100 danger, ≥80 warning, sonst success — übersteuert `tone`).
+
+<Canvas of={ProgressBarStories.Appearance} />
+<Canvas of={ProgressBarStories.Sizes} />
+<Canvas of={ProgressBarStories.States} />
+
+## Barrierefreiheit
+
+- `role="progressbar"` mit `aria-valuenow`/`aria-valuemin=0`/`aria-valuemax=100`.
+- `label` → `aria-label` (sprechende Bedeutung, nicht nur Farbe).
+- Fill-Farbe folgt den `--accent-*`-Tokens; Bedeutung darf nicht allein über Farbe transportiert werden.
+
+## Beispiele
+
+<Canvas of={ProgressBarStories.Default} />
+<Controls of={ProgressBarStories.Default} />

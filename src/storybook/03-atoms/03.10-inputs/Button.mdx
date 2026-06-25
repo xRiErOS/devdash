@@ -1,0 +1,52 @@
+{/* GF-208 — REFERENZ-MDX (verbindliches Doku-Muster). Pflichtabschnitte:
+    Zweck · Wann · Props · Zustände · a11y · Beispiele. <Meta of={…}> hängt
+    diese Seite als Doku-Tab des Components ein (ersetzt das autodocs-Template). */}
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as ButtonStories from './Button.stories.jsx'
+
+<Meta of={ButtonStories} />
+
+# Button
+
+`status:stable` · Atom · Cluster `03.10 Inputs`
+
+## Zweck
+
+Token-saubere Action-Primitive. Trägt jede klickbare Aktion mit semantischer
+Akzentrolle (DD-47). Props-driven, kein Store — komponierbar in Molecules/Organisms.
+
+## Wann verwenden
+
+- **Ja:** ausgelöste Aktion (Speichern, Anlegen, Abbrechen, Löschen).
+- **Nein:** Navigation → `Link`. Reines Icon ohne Label → `IconButton`.
+  Mehrfachauswahl/Toggle → `TabButton` / `Checkbox`.
+
+## Props
+
+<ArgTypes of={ButtonStories} />
+
+## Zustände
+
+Variant (semantische Rolle), Size (`lg` = 44px Touch-Target), `loading`
+(Spinner + `aria-busy` + disabled), `disabled`.
+
+<Canvas of={ButtonStories.Variants} />
+<Canvas of={ButtonStories.Sizes} />
+<Canvas of={ButtonStories.States} />
+
+## Barrierefreiheit
+
+- Natives `<button type>` — Fokus + Enter/Space gratis.
+- `loading` setzt `aria-busy` und blockt Doppel-Klick (disabled).
+- Icons sind `aria-hidden`; das Label trägt die Bedeutung. Icon-only → `IconButton`
+  mit `aria-label`.
+- Kontrast: Akzent-Tokens sind WCAG-AA gegen `--on-accent` geprüft.
+
+## Beispiele
+
+Interaktiver Default-Render — Controls-Panel steuert alle Props:
+
+<Canvas of={ButtonStories.Default} />
+<Controls of={ButtonStories.Default} />
+
+<Canvas of={ButtonStories.Composition} />

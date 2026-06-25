@@ -1,0 +1,112 @@
+{/* docs.mdx = DIE Doku-Quelle dieser Story (Norm: specs-DD/00-Agent-Context/sources/storybook/Docs-mdx-Norm.md).
+    Pflicht: VOR Arbeit lesen, NACH jeder Story-Änderung nachziehen. Insel-Screen (08.10), Default-Export.
+    08-Screens ist NICHT im gen:composition-Gate (nur 04/05) → der Composition-Block ist hier hand-geführt. */}
+import { Meta, Canvas } from '@storybook/addon-docs/blocks'
+import { Status } from '../../../../.storybook/Status.jsx'
+import { Composition } from '../../../../.storybook/Composition.jsx'
+import * as Stories from './AppShell.stories.jsx'
+
+<Meta of={Stories} />
+
+# AppShell — Screen (08.10 Shell)
+
+**Kurzbeschreibung**
+Der kanonische, verdrahtete App-Frame (Top-Leiste + Icon-Rail + Content-Outlet) als komponierter
+Screen. Rail navigiert real (MemoryRouter), Topbar-Controls feuern, Suche öffnet ein IssueDetails —
+alles play-getrieben abgesichert (Behavioral-Checkliste Level-2). Dies ist der LIVE-Shell-Stand,
+kein Draft-Ziel mehr.
+
+## Status
+
+<Status of={Stories.Default} />
+
+## Abhängigkeiten
+
+{/* Hand-geführt (08-Screens ungated). Forward-Komposition der Screen-Story. */}
+<Composition>{`graph TD
+  AppShell --> AppShellTopbar
+  AppShell --> AppShellRail
+  AppShell --> ProjectQuickSwitcher
+  AppShell --> IssueDetails
+  AppShellTopbar --> Breadcrumb
+  AppShellTopbar --> SearchField
+  AppShellRail --> NavItem
+  classDef organism fill:#89b4fa,stroke:#1e1e2e,color:#1e1e2e
+  classDef molecule fill:#a6e3a1,stroke:#1e1e2e,color:#1e1e2e
+  class AppShell,AppShellTopbar,AppShellRail,ProjectQuickSwitcher,IssueDetails organism
+  class Breadcrumb,SearchField,NavItem molecule`}</Composition>
+
+## Bezug (Kette)
+
+- Herkunft: GF-2-Greenfield-Kette (BRIEFING → Mockup → Gap → Contract → C4 → Bau → Insel).
+- Contract: `src/screens/_shell/AppShell.contract.md` · C4: `architecture.components.appshell.yaml`.
+- Promotion-Twin: das Such-Navigationsziel ist die Screen-Story `08.60 Issues/IssueDetails`.
+
+## Aktueller Stand
+
+### Rail (`app-shell.rail`)
+- 4 Quick-Access-Items (Home · Roadmap · Backlog · Memories), Icons via Registry, route-gebunden.
+- Wiring-Stand: verdrahtet. Klick navigiert (MemoryRouter), aktiver State folgt der Route. 2 States
+  (marker ↔ icon-only) via Toggle unten-rechts (`app-shell.rail.toggle`).
+
+### Topbar (`app-shell.topbar`)
+- Quick-Switcher-Trigger = DD-Logo → `ProjectQuickSwitcher`-Panel; Projektwahl wechselt die Breadcrumb-Wurzel.
+- Breadcrumb route-abgeleitet, bewusst ≤2 Segmente (Molecule emittiert `breadcrumb.separator` je Segment).
+- Suche (Ghost) → leichte Ergebnis-Liste (Mock) → Klick navigiert zu IssueDetails im Content-Outlet.
+- Theme-Toggle (Sun/Moon) verdrahtet. Shortcuts-Trigger present.
+- Wiring-Stand: alle Controls verdrahtet (play-belegt).
+
+## Anker (data-ui)
+
+| Anker | Element / Zweck |
+|---|---|
+| `app-shell.rail.item.{home,roadmap,backlog,memories}` | Rail-Nav-Buttons (route-gebunden) |
+| `app-shell.rail.toggle` | Collapse/Expand (unten-rechts) |
+| `app-shell.topbar.quick-switcher` | DD-Logo → QuickSwitcher |
+| `app-shell.topbar.search` | globale Suche |
+| `app-shell.topbar.theme-toggle` | Light/Dark |
+| `screen.app-shell.quick-switcher` | Switcher-Panel (nach Öffnen) |
+| `screen.app-shell.search-result.<issueId>` | Such-Treffer-Zeile (navigiert) |
+| `screen.app-shell.issue-view` | IssueDetails im Content-Outlet |
+
+## Verwendung
+
+### Wann verwenden
+Als globaler Rahmen jedes produktiven App-Screens (Rail + Topbar + Content-Outlet) plus als
+play-Referenz für die Shell-Navigation (Rail / Quick-Switcher / Suche).
+
+### Wann nicht verwenden
+Capture-Views (eigener Host, kein Rail/Topbar). Kein produktiver Such-Ergebnis-Screen — die
+Ergebnis-Liste hier ist die Navigations-Demo (greenfield Such-Screen ist eigener SOLL, out-of-scope).
+
+## Default Story
+
+<Canvas of={Stories.Default} />
+
+Verdrahteter Live-Stand mit lokalem Container-State (Router, Theme, Search, Quick-Switcher, Collapse).
+
+## Interaktionen (play, Level-2)
+
+- `Interaction · Controls verdrahtet` — Theme-Toggle + Rail-Collapse feuern.
+- `Interaction · Rail-Navigation` — Rail-Klick wechselt View UND Breadcrumb (route-getrieben).
+- `Interaction · Quick-Switcher öffnen + Projekt wählen` — Panel öffnet, Projektwahl wechselt die Breadcrumb-Wurzel.
+- `Interaction · Suche → Ergebnis → IssueDetails` — Eingabe filtert, Klick navigiert ins Detail.
+
+Lauf: `npm run test:storybook` (CT-Runner via Playwright). Play-Tests sind ungated (Bonus-QA), nicht im `tests/frontend-rework`-Gate.
+
+## Barrierefreiheit
+
+### ARIA
+Rail = `role="navigation"`, Topbar = `role="banner"`, Content = `role="main"`. Aktives Rail-Item via
+Wrapper-Akzent; Breadcrumb-Aktiv via `aria-current="page"`. (Prüfung: Story-Board-Checkliste.)
+
+### Keyboard
+Suche fokussierbar; Controls per Tab erreichbar. (Verhalten: Behavioral-Checkliste Level-2.)
+
+## Kanonische States
+
+### Rail eingeklappt / aufgeklappt
+icon-only ↔ marker-Rail via Toggle — `Variant · Rail collapsed`.
+
+### Navigation / Detail
+Route-getriebener View-Wechsel (Rail) und Detail-Aufruf (Suche → IssueDetails) — `Interaction_`-Stories.

@@ -1,0 +1,53 @@
+{/* GF-208-Muster — IconButton-MDX. Pflichtabschnitte: Zweck · Wann · Props ·
+    Zustände · a11y · Beispiele. <Meta of={…}> hängt diese Seite als Doku-Tab ein. */}
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as IconButtonStories from './IconButton.stories.jsx'
+
+<Meta of={IconButtonStories} />
+
+# IconButton
+
+`status:stable` · Atom · Cluster `03.10 Inputs`
+
+## Zweck
+
+Icon-only Action-Primitive mit garantiertem Touch-Target. Trägt eine klickbare
+Aktion, die rein durch ihr Icon kommuniziert (kein sichtbarer Text). Props-driven,
+kein Store — Leaf-Atom, komponierbar in Toolbars/Molecules.
+
+## Wann verwenden
+
+- **Ja:** dichte Aktions-Cluster (Toolbar, Tabellen-Zeile, Drawer-Header), wo
+  Text-Buttons zu schwer wären — Löschen, Bearbeiten, Kopieren, Schließen.
+- **Nein:** primäre Aktion mit Text → `Button`. Navigation → `Link`.
+  Toggle/Mehrfachauswahl → `TabButton` / `Checkbox`.
+
+## Props
+
+<ArgTypes of={IconButtonStories} />
+
+## Zustände
+
+`variant` (Rollen-Tone: default/primary/danger/ghost), `size` (`lg` = 44px
+Touch-Target), `disabled` (50% Deckkraft + `not-allowed`).
+
+<Canvas of={IconButtonStories.Appearance} />
+<Canvas of={IconButtonStories.Sizes} />
+<Canvas of={IconButtonStories.States} />
+
+## Barrierefreiheit
+
+- Natives `<button type="button">` — Fokus + Enter/Space gratis.
+- `label` ist **Pflicht** und setzt `aria-label` + `title` — ohne sichtbaren
+  Text trägt das Label die gesamte Bedeutung.
+- Das Icon selbst ist `aria-hidden` (über `<Icon>` ohne `label`-Prop).
+- `disabled` blockt Fokus/Klick; min. 44px (`lg`) für Mobile-Touch.
+
+## Beispiele
+
+Interaktiver Default-Render — Controls-Panel steuert alle Props:
+
+<Canvas of={IconButtonStories.Default} />
+<Controls of={IconButtonStories.Default} />
+
+<Canvas of={IconButtonStories.Composition} />

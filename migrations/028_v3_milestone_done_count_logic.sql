@@ -1,0 +1,7 @@
+-- DD-240: Milestone-Completion-Logik berücksichtigt `cancelled` als terminalen
+-- Status. Aggregation findet in `server/api.js` GET /api/milestones im JS-Loop
+-- statt, kein DB-Schema-Change nötig. Diese Migration ist eine NoOp und dient
+-- ausschließlich als Audit-Trail für die Bestandsänderung.
+--
+-- Backward-Compat: `done`-Counter (done+passed) bleibt unverändert. Neu:
+-- `terminal_count` (done+passed+cancelled) für korrekten Fortschrittswert.

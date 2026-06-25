@@ -1,0 +1,66 @@
+import { Meta, Canvas } from '@storybook/addon-docs/blocks'
+import * as ReviewFlowStories from './ReviewFlow.stories.jsx'
+
+<Meta of={ReviewFlowStories} />
+
+# ReviewFlow (06.80 Deps & Review)
+
+Feature-Komposition des Sprint/Issue-Review-Screens im V2-Terminal-Design. Master-Detail:
+links die Review-Issue-Liste mit Listen-Controls, rechts der `ReviewStep` des selektierten
+Issues, oben die `ReviewSummary` (Copy-Markdown + Complete-Marker).
+
+ReviewFlow ist das einzige Komposit (Template + ≥2 Organismen) und bleibt als Feature in
+`06.80`. Die Einzel-Organismen (`ReviewStep` · `ReviewIssueRow` · `ReviewVerdict` ·
+`ReviewSummary`) leben als Stories unter `05 ORGANISMS/05.70 Review` (Tier-Reklassifikation
+D01/D02).
+
+## Zweck
+
+Der PO arbeitet eine Review-Runde Issue für Issue ab: Prüfgrundlage (User Stories als
+read-only mit Akzeptanzkriterien-Overlay) sichten, binär abnehmen oder ablehnen (Pflicht-
+Feedback bei Ablehnung), und die Runde am Ende als Markdown kopieren. Default-Filter zeigt
+nur offene/abgelehnte Issues (R3/D04); bereits abgenommene über den Alle-Filter (Re-Review).
+
+<Canvas of={ReviewFlowStories.Default} />
+
+## Achsen (Story-Exports)
+
+Die Exports binden ans `states:`-Vokabular (D08) plus Domänen-Szenarien:
+
+- **Default** — gemischte Runde, Default-Filter offen/abgelehnt.
+- **Empty** — alle Issues abgenommen, Liste leer, Pane zeigt EmptyState.
+- **OnlyRejected** — nur offene/abgelehnte Issues in der Runde.
+- **ReReview** — bereits abgenommenes Issue erneut bewertbar (manueller Reopen, DD-662).
+- **Submitted** — Runde übermittelt, Edits gesperrt (`disabled` an den Step durchgereicht).
+
+> Bewusste Feature-Tier-Abweichung (DSG2-I02): die Export-Namen sind zustands-/szenario-
+> getrieben statt achsengetrieben — das Achsen-Vokabular-Gate greift nur auf `03-atoms/**`.
+
+## data-ui-Inventar
+
+| Anker | Rolle |
+|---|---|
+| `review-flow.root` | Wurzel des Review-Screens (Master-Detail-Scope) |
+| `review-flow.search` | Volltextsuche key+title |
+| `review-list-filter.sort` | Sortier-Richtung (offen zuerst / abgenommen zuerst) |
+| `review-list-filter` | Runden-Filter-Trigger (offen-abgelehnt / alle) |
+| `review-issue-row` | Master-Listen-Zeile (ReviewIssueRow) |
+| `review-step` | Detail-Einheit (ReviewStep) |
+| `sprint-review.panel.us-info` | Akzeptanzkriterien-Overlay je User Story (UserStoryInfoOverlay) |
+| `review-verdict.pass` / `.reject` | binäres Verdict (D01) |
+| `review-flow.copy` / `review-flow.complete` | Markdown kopieren / Complete-Marker (DD-186) |
+
+## Decisions
+
+- **D01** — Verdict binär (pass/reject); `pending` ist Listen-/Render-Zustand, kein Button.
+- **D03** — Review ist ein eigener Screen (kein Overlay).
+- **D04** — Default-Filter „nur offen/abgelehnt" plus Re-Review-Szenario.
+- **D06** — gegen `user_stories[]`-Fixtures (SOLL) gebaut; Backend-Epic E01 ist Cutover-Blocker.
+- **D07/D08** — Kanon-Namen `ReviewFlow/ReviewStep/ReviewIssueRow/ReviewVerdict/ReviewSummary`;
+  Export-Nomenklatur am `states:`-Vokabular.
+
+## a11y
+
+Listen-Zeilen sind `role="button"` mit Tastatur-Aktivierung (Enter/Space) und `aria-pressed`
+für den Auswahlzustand. Suche und Sortierung tragen `aria-label`. Das Info-Overlay nutzt
+`aria-expanded` am Trigger und `role="dialog"` am Inhalt.

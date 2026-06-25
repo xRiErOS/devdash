@@ -1,0 +1,54 @@
+{/* GF-276 — DropZone-MDX. Pflichtabschnitte: Zweck · Wann · Props · Zustände · a11y · Beispiele. */}
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as DropZoneStories from './DropZone.stories.jsx'
+
+<Meta of={DropZoneStories} />
+
+# DropZone
+
+`status:stable` · Molecule · Cluster `04.30 Action`
+
+## Zweck
+
+Der geteilte Desktop-Drag-Target-Frame: gestrichelte Fläche + Icon + Label +
+optionaler Hint, mit Drag-over-Highlight. Ein Baustein für OR-15
+(AssignDropZone), OR-24 (AttachmentWidget) und OR-26 (CaptureForm) — statt drei
+Mal eigener Drag-Logik (I06).
+
+Dumb-Molecule (CONV-molecule-boundary): das Drag-Plumbing (preventDefault +
+rein-visueller over-State, D04) ist generische UI. Datei-Filter, Persistenz und
+Upload (Domäne) liegen beim Consumer via `onFiles(FileList)` / `onActivate`.
+
+## Wann verwenden
+
+- **Ja:** Desktop-Drop-Ziel für Datei-Upload/-Zuweisung mit Klick-Fallback.
+- **Nein:** fertige Anhang-Galerie mit Paste-Listener → der Consumer-Organism
+  (z.B. AttachmentWidget) komponiert DropZone + Galerie. Touch-Drag ist deferred
+  (D09).
+
+## Props
+
+<ArgTypes of={DropZoneStories} />
+
+## Zustände
+
+Intern: `over` (Drag-Highlight) wird beim DragOver/Leave/Drop gesetzt; `active`
+erzwingt das Visual controlled (für Stories). `disabled` sperrt Drop/Klick/Fokus.
+
+<Canvas of={DropZoneStories.Variant_States} />
+
+## Barrierefreiheit
+
+- `role="button"` + `tabIndex` + `aria-label`; Enter/Space lösen `onActivate`
+  aus (Klick-Fallback ohne Maus). `disabled` setzt `aria-disabled` und nimmt den
+  Fokus (`tabIndex=-1`).
+- Das Icon ist `aria-hidden`; das Label trägt die Bedeutung.
+
+## Beispiele
+
+Interaktiver Default — Controls-Panel steuert label/hint/active/disabled:
+
+<Canvas of={DropZoneStories.Default} />
+<Controls of={DropZoneStories.Default} />
+
+<Canvas of={DropZoneStories.Variant_Composition} />
