@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { parseRef } from '../../contracts/keys.js'
+import { parseRef } from '@devd/api-types/keys.js'
 
 describe('DD-611 parseRef — tolerante Schreibweisen', () => {
   test('numerische Roh-ID', () => {

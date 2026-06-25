@@ -8,9 +8,9 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
 import { seedProject } from '../_fixtures/seed.js'
-import { applyMigration } from '../../server/lib/migrationRunner.js'
-import { createMemory, listMemories } from '../../server/lib/projectMemories.js'
-import { createTag, renameTag, listTags, pruneTagsNotInRegistry, getTagRowExists } from '../../server/lib/memoryTags.js'
+import { applyMigration } from '../../apps/backend/src/lib/migrationRunner.js'
+import { createMemory, listMemories } from '../../apps/backend/src/lib/projectMemories.js'
+import { createTag, renameTag, listTags, pruneTagsNotInRegistry, getTagRowExists } from '../../apps/backend/src/lib/memoryTags.js'
 import { CANONICAL, MERGES } from '../../scripts/memory-tag-register.data.mjs'
 
 const P = 2

@@ -3,7 +3,7 @@
 import { describe, test, expect } from 'vitest'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import QuickMetaSheet from '../../src/components/ui/organisms/QuickMetaSheet.jsx'
+import QuickMetaSheet from '../../apps/frontend/src/components/ui/organisms/QuickMetaSheet.jsx'
 
 const PRIORITIES = [1, 2, 3]
 const render = (props = {}) =>

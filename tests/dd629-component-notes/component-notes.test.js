@@ -5,8 +5,8 @@
 import { describe, test, expect } from 'vitest'
 import { readFileSync } from 'fs'
 
-const cli = readFileSync('bin/devd-cli.js', 'utf8')
-const mcp = readFileSync('mcp/devd-mcp.js', 'utf8')
+const cli = readFileSync('apps/cli/bin/devd-cli.js', 'utf8')
+const mcp = readFileSync('apps/cli/mcp/devd-mcp.js', 'utf8')
 
 describe('DD-629 — CLI', () => {
   test('component-note list/show/set/delete', () => {

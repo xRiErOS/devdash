@@ -3,11 +3,11 @@
     "devd-dashboard": {
       "command": "node",
       "args": [
-        "./mcp/devd-mcp.js"
+        "./apps/cli/mcp/devd-mcp.js"
       ],
       "env": {
         "DEVD_API_URL": "http://100.71.39.53:3001",
-        "DEVD_PROJECT_ID": "2"
+        "DEVD_PROJECT_ID": "10"
       }
     },
     "storybook": {

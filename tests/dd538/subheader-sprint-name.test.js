@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const src = readFileSync(resolve(__dirname, '../../src/components/ui/layout/Layout.jsx'), 'utf8')
+const src = readFileSync(resolve(__dirname, '../../apps/frontend/src/components/ui/layout/Layout.jsx'), 'utf8')
 
 // DD-538 (historisch) — SubHeader Sprint-Kontext-Bar (aktiver-Sprint-Link mit
 // truncate-Verhalten @≤1024px).

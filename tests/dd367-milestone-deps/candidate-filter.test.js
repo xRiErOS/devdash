@@ -4,7 +4,7 @@
 // tests/m02-s01/t05-api-dependencies-cycle.test.js abgedeckt (nicht dupliziert).
 
 import { describe, test, expect } from 'vitest'
-import { availableCandidates } from '../../src/components/ui/molecules/MilestoneDependencyEditor.jsx'
+import { availableCandidates } from '../../apps/frontend/src/components/ui/molecules/MilestoneDependencyEditor.jsx'
 
 const ALL = [
   { id: 1, name: 'M1' },

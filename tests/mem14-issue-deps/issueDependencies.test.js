@@ -10,7 +10,7 @@ import {
   listIssueDependencies,
   countIssueDependencies,
   findDependencyEdge,
-} from '../../server/lib/issueDependencies.js'
+} from '../../apps/backend/src/lib/issueDependencies.js'
 
 const PROJECT_ID = 7
 
@@ -83,9 +83,9 @@ describe('MEM-14 — issue_dependencies helper', () => {
 })
 
 describe('MEM-14 — CLI + MCP wiring (source-presence)', () => {
-  const cli = readFileSync('bin/devd-cli.js', 'utf8')
-  const mcp = readFileSync('mcp/devd-mcp.js', 'utf8')
-  const api = readFileSync('server/api.js', 'utf8')
+  const cli = readFileSync('apps/cli/bin/devd-cli.js', 'utf8')
+  const mcp = readFileSync('apps/cli/mcp/devd-mcp.js', 'utf8')
+  const api = readFileSync('apps/backend/src/api.js', 'utf8')
 
   test('CLI exposes issue dep add/list/rm', () => {
     expect(cli).toMatch(/'issue:dep'/)

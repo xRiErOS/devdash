@@ -7,7 +7,7 @@ import {
   categoryLabel,
   parseTags,
   buildMemoriesPath,
-} from '../../src/lib/projectMemory.js'
+} from '../../apps/frontend/src/lib/projectMemory.js'
 
 describe('MEM-15 — projectMemory helpers', () => {
   test('CATEGORIES + STABILITIES spiegeln das Backend-Schema', () => {

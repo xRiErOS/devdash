@@ -9,8 +9,8 @@
 import { describe, test, expect } from 'vitest'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import TodoLinksList from '../../src/components/ui/organisms/TodoLinksList.jsx'
-import ChecklistDetailModal from '../../src/components/ui/organisms/ChecklistDetailModal.jsx'
+import TodoLinksList from '../../apps/frontend/src/components/ui/organisms/TodoLinksList.jsx'
+import ChecklistDetailModal from '../../apps/frontend/src/components/ui/organisms/ChecklistDetailModal.jsx'
 
 const noop = () => {}
 

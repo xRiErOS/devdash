@@ -6,8 +6,8 @@
 import { describe, test, expect } from 'vitest'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import DetailStatusStepper from '../../src/components/ui/organisms/DetailStatusStepper.jsx'
-import { getValidIssueTransitions, ISSUE_STATUS_LABELS } from '../../src/lib/issueLifecycleTransitions.js'
+import DetailStatusStepper from '../../apps/frontend/src/components/ui/organisms/DetailStatusStepper.jsx'
+import { getValidIssueTransitions, ISSUE_STATUS_LABELS } from '../../apps/frontend/src/lib/issueLifecycleTransitions.js'
 
 const html = (current) => renderToStaticMarkup(<DetailStatusStepper current={current} />)
 

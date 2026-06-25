@@ -8,8 +8,8 @@
 // `copied`-State, Timeout-Cleanup bei Unmount/Re-Copy) wird über den
 // feedback-source-guard.test.js strukturell belegt — visuelle Abnahme = PO.
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest'
-import { toast } from '../../src/lib/toast.js'
-import { performCopy } from '../../src/hooks/useCopyFeedback.js'
+import { toast } from '../../apps/frontend/src/lib/toast.js'
+import { performCopy } from '../../apps/frontend/src/hooks/useCopyFeedback.js'
 
 // Minimal-Window-Shim für env=node: toast() + performCopy() dispatchen auf window.
 function installWindow() {

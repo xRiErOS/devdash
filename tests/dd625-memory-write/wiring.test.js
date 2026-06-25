@@ -5,8 +5,8 @@
 import { describe, expect, test } from 'vitest'
 import { readFileSync } from 'fs'
 
-const cli = readFileSync('bin/devd-cli.js', 'utf8')
-const mcp = readFileSync('mcp/devd-mcp.js', 'utf8')
+const cli = readFileSync('apps/cli/bin/devd-cli.js', 'utf8')
+const mcp = readFileSync('apps/cli/mcp/devd-mcp.js', 'utf8')
 
 describe('DD-625 — Project-Memory Write CLI', () => {
   test('exposes update/supersede/delete/anchor/anchor-patch subcommands', () => {

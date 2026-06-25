@@ -3,8 +3,8 @@
 
 import { describe, test, expect, beforeEach } from 'vitest'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
-import { applyMigration } from '../../server/lib/migrationRunner.js'
-import { createSubtask, setSubtaskStatus, SubtaskValidationError } from '../../server/lib/subtasks.js'
+import { applyMigration } from '../../apps/backend/src/lib/migrationRunner.js'
+import { createSubtask, setSubtaskStatus, SubtaskValidationError } from '../../apps/backend/src/lib/subtasks.js'
 
 function setupDb() {
   const db = createTestDb({ upToVersion: '028_v3_milestone_done_count_logic.sql' })

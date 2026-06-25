@@ -5,8 +5,8 @@ import { readFileSync } from 'fs'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
 import {
   detectCycle, findCyclePath, insertDependency, getDependenciesForSprint, hasPreExistingCycle,
-} from '../../server/lib/sprintDependencies.js'
-import { sprintDependencyContract } from '../../contracts/milestone-sprint.contracts.js'
+} from '../../apps/backend/src/lib/sprintDependencies.js'
+import { sprintDependencyContract } from '@devd/api-types/milestone-sprint.contracts.js'
 
 const MIG = '056_v3_sprint_dependencies.sql'
 
@@ -102,9 +102,9 @@ describe('D2 — Migration 056 + Lib (cycle topology, mirror t05)', () => {
 })
 
 describe('D2 — Wiring (REST + CLI + MCP)', () => {
-  const api = readFileSync('server/api.js', 'utf8')
-  const cli = readFileSync('bin/devd-cli.js', 'utf8')
-  const mcp = readFileSync('mcp/devd-mcp.js', 'utf8')
+  const api = readFileSync('apps/backend/src/api.js', 'utf8')
+  const cli = readFileSync('apps/cli/bin/devd-cli.js', 'utf8')
+  const mcp = readFileSync('apps/cli/mcp/devd-mcp.js', 'utf8')
 
   test('REST: sprint-dependencies endpoints', () => {
     expect(api).toContain("app.get('/api/sprints/:id/dependencies'")

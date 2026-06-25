@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest'
-import { resolveInitialTab, TAB_IDS, DEFAULT_TAB } from '../../src/hooks/useProjectHomeTab.js'
+import { resolveInitialTab, TAB_IDS, DEFAULT_TAB } from '../../apps/frontend/src/hooks/useProjectHomeTab.js'
 
 const PROJECT_ID = 2
 const LS_KEY = `devd:home:lastTab:${PROJECT_ID}`

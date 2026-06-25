@@ -76,7 +76,7 @@ describe('DD-623 — Response-Cap', () => {
 })
 
 describe('DD-623 — Wiring', () => {
-  const mcp = readFileSync('mcp/devd-mcp.js', 'utf8')
+  const mcp = readFileSync('apps/cli/mcp/devd-mcp.js', 'utf8')
   test('ok() konsultiert den Cap und ruft spillToFile', () => {
     expect(mcp).toMatch(/MCP_RESPONSE_CAP/)
     expect(mcp).toMatch(/function spillToFile/)

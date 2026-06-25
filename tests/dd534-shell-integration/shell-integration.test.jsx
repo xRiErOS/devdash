@@ -18,7 +18,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { readFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import IconSidebar from '../../src/components/ui/organisms/IconSidebar.jsx'
+import IconSidebar from '../../apps/frontend/src/components/ui/organisms/IconSidebar.jsx'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..', '..')
@@ -50,7 +50,7 @@ describe('DD-534 IconSidebar — Floating-Drawer abgelöst', () => {
   })
 
   test('Source: drawerOpen-State + Burger + navigateAndClose entfernt', () => {
-    const src = read('src/components/ui/organisms/IconSidebar.jsx')
+    const src = read('apps/frontend/src/components/ui/organisms/IconSidebar.jsx')
     expect(src).not.toMatch(/drawerOpen/)
     expect(src).not.toMatch(/navigateAndClose/)
     expect(src).not.toMatch(/\bMenu\b/)
@@ -58,7 +58,7 @@ describe('DD-534 IconSidebar — Floating-Drawer abgelöst', () => {
 })
 
 describe('DD-534 Layout — BottomTabBar verdrahtet', () => {
-  const src = () => read('src/components/ui/layout/Layout.jsx')
+  const src = () => read('apps/frontend/src/components/ui/layout/Layout.jsx')
 
   test('importiert + rendert BottomTabBar', () => {
     const s = src()
@@ -88,7 +88,7 @@ describe('DD-534 Layout — BottomTabBar verdrahtet', () => {
 })
 
 describe('DD-535 Layout — Breadcrumb mobil + pl-16 entfernt', () => {
-  const src = () => read('src/components/ui/layout/Layout.jsx')
+  const src = () => read('apps/frontend/src/components/ui/layout/Layout.jsx')
 
   test('PageHeader + SubHeader tragen kein pl-16 mehr (Burger weg)', () => {
     const s = src()

@@ -9,7 +9,7 @@ import {
   isMemoryFeatureAvailable,
   memoryUnavailableMessage,
   __testables,
-} from '../../src/lib/memoryAvailability.js'
+} from '../../apps/frontend/src/lib/memoryAvailability.js'
 
 describe('isMemoryFeatureAvailable', () => {
   it('disables the feature on the NAS hostname', () => {

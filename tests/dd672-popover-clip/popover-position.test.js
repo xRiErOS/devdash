@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { computeFixedPopoverPosition } from '../../src/components/ui/atoms/PopoverPanel.jsx'
+import { computeFixedPopoverPosition } from '../../apps/frontend/src/components/ui/atoms/PopoverPanel.jsx'
 
 // DD-672 (r3) — Portal-Popover-Positionierung.
 //

@@ -7,7 +7,7 @@
 import { describe, expect, test } from 'vitest'
 import { readFileSync } from 'fs'
 
-const cli = readFileSync('bin/devd-cli.js', 'utf8')
+const cli = readFileSync('apps/cli/bin/devd-cli.js', 'utf8')
 
 describe('DD-369 — CLI-OSC8 slug-aware URL-Builder', () => {
   test('scopedLink-Helper + Slug-Cache existieren', () => {

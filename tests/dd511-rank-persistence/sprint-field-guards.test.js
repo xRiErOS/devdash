@@ -2,7 +2,7 @@
 // Pure function tests — no DB, no Express app required.
 
 import { describe, test, expect } from 'vitest'
-import { coerceSprintPosition } from '../../server/lib/sprintFieldGuards.js'
+import { coerceSprintPosition } from '../../apps/backend/src/lib/sprintFieldGuards.js'
 
 describe('coerceSprintPosition — NULL sentinel cases', () => {
   test('null → { ok: true, value: null }', () => {

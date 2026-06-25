@@ -46,15 +46,15 @@ export function resolveMigrationsDir({
   if (fsCheck(containerPath)) {
     return containerPath
   }
-  return resolve(repoRoot, 'migrations')
+  return resolve(repoRoot, 'apps/backend/migrations')
 }
 
 function main() {
   const DRY_RUN = process.argv.includes('--dry-run')
-  const DB_PATH = process.env.DEVD_DB_PATH || resolve(ROOT, 'data/devd.db')
+  const DB_PATH = process.env.DEVD_DB_PATH || resolve(ROOT, 'apps/backend/data/devd.db')
   const MIGRATIONS_DIR = resolveMigrationsDir()
   // ENV-Override fuer Migration-Log-Verzeichnis (Container-Deploy mit Read-Only-Mount).
-  const MIGRATIONS_LOG_DIR = process.env.DEVD_MIGRATIONS_LOG_DIR || resolve(ROOT, 'data/migrations-log')
+  const MIGRATIONS_LOG_DIR = process.env.DEVD_MIGRATIONS_LOG_DIR || resolve(ROOT, 'apps/backend/data/migrations-log')
 
   if (!existsSync(MIGRATIONS_DIR)) {
     console.error(`[error] Migrations-Verzeichnis nicht gefunden: ${MIGRATIONS_DIR}`)

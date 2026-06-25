@@ -77,10 +77,10 @@ describe('DD-620 — Compact-Projektion', () => {
 })
 
 describe('DD-620 — Wiring', () => {
-  const api = readFileSync('server/api.js', 'utf8')
-  const apiClient = readFileSync('src/lib/apiClient.js', 'utf8')
-  const mcp = readFileSync('mcp/devd-mcp.js', 'utf8')
-  const cli = readFileSync('bin/devd-cli.js', 'utf8')
+  const api = readFileSync('apps/backend/src/api.js', 'utf8')
+  const apiClient = readFileSync('apps/frontend/src/lib/apiClient.js', 'utf8')
+  const mcp = readFileSync('apps/cli/mcp/devd-mcp.js', 'utf8')
+  const cli = readFileSync('apps/cli/bin/devd-cli.js', 'utf8')
 
   test('backlog + sprints senden über sendList mit den Compact-Sets', () => {
     expect(api).toMatch(/sendList\(req, res, items, COMPACT_BACKLOG_KEYS\)/)

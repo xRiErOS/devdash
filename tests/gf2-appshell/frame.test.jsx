@@ -5,9 +5,9 @@ import { MemoryRouter } from 'react-router-dom'
 
 // AuthExpiredOverlay rendert null solange keine Session abgelaufen ist.
 // Für den Mount-Test erzwingen wir required=true, damit der Anker im Markup erscheint.
-vi.mock('../../src/hooks/useAuthRequired.js', () => ({ default: () => true }))
+vi.mock('../../apps/frontend/src/hooks/useAuthRequired.js', () => ({ default: () => true }))
 
-import { AppShellFrame } from '../../src/screens/_shell/AppShellFrame.jsx'
+import { AppShellFrame } from '../../apps/frontend/src/screens/_shell/AppShellFrame.jsx'
 
 describe('AppShellFrame', () => {
   it('emittiert die stabilen App-Shell-Anker', () => {

@@ -1,6 +1,6 @@
 import { test, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { DONE_SPRINT_STATUSES, isDoneSprint } from '../../src/components/ui/organisms/RoadmapColumns.jsx'
+import { DONE_SPRINT_STATUSES, isDoneSprint } from '../../apps/frontend/src/components/ui/organisms/RoadmapColumns.jsx'
 
 // DD-536 — Regressions-Guard für die Sprint-„Erledigt"-Klassifikation im Roadmap-Board.
 // Bug: der „Erledigte aus"-Filter (hideCompleted) filterte SPRINTS mit
@@ -15,7 +15,7 @@ import { DONE_SPRINT_STATUSES, isDoneSprint } from '../../src/components/ui/orga
 // abgeschlossene Sprints am Spaltenfuss. Der DD-536-Invariant bleibt: das Set ist
 // SPRINT-Vokabular, niemals Issue-Status. Dieser Guard verfolgt jetzt das geteilte
 // Modul (Single-Source) statt die alte View-Quelle.
-const COLS = readFileSync('src/components/ui/organisms/RoadmapColumns.jsx', 'utf8')
+const COLS = readFileSync('apps/frontend/src/components/ui/organisms/RoadmapColumns.jsx', 'utf8')
 
 test('DD-536: sprint-eigenes Done-Set (completed/closed/cancelled, NICHT die Issue-Status)', () => {
   expect(DONE_SPRINT_STATUSES).toEqual(expect.arrayContaining(['completed', 'closed', 'cancelled']))

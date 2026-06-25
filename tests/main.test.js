@@ -10,7 +10,7 @@ import {
   VIEW_CAPTURE,
   VIEW_UNKNOWN,
   UNKNOWN_HOST_FALLBACK,
-} from '../src/lib/hostnameRouter.js'
+} from '../apps/frontend/src/lib/hostnameRouter.js'
 
 describe('DD-248 resolveView — Whitelist exact match', () => {
   test('devdash.familie-riedel.org → app-shell', () => {

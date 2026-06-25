@@ -2,7 +2,7 @@ import { describe, test, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
 import { renderToStaticMarkup } from 'react-dom/server'
-import FilterPopover from '../../src/components/ui/molecules/FilterPopover.jsx'
+import FilterPopover from '../../apps/frontend/src/components/ui/molecules/FilterPopover.jsx'
 
 const ROOT = resolve(import.meta.dirname, '../..')
 const src = (p) => readFileSync(resolve(ROOT, p), 'utf8')
@@ -26,14 +26,14 @@ describe('DD-672 — FilterPopover trigger carries the correct data-ui (bug fix)
   })
 
   test('FilterPopover source passes data-ui to the trigger Button', () => {
-    expect(src('src/components/ui/molecules/FilterPopover.jsx'))
+    expect(src('apps/frontend/src/components/ui/molecules/FilterPopover.jsx'))
       .toMatch(/data-ui=\{`\$\{dataUi\}\.trigger`\}/)
   })
 })
 
 describe('DD-672 — Button atom forwards a passed data-ui (regression)', () => {
   test('the default "button" anchor is followed by {...rest} so callers can override', () => {
-    const s = src('src/components/ui/atoms/Button.jsx')
+    const s = src('apps/frontend/src/components/ui/atoms/Button.jsx')
     const i = s.indexOf('data-ui="button"')
     expect(i).toBeGreaterThan(-1)
     // {...rest} must come AFTER the hardcoded default → caller-supplied data-ui wins.
@@ -42,7 +42,7 @@ describe('DD-672 — Button atom forwards a passed data-ui (regression)', () => 
 })
 
 describe('DD-672 — toolbar trigger text style unified (SplitButton matches Button md)', () => {
-  const SPLIT = src('src/components/ui/molecules/SplitButton.jsx')
+  const SPLIT = src('apps/frontend/src/components/ui/molecules/SplitButton.jsx')
 
   test('SplitButton trigger uses text-xs (matches Button md), not text-sm', () => {
     expect(SPLIT).not.toMatch(/text-sm/)

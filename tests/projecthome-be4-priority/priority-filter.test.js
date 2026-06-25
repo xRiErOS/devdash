@@ -6,7 +6,7 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
 import { seedProject } from '../_fixtures/seed.js'
-import { priorityFilter } from '../../server/lib/backlogFilters.js'
+import { priorityFilter } from '../../apps/backend/src/lib/backlogFilters.js'
 
 describe('T-be4 — priorityFilter (pure)', () => {
   test('einzelner Wert → Gleichheits-Klausel', () => {

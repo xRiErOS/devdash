@@ -4,7 +4,7 @@
 
 import { describe, test, expect, beforeEach } from 'vitest'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
-import { applyMigration } from '../../server/lib/migrationRunner.js'
+import { applyMigration } from '../../apps/backend/src/lib/migrationRunner.js'
 import {
   createSubtask,
   deleteSubtask,
@@ -12,7 +12,7 @@ import {
   setSubtaskStatus,
   updateSubtask,
   reorderSubtasks,
-} from '../../server/lib/subtasks.js'
+} from '../../apps/backend/src/lib/subtasks.js'
 
 const MIG_034 = '034_v3_backlog_acceptance_criteria.sql'
 const MIG_035 = '035_v3_subtasks.sql'

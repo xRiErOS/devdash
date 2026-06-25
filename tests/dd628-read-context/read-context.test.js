@@ -5,7 +5,7 @@
 import { describe, test, expect } from 'vitest'
 import { readFileSync } from 'fs'
 
-const mcp = readFileSync('mcp/devd-mcp.js', 'utf8')
+const mcp = readFileSync('apps/cli/mcp/devd-mcp.js', 'utf8')
 
 describe('DD-628 — Read-Context-Tools', () => {
   test('registers backlog_export/planning_prompt/dashboard_home/dependencies_graph', () => {

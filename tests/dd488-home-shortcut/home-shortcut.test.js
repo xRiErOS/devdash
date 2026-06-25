@@ -1,6 +1,6 @@
 import { describe, test, expect, afterEach } from 'vitest'
-import { createShortcutKeydownHandler } from '../../src/hooks/useKeyboardShortcuts.js'
-import { withProjectSlug } from '../../src/lib/useProjectNav.js'
+import { createShortcutKeydownHandler } from '../../apps/frontend/src/hooks/useKeyboardShortcuts.js'
+import { withProjectSlug } from '../../apps/frontend/src/lib/useProjectNav.js'
 
 // DD-488 (T03) — Globaler Tastatur-Shortcut `h` öffnet das Project Home des
 // aktiven Projekts (C4-Entity app.web.home-shortcut, FSD fsd.project-home-nav).

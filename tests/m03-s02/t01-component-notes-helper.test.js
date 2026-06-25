@@ -4,14 +4,14 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
 import { seedProject, TEST_PROJECT_ID } from '../_fixtures/seed.js'
-import { applyMigration } from '../../server/lib/migrationRunner.js'
+import { applyMigration } from '../../apps/backend/src/lib/migrationRunner.js'
 import {
   listNotes,
   getNote,
   upsertNote,
   deleteNote,
   ComponentNoteError,
-} from '../../server/lib/componentNotes.js'
+} from '../../apps/backend/src/lib/componentNotes.js'
 
 describe('T01 — componentNotes Helper (DD-273 Wiki 40.03)', () => {
   let db

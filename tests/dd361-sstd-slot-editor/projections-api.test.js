@@ -14,14 +14,14 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
 import { seedProject } from '../_fixtures/seed.js'
-import { applyMigration } from '../../server/lib/migrationRunner.js'
-import { createMemory } from '../../server/lib/projectMemories.js'
-import { insertTodo } from '../../server/lib/projectTodos.js'
+import { applyMigration } from '../../apps/backend/src/lib/migrationRunner.js'
+import { createMemory } from '../../apps/backend/src/lib/projectMemories.js'
+import { insertTodo } from '../../apps/backend/src/lib/projectTodos.js'
 import {
   PROJECTION_TITLES,
   renderNextSteps,
   renderJournal,
-} from '../../server/lib/sstdSlots.js'
+} from '../../apps/backend/src/lib/sstdSlots.js'
 
 const PROJECT_ID = 7
 

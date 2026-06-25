@@ -4,15 +4,15 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
 import { seedProject } from '../_fixtures/seed.js'
-import { applyMigration } from '../../server/lib/migrationRunner.js'
-import { insertTodo, listTodos, deleteTodo } from '../../server/lib/projectTodos.js'
+import { applyMigration } from '../../apps/backend/src/lib/migrationRunner.js'
+import { insertTodo, listTodos, deleteTodo } from '../../apps/backend/src/lib/projectTodos.js'
 import {
   addTodoLink,
   removeTodoLink,
   validateLinkTarget,
   TodoLinkError,
   LINK_TYPES,
-} from '../../server/lib/projectTodoLinks.js'
+} from '../../apps/backend/src/lib/projectTodoLinks.js'
 
 const MIG_037 = '037_v3_project_todos.sql'
 

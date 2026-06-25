@@ -6,7 +6,7 @@
 // Logik aus der Komponente extrahieren, vgl. sprintDetailHelpers.js).
 
 import { describe, test, expect } from 'vitest'
-import { VIEW_LABELS, resolveViewLabel } from '../../src/lib/pageHeaderLabel.js'
+import { VIEW_LABELS, resolveViewLabel } from '../../apps/frontend/src/lib/pageHeaderLabel.js'
 
 describe('DD-352 · resolveViewLabel', () => {
   test('löst das View-Segment hinter dem Slug auf', () => {

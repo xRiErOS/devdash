@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest'
-import { patchIssueStatus } from '../../src/lib/issueStatusApi.js'
+import { patchIssueStatus } from '../../apps/frontend/src/lib/issueStatusApi.js'
 
 describe('T04 — issueStatusApi.patchIssueStatus', () => {
   beforeEach(() => { globalThis.fetch = vi.fn() })

@@ -8,10 +8,10 @@ uploads/
 !.env.example
 *.log
 
-data/*.db
-data/*.db-shm
-data/*.db-wal
-data/*.bak.*
+**/data/*.db
+**/data/*.db-shm
+**/data/*.db-wal
+**/data/*.bak.*
 
 /devd.db
 
@@ -30,8 +30,8 @@ devd-result-*.md
 
 # NAS-Cutover Archive
 .mcp.json.bak-*
-data/devd.db*.archive
-data/devd.db*.archive-*
+**/data/devd.db*.archive
+**/data/devd.db*.archive-*
 
 # Storybook build artifact (DD-470)
 storybook-static/
@@ -44,10 +44,10 @@ test-results/
 playwright-report/
 playwright/.cache/
 .playwright-mcp/
-data/migrations-log/
-data/migrations-log-e2e/
-data/devd.e2e.db*
-data/devd.dd267-e2e.db*
+**/data/migrations-log/
+**/data/migrations-log-e2e/
+**/data/devd.e2e.db*
+**/data/devd.dd267-e2e.db*
 
 # Editor swapfiles
 *.swp

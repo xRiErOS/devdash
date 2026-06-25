@@ -3,7 +3,7 @@
 import { describe, test, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
-import { computeSprintCompleteness } from '../../server/lib/sprintCompleteness.js'
+import { computeSprintCompleteness } from '../../apps/backend/src/lib/sprintCompleteness.js'
 
 function seedSprintWithIssues(db, statuses) {
   const pid = db.prepare("INSERT INTO projects (slug, name, prefix) VALUES ('c','C','C')").run().lastInsertRowid
@@ -45,9 +45,9 @@ describe('D4 — computeSprintCompleteness (issues-only, DD-524)', () => {
 })
 
 describe('D4 — Wiring (REST + CLI + MCP)', () => {
-  const api = readFileSync('server/api.js', 'utf8')
-  const cli = readFileSync('bin/devd-cli.js', 'utf8')
-  const mcp = readFileSync('mcp/devd-mcp.js', 'utf8')
+  const api = readFileSync('apps/backend/src/api.js', 'utf8')
+  const cli = readFileSync('apps/cli/bin/devd-cli.js', 'utf8')
+  const mcp = readFileSync('apps/cli/mcp/devd-mcp.js', 'utf8')
 
   test('REST: GET /api/sprints/:id/completeness (eigener Endpoint, D-L)', () => {
     expect(api).toContain("app.get('/api/sprints/:id/completeness'")

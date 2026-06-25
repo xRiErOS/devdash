@@ -8,8 +8,8 @@ import { mkdtempSync, rmSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
-import { applyMigration } from '../../server/lib/migrationRunner.js'
-import { upsertSop, getSop, editSopLine, SOP_LINE_OPS, SopError } from '../../server/lib/sops.js'
+import { applyMigration } from '../../apps/backend/src/lib/migrationRunner.js'
+import { upsertSop, getSop, editSopLine, SOP_LINE_OPS, SopError } from '../../apps/backend/src/lib/sops.js'
 
 describe('DD-530 — editSopLine', () => {
   let db
@@ -63,9 +63,9 @@ describe('DD-530 — editSopLine', () => {
 })
 
 describe('DD-530 — Wiring', () => {
-  const api = readFileSync('server/api.js', 'utf8')
-  const cli = readFileSync('bin/devd-cli.js', 'utf8')
-  const mcp = readFileSync('mcp/devd-mcp.js', 'utf8')
+  const api = readFileSync('apps/backend/src/api.js', 'utf8')
+  const cli = readFileSync('apps/cli/bin/devd-cli.js', 'utf8')
+  const mcp = readFileSync('apps/cli/mcp/devd-mcp.js', 'utf8')
 
   test('REST PATCH /api/sops/:key/line ruft editSopLine', () => {
     expect(api).toMatch(/app\.patch\('\/api\/sops\/:key\/line'/)

@@ -10,9 +10,9 @@ import { mkdtempSync, rmSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
-import { applyMigration } from '../../server/lib/migrationRunner.js'
-import { getDependenciesForMilestone } from '../../server/lib/milestoneDependencies.js'
-import { listDodItems } from '../../server/lib/milestoneDodItems.js'
+import { applyMigration } from '../../apps/backend/src/lib/migrationRunner.js'
+import { getDependenciesForMilestone } from '../../apps/backend/src/lib/milestoneDependencies.js'
+import { listDodItems } from '../../apps/backend/src/lib/milestoneDodItems.js'
 
 // Migrations 029–031 müssen explizit eingespielt werden — die Test-Baseline
 // (Snapshot) endet bei 028, vor milestone_dependencies + milestone_dod_items.

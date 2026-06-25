@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
-import { renderMarkdown } from '../../src/lib/markdown.js'
+import { renderMarkdown } from '../../apps/frontend/src/lib/markdown.js'
 
 describe('DD-362 renderMarkdown — GFM-Erweiterungen für SSTD-Render', () => {
   it('rendert GFM-Tabellen statt rohem Pipe-Text', () => {

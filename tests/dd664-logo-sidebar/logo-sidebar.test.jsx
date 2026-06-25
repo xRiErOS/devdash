@@ -12,8 +12,8 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { readFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import IconSidebar from '../../src/components/ui/organisms/IconSidebar.jsx'
-import NavRail from '../../src/components/ui/organisms/NavRail.jsx'
+import IconSidebar from '../../apps/frontend/src/components/ui/organisms/IconSidebar.jsx'
+import NavRail from '../../apps/frontend/src/components/ui/organisms/NavRail.jsx'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..', '..')
@@ -27,7 +27,7 @@ const FOOTER = [{ key: 'settings', label: 'Einstellungen', icon: React.createEle
 const PROJECT = { name: 'DevD', prefix: 'DD', color: 'blue' }
 
 describe('DD-664 PageHeader — Logo entfernt', () => {
-  const layout = () => read('src/components/ui/layout/Layout.jsx')
+  const layout = () => read('apps/frontend/src/components/ui/layout/Layout.jsx')
 
   test('PageHeader rendert keinen app-shell.page-header.logo-Anker mehr', () => {
     expect(layout()).not.toContain('app-shell.page-header.logo')
@@ -83,7 +83,7 @@ describe('DD-664 IconSidebar — Logo im Switcher-Bereich', () => {
     const slice = html.slice(Math.max(0, logoIdx - 200), logoIdx + 60)
     expect(slice).toContain('Quick-Switcher öffnen')
     // Quell-Beweis der Verdrahtung (onClick={onProjectSwitch} am DDLogo)
-    const src = read('src/components/ui/organisms/IconSidebar.jsx')
+    const src = read('apps/frontend/src/components/ui/organisms/IconSidebar.jsx')
     expect(src).toMatch(/<DDLogo[\s\S]*onClick=\{onProjectSwitch\}/)
     expect(src).toMatch(/data-ui=\{`\$\{scope\}\.logo`\}/)
   })

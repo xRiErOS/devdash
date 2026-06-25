@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import PageTitle from '../../src/components/ui/atoms/PageTitle.jsx'
+import PageTitle from '../../apps/frontend/src/components/ui/atoms/PageTitle.jsx'
 
 // DD-671 — PageTitle Atom (shared ScreenTitle across views).
 // env=node: der Komponenten-Vertrag wird via renderToStaticMarkup (SSR-String)

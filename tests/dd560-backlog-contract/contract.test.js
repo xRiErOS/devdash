@@ -7,7 +7,7 @@ import {
   issueStatusContract,
   issueAssignSprintContract,
   issueDependencyContract,
-} from '../../contracts/backlog.contracts.js'
+} from '@devd/api-types/backlog.contracts.js'
 
 // DD-560: Contract spiegelt die REST-Struktur-Validierung von POST/PUT /api/backlog.
 describe('DD-560 issueCreateContract', () => {

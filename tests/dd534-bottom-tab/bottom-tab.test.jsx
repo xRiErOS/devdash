@@ -13,7 +13,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { readFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import BottomTabBar from '../../src/components/ui/organisms/BottomTabBar.jsx'
+import BottomTabBar from '../../apps/frontend/src/components/ui/organisms/BottomTabBar.jsx'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..', '..')
@@ -77,7 +77,7 @@ describe('DD-534 BottomTabBar — F5 Safe-Area + Breakpoint', () => {
 
 describe('DD-534 BottomTabBar — onNavigate-Verdrahtung (Source)', () => {
   test('Klick delegiert an onNavigate(key)', () => {
-    const src = read('src/components/ui/organisms/BottomTabBar.jsx')
+    const src = read('apps/frontend/src/components/ui/organisms/BottomTabBar.jsx')
     expect(src).toMatch(/onNavigate\?\.\(\s*item\.key\s*\)/)
   })
 })

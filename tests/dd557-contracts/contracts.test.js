@@ -7,7 +7,7 @@ import {
   milestoneDependencyContract,
   sprintSetMilestoneContract,
   parseOrThrow,
-} from '../../contracts/milestone-sprint.contracts.js'
+} from '@devd/api-types/milestone-sprint.contracts.js'
 
 // DD-557: der Contract ist Single-Source — diese Tests sichern die Semantik, die
 // milestoneValidation.js (Bestand, t04-api-milestones-validation.test.js) weiter erfüllen muss.

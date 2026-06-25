@@ -4,7 +4,7 @@
 import { describe, test, expect } from 'vitest'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import DetailBody from '../../src/components/ui/organisms/DetailBody.jsx'
+import DetailBody from '../../apps/frontend/src/components/ui/organisms/DetailBody.jsx'
 
 const render = () =>
   renderToStaticMarkup(

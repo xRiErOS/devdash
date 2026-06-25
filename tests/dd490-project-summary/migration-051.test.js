@@ -5,13 +5,13 @@ import { tmpdir } from 'os'
 import { fileURLToPath } from 'url'
 import { createTestDb, appliedMigrations } from '../_fixtures/in-memory-db.js'
 import { seedProject } from '../_fixtures/seed.js'
-import { applyMigration } from '../../server/lib/migrationRunner.js'
+import { applyMigration } from '../../apps/backend/src/lib/migrationRunner.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(__dirname, '../..')
 
 const MIG_051 = '051_v3_project_summary_fields.sql'
-const DOWN_SQL = resolve(ROOT, 'migrations/_down/051_v3_project_summary_fields_down.sql')
+const DOWN_SQL = resolve(ROOT, 'apps/backend/migrations/_down/051_v3_project_summary_fields_down.sql')
 
 const NEW_COLS = ['summary_achieved', 'summary_next', 'vision', 'goals']
 

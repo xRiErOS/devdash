@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { extractImageFiles } from '../../src/lib/clipboardImages.js'
+import { extractImageFiles } from '../../apps/frontend/src/lib/clipboardImages.js'
 
 // DD-684 — Review-Notes-Paste: Bilder werden im Capture-Phase abgefangen und an
 // die Attachments geroutet, statt von note-field als Data-URL ins Markdown

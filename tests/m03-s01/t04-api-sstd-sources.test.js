@@ -9,7 +9,7 @@ import {
   clearCache,
   SstdSourcesError,
   _setReadSpy,
-} from '../../server/lib/sstdSources.js'
+} from '../../apps/backend/src/lib/sstdSources.js'
 
 // DD-281 — T04 SSTD-Sources Aggregator + Cache.
 

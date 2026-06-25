@@ -3,34 +3,38 @@
   "version": "1.0.0",
   "description": "DevD — Developer Dashboard für Sprint-Planung, Backlog-Pflege und Live-Review (ehem. PO-Dashboard von myPrivateBabyTracker)",
   "type": "module",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
-    "dev": "concurrently -n api,vite -c blue,green \"node server/api.js\" \"vite\"",
-    "dev:nas": "DEVD_PROXY_TARGET=http://100.71.39.53:3001 vite",
-    "build": "vite build",
-    "cli": "node bin/devd-cli.js",
-    "mcp:devd": "node mcp/devd-mcp.js",
-    "lint": "eslint src",
-    "lint:fix": "eslint src --fix",
-    "lint:css": "stylelint \"src/**/*.css\"",
+    "dev": "concurrently -n api,vite -c blue,green \"node apps/backend/src/api.js\" \"vite apps/frontend\"",
+    "dev:nas": "DEVD_PROXY_TARGET=http://100.71.39.53:3001 vite apps/frontend",
+    "build": "vite build apps/frontend",
+    "cli": "node apps/cli/bin/devd-cli.js",
+    "mcp:devd": "node apps/cli/mcp/devd-mcp.js",
+    "lint": "eslint apps/frontend packages",
+    "lint:fix": "eslint apps/frontend packages --fix",
+    "lint:css": "stylelint \"apps/frontend/src/**/*.css\"",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    "storybook": "LAUNCH_EDITOR=codium storybook dev -p 6006",
-    "build-storybook": "storybook build",
-    "gen:openapi": "node openapi/generate.js",
-    "gen:openapi:check": "node openapi/generate.js --check",
+    "storybook": "LAUNCH_EDITOR=codium storybook dev -c apps/frontend/.storybook -p 6006",
+    "build-storybook": "storybook build -c apps/frontend/.storybook",
+    "gen:openapi": "node apps/backend/openapi/generate.js",
+    "gen:openapi:check": "node apps/backend/openapi/generate.js --check",
     "generate-pwa-icons": "node scripts/generate-pwa-icons.mjs",
     "prepare": "husky"
   },
   "lint-staged": {
-    "src/**/*.{js,jsx}": "eslint",
-    "src/**/*.css": "stylelint"
-  },
-  "bin": {
-    "devd-cli": "bin/devd-cli.js"
+    "apps/frontend/**/*.{js,jsx}": "eslint",
+    "packages/**/*.js": "eslint",
+    "apps/frontend/src/**/*.css": "stylelint"
   },
   "dependencies": {
+    "@devd/api-types": "*",
     "@codemirror/lang-markdown": "^6.5.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
@@ -91,10 +95,5 @@
     "vite": "^8.0.9",
     "vite-plugin-pwa": "^1.3.0",
     "vitest": "^4.1.7"
-  },
-  "msw": {
-    "workerDirectory": [
-      "public"
-    ]
   }
 }

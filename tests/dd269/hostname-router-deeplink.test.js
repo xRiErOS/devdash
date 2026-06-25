@@ -5,7 +5,7 @@ import {
   VIEW_CAPTURE,
   VIEW_CAPTURE_PINNED,
   VIEW_UNKNOWN,
-} from '../../src/lib/hostnameRouter.js'
+} from '../../apps/frontend/src/lib/hostnameRouter.js'
 
 describe('DD-269 — /catch/<slug> Deeplink', () => {
   test('issues.* + /catch/devd → VIEW_CAPTURE_PINNED, slug=devd', () => {

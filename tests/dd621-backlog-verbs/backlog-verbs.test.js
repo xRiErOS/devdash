@@ -3,7 +3,7 @@
 
 import { describe, test, expect } from 'vitest'
 import { readFileSync } from 'fs'
-import { BULK_ACTIONS, backlogBulkContract, backlogMoveContract } from '../../contracts/backlog.contracts.js'
+import { BULK_ACTIONS, backlogBulkContract, backlogMoveContract } from '@devd/api-types/backlog.contracts.js'
 
 describe('DD-621 — Contracts', () => {
   test('BULK_ACTIONS deckt die server-seitigen Actions', () => {
@@ -30,8 +30,8 @@ describe('DD-621 — Contracts', () => {
 })
 
 describe('DD-621 — Wiring', () => {
-  const cli = readFileSync('bin/devd-cli.js', 'utf8')
-  const mcp = readFileSync('mcp/devd-mcp.js', 'utf8')
+  const cli = readFileSync('apps/cli/bin/devd-cli.js', 'utf8')
+  const mcp = readFileSync('apps/cli/mcp/devd-mcp.js', 'utf8')
 
   test('CLI exposes issue bulk/delete/move/activity', () => {
     for (const c of ["'issue:bulk'", "'issue:delete'", "'issue:move'", "'issue:activity'"]) expect(cli).toContain(c)

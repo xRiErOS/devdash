@@ -4,7 +4,7 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
 import { seedProject } from '../_fixtures/seed.js'
-import { applyMigration } from '../../server/lib/migrationRunner.js'
+import { applyMigration } from '../../apps/backend/src/lib/migrationRunner.js'
 import {
   listTodos,
   insertTodo,
@@ -12,7 +12,7 @@ import {
   deleteTodo,
   reorderTodos,
   ProjectTodoError,
-} from '../../server/lib/projectTodos.js'
+} from '../../apps/backend/src/lib/projectTodos.js'
 
 const MIG_037 = '037_v3_project_todos.sql'
 

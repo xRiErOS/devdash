@@ -2,9 +2,9 @@ import { describe, test, expect } from 'vitest'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 // DD-500: produktiv TodoInput.jsx gelöscht — cutover auf ui/organisms/ChecklistInputForm.
-import ChecklistInputForm from '../../src/components/ui/organisms/ChecklistInputForm.jsx'
+import ChecklistInputForm from '../../apps/frontend/src/components/ui/organisms/ChecklistInputForm.jsx'
 // DD-586: legacy ProjectTodoList.jsx archived → import ui/organisms canonical variant
-import ProjectTodoList from '../../src/components/ui/organisms/ProjectTodoList.jsx'
+import ProjectTodoList from '../../apps/frontend/src/components/ui/organisms/ProjectTodoList.jsx'
 // DD-587: AddLinkPicker, TodoLinksList, TodoDetailModal wurden ins _archive
 // verschoben (import-closed dead set; Live-Varianten in ui/organisms). Ihre SSR-
 // Describe-Blocks sind unten entfernt — ChecklistInputForm + ProjectTodoList (live) bleiben.

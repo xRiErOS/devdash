@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
-import { buildMetaCopyPayload } from '../../src/lib/metaCopyPayload.js'
+import { buildMetaCopyPayload } from '../../apps/frontend/src/lib/metaCopyPayload.js'
 
 // DD-676 supersedes DD-493: the Project-Home meta copy (project-home.meta.copy)
 // now emits ONLY Stammdaten + MCP-Abruf hints — NO SSTD slot dump, no prefetch.
@@ -86,7 +86,7 @@ describe('DD-676 — buildMetaCopyPayload (Stammdaten + MCP-Abruf, kein SSTD-Dum
 })
 
 describe('DD-676 — OverviewTab.copyMeta wiring (source-grep)', () => {
-  const OVERVIEW = 'src/components/ui/organisms/OverviewTab.jsx'
+  const OVERVIEW = 'apps/frontend/src/components/ui/organisms/OverviewTab.jsx'
 
   test('imports buildMetaCopyPayload', () => {
     expect(src(OVERVIEW)).toMatch(/import \{ buildMetaCopyPayload \} from/)

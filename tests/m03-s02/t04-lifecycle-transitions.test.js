@@ -3,7 +3,7 @@ import {
   getValidIssueTransitions,
   ISSUE_STATUS_LABELS,
   REQUIRES_NOTES,
-} from '../../src/lib/issueLifecycleTransitions.js'
+} from '../../apps/frontend/src/lib/issueLifecycleTransitions.js'
 
 describe('T04 — Issue-Lifecycle-Transitions (Backend-konform)', () => {
   test('new bietet [refined, cancelled]', () => {

@@ -10,7 +10,7 @@ import { dirname, join } from 'node:path'
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const read = (rel) => readFileSync(join(ROOT, rel), 'utf8')
 
-const css = read('src/index.css')
+const css = read('apps/frontend/src/index.css')
 
 // Den Mobile-Override-Block isolieren.
 function mobileBlock() {
@@ -51,7 +51,7 @@ describe('DD-636 Density-Tokens — index.css', () => {
 
 describe('DD-636 Density-Tokens — Layout-Primitive lesen --space-*', () => {
   test('gap.js routet xs/sm/md/lg über var(--space-1/2/4/6)', () => {
-    const gap = read('src/components/ui/layout/gap.js')
+    const gap = read('apps/frontend/src/components/ui/layout/gap.js')
     expect(gap).toContain('gap-[var(--space-1)]')
     expect(gap).toContain('gap-[var(--space-2)]')
     expect(gap).toContain('gap-[var(--space-4)]')
@@ -59,7 +59,7 @@ describe('DD-636 Density-Tokens — Layout-Primitive lesen --space-*', () => {
   })
 
   test('Card-Padding sm/md über var(--space-2/4)', () => {
-    const card = read('src/components/ui/atoms/Card.jsx')
+    const card = read('apps/frontend/src/components/ui/atoms/Card.jsx')
     expect(card).toContain('p-[var(--space-2)]')
     expect(card).toContain('p-[var(--space-4)]')
   })

@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest'
-import { createShortcutKeydownHandler } from '../../src/hooks/useKeyboardShortcuts.js'
+import { createShortcutKeydownHandler } from '../../apps/frontend/src/hooks/useKeyboardShortcuts.js'
 
 // DD-475 — Doppel-'c'-Hotkey.
 //

@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { resolveChromeTitle } from '../../src/lib/pageChrome.jsx'
+import { resolveChromeTitle } from '../../apps/frontend/src/lib/pageChrome.jsx'
 
 // DD#82-r2 — Sub-Header-Titel-Hoist: der Sub-Header zeigt den Titel NUR, wenn der
 // publizierte Eintrag zum aktuell sichtbaren Pfad gehört. So bleibt beim View-

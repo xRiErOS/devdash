@@ -8,7 +8,7 @@ const repoRoot = resolve(__dirname, '..', '..')
 // DD-589: legacy components/TagMultiSelect.jsx wurde nach _archive verschoben
 // (Leaf-Cutover, State nach ItemDetail/Layout gehoben). Das ARIA-Combobox-Pattern
 // lebt verlustfrei im kanonischen ui/-Molecule weiter — Audit zeigt dorthin.
-const src = readFileSync(resolve(repoRoot, 'src/components/ui/molecules/TagMultiSelect.jsx'), 'utf8')
+const src = readFileSync(resolve(repoRoot, 'apps/frontend/src/components/ui/molecules/TagMultiSelect.jsx'), 'utf8')
 
 // DD-271 — Source-Audit fuer das ARIA-Combobox-Pattern (W3C).
 // Der echte Keyboard-Flow (Pfeiltasten, Enter, Esc) wird im Playwright-Spec

@@ -11,8 +11,8 @@ import {
   slotSetContract,
   slotEditContract,
   journalAddContract,
-} from '../../contracts/sstd.contracts.js'
-import { SLOT_KEYS as LIB_SLOT_KEYS } from '../../server/lib/sstdSlots.js'
+} from '@devd/api-types/sstd.contracts.js'
+import { SLOT_KEYS as LIB_SLOT_KEYS } from '../../apps/backend/src/lib/sstdSlots.js'
 
 const firstMsg = (r) => r.error.issues[0].message
 

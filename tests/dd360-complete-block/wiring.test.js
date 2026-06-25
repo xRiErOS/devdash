@@ -15,7 +15,7 @@ import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..', '..')
-const guard = readFileSync(join(ROOT, 'server/lib/sprintCompleteGuards.js'), 'utf8')
+const guard = readFileSync(join(ROOT, 'apps/backend/src/lib/sprintCompleteGuards.js'), 'utf8')
 
 // DD-587: die frontend-seitigen submitComplete-/CompleteDialog-Source-Asserts
 // gegen src/components/SprintActions.jsx sind gelöscht — die Legacy-SprintActions

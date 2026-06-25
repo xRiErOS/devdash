@@ -10,7 +10,7 @@ import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..', '..')
-const src = () => readFileSync(join(ROOT, 'src/components/ui/layout/Layout.jsx'), 'utf8')
+const src = () => readFileSync(join(ROOT, 'apps/frontend/src/components/ui/layout/Layout.jsx'), 'utf8')
 
 describe('DD-633 Layout — FabRadial verdrahtet', () => {
   test('importiert + rendert FabRadial', () => {

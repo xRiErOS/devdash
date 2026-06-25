@@ -4,8 +4,8 @@ import {
   memoryLogContract,
   memoryUpdateContract,
   memorySupersedeContract,
-} from '../../contracts/project-memory.contracts.js'
-import { CATEGORIES as LIB_CATEGORIES } from '../../server/lib/projectMemories.js'
+} from '@devd/api-types/project-memory.contracts.js'
+import { CATEGORIES as LIB_CATEGORIES } from '../../apps/backend/src/lib/projectMemories.js'
 
 // DD-563 (Sprint DD#78, Triplet 4/6): Contract spiegelt die Struktur-/Typ-/Required-
 // Validierung der project-memories-Payloads (log/update/supersede). Die werfende

@@ -15,12 +15,12 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { readFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import SprintActions from '../../src/components/ui/organisms/SprintActions.jsx'
+import SprintActions from '../../apps/frontend/src/components/ui/organisms/SprintActions.jsx'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..', '..')
 const src = readFileSync(
-  join(ROOT, 'src/components/ui/organisms/SprintActions.jsx'),
+  join(ROOT, 'apps/frontend/src/components/ui/organisms/SprintActions.jsx'),
   'utf8',
 )
 

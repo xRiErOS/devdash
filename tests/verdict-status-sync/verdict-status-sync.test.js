@@ -4,7 +4,7 @@ import { seedProject, TEST_PROJECT_ID } from '../_fixtures/seed.js'
 import {
   autoSetPassedOnReviewPass,
   autoSetRejectedOnReviewFail,
-} from '../../server/lib/reviewMarker.js'
+} from '../../apps/backend/src/lib/reviewMarker.js'
 
 // Verdict↔Status-Invariante (Root-Fix DD#81-Trap-Rest, 2026-06-23).
 //

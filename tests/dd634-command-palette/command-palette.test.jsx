@@ -11,7 +11,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import CommandPalette, {
   groupResultsByType,
   PALETTE_CHIPS,
-} from '../../src/components/ui/organisms/CommandPalette.jsx'
+} from '../../apps/frontend/src/components/ui/organisms/CommandPalette.jsx'
 
 const RESULTS = [
   { type: 'milestone', id: 5, key: 'M5', title: 'Mobile UX' },

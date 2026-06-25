@@ -1,6 +1,6 @@
 import { describe, test, expect, vi } from 'vitest'
-import { createDevdTokenAuth } from '../../server/middleware/devdToken.js'
-import { isTrustedSource } from '../../server/lib/trustedSource.js'
+import { createDevdTokenAuth } from '../../apps/backend/src/middleware/devdToken.js'
+import { isTrustedSource } from '../../apps/backend/src/lib/trustedSource.js'
 
 // Repliziert die Bypass-Logic aus server/api.js (DD-285 + DD-297).
 function bypassIf(req) {

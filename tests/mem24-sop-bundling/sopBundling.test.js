@@ -9,9 +9,9 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
 import { seedProject } from '../_fixtures/seed.js'
-import { applyMigration } from '../../server/lib/migrationRunner.js'
-import { upsertSop, setTrigger } from '../../server/lib/sops.js'
-import { buildSopBundle, renderSopBundle } from '../../server/lib/sopBundle.js'
+import { applyMigration } from '../../apps/backend/src/lib/migrationRunner.js'
+import { upsertSop, setTrigger } from '../../apps/backend/src/lib/sops.js'
+import { buildSopBundle, renderSopBundle } from '../../apps/backend/src/lib/sopBundle.js'
 
 const PROJECT_ID = 7
 

@@ -9,7 +9,7 @@ import {
   removeTodoLink,
   LINK_TYPES,
   TODO_STATUSES,
-} from '../../src/lib/projectHomeApi.js'
+} from '../../apps/frontend/src/lib/projectHomeApi.js'
 
 const okJson = (data) => ({ ok: true, status: 200, json: async () => data })
 const okEmpty = () => ({ ok: true, status: 204 })

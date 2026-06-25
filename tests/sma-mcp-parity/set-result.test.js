@@ -7,7 +7,7 @@ import { readFileSync } from 'fs'
 // --------------------------------------------------------------------------
 // Static schema / source-text tests (no network required)
 // --------------------------------------------------------------------------
-const src = readFileSync('mcp/devd-mcp.js', 'utf8')
+const src = readFileSync('apps/cli/mcp/devd-mcp.js', 'utf8')
 
 describe('devd_issue_set_result — schema (source-text)', () => {
   test('tool is registered in mcp/devd-mcp.js', () => {
@@ -66,7 +66,7 @@ describe('devd_issue_set_result — runtime (mocked apiRequest)', () => {
     const params = {
       outcome_type: 'feat',
       outcome_summary: 'Added set-result MCP tool',
-      files_changed: ['mcp/devd-mcp.js'],
+      files_changed: ['apps/cli/mcp/devd-mcp.js'],
       commits: ['abc1234'],
       lessons_learned: ['TDD works'],
       vorgehen: 'Implemented inline',

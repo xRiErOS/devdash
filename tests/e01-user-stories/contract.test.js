@@ -9,8 +9,8 @@ import {
   userStoryCreateContract,
   userStoryUpdateContract,
   userStoryVerdictContract,
-} from '../../contracts/userStory.contracts.js'
-import { issueCreateContract, issueUpdateContract } from '../../contracts/backlog.contracts.js'
+} from '@devd/api-types/userStory.contracts.js'
+import { issueCreateContract, issueUpdateContract } from '@devd/api-types/backlog.contracts.js'
 
 describe('E01.1 USER_STORY_VERDICTS', () => {
   it('ist die us_verdict-Taxonomie {open,accepted,rejected} in load-bearing-Reihenfolge', () => {

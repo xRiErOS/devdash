@@ -11,8 +11,8 @@ import {
   subtaskEditContract,
   subtaskStatusContract,
   subtaskReorderContract,
-} from '../../contracts/subtask.contracts.js'
-import { setSubtaskStatus } from '../../server/lib/subtasks.js'
+} from '@devd/api-types/subtask.contracts.js'
+import { setSubtaskStatus } from '../../apps/backend/src/lib/subtasks.js'
 
 const firstMsg = (r) => r.error.issues[0].message
 

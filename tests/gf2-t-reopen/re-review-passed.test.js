@@ -7,7 +7,7 @@ import {
   assertReviewEditable,
   reopenReviewRound,
   ReviewEditLockedError,
-} from '../../server/lib/reviewMarker.js'
+} from '../../apps/backend/src/lib/reviewMarker.js'
 
 // GF-2 T-reopen — Backend-Verifikation für den V2-Review-Re-Review-Pfad (D04, UI-Anker
 // review-flow(.mobile)…re-review / Variant_ReReview). Der Befund (BE-Q01): reReviewPassed

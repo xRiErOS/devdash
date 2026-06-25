@@ -11,9 +11,9 @@ import { resolve } from 'path'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
 
 const ROOT = resolve(import.meta.dirname, '../..')
-const API_SRC = readFileSync(resolve(ROOT, 'server/api.js'), 'utf8')
+const API_SRC = readFileSync(resolve(ROOT, 'apps/backend/src/api.js'), 'utf8')
 // The coercion logic was extracted into a helper (I02) — guard strings live there.
-const GUARD_SRC = readFileSync(resolve(ROOT, 'server/lib/sprintFieldGuards.js'), 'utf8')
+const GUARD_SRC = readFileSync(resolve(ROOT, 'apps/backend/src/lib/sprintFieldGuards.js'), 'utf8')
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 

@@ -2,7 +2,7 @@
 // environment: node (kein DOM nötig — reine Logik).
 
 import { describe, test, expect } from 'vitest'
-import { filterAndSortTodos, isCompletedToday } from '../../src/lib/todoFilter.js'
+import { filterAndSortTodos, isCompletedToday } from '../../apps/frontend/src/lib/todoFilter.js'
 
 const NOW = new Date('2026-05-29T10:00:00') // lokale TZ
 // completed_at-Strings sind UTC (wie SQLite datetime('now')).

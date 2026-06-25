@@ -5,7 +5,7 @@
 import { describe, test, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
-import { sprintTagsContract, milestoneTagsContract } from '../../contracts/tag.contracts.js'
+import { sprintTagsContract, milestoneTagsContract } from '@devd/api-types/tag.contracts.js'
 
 const MIG = '055_v3_sprint_milestone_tags.sql'
 
@@ -56,9 +56,9 @@ describe('D1 — Migration 055 (additive Junctions, kein Polymorph-Bruch)', () =
 })
 
 describe('D1 — Wiring (REST + CLI + MCP, Full-Stack D-E)', () => {
-  const api = readFileSync('server/api.js', 'utf8')
-  const cli = readFileSync('bin/devd-cli.js', 'utf8')
-  const mcp = readFileSync('mcp/devd-mcp.js', 'utf8')
+  const api = readFileSync('apps/backend/src/api.js', 'utf8')
+  const cli = readFileSync('apps/cli/bin/devd-cli.js', 'utf8')
+  const mcp = readFileSync('apps/cli/mcp/devd-mcp.js', 'utf8')
 
   test('REST: PUT + GET tags-Endpoints für sprint + milestone', () => {
     expect(api).toContain("app.put('/api/sprints/:id/tags'")

@@ -16,7 +16,7 @@ import { dirname, resolve } from 'node:path'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const src = readFileSync(
-  resolve(__dirname, '../../src/components/ui/layout/Layout.jsx'),
+  resolve(__dirname, '../../apps/frontend/src/components/ui/layout/Layout.jsx'),
   'utf8',
 )
 

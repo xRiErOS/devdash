@@ -6,9 +6,9 @@
 import { describe, expect, test } from 'vitest'
 import { readFileSync, readdirSync } from 'fs'
 import { join, resolve } from 'path'
-import { sanitizeDeprecatedDescription, sanitizeDeprecatedDescriptions } from '../../server/lib/issueDescription.js'
+import { sanitizeDeprecatedDescription, sanitizeDeprecatedDescriptions } from '../../apps/backend/src/lib/issueDescription.js'
 
-const MIGRATIONS_DIR = resolve('migrations')
+const MIGRATIONS_DIR = resolve('apps/backend/migrations')
 
 describe('DD-313 / DD-45 D30 — description soft-deprecation', () => {
   test('migration 036 is an audit-trail NoOp and does not drop description', () => {

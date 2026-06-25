@@ -8,7 +8,7 @@ import {
   maybeAutoOpenReworkRound,
   reopenReviewRound,
   ReviewEditLockedError,
-} from '../../server/lib/reviewMarker.js'
+} from '../../apps/backend/src/lib/reviewMarker.js'
 
 // DD-507 — Sprint-level Review-Abschluss-Marker (sprints.review_submitted_at)
 // + Auto-Runde-bei-Rework. Reine DB-Helper-Coverage (server/api.js exportiert

@@ -1,0 +1,12 @@
+{
+  "name": "@devd/api-types",
+  "version": "0.0.0",
+  "description": "Geteilte Schnittstellendefinitionen (Zod-Contracts + Key-Parsing) für Backend, CLI/MCP und Frontend.",
+  "type": "module",
+  "exports": {
+    "./*": "./*"
+  },
+  "dependencies": {
+    "zod": "^4.4.2"
+  }
+}

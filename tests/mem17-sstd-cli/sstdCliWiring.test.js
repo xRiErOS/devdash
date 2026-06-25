@@ -5,7 +5,7 @@
 import { describe, expect, test } from 'vitest'
 import { readFileSync } from 'fs'
 
-const cli = readFileSync('bin/devd-cli.js', 'utf8')
+const cli = readFileSync('apps/cli/bin/devd-cli.js', 'utf8')
 
 describe('MEM-17 — SSTD-Slots CLI', () => {
   test('exposes sstd show/slot/set/edit/journal subcommands', () => {

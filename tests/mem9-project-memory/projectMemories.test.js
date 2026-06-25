@@ -10,7 +10,7 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
 import { seedProject } from '../_fixtures/seed.js'
-import { applyMigration } from '../../server/lib/migrationRunner.js'
+import { applyMigration } from '../../apps/backend/src/lib/migrationRunner.js'
 import {
   listMemories,
   getMemory,
@@ -20,7 +20,7 @@ import {
   supersedeMemory,
   searchMemories,
   ProjectMemoryError,
-} from '../../server/lib/projectMemories.js'
+} from '../../apps/backend/src/lib/projectMemories.js'
 
 const MIG = '041_v3_project_memories.sql'
 const PROJECT_ID = 7

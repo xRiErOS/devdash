@@ -4,7 +4,7 @@ import {
   sprintCreateContract,
   sprintUpdateContract,
   sprintReorderContract,
-} from '../../contracts/milestone-sprint.contracts.js'
+} from '@devd/api-types/milestone-sprint.contracts.js'
 
 // DD-561 (Sprint DD#78, Triplet 2/6): Contract spiegelt die REST-Struktur-
 // Validierung von POST/PUT /api/sprints + PATCH /api/sprints/reorder (ordered_ids-Form).

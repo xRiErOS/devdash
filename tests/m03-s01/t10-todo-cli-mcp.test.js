@@ -7,8 +7,8 @@ import { resolve } from 'path'
 // existing m03-s01 t03-Tests + manual smoke against NAS).
 
 const ROOT = resolve(import.meta.dirname, '../..')
-const CLI_SRC = readFileSync(resolve(ROOT, 'bin/devd-cli.js'), 'utf8')
-const MCP_SRC = readFileSync(resolve(ROOT, 'mcp/devd-mcp.js'), 'utf8')
+const CLI_SRC = readFileSync(resolve(ROOT, 'apps/cli/bin/devd-cli.js'), 'utf8')
+const MCP_SRC = readFileSync(resolve(ROOT, 'apps/cli/mcp/devd-mcp.js'), 'utf8')
 
 const EXPECTED_CLI_KEYS = [
   "'todo:list'",

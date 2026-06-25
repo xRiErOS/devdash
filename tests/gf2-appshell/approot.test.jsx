@@ -1,7 +1,7 @@
 // tests/gf2-appshell/approot.test.jsx
 import { describe, it, expect } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { AppShellView } from '../../src/screens/_shell/AppRoot.jsx'
+import { AppShellView } from '../../apps/frontend/src/screens/_shell/AppRoot.jsx'
 
 describe('AppRoot view dispatch', () => {
   it('app-shell-View rendert den Shell (root-Anker)', () => {

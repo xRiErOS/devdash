@@ -10,7 +10,7 @@ import {
   setUserStoryVerdict,
   deleteUserStory,
   UserStoryValidationError,
-} from '../../server/lib/userStories.js'
+} from '../../apps/backend/src/lib/userStories.js'
 
 const UP_TO = '059_v3_drop_acceptance_test_instruction.sql'
 

@@ -11,15 +11,15 @@ import { dirname, join } from 'node:path'
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const read = (rel) => readFileSync(join(ROOT, rel), 'utf8')
 
-const toastLib = read('src/lib/toast.js')
-const hook = read('src/hooks/useCopyFeedback.js')
-const sstdTab = read('src/components/ui/organisms/SstdTab.jsx')
-const todoCli = read('src/components/ui/molecules/TodoCliHelp.jsx')
-const settingsSidebar = read('src/components/ui/organisms/SettingsSidebar.jsx')
-const projectMetaCard = read('src/components/ui/organisms/ProjectMetaCard.jsx')
+const toastLib = read('apps/frontend/src/lib/toast.js')
+const hook = read('apps/frontend/src/hooks/useCopyFeedback.js')
+const sstdTab = read('apps/frontend/src/components/ui/organisms/SstdTab.jsx')
+const todoCli = read('apps/frontend/src/components/ui/molecules/TodoCliHelp.jsx')
+const settingsSidebar = read('apps/frontend/src/components/ui/organisms/SettingsSidebar.jsx')
+const projectMetaCard = read('apps/frontend/src/components/ui/organisms/ProjectMetaCard.jsx')
 
 describe('DD-675 — toast()-Single-Source', () => {
-  test('src/lib/toast.js exportiert toast() und dispatcht devd-toast', () => {
+  test('apps/frontend/src/lib/toast.js exportiert toast() und dispatcht devd-toast', () => {
     expect(toastLib).toMatch(/export\s+function\s+toast/)
     expect(toastLib).toContain("'devd-toast'")
     expect(toastLib).toContain('CustomEvent')

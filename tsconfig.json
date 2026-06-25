@@ -13,6 +13,6 @@
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["contracts/**/*.js", "server/**/*.js", "mcp/**/*.js", "bin/**/*.js"],
-  "exclude": ["node_modules", "dist", "src", "tests", "e2e", ".storybook", "report"]
+  "include": ["packages/api-types/**/*.js", "apps/backend/**/*.js", "apps/cli/**/*.js"],
+  "exclude": ["node_modules", "dist", "apps/frontend", "tests", "e2e", "report"]
 }

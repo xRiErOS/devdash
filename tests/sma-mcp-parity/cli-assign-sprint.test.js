@@ -4,7 +4,7 @@
 import { describe, expect, test } from 'vitest'
 import { readFileSync } from 'fs'
 
-const cliSrc = readFileSync('bin/devd-cli.js', 'utf8')
+const cliSrc = readFileSync('apps/cli/bin/devd-cli.js', 'utf8')
 
 describe('CLI issue assign-sprint — source presence', () => {
   test("handler 'issue:assign-sprint' is defined", () => {

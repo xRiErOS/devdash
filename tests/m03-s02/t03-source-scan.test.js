@@ -7,7 +7,7 @@ const src = (p) => readFileSync(resolve(ROOT, p), 'utf8')
 
 describe('T03 — DD-283 Komponenten + data-ui-Slugs', () => {
   test('projectHomeApi exportiert 7 ToDo-Funktionen + LINK_TYPES + TODO_STATUSES', () => {
-    const s = src('src/lib/projectHomeApi.js')
+    const s = src('apps/frontend/src/lib/projectHomeApi.js')
     for (const fn of ['listTodos', 'createTodo', 'patchTodo', 'deleteTodo', 'reorderTodos', 'addTodoLink', 'removeTodoLink']) {
       expect(s, fn).toMatch(new RegExp(`export function ${fn}`))
     }
@@ -16,14 +16,14 @@ describe('T03 — DD-283 Komponenten + data-ui-Slugs', () => {
   })
 
   test('useProjectTodos exportiert + nutzt projectHomeApi', () => {
-    const s = src('src/hooks/useProjectTodos.js')
+    const s = src('apps/frontend/src/hooks/useProjectTodos.js')
     expect(s).toMatch(/export function useProjectTodos/)
     expect(s).toMatch(/from '\.\.\/lib\/projectHomeApi\.js'/)
     expect(s).toMatch(/Optimistic-Updates/)
   })
 
   test('useProjectTodos macht optimistic update + rollback bei error', () => {
-    const s = src('src/hooks/useProjectTodos.js')
+    const s = src('apps/frontend/src/hooks/useProjectTodos.js')
     expect(s).toMatch(/snapshotRef/)
     expect(s).toMatch(/rollback/)
   })
@@ -37,7 +37,7 @@ describe('T03 — DD-283 Komponenten + data-ui-Slugs', () => {
   // kanonische ui/organisms/SortableTodoItem. Strike-Through/dnd-kit leben dort;
   // der gate-kritische Wurzel-Anker `plugin.todo.item` wird am Call-Site gesetzt.
   test('ui/organisms/SortableTodoItem nutzt @dnd-kit/sortable + Strike-Through bei done', () => {
-    const s = src('src/components/ui/organisms/SortableTodoItem.jsx')
+    const s = src('apps/frontend/src/components/ui/organisms/SortableTodoItem.jsx')
     expect(s).toMatch(/@dnd-kit\/sortable/)
     expect(s).toMatch(/useSortable/)
     expect(s).toMatch(/line-through/)
@@ -45,13 +45,13 @@ describe('T03 — DD-283 Komponenten + data-ui-Slugs', () => {
 
   // DD-586: legacy path archived → ui/organisms/ProjectTodoList is canonical.
   test('ui/organisms/ProjectTodoList rendert SortableTodoItem mit plugin.todo.item-Anker', () => {
-    const s = src('src/components/ui/organisms/ProjectTodoList.jsx')
+    const s = src('apps/frontend/src/components/ui/organisms/ProjectTodoList.jsx')
     expect(s).toMatch(/from '\.\/SortableTodoItem\.jsx'/)
     expect(s).toMatch(/rootDataUi="plugin\.todo\.item"/)
   })
 
   test('ui/organisms/ProjectTodoList nutzt DndContext + SortableContext + arrayMove', () => {
-    const s = src('src/components/ui/organisms/ProjectTodoList.jsx')
+    const s = src('apps/frontend/src/components/ui/organisms/ProjectTodoList.jsx')
     expect(s).toMatch(/DndContext/)
     expect(s).toMatch(/SortableContext/)
     expect(s).toMatch(/arrayMove/)

@@ -2,7 +2,7 @@
 
 import { describe, expect, test, beforeEach } from 'vitest'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
-import { listSprintIssuesMissingResult } from '../../server/lib/sprintCompleteGuards.js'
+import { listSprintIssuesMissingResult } from '../../apps/backend/src/lib/sprintCompleteGuards.js'
 
 describe('DD-316 — sprint complete result guard', () => {
   let db

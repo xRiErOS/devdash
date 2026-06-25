@@ -5,7 +5,7 @@ import { describe, test, expect, beforeEach, afterEach } from 'vitest'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
 import {
   createCollection, listCollections, getCollection, setCollectionItems, exportCollection,
-} from '../../server/lib/sopCollections.js'
+} from '../../apps/backend/src/lib/sopCollections.js'
 
 function seedSop(db, key, title, content = '') {
   return Number(

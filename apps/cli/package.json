@@ -1,0 +1,16 @@
+{
+  "name": "@devd/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "devd-cli": "bin/devd-cli.js"
+  },
+  "scripts": {
+    "mcp": "node mcp/devd-mcp.js"
+  },
+  "dependencies": {
+    "@devd/api-types": "*",
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  }
+}

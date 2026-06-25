@@ -11,7 +11,7 @@ const ROOT = join(__dirname, '..', '..')
 const read = (rel) => readFileSync(join(ROOT, rel), 'utf8')
 
 describe('DD-633 Layout — NavRail verdrahtet', () => {
-  const src = () => read('src/components/ui/layout/Layout.jsx')
+  const src = () => read('apps/frontend/src/components/ui/layout/Layout.jsx')
 
   test('importiert + rendert NavRail', () => {
     const s = src()
@@ -29,13 +29,13 @@ describe('DD-633 Layout — NavRail verdrahtet', () => {
 
 describe('DD-633 IconSidebar — Desktop-Breakpoint auf xl gehoben', () => {
   test('Desktop-Aside ist erst ab xl sichtbar (Rail füllt lg..xl)', () => {
-    const s = read('src/components/ui/organisms/IconSidebar.jsx')
+    const s = read('apps/frontend/src/components/ui/organisms/IconSidebar.jsx')
     expect(s).toContain('hidden xl:flex')
     expect(s).not.toMatch(/hidden lg:flex/)
   })
 
   test('SidebarBody ist für die NavRail wiederverwendbar exportiert', () => {
-    const s = read('src/components/ui/organisms/IconSidebar.jsx')
+    const s = read('apps/frontend/src/components/ui/organisms/IconSidebar.jsx')
     expect(s).toMatch(/export\s+function\s+SidebarBody|export\s*\{[^}]*SidebarBody/)
   })
 })

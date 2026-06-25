@@ -3,7 +3,7 @@
 
 import { describe, test, expect } from 'vitest'
 import { readFileSync } from 'fs'
-import { sprintUpdateContract, sprintReorderContract } from '../../contracts/milestone-sprint.contracts.js'
+import { sprintUpdateContract, sprintReorderContract } from '@devd/api-types/milestone-sprint.contracts.js'
 
 describe('DD-626 — Contracts (DD-561, hier verdrahtet)', () => {
   test('sprintUpdate: alle Felder optional, name non-empty wenn gesetzt', () => {
@@ -18,8 +18,8 @@ describe('DD-626 — Contracts (DD-561, hier verdrahtet)', () => {
 })
 
 describe('DD-626 — Wiring', () => {
-  const cli = readFileSync('bin/devd-cli.js', 'utf8')
-  const mcp = readFileSync('mcp/devd-mcp.js', 'utf8')
+  const cli = readFileSync('apps/cli/bin/devd-cli.js', 'utf8')
+  const mcp = readFileSync('apps/cli/mcp/devd-mcp.js', 'utf8')
 
   test('CLI exposes sprint update/reorder/delete', () => {
     for (const c of ["'sprint:update'", "'sprint:reorder'", "'sprint:delete'"]) expect(cli).toContain(c)

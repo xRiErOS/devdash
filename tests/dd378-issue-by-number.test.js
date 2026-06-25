@@ -17,7 +17,7 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest'
 import { createTestDb } from './_fixtures/in-memory-db.js'
 import { seedProject } from './_fixtures/seed.js'
-import { resolveIssueByNumber } from '../server/lib/issueResolve.js'
+import { resolveIssueByNumber } from '../apps/backend/src/lib/issueResolve.js'
 
 const PROJECT_DEVD = 2 // DD (matches seed.js TEST_PROJECT_ID)
 const PROJECT_MBT = 1 // MBT

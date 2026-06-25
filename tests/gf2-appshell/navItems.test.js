@@ -1,6 +1,6 @@
 // tests/gf2-appshell/navItems.test.js
 import { describe, it, expect } from 'vitest'
-import { PROJECT_ROUTES, GLOBAL_ROUTES, DROPPED_PATHS } from '../../src/screens/_shell/navItems.js'
+import { PROJECT_ROUTES, GLOBAL_ROUTES, DROPPED_PATHS } from '../../apps/frontend/src/screens/_shell/navItems.js'
 
 describe('navItems route contract', () => {
   it('hat genau die 13 projekt-scoped Vertrags-Routen', () => {

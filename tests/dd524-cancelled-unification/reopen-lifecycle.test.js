@@ -3,7 +3,7 @@ import {
   canTransition,
   canSprintTransition,
   canMilestoneTransition,
-} from '../../server/lib/lifecycle.js'
+} from '../../apps/backend/src/lib/lifecycle.js'
 
 // DD-524: Soft-Delete (deleted_at) ist abgelöst durch den einheitlichen
 // cancelled-Status. Damit ein versehentlich/vorzeitig gecancelter Datensatz

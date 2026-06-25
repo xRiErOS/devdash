@@ -4,7 +4,7 @@
 import { describe, expect, test } from 'vitest'
 import { readFileSync } from 'fs'
 
-const src = readFileSync('mcp/devd-mcp.js', 'utf8')
+const src = readFileSync('apps/cli/mcp/devd-mcp.js', 'utf8')
 
 describe('devd_subtask_list', () => {
   test('tool is registered', () => {

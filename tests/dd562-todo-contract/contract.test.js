@@ -5,9 +5,9 @@ import {
   todoCreateContract,
   todoUpdateContract,
   todoLinkContract,
-} from '../../contracts/todo.contracts.js'
-import { TODO_STATUSES as LIB_TODO_STATUSES } from '../../server/lib/projectTodos.js'
-import { LINK_TYPES as LIB_LINK_TYPES } from '../../server/lib/projectTodoLinks.js'
+} from '@devd/api-types/todo.contracts.js'
+import { TODO_STATUSES as LIB_TODO_STATUSES } from '../../apps/backend/src/lib/projectTodos.js'
+import { LINK_TYPES as LIB_LINK_TYPES } from '../../apps/backend/src/lib/projectTodoLinks.js'
 
 // DD-562 (Sprint DD#78, Triplet 3/6): Contract spiegelt die Struktur-/Typ-/Required-
 // Validierung der project-todos + todo-links-Payloads. Die werfende Autorität +

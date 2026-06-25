@@ -15,7 +15,7 @@ import { readFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { FilePlus2, ClipboardCheck, LayoutGrid } from 'lucide-react'
-import FabRadial from '../../src/components/ui/organisms/FabRadial.jsx'
+import FabRadial from '../../apps/frontend/src/components/ui/organisms/FabRadial.jsx'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..', '..')
@@ -74,7 +74,7 @@ describe('DD-633 FabRadial — expanded', () => {
 })
 
 describe('DD-633 FabRadial — Verdrahtung (Source)', () => {
-  const src = () => read('src/components/ui/organisms/FabRadial.jsx')
+  const src = () => read('apps/frontend/src/components/ui/organisms/FabRadial.jsx')
 
   test('FAB-Klick delegiert an onToggle()', () => {
     expect(src()).toMatch(/onToggle\?\.\(\)/)

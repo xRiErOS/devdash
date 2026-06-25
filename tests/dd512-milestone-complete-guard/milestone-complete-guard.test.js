@@ -10,14 +10,14 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
 import { seedProject } from '../_fixtures/seed.js'
-import { applyMigration } from '../../server/lib/migrationRunner.js'
+import { applyMigration } from '../../apps/backend/src/lib/migrationRunner.js'
 import {
   canMilestoneTransition,
-} from '../../server/lib/lifecycle.js'
+} from '../../apps/backend/src/lib/lifecycle.js'
 import {
   patchMilestoneStatus,
   MilestoneLifecycleError,
-} from '../../server/lib/milestoneLifecycle.js'
+} from '../../apps/backend/src/lib/milestoneLifecycle.js'
 
 const MIG_029 = '029_v3_milestone_target_date_required.sql'
 const MIG_033 = '033_v3_milestone_deferred.sql'

@@ -11,7 +11,7 @@ import {
   PUBLIC_CAPTURE_DAILY_CAP,
   PUBLIC_CAPTURE_GLOBAL_DAILY_CAP,
   PUBLIC_CAPTURE_MAX_FILE_BYTES,
-} from '../../server/lib/captureAbuseGuard.js'
+} from '../../apps/backend/src/lib/captureAbuseGuard.js'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
 import { seedProject } from '../_fixtures/seed.js'
 

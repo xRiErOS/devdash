@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(__dirname, '../..')
 // DD-249/DD-358: migrations live in repo-root migrations/ (matches migrationRunner DEFAULT_MIGRATIONS_DIR), not data/migrations.
-const MIGRATIONS_DIR = resolve(ROOT, 'migrations')
+const MIGRATIONS_DIR = resolve(ROOT, 'apps/backend/migrations')
 const SNAPSHOT_PATH = resolve(__dirname, 'baseline-snapshot.sql')
 
 // Snapshot reflects Production schema after migration 028 (last applied pre-M2).

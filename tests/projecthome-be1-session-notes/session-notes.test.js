@@ -8,7 +8,7 @@ import { createTestDb } from '../_fixtures/in-memory-db.js'
 import { seedProject } from '../_fixtures/seed.js'
 import {
   createSessionNote, listSessionNotes, getSessionNote, updateSessionNote, deleteSessionNote,
-} from '../../server/lib/sessionNotes.js'
+} from '../../apps/backend/src/lib/sessionNotes.js'
 
 describe('T-be1 — session_notes (Modell B)', () => {
   let db

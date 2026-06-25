@@ -3,7 +3,7 @@ import { readFileSync } from 'fs'
 import { resolve } from 'path'
 
 const ROOT = resolve(import.meta.dirname, '../..')
-const SSTD_TAB = 'src/components/ui/organisms/SstdTab.jsx'
+const SSTD_TAB = 'apps/frontend/src/components/ui/organisms/SstdTab.jsx'
 
 function src(path) {
   return readFileSync(resolve(ROOT, path), 'utf8')

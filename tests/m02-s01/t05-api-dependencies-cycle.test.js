@@ -4,13 +4,13 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
 import { seedProject, seedMilestones } from '../_fixtures/seed.js'
-import { applyMigration } from '../../server/lib/migrationRunner.js'
+import { applyMigration } from '../../apps/backend/src/lib/migrationRunner.js'
 import {
   detectCycle,
   findCyclePath,
   insertDependency,
   getDependenciesForMilestone,
-} from '../../server/lib/milestoneDependencies.js'
+} from '../../apps/backend/src/lib/milestoneDependencies.js'
 
 const MIG_029 = '029_v3_milestone_target_date_required.sql'
 const MIG_030 = '030_v3_milestone_dependencies.sql'

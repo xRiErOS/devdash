@@ -9,7 +9,7 @@ import { seedProject, TEST_PROJECT_ID } from '../_fixtures/seed.js'
 // Schema bis 059 aufbauen, divergente Zeile seeden, 060-SQL anwenden, prüfen.
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const MIGRATION_060 = resolve(__dirname, '../../migrations/060_v3_heal_passed_verdict_divergence.sql')
+const MIGRATION_060 = resolve(__dirname, '../../apps/backend/migrations/060_v3_heal_passed_verdict_divergence.sql')
 const UP_TO = '059_v3_drop_acceptance_test_instruction.sql'
 
 function applyHeal(db) {

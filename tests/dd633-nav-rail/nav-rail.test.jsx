@@ -7,7 +7,7 @@
 import { describe, test, expect } from 'vitest'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import NavRail from '../../src/components/ui/organisms/NavRail.jsx'
+import NavRail from '../../apps/frontend/src/components/ui/organisms/NavRail.jsx'
 
 const ITEMS = [
   { key: 'home', label: 'Home', icon: React.createElement('svg') },

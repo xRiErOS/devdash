@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach, afterEach } from 'vitest'
 import {
   getCaptureDefaultProjectId,
   setCaptureDefaultProjectId,
-} from '../../src/lib/projectStore.js'
+} from '../../apps/frontend/src/lib/projectStore.js'
 
 // DD-268 — localStorage-Helper für `capture-default-project-id`.
 // Vitest läuft im Node-Env, daher muss localStorage gemockt werden.

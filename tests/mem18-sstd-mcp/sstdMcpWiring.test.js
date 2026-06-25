@@ -5,7 +5,7 @@
 import { describe, expect, test } from 'vitest'
 import { readFileSync } from 'fs'
 
-const mcp = readFileSync('mcp/devd-mcp.js', 'utf8')
+const mcp = readFileSync('apps/cli/mcp/devd-mcp.js', 'utf8')
 
 describe('MEM-18 — SSTD-Slots MCP tools', () => {
   test('registers get / slot_get / slot_set / slot_edit / journal_add', () => {

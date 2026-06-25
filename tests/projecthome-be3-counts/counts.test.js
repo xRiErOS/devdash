@@ -6,7 +6,7 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
 import { seedProject, seedMilestones } from '../_fixtures/seed.js'
-import { getProjectWithCounts, listProjectsWithCounts } from '../../server/lib/projectCounts.js'
+import { getProjectWithCounts, listProjectsWithCounts } from '../../apps/backend/src/lib/projectCounts.js'
 
 function seedSprint(db, projectId, name, status = 'planning') {
   return Number(

@@ -5,7 +5,7 @@ import { tmpdir } from 'os'
 import { fileURLToPath } from 'url'
 import { createTestDb, appliedMigrations } from '../_fixtures/in-memory-db.js'
 import { seedProject } from '../_fixtures/seed.js'
-import { applyMigration } from '../../server/lib/migrationRunner.js'
+import { applyMigration } from '../../apps/backend/src/lib/migrationRunner.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(__dirname, '../..')
@@ -14,7 +14,7 @@ const MIG_033 = '033_v3_milestone_deferred.sql'
 const MIG_038 = '038_v3_milestones_status_lifecycle.sql'
 const MIG_039 = '039_v3_milestones_spec_path.sql'
 const MIG_040 = '040_v3_component_notes.sql'
-const DOWN_SQL = resolve(ROOT, 'migrations/_down/040_v3_component_notes_down.sql')
+const DOWN_SQL = resolve(ROOT, 'apps/backend/migrations/_down/040_v3_component_notes_down.sql')
 
 describe('T01 — Migration 040 component_notes', () => {
   let db

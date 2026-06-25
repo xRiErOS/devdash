@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { isTrustedSource } from '../../server/lib/trustedSource.js'
+import { isTrustedSource } from '../../apps/backend/src/lib/trustedSource.js'
 
 describe('DD-297 · isTrustedSource — RFC1918 + Loopback', () => {
   test('Loopback IPv4 trusted', () => {

@@ -14,7 +14,7 @@ import {
   hostIsCaptureHost,
   CAPTURE_API_ALLOWLIST,
   DEFAULT_CAPTURE_HOST,
-} from '../../server/lib/captureHostGuard.js'
+} from '../../apps/backend/src/lib/captureHostGuard.js'
 
 const H = DEFAULT_CAPTURE_HOST // 'issues.familie-riedel.org'
 

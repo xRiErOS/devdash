@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
-import { computeSliceReorder, applyReorder } from '../../src/lib/sprintReorder.js'
+import { computeSliceReorder, applyReorder } from '../../apps/frontend/src/lib/sprintReorder.js'
 
 // DD-489 — Next-3-Sprints drag-rank + SprintFormModal create wiring.
 // Two layers: (1) pure reorder-math unit tests, (2) source-grep wiring assertions
@@ -10,8 +10,8 @@ import { computeSliceReorder, applyReorder } from '../../src/lib/sprintReorder.j
 const ROOT = resolve(import.meta.dirname, '../..')
 const src = (p) => readFileSync(resolve(ROOT, p), 'utf8')
 
-const OVERVIEW = 'src/components/ui/organisms/OverviewTab.jsx'
-const CARD = 'src/components/ui/organisms/Next3SprintsCard.jsx'
+const OVERVIEW = 'apps/frontend/src/components/ui/organisms/OverviewTab.jsx'
+const CARD = 'apps/frontend/src/components/ui/organisms/Next3SprintsCard.jsx'
 
 // ── 1. Pure reorder math ───────────────────────────────────────────────────────
 

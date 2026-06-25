@@ -4,13 +4,13 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
 import { seedProject, seedMilestones } from '../_fixtures/seed.js'
-import { applyMigration } from '../../server/lib/migrationRunner.js'
+import { applyMigration } from '../../apps/backend/src/lib/migrationRunner.js'
 import {
   validateMilestonePayload,
   validateStatusFilter,
   resolveTargetDate,
   ValidationError,
-} from '../../server/lib/milestoneValidation.js'
+} from '../../apps/backend/src/lib/milestoneValidation.js'
 
 const MIG_029 = '029_v3_milestone_target_date_required.sql'
 

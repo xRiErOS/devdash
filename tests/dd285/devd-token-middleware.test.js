@@ -7,7 +7,7 @@
 // 4. POST ohne ENV-Token → next() (Backwards-Compat) + Warn-Log einmalig
 
 import { describe, it, expect, vi } from 'vitest'
-import { createDevdTokenAuth } from '../../server/middleware/devdToken.js'
+import { createDevdTokenAuth } from '../../apps/backend/src/middleware/devdToken.js'
 
 function makeReq({ method = 'POST', path = '/api/backlog', token } = {}) {
   const headers = {}

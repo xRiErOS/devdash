@@ -8,8 +8,8 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
 import { seedProject } from '../_fixtures/seed.js'
-import { applyMigration } from '../../server/lib/migrationRunner.js'
-import { createMemory, listMemories, ProjectMemoryError } from '../../server/lib/projectMemories.js'
+import { applyMigration } from '../../apps/backend/src/lib/migrationRunner.js'
+import { createMemory, listMemories, ProjectMemoryError } from '../../apps/backend/src/lib/projectMemories.js'
 import {
   hasTagRegister,
   listTags,
@@ -19,7 +19,7 @@ import {
   suggestSimilarTags,
   validateTagsAgainstRegistry,
   pruneTagsNotInRegistry,
-} from '../../server/lib/memoryTags.js'
+} from '../../apps/backend/src/lib/memoryTags.js'
 
 const P = 7
 const OTHER = 8

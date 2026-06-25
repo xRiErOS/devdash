@@ -4,7 +4,7 @@
 import { describe, test, expect } from 'vitest'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import DetailEditScreen from '../../src/components/ui/organisms/DetailEditScreen.jsx'
+import DetailEditScreen from '../../apps/frontend/src/components/ui/organisms/DetailEditScreen.jsx'
 
 const render = (props = {}) =>
   renderToStaticMarkup(

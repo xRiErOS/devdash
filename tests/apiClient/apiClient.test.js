@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { createApiClient } from '../../lib/apiClient.js'
+import { createApiClient } from '../../apps/cli/lib/apiClient.js'
 
 function mockFetch(status, payload) {
   return vi.fn(async () => ({

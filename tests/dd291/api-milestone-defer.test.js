@@ -17,7 +17,7 @@ import { mkdtempSync, rmSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
-import { applyMigration } from '../../server/lib/migrationRunner.js'
+import { applyMigration } from '../../apps/backend/src/lib/migrationRunner.js'
 
 const MIG_029 = '029_v3_milestone_target_date_required.sql'
 const MIG_030 = '030_v3_milestone_dependencies.sql'

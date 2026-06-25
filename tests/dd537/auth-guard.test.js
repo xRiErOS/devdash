@@ -5,7 +5,7 @@ import {
   notifyAuthRequired,
   isAuthRequired,
   __resetAuthGuard,
-} from '../../src/lib/authGuard.js'
+} from '../../apps/frontend/src/lib/authGuard.js'
 
 // DD-537 — Zentrale Auth-Fehler-Erkennung.
 //

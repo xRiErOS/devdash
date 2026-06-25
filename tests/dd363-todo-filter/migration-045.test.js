@@ -8,14 +8,14 @@ import { tmpdir } from 'os'
 import { fileURLToPath } from 'url'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
 import { seedProject } from '../_fixtures/seed.js'
-import { applyMigration } from '../../server/lib/migrationRunner.js'
+import { applyMigration } from '../../apps/backend/src/lib/migrationRunner.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(__dirname, '../..')
 
 const MIG_037 = '037_v3_project_todos.sql'
 const MIG_045 = '045_v3_project_todos_completed_at.sql'
-const DOWN_SQL = resolve(ROOT, 'migrations/_down/045_v3_project_todos_completed_at_down.sql')
+const DOWN_SQL = resolve(ROOT, 'apps/backend/migrations/_down/045_v3_project_todos_completed_at_down.sql')
 
 describe('DD-363 — Migration 045 project_todos.completed_at', () => {
   let db

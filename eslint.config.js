@@ -22,7 +22,7 @@ export default [
   { ignores: ['dist/**', 'node_modules/**', 'coverage/**', '**/*.min.js', 'storybook-static/**'] },
   js.configs.recommended,
   {
-    files: ['src/**/*.{js,jsx}', '.storybook/**/*.{js,jsx}'],
+    files: ['apps/frontend/src/**/*.{js,jsx}', 'apps/frontend/.storybook/**/*.{js,jsx}'],
     plugins: { react, 'react-hooks': reactHooks },
     languageOptions: {
       ecmaVersion: 2024,
@@ -35,7 +35,7 @@ export default [
   },
   // Node-Skripte: node-Globals, kein react-Regelwerk.
   {
-    files: ['scripts/**/*.{js,mjs}', 'server/**/*.{js,mjs}', 'mcp/**/*.{js,mjs}', 'bin/**/*.{js,mjs}'],
+    files: ['scripts/**/*.{js,mjs}', 'apps/backend/**/*.{js,mjs}', 'apps/cli/**/*.{js,mjs}', 'packages/**/*.{js,mjs}'],
     languageOptions: {
       ecmaVersion: 2024,
       sourceType: 'module',

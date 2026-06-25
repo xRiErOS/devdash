@@ -8,7 +8,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
-import { applyMigration } from '../../server/lib/migrationRunner.js'
+import { applyMigration } from '../../apps/backend/src/lib/migrationRunner.js'
 import {
   SOP_FILES,
   DEFAULT_TRIGGERS,
@@ -20,7 +20,7 @@ import {
   setTrigger,
   importSopsFromDir,
   SopError,
-} from '../../server/lib/sops.js'
+} from '../../apps/backend/src/lib/sops.js'
 
 describe('MEM-23 — SOP-Entität: schema + lib + trigger-map + import', () => {
   let db

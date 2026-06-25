@@ -3,7 +3,7 @@
 
 import { describe, test, expect, beforeEach } from 'vitest'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
-import { applyBacklogUpdate, BacklogUpdateError } from '../../server/lib/backlogUpdate.js'
+import { applyBacklogUpdate, BacklogUpdateError } from '../../apps/backend/src/lib/backlogUpdate.js'
 
 // E01.2/D09: acceptance_criteria + test_instruction sind gedroppt (mig 059) — der Test
 // laeuft gegen das reale post-drop-Schema (upToVersion auf den Drop). Die frueheren

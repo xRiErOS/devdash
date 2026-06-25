@@ -55,9 +55,9 @@ describe('DD-622 — Compact-Projektion (Memory/Projects)', () => {
 })
 
 describe('DD-622 — Wiring', () => {
-  const api = readFileSync('server/api.js', 'utf8')
-  const mcp = readFileSync('mcp/devd-mcp.js', 'utf8')
-  const cli = readFileSync('bin/devd-cli.js', 'utf8')
+  const api = readFileSync('apps/backend/src/api.js', 'utf8')
+  const mcp = readFileSync('apps/cli/mcp/devd-mcp.js', 'utf8')
+  const cli = readFileSync('apps/cli/bin/devd-cli.js', 'utf8')
 
   test('project-memories + projects senden über sendList', () => {
     expect(api).toMatch(/sendList\(req, res, rows, COMPACT_MEMORY_KEYS\)/)
