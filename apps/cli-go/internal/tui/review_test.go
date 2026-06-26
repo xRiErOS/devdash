@@ -94,11 +94,28 @@ func TestPassDispatchesRegardlessOfStatus(t *testing.T) {
 	}
 }
 
-func TestSToggleReviewToActive(t *testing.T) {
-	m := reviewModel() // Sprint-Status "review"
-	_, cmd := m.Update(keyMsg("S"))
+func TestSprintMenuOpensAndDispatches(t *testing.T) {
+	m := reviewModel() // Sprint-Status "review" → {active, completed}
+	mi, _ := m.Update(keyMsg("S"))
+	m = mi.(model)
+	if !m.sprintPick {
+		t.Fatal("'S' sollte Sprint-Status-Menü öffnen")
+	}
+	if len(m.spopts) == 0 {
+		t.Fatal("keine Sprint-Optionen")
+	}
+	for _, o := range m.spopts {
+		if o == "review" {
+			t.Error("review-Sprint darf nicht review als Ziel anbieten")
+		}
+	}
+	mi, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = mi.(model)
+	if m.sprintPick {
+		t.Error("nach enter sollte Sprint-Menü zu sein")
+	}
 	if cmd == nil {
-		t.Error("'S' bei review-Sprint sollte review→active dispatchen (Runde beenden)")
+		t.Error("enter sollte Sprint-Transition dispatchen")
 	}
 }
 

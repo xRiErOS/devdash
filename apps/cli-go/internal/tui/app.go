@@ -78,6 +78,9 @@ type model struct {
 	statusPick      bool   // s: Issue-Status-Menü aktiv
 	smenu           listState
 	sopts           []string
+	sprintPick      bool // S: Sprint-Status-Menü aktiv
+	spmenu          listState
+	spopts          []string
 
 	// User-Story-Abnahme-Modal (T14): enter im Review öffnet goal/background/US.
 	usOpen    bool
@@ -105,6 +108,18 @@ var issueTransitions = map[string][]string{
 	"passed":      {"planned"}, // Reopen für nächsten Sprint
 	"done":        {"planned"},
 	"cancelled":   {"refined"},
+}
+
+// sprintTransitions spiegelt canSprintTransition (lifecycle.js). completed läuft
+// über den dedizierten /complete-Endpoint (eigener Menüpunkt mit Gate), cancelled
+// braucht Notes → hier ausgelassen.
+var sprintTransitions = map[string][]string{
+	"planning":  {"active"},
+	"active":    {"review", "planning"},
+	"review":    {"active", "completed"},
+	"completed": {},
+	"closed":    {},
+	"cancelled": {"planning"},
 }
 
 // allowedManualStatuses liefert die vom aktuellen Status erlaubten manuellen
@@ -585,6 +600,9 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.statusPick {
 		return m.keyStatusPick(msg)
 	}
+	if m.sprintPick {
+		return m.keySprintPick(msg)
+	}
 
 	switch navKey(msg.String()) {
 	case "up":
@@ -663,21 +681,20 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.status = "Rework: " + it.Status + " → " + strings.Join(path, " → ") + " …"
 		return m, doRework(m.client, it.ID, path, m.curSprint.ID)
-	case "S": // Sprint-Status toggeln: active→review (Review starten) / review→active (Runde beenden)
+	case "S": // Sprint-Status-Menü: zeigt gültige Sprint-Transitions
 		if m.curSprint == nil {
 			return m, nil
 		}
-		switch m.curSprint.Status {
-		case "active":
-			m.status = "Sprint → review (Review-Runde starten) …"
-			return m, doSprintTo(m.client, m.curSprint.ID, "review")
-		case "review":
-			m.status = "Sprint → active (Review-Runde beenden) …"
-			return m, doSprintTo(m.client, m.curSprint.ID, "active")
-		default:
-			m.status = noticeText("S nur aus active/review (Sprint ist: " + m.curSprint.Status + ")")
+		opts := sprintTransitions[m.curSprint.Status]
+		if len(opts) == 0 {
+			m.status = noticeText("Keine Sprint-Übergänge ab '" + m.curSprint.Status + "'")
 			return m, nil
 		}
+		m.sprintPick = true
+		m.spmenu = listState{}
+		m.spopts = opts
+		m.spmenu.setLen(len(m.spopts))
+		return m, nil
 	case "C": // Sprint abschließen — nur wenn review
 		if m.curSprint == nil {
 			return m, nil
@@ -779,6 +796,33 @@ func reworkPath(from string) []string {
 	default:
 		return []string{"to_review"}
 	}
+}
+
+// keySprintPick steuert das Sprint-Status-Menü (Taste S).
+func (m model) keySprintPick(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch navKey(msg.String()) {
+	case "up":
+		m.spmenu.move(-1)
+		return m, nil
+	case "down":
+		m.spmenu.move(1)
+		return m, nil
+	}
+	switch msg.String() {
+	case "esc", "q", "S":
+		m.sprintPick = false
+		m.status = ""
+		return m, nil
+	case "enter":
+		m.sprintPick = false
+		if m.curSprint == nil || m.spmenu.cursor >= len(m.spopts) {
+			return m, nil
+		}
+		target := m.spopts[m.spmenu.cursor]
+		m.status = "Sprint → " + target + " …"
+		return m, doSprintTo(m.client, m.curSprint.ID, target) // completed → /complete (gated)
+	}
+	return m, nil
 }
 
 // keyUserStory steuert das Abnahme-Modal: User-Stories durchgehen + Verdikt setzen.

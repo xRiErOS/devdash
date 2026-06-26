@@ -286,6 +286,7 @@ func (m model) viewSprint() string {
 	b.WriteString(theme.Dim.Render(fmt.Sprintf("Fortschritt: %d/%d", s.DoneCount, s.ItemCount)) + "\n")
 
 	b.WriteString("\n" + theme.Dim.Render(fmt.Sprintf("Issues (%d):", len(items))) + "\n")
+	b.WriteString(issueColHeader(40) + "\n")
 	for _, it := range items {
 		b.WriteString(fmt.Sprintf("  %s %s %-9s %-40s %-12s %s\n",
 			theme.TypeIcon(it.Type), theme.Priority(it.Priority), it.Key,
@@ -399,6 +400,7 @@ func (m model) viewReview() string {
 		b.WriteString(theme.Dim.Render("(lädt …)") + "\n")
 		return "\n" + boxed(b.String(), m.termWidth(), theme.Mauve)
 	}
+	b.WriteString(issueColHeader(38) + "\n")
 	for i, it := range m.curSprint.Items {
 		cursor := "  "
 		if i == m.rlist.cursor {
@@ -434,10 +436,52 @@ func (m model) viewReview() string {
 	if m.statusPick {
 		return placeOverlay(base, m.statusMenu(), m.termWidth(), m.height)
 	}
+	if m.sprintPick {
+		return placeOverlay(base, m.sprintStatusMenu(), m.termWidth(), m.height)
+	}
 	if m.usOpen {
 		return placeOverlay(base, m.userStoryModal(), m.termWidth(), m.height)
 	}
 	return base
+}
+
+// issueColHeader liefert die Spalten-Überschrift (macht Status vs. Review-Verdikt
+// klar unterscheidbar). titleW = Breite der Titel-Spalte.
+func issueColHeader(titleW int) string {
+	return theme.Dim.Render(fmt.Sprintf("  %-5s%-10s%-*s %-12s %s",
+		"Typ", "Kennung", titleW, "Titel", "Status", "Review-Verdikt"))
+}
+
+// sprintStatusMenu: schwebendes Sprint-Status-Menü (Taste S), zeigt gültige Transitions.
+func (m model) sprintStatusMenu() string {
+	var b strings.Builder
+	b.WriteString(theme.Header.Render("Sprint-Status setzen") + "\n")
+	cur := ""
+	if m.curSprint != nil {
+		cur = m.curSprint.Status
+	}
+	b.WriteString(theme.Dim.Render("aktuell: "+cur) + "\n\n")
+	for i, s := range m.spopts {
+		cursor := "  "
+		label := statusText(s)
+		if s == "completed" {
+			label = statusText(s) + theme.Dim.Render(" (prüft passed-Reviews)")
+		}
+		if i == m.spmenu.cursor {
+			cursor = theme.Accent.Render("▸ ")
+			label = theme.Header.Render(s)
+			if s == "completed" {
+				label = theme.Header.Render(s) + theme.Dim.Render(" (prüft passed-Reviews)")
+			}
+		}
+		b.WriteString(cursor + label + "\n")
+	}
+	b.WriteString("\n" + theme.Dim.Render("enter: setzen   esc: abbrechen"))
+	return lipgloss.NewStyle().
+		Width(40).
+		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
+		Background(theme.Base).Padding(0, 1).
+		Render(b.String())
 }
 
 // reviewBadge zeigt das Review-Verdikt (review_feedback) je Issue — sichtbar
@@ -545,11 +589,9 @@ func (m model) reviewHints() string {
 		}
 	}
 	if m.curSprint != nil {
-		switch m.curSprint.Status {
-		case "active":
-			hints = append(hints, "S:→review")
-		case "review":
-			hints = append(hints, "S:→active", "C:abschließen(PO)")
+		hints = append(hints, "S:Sprint-Status")
+		if m.curSprint.Status == "review" {
+			hints = append(hints, "C:abschließen(PO)")
 		}
 	}
 	hints = append(hints, "q:zurück")
