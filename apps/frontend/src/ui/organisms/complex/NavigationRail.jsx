@@ -8,8 +8,8 @@
  * Presentational, props-driven. Item-`key` ist zugleich der Registry-Icon-Key.
  *
  * @param {object} props
- * @param {Array<{key:string,label:string,active?:boolean}>} [props.items=[]]
- * @param {Array<{key:string,label:string}>} [props.footItems=[]]
+ * @param {Array<{key:string,label:string,active?:boolean,onClick?:Function}>} [props.items=[]]
+ * @param {Array<{key:string,label:string,onClick?:Function}>} [props.footItems=[]]
  * @param {boolean} [props.wide=false]
  * @param {string} [props.dataUiScope='organism.nav']
  */
@@ -24,6 +24,7 @@ function WideItem({ item, active = false, dataUiScope }) {
     <button
       type="button"
       data-ui={dataUiScope}
+      onClick={item.onClick}
       className={`relative flex items-center gap-[var(--space-2)] px-[var(--space-3)] py-[7px] rounded-md [font-family:var(--font-display)] text-[13px] ${tone}`}
     >
       {active && (
@@ -89,6 +90,7 @@ export default function NavigationRail({
             iconName={it.key}
             label={it.label}
             on={it.active}
+            onClick={it.onClick}
             dataUiScope={`${dataUiScope}.item-${it.key}`}
           />
         ))}
@@ -98,6 +100,7 @@ export default function NavigationRail({
             key={it.key}
             iconName={it.key}
             label={it.label}
+            onClick={it.onClick}
             dataUiScope={`${dataUiScope}.foot-${it.key}`}
           />
         ))}
