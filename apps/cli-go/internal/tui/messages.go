@@ -14,7 +14,9 @@ type projectsMsg struct{ items []api.Project }
 type milestonesMsg struct{ items []api.Milestone }
 type sprintMsg struct{ sprint *api.Sprint }
 type backlogMsg struct{ items []api.Issue }
-type reviewSprintsMsg struct{ items []api.Sprint } // T17: offene Review-Sprints
+type reviewSprintsMsg struct{ items []api.Sprint }      // T17: offene Review-Sprints
+type memoriesMsg struct{ items []api.ProjectMemory }    // T18: Memory-Liste
+type memDetailMsg struct{ mem *api.ProjectMemory }      // T18: Memory-Detail (content)
 type statusMsg struct{ text string }
 type userStoriesMsg struct {
 	issueID int
@@ -183,6 +185,50 @@ func doCreateSprint(c *api.Client, body api.SprintCreateBody) tea.Cmd {
 			return noticeMsg{cleanAPIErr(err)}
 		}
 		return createdMsg{"sprint", s.Name}
+	}
+}
+
+// doCreateMemory legt ein Project-Memory an (Command-Center, T18).
+func doCreateMemory(c *api.Client, body api.ProjectMemoryCreateBody) tea.Cmd {
+	return func() tea.Msg {
+		mem, err := c.CreateProjectMemory(body)
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return createdMsg{"memory", mem.Summary}
+	}
+}
+
+// loadMemories liefert die Compact-Memory-Liste (T18), optional kategorie-gefiltert.
+func loadMemories(c *api.Client, category string) tea.Cmd {
+	return func() tea.Msg {
+		ms, err := c.ListProjectMemories(category)
+		if err != nil {
+			return errMsg{err}
+		}
+		return memoriesMsg{ms}
+	}
+}
+
+// searchMemoriesCmd durchsucht die Memories (Volltext + Kategorie, T18).
+func searchMemoriesCmd(c *api.Client, q, category string) tea.Cmd {
+	return func() tea.Msg {
+		ms, err := c.SearchProjectMemories(q, category, 50)
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return memoriesMsg{ms}
+	}
+}
+
+// loadMemDetail holt ein Memory-Detail inkl. content (T18).
+func loadMemDetail(c *api.Client, id int) tea.Cmd {
+	return func() tea.Msg {
+		mem, err := c.GetProjectMemory(id)
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return memDetailMsg{mem}
 	}
 }
 

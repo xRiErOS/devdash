@@ -22,6 +22,7 @@ const (
 	viewMilestone
 	viewSprint
 	viewReviewsList
+	viewMemory
 )
 
 // filterState hält pro Spalte, welche Werte ausgeblendet sind.
@@ -94,6 +95,15 @@ type model struct {
 	reviewSprints []api.Sprint
 	rvlist        listState
 	reviewReturn  viewID // wohin Cockpit-q/esc zurückkehrt (Liste vs. Columns)
+
+	// Memory-Browser (T18): Master-Detail über project_memories.
+	memList      []api.ProjectMemory
+	memlist      listState
+	memDetail    *api.ProjectMemory // full (content) des selektierten Memorys
+	memDetailID  int
+	memSearching bool
+	memQuery     string
+	memCat       string // aktiver Kategorie-Filter ("" = alle)
 
 	// Command-Center (T16): globales Action-Palette-Modal (ctrl+k / shift+k).
 	paletteOpen bool
@@ -311,6 +321,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.view == viewBacklog {
 				return m, loadBacklog(m.client)
 			}
+		case "memory":
+			if m.view == viewMemory {
+				return m, loadMemories(m.client, m.memCat)
+			}
 		}
 		return m, nil
 	case errMsg:
@@ -353,6 +367,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case reviewSprintsMsg:
 		m.reviewSprints = msg.items
 		m.rvlist.setLen(len(m.reviewSprints))
+		return m, nil
+	case memoriesMsg:
+		m.memList = msg.items
+		m.memlist.setLen(len(m.memList))
+		return m, m.syncMemDetail()
+	case memDetailMsg:
+		if msg.mem != nil {
+			m.memDetail = msg.mem
+			m.memDetailID = msg.mem.ID
+		}
 		return m, nil
 	case reworkDoneMsg:
 		m.curSprint = msg.sprint
@@ -414,6 +438,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Review-Cockpit hat eigenen Eingabemodus.
 	if m.view == viewReview {
 		return m.keyReview(msg)
+	}
+	// Memory-Browser fängt voll (Suche tippt q/R/p als Text).
+	if m.view == viewMemory {
+		return m.keyMemory(msg)
 	}
 	k := msg.String()
 	// Globale Tasten

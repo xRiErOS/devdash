@@ -25,7 +25,9 @@ func paletteActions(m *model) []paletteAction {
 		{"create_issue", "Neues Issue anlegen"},
 		{"create_milestone", "Neuen Meilenstein anlegen"},
 		{"create_sprint", "Neuen Sprint anlegen"},
+		{"create_memory", "Neue Memory anlegen"},
 		{"go_reviews", "Gehe zu: Offene Reviews"},
+		{"go_memory", "Gehe zu: Memory-Browser"},
 		{"go_backlog", "Gehe zu: Backlog"},
 	}
 	if m.global != nil {
@@ -113,6 +115,8 @@ func (m model) dispatchPalette(id string) (tea.Model, tea.Cmd) {
 	switch id {
 	case "go_reviews":
 		return m.openReviewsList()
+	case "go_memory":
+		return m.openMemory()
 	case "go_backlog":
 		m.view = viewBacklog
 		return m, loadBacklog(m.client)
@@ -127,6 +131,8 @@ func (m model) dispatchPalette(id string) (tea.Model, tea.Cmd) {
 		return m.openForm("milestone")
 	case "create_sprint":
 		return m.openForm("sprint")
+	case "create_memory":
+		return m.openForm("memory")
 	}
 	return m, nil
 }

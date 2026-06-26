@@ -41,6 +41,8 @@ func (m model) viewBase() string {
 		return m.viewReview()
 	case viewReviewsList:
 		return m.viewReviewsList()
+	case viewMemory:
+		return m.viewMemory()
 	default:
 		return m.viewColumns() // rendert Filter-Modal inline, wenn m.filtering
 	}
