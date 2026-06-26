@@ -128,6 +128,22 @@ func TestStatusMenuExcludesPassed(t *testing.T) {
 	}
 }
 
+func TestStatusMenuFiltersInvalidTransitions(t *testing.T) {
+	// passed → to_review ist lifecycle-ungültig; Menü darf es nicht anbieten.
+	m := reviewModel()
+	m.curSprint.Items[0].Status = "passed"
+	mi, _ := m.Update(keyMsg("s"))
+	m = mi.(model)
+	if !m.statusPick {
+		t.Fatal("Menü sollte öffnen (passed→planned ist gültig)")
+	}
+	for _, o := range m.sopts {
+		if o == "to_review" {
+			t.Error("passed-Menü darf to_review nicht anbieten")
+		}
+	}
+}
+
 func TestReviewCompleteDoubleConfirm(t *testing.T) {
 	m := reviewModel()
 	mi, cmd := m.Update(keyMsg("C"))

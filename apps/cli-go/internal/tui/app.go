@@ -93,6 +93,37 @@ type model struct {
 // done ist system-only (nur via Sprint-Complete). Backend validiert zusätzlich.
 var issueStatusOptions = []string{"refined", "planned", "in_progress", "to_review"}
 
+// issueTransitions spiegelt lifecycle.js (canTransition) — nur die manuell
+// relevanten Vorwärts-/Reopen-Kanten. passed/rejected→via Verdikt, done=system.
+var issueTransitions = map[string][]string{
+	"new":         {"refined"},
+	"refined":     {"new", "planned"},
+	"planned":     {"refined", "in_progress"},
+	"in_progress": {"to_review", "planned"},
+	"to_review":   {"planned"}, // passed/rejected nur über Verdikt
+	"rejected":    {"in_progress", "planned"},
+	"passed":      {"planned"}, // Reopen für nächsten Sprint
+	"done":        {"planned"},
+	"cancelled":   {"refined"},
+}
+
+// allowedManualStatuses liefert die vom aktuellen Status erlaubten manuellen
+// Ziele (Schnitt aus Lifecycle-Kanten und issueStatusOptions) — verhindert, dass
+// das Menü ungültige Übergänge (z.B. passed→to_review) anbietet.
+func allowedManualStatuses(from string) []string {
+	allowed := map[string]bool{}
+	for _, t := range issueTransitions[from] {
+		allowed[t] = true
+	}
+	var out []string
+	for _, s := range issueStatusOptions {
+		if allowed[s] {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
 func newModel(client *api.Client, project *api.Project, global *api.Client) model {
 	m := model{client: client, project: project, global: global}
 	m.fMile = filterState{hidden: map[string]bool{"completed": true, "cancelled": true, deferredKey: true}}
@@ -573,14 +604,19 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.uslist = listState{}
 		m.status = ""
 		return m, loadUserStories(m.client, it.ID)
-	case "s": // Status manuell mutieren (auch to_review-Override)
+	case "s": // Status manuell mutieren — nur lifecycle-gültige Ziele
 		if it == nil {
 			m.status = "Kein Issue gewählt"
 			return m, nil
 		}
+		opts := allowedManualStatuses(it.Status)
+		if len(opts) == 0 {
+			m.status = noticeText("Keine manuellen Übergänge ab '" + it.Status + "' (passed/rejected via a/x)")
+			return m, nil
+		}
 		m.statusPick = true
 		m.smenu = listState{}
-		m.sopts = issueStatusOptions
+		m.sopts = opts
 		m.smenu.setLen(len(m.sopts))
 		return m, nil
 	case "a": // Pass — Backend erlaubt Verdikt unabhängig vom Issue-Status
