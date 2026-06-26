@@ -1,8 +1,13 @@
 package cmd
 
 import (
-	"fmt"
+	"os"
+	"strconv"
+	"strings"
 
+	"devd-cli/internal/api"
+	"devd-cli/internal/config"
+	"devd-cli/internal/tui"
 	"github.com/spf13/cobra"
 )
 
@@ -19,12 +24,22 @@ var rootCmd = &cobra.Command{
 		"Ohne Subcommand startet die interaktive TUI (folgt in Phase 2).",
 	SilenceUsage:  true,
 	SilenceErrors: true, // main gibt den Fehler aus — kein doppeltes "Error:"
-	// Bare `dd` (kein Subcommand) → TUI. Dispatch one-shot-vs-TUI wird in Task 15
-	// verdrahtet (Leading-Slug-Erkennung, ResolveProject). Vorerst Phase-2-Stub.
-	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println("dd: TUI folgt in Phase 2 — nutze vorerst die Subcommands (dd --help).")
-		return nil
-	},
+}
+
+// knownSubcommands sind die Verben, die an Cobra gehen. Alles andere als erstes
+// Nicht-Flag-Argument wird als Projekt-Slug/Prefix interpretiert → TUI.
+var knownSubcommands = map[string]bool{
+	"sprint": true, "issue": true, "review": true, "tui": true,
+	"help": true, "completion": true, "__complete": true, "__completeNoDesc": true,
+}
+
+func firstNonFlag(args []string) string {
+	for _, a := range args {
+		if !strings.HasPrefix(a, "-") {
+			return a
+		}
+	}
+	return ""
 }
 
 func init() {
@@ -33,7 +48,39 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&flagProject, "project", "", "Projekt-ID, Slug oder Prefix (überschreibt DEVD_PROJECT_ID)")
 }
 
-// Execute ist der Einstiegspunkt aus main.
+// Execute ist der Einstiegspunkt aus main. Dispatch: bare `dd` oder
+// `dd <slug|prefix>` (kein bekanntes Subcommand, kein Help/Version-Flag) → TUI;
+// sonst Cobra-One-Shot.
 func Execute() error {
+	args := os.Args[1:]
+	for _, a := range args {
+		if a == "-h" || a == "--help" || a == "--version" {
+			return rootCmd.Execute()
+		}
+	}
+	first := firstNonFlag(args)
+	if first == "" && len(args) == 0 {
+		return runTUI("")
+	}
+	if first != "" && !knownSubcommands[first] {
+		return runTUI(first)
+	}
 	return rootCmd.Execute()
+}
+
+func runTUI(token string) error {
+	global := api.NewClient("")
+	if token == "" {
+		if st, err := config.Load(); err == nil && st.LastProject != "" {
+			if p, err := global.ResolveProject(st.LastProject); err == nil {
+				return tui.Run(api.NewClient(strconv.Itoa(p.ID)), p, global)
+			}
+		}
+		return tui.Run(nil, nil, global) // Picker
+	}
+	p, err := global.ResolveProject(token)
+	if err != nil {
+		return err
+	}
+	return tui.Run(api.NewClient(strconv.Itoa(p.ID)), p, global)
 }
