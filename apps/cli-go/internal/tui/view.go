@@ -20,9 +20,56 @@ func (m model) View() string {
 		return m.viewBacklog()
 	case viewDetail:
 		return m.viewDetail()
+	case viewReview:
+		return m.viewReview()
 	default:
 		return m.viewColumns()
 	}
+}
+
+func (m model) viewReview() string {
+	var b strings.Builder
+	b.WriteString(m.header() + "\n\n")
+	title := "Review"
+	if m.curSprint != nil {
+		title = "Review " + m.curSprint.Key + " — " + m.curSprint.Name
+	}
+	b.WriteString("  " + theme.Header.Render(title) + "\n\n")
+	if m.curSprint == nil {
+		b.WriteString("  " + lipgloss.NewStyle().Foreground(theme.Overlay).Render("(lädt …)") + "\n")
+		return b.String()
+	}
+	for i, it := range m.curSprint.Items {
+		cursor := "  "
+		if i == m.rlist.cursor {
+			cursor = theme.Key.Render("▸ ")
+		}
+		b.WriteString("  " + cursor + fmt.Sprintf("%-9s %-40s %s", it.Key, truncate(it.Title, 40), api_short(it.Status)) + "\n")
+	}
+	if it := m.reviewItem(); it != nil {
+		b.WriteString("\n  " + theme.Header.Render(truncate(it.Key+" — "+it.Title, m.width-4)) + "\n")
+		if it.Result != nil && *it.Result != "" {
+			b.WriteString("  " + lipgloss.NewStyle().Foreground(theme.Subtext).Render("Result: "+truncate(*it.Result, maxInt(20, m.width-14))) + "\n")
+		}
+	}
+	b.WriteString("\n")
+	if m.inputting {
+		b.WriteString("  " + theme.Key.Render(m.status) + m.input + "▏\n")
+	} else {
+		hint := "a:pass  x:reject(+Kommentar)  S:→review  C:abschließen(PO)  j/k:↑↓  q:zurück"
+		if m.status != "" {
+			hint = m.status
+		}
+		b.WriteString("  " + lipgloss.NewStyle().Foreground(theme.Overlay).Render(hint) + "\n")
+	}
+	return b.String()
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 func (m model) header() string {

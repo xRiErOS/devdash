@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"strings"
 
 	"devd-cli/internal/api"
 	"devd-cli/internal/config"
@@ -15,6 +16,7 @@ const (
 	viewColumns
 	viewDetail
 	viewBacklog
+	viewReview
 )
 
 type model struct {
@@ -42,6 +44,12 @@ type model struct {
 	// Backlog
 	backlog []api.Issue
 	blist   listState
+
+	// Review-Cockpit (über curSprint.Items)
+	rlist           listState
+	inputting       bool   // Reject-Kommentar-Eingabe aktiv
+	input           string // Kommentar-Puffer
+	confirmComplete bool   // Doppel-C-Bestätigung für Sprint-Abschluss
 }
 
 func newModel(client *api.Client, project *api.Project, global *api.Client) model {
@@ -158,6 +166,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if s := m.selSprint(); s != nil && m.curSprint != nil && s.ID == m.curSprint.ID {
 			m.ilist.setLen(len(m.curSprint.Items))
 		}
+		if m.view == viewReview && m.curSprint != nil {
+			m.rlist.setLen(len(m.curSprint.Items))
+			m.status = ""
+		}
 		return m, nil
 	case backlogMsg:
 		m.backlog = msg.items
@@ -170,6 +182,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// Review-Cockpit hat eigenen Eingabemodus → zuerst, vor globalen Tasten.
+	if m.view == viewReview {
+		return m.keyReview(msg)
+	}
 	k := msg.String()
 	// Globale Tasten
 	switch k {
@@ -254,8 +270,107 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 	case "b":
 		m.view = viewBacklog
 		return m, loadBacklog(m.client)
+	case "R":
+		if s := m.selSprint(); s != nil {
+			m.view = viewReview
+			m.rlist.reset()
+			m.confirmComplete = false
+			cmd := m.syncSprint()
+			if m.curSprint != nil && m.curSprint.ID == s.ID {
+				m.rlist.setLen(len(m.curSprint.Items))
+			}
+			return m, cmd
+		}
 	}
 	return m, nil
+}
+
+// keyReview behandelt das Review-Cockpit inkl. Reject-Kommentar-Eingabe.
+func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.inputting {
+		switch msg.Type {
+		case tea.KeyEnter:
+			comment := strings.TrimSpace(m.input)
+			m.inputting = false
+			m.input = ""
+			if comment == "" {
+				m.status = "Reject abgebrochen — Kommentar war leer"
+				return m, nil
+			}
+			it := m.reviewItem()
+			if it == nil || m.curSprint == nil {
+				return m, nil
+			}
+			m.status = "Reject gesendet …"
+			return m, doVerdict(m.client, it.ID, "not_passed", comment, m.curSprint.ID)
+		case tea.KeyEsc:
+			m.inputting = false
+			m.input = ""
+			m.status = "Reject abgebrochen"
+			return m, nil
+		case tea.KeyBackspace, tea.KeyDelete:
+			if len(m.input) > 0 {
+				r := []rune(m.input)
+				m.input = string(r[:len(r)-1])
+			}
+			return m, nil
+		default:
+			m.input += string(msg.Runes)
+			return m, nil
+		}
+	}
+
+	switch navKey(msg.String()) {
+	case "up":
+		m.rlist.move(-1)
+		return m, nil
+	case "down":
+		m.rlist.move(1)
+		return m, nil
+	}
+	switch msg.String() {
+	case "q", "esc":
+		m.view = viewColumns
+		m.status = ""
+		return m, nil
+	case "a":
+		if it := m.reviewItem(); it != nil && m.curSprint != nil {
+			m.status = "Pass gesendet …"
+			return m, doVerdict(m.client, it.ID, "passed", "", m.curSprint.ID)
+		}
+	case "x":
+		if m.reviewItem() != nil {
+			m.inputting = true
+			m.input = ""
+			m.status = "Reject-Kommentar (enter=senden, esc=abbrechen): "
+		}
+	case "S":
+		if m.curSprint != nil {
+			m.status = "Sprint → review …"
+			return m, doSprintTo(m.client, m.curSprint.ID, "review")
+		}
+	case "C":
+		if m.curSprint == nil {
+			return m, nil
+		}
+		if !m.confirmComplete {
+			m.confirmComplete = true
+			m.status = "Sprint abschließen? Nochmal C zum Bestätigen (PO/DD-186)"
+			return m, nil
+		}
+		m.confirmComplete = false
+		m.status = "Sprint wird abgeschlossen …"
+		return m, doSprintTo(m.client, m.curSprint.ID, "completed")
+	}
+	return m, nil
+}
+
+// reviewItem ist das aktuell im Cockpit selektierte Issue.
+func (m *model) reviewItem() *api.Issue {
+	if m.curSprint != nil && m.rlist.cursor >= 0 && m.rlist.cursor < len(m.curSprint.Items) {
+		return &m.curSprint.Items[m.rlist.cursor]
+	}
+	return nil
 }
 
 // focusList liefert die Liste der aktuellen Fokus-Ebene.

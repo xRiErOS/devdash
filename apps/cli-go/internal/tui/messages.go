@@ -43,6 +43,34 @@ func loadSprint(c *api.Client, id int) tea.Cmd {
 	}
 }
 
+// doVerdict reicht ein Review-Verdikt ein und lädt den Sprint neu (optimistic refresh).
+func doVerdict(c *api.Client, issueID int, verdict, comment string, sprintID int) tea.Cmd {
+	return func() tea.Msg {
+		if _, err := c.SubmitReview(issueID, verdict, comment, ""); err != nil {
+			return errMsg{err}
+		}
+		s, err := c.GetSprint(sprintID)
+		if err != nil {
+			return errMsg{err}
+		}
+		return sprintMsg{s}
+	}
+}
+
+// doSprintTo wechselt den Sprint-Status (review/active/completed) und lädt neu.
+func doSprintTo(c *api.Client, sprintID int, to string) tea.Cmd {
+	return func() tea.Msg {
+		if _, err := c.SprintTo(sprintID, to); err != nil {
+			return errMsg{err}
+		}
+		s, err := c.GetSprint(sprintID)
+		if err != nil {
+			return errMsg{err}
+		}
+		return sprintMsg{s}
+	}
+}
+
 func loadBacklog(c *api.Client) tea.Cmd {
 	return func() tea.Msg {
 		is, err := c.ListIssues(api.IssueListOpts{})
