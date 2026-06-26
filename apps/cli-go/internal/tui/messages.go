@@ -15,6 +15,10 @@ type milestonesMsg struct{ items []api.Milestone }
 type sprintMsg struct{ sprint *api.Sprint }
 type backlogMsg struct{ items []api.Issue }
 type statusMsg struct{ text string }
+type userStoriesMsg struct {
+	issueID int
+	items   []api.UserStory
+}
 
 func loadProjects(c *api.Client) tea.Cmd {
 	return func() tea.Msg {
@@ -91,6 +95,31 @@ func doStatus(c *api.Client, issueID int, status string, sprintID int) tea.Cmd {
 			return noticeMsg{cleanAPIErr(err)}
 		}
 		return refreshSprint(c, sprintID)
+	}
+}
+
+// loadUserStories holt die User-Stories eines Issues (für das Abnahme-Modal).
+func loadUserStories(c *api.Client, issueID int) tea.Cmd {
+	return func() tea.Msg {
+		us, err := c.ListUserStories(issueID)
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return userStoriesMsg{issueID, us}
+	}
+}
+
+// doUSVerdict setzt ein User-Story-Verdikt und lädt die Liste neu.
+func doUSVerdict(c *api.Client, usID int, verdict string, issueID int) tea.Cmd {
+	return func() tea.Msg {
+		if _, err := c.SetUserStoryVerdict(usID, verdict); err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		us, err := c.ListUserStories(issueID)
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return userStoriesMsg{issueID, us}
 	}
 }
 

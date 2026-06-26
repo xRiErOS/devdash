@@ -19,6 +19,7 @@ const (
 	viewBacklog
 	viewReview
 	viewMilestone
+	viewSprint
 )
 
 // filterState hält pro Spalte, welche Werte ausgeblendet sind.
@@ -77,11 +78,20 @@ type model struct {
 	statusPick      bool   // s: Issue-Status-Menü aktiv
 	smenu           listState
 	sopts           []string
+
+	// User-Story-Abnahme-Modal (T14): enter im Review öffnet goal/background/US.
+	usOpen    bool
+	usList    []api.UserStory
+	uslist    listState
+	usIssueID int
 }
 
-// issueStatusOptions sind die manuell wählbaren Lifecycle-Ziele (Backend
-// validiert; ungültige Übergänge kommen als Sapphire-Hinweis zurück).
-var issueStatusOptions = []string{"refined", "planned", "in_progress", "to_review", "passed", "rejected", "done"}
+// issueStatusOptions sind die manuell wählbaren Lifecycle-Ziele. Bewusst OHNE
+// passed/rejected/done: passed/rejected MÜSSEN über das Review-Verdikt (a/x)
+// laufen, das eine review_feedback-Zeile schreibt — sonst blockiert der
+// Sprint-Abschluss (Backend-Gate prüft review_feedback, nicht den Status).
+// done ist system-only (nur via Sprint-Complete). Backend validiert zusätzlich.
+var issueStatusOptions = []string{"refined", "planned", "in_progress", "to_review"}
 
 func newModel(client *api.Client, project *api.Project, global *api.Client) model {
 	m := model{client: client, project: project, global: global}
@@ -231,6 +241,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case noticeMsg:
 		m.status = noticeText(msg.text) // Sapphire-Hinweis (Aktions-Fehler/Info)
 		return m, nil
+	case userStoriesMsg:
+		if msg.issueID == m.usIssueID {
+			m.usList = msg.items
+			m.uslist.setLen(len(m.usList))
+		}
+		return m, nil
 	case projectsMsg:
 		m.projects = msg.items
 		m.plist.setLen(len(m.projects))
@@ -272,7 +288,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Globale Tasten
 	switch k {
 	case "ctrl+c", "q":
-		if m.view == viewDetail || m.view == viewBacklog || m.view == viewMilestone {
+		if m.view == viewDetail || m.view == viewBacklog || m.view == viewMilestone || m.view == viewSprint {
 			m.view = viewColumns
 			return m, nil
 		}
@@ -297,6 +313,21 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case viewMilestone:
 		if k == "esc" {
 			m.view = viewColumns
+		}
+		return m, nil
+	case viewSprint:
+		switch k {
+		case "esc":
+			m.view = viewColumns
+		case "y":
+			return m.yankContext()
+		case "R":
+			if s := m.selSprint(); s != nil {
+				m.view = viewReview
+				m.rlist.reset()
+				m.confirmComplete = false
+				return m, m.syncSprint()
+			}
 		}
 		return m, nil
 	case viewBacklog:
@@ -353,6 +384,9 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 	case "enter":
 		if m.depth == 0 && m.selMilestone() != nil {
 			m.view = viewMilestone
+		} else if m.depth == 1 && m.selSprint() != nil {
+			m.view = viewSprint
+			return m, m.syncSprint()
 		} else if m.depth == 2 && m.selIssue() != nil {
 			m.view = viewDetail
 		}
@@ -504,6 +538,9 @@ func (m *model) reviewItem() *api.Issue {
 
 // keyReview behandelt das Review-Cockpit: Reject-Eingabe, Status-Menü, Verdikte.
 func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.usOpen {
+		return m.keyUserStory(msg)
+	}
 	if m.inputting {
 		return m.keyReviewInput(msg)
 	}
@@ -526,6 +563,16 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.view = viewColumns
 		m.status = ""
 		return m, nil
+	case "enter": // Issue-Abnahme-Modal: goal/background/User-Stories abhaken
+		if it == nil {
+			return m, nil
+		}
+		m.usOpen = true
+		m.usIssueID = it.ID
+		m.usList = nil
+		m.uslist = listState{}
+		m.status = ""
+		return m, loadUserStories(m.client, it.ID)
 	case "s": // Status manuell mutieren (auch to_review-Override)
 		if it == nil {
 			m.status = "Kein Issue gewählt"
@@ -564,16 +611,21 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.status = "Reopen gesendet …"
 		return m, doReopen(m.client, it.ID, m.curSprint.ID)
-	case "S": // Sprint → review — nur wenn active
+	case "S": // Sprint-Status toggeln: active→review (Review starten) / review→active (Runde beenden)
 		if m.curSprint == nil {
 			return m, nil
 		}
-		if m.curSprint.Status != "active" {
-			m.status = noticeText("→review nur aus active (Sprint ist: " + m.curSprint.Status + ")")
+		switch m.curSprint.Status {
+		case "active":
+			m.status = "Sprint → review (Review-Runde starten) …"
+			return m, doSprintTo(m.client, m.curSprint.ID, "review")
+		case "review":
+			m.status = "Sprint → active (Review-Runde beenden) …"
+			return m, doSprintTo(m.client, m.curSprint.ID, "active")
+		default:
+			m.status = noticeText("S nur aus active/review (Sprint ist: " + m.curSprint.Status + ")")
 			return m, nil
 		}
-		m.status = "Sprint → review …"
-		return m, doSprintTo(m.client, m.curSprint.ID, "review")
 	case "C": // Sprint abschließen — nur wenn review
 		if m.curSprint == nil {
 			return m, nil
@@ -650,6 +702,43 @@ func (m model) keyStatusPick(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		target := m.sopts[m.smenu.cursor]
 		m.status = "Status → " + target + " …"
 		return m, doStatus(m.client, it.ID, target, m.curSprint.ID)
+	}
+	return m, nil
+}
+
+// keyUserStory steuert das Abnahme-Modal: User-Stories durchgehen + Verdikt setzen.
+func (m model) keyUserStory(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch navKey(msg.String()) {
+	case "up":
+		m.uslist.move(-1)
+		return m, nil
+	case "down":
+		m.uslist.move(1)
+		return m, nil
+	}
+	cur := func() *api.UserStory {
+		if m.uslist.cursor >= 0 && m.uslist.cursor < len(m.usList) {
+			return &m.usList[m.uslist.cursor]
+		}
+		return nil
+	}
+	switch msg.String() {
+	case "esc", "q", "enter":
+		m.usOpen = false
+		m.status = ""
+		return m, nil
+	case "a": // accepted
+		if us := cur(); us != nil {
+			return m, doUSVerdict(m.client, us.ID, "accepted", m.usIssueID)
+		}
+	case "r": // rejected
+		if us := cur(); us != nil {
+			return m, doUSVerdict(m.client, us.ID, "rejected", m.usIssueID)
+		}
+	case "o": // open (zurücksetzen)
+		if us := cur(); us != nil {
+			return m, doUSVerdict(m.client, us.ID, "open", m.usIssueID)
+		}
 	}
 	return m, nil
 }

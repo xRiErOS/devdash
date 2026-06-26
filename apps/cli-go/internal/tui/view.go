@@ -23,6 +23,8 @@ func (m model) View() string {
 		return m.viewDetail()
 	case viewMilestone:
 		return m.viewMilestone()
+	case viewSprint:
+		return m.viewSprint()
 	case viewReview:
 		return m.viewReview()
 	default:
@@ -260,6 +262,45 @@ func (m model) viewMilestone() string {
 	return boxed(b.String(), m.termWidth(), theme.Mauve)
 }
 
+// --- Sprint-Detail ---
+
+func (m model) viewSprint() string {
+	s := m.selSprint()
+	if s == nil {
+		return "\n  (kein Sprint)\n"
+	}
+	// Items aus curSprint (geladen), sonst Embedded.
+	items := s.Items
+	if m.curSprint != nil && m.curSprint.ID == s.ID {
+		items = m.curSprint.Items
+	}
+	var b strings.Builder
+	b.WriteString(theme.Header.Render("Sprint "+s.Key) + "  " + statusText(s.Status) + "\n")
+	b.WriteString(theme.Header.Render(s.Name) + "\n")
+	if g := deref(s.Goal); g != "" {
+		b.WriteString("\n" + theme.Accent.Render("Goal:") + "\n" + g + "\n")
+	}
+	if s.MilestoneName != nil && *s.MilestoneName != "" {
+		b.WriteString(theme.Dim.Render("Meilenstein: "+*s.MilestoneName) + "\n")
+	}
+	b.WriteString(theme.Dim.Render(fmt.Sprintf("Fortschritt: %d/%d", s.DoneCount, s.ItemCount)) + "\n")
+
+	b.WriteString("\n" + theme.Dim.Render(fmt.Sprintf("Issues (%d):", len(items))) + "\n")
+	for _, it := range items {
+		b.WriteString(fmt.Sprintf("  %s %s %-9s %-40s %-12s %s\n",
+			theme.TypeIcon(it.Type), theme.Priority(it.Priority), it.Key,
+			truncate(it.Title, 40), statusText(it.Status), reviewBadge(it)))
+	}
+	if len(items) > 0 {
+		old := m.curSprint
+		m.curSprint = &api.Sprint{ID: s.ID, Items: items}
+		b.WriteString("\n" + m.reviewSummary() + "\n")
+		m.curSprint = old
+	}
+	b.WriteString("\n" + theme.Dim.Render("R: Review-Cockpit   y: Issues kopieren   esc/q: zurück"))
+	return "\n" + boxed(b.String(), m.termWidth(), theme.Mauve)
+}
+
 // --- Issue-Detail (#5 Rahmen, #6 alle Felder, #9 Titel) ---
 
 func (m model) viewDetail() string {
@@ -363,17 +404,17 @@ func (m model) viewReview() string {
 		if i == m.rlist.cursor {
 			cursor = theme.Accent.Render("▸ ")
 		}
-		b.WriteString(cursor + fmt.Sprintf("%s %s %-9s %-40s %s",
+		b.WriteString(cursor + fmt.Sprintf("%s %s %-9s %-38s %-12s %s",
 			theme.TypeIcon(it.Type), theme.Priority(it.Priority), it.Key,
-			truncate(it.Title, 40), statusText(it.Status)) + "\n")
+			truncate(it.Title, 38), statusText(it.Status), reviewBadge(it)) + "\n")
 	}
+	// Review-Ergebnisse (Runden-Übersicht) unten.
+	b.WriteString("\n" + m.reviewSummary() + "\n")
+
 	if it := m.reviewItem(); it != nil {
 		b.WriteString("\n" + theme.Header.Render(truncate(it.Key+" — "+it.Title, m.termWidth()-6)) + "\n")
 		if g := deref(it.Goal); g != "" {
 			b.WriteString(theme.Dim.Render("Goal: "+truncate(g, maxInt(20, m.termWidth()-16))) + "\n")
-		}
-		if r := deref(it.Result); r != "" {
-			b.WriteString(lipgloss.NewStyle().Foreground(theme.Subtext).Render("Result: "+truncate(r, maxInt(20, m.termWidth()-16))) + "\n")
 		}
 		if c := deref(it.ReviewComment); c != "" {
 			b.WriteString(theme.Dim.Render("Review: "+truncate(c, maxInt(20, m.termWidth()-16))) + "\n")
@@ -382,21 +423,120 @@ func (m model) viewReview() string {
 	b.WriteString("\n")
 	if m.inputting {
 		b.WriteString(theme.Key.Render(m.status) + m.input + "▏\n")
-	} else if m.status != "" {
-		b.WriteString(m.status + "\n") // bereits gefärbt (Sapphire/Statuszeile)
 	} else {
+		// Shortcuts IMMER sichtbar (Anfänger), Hinweis separat darunter.
 		b.WriteString(theme.Dim.Render(m.reviewHints()) + "\n")
+		if m.status != "" {
+			b.WriteString(m.status + "\n") // bereits gefärbt (Sapphire)
+		}
 	}
 	base := "\n" + boxed(b.String(), m.termWidth(), theme.Mauve)
 	if m.statusPick {
 		return placeOverlay(base, m.statusMenu(), m.termWidth(), m.height)
 	}
+	if m.usOpen {
+		return placeOverlay(base, m.userStoryModal(), m.termWidth(), m.height)
+	}
 	return base
+}
+
+// reviewBadge zeigt das Review-Verdikt (review_feedback) je Issue — sichtbar
+// macht, was den Sprint-Abschluss blockiert (Gate prüft review_feedback).
+func reviewBadge(it api.Issue) string {
+	rs := deref(it.ReviewStatus)
+	switch rs {
+	case "passed":
+		return lipgloss.NewStyle().Foreground(theme.Green).Render("✓ passed")
+	case "not_passed":
+		return lipgloss.NewStyle().Foreground(theme.Red).Render("✗ not_passed")
+	default:
+		return theme.Dim.Render("· kein Verdikt")
+	}
+}
+
+// reviewSummary fasst die Review-Runden zusammen (für Sprint-Abschluss-Readiness).
+func (m model) reviewSummary() string {
+	if m.curSprint == nil {
+		return ""
+	}
+	var passed, rejected, pending int
+	for _, it := range m.curSprint.Items {
+		if it.Status == "cancelled" {
+			continue
+		}
+		switch deref(it.ReviewStatus) {
+		case "passed":
+			passed++
+		case "not_passed":
+			rejected++
+		default:
+			pending++
+		}
+	}
+	parts := []string{
+		lipgloss.NewStyle().Foreground(theme.Green).Render(fmt.Sprintf("✓ %d passed", passed)),
+		lipgloss.NewStyle().Foreground(theme.Red).Render(fmt.Sprintf("✗ %d not_passed", rejected)),
+		theme.Dim.Render(fmt.Sprintf("· %d offen", pending)),
+	}
+	head := theme.Dim.Render("Review-Runden: ")
+	if pending == 0 && rejected == 0 && passed > 0 {
+		head = lipgloss.NewStyle().Foreground(theme.Green).Render("Abschluss-bereit: ")
+	}
+	return head + strings.Join(parts, "  ")
+}
+
+// userStoryModal: schwebendes Abnahme-Modal (goal/background + US-Verdikte).
+func (m model) userStoryModal() string {
+	var b strings.Builder
+	it := m.reviewItem()
+	title := "Issue-Abnahme"
+	if it != nil {
+		title = it.Key + " — " + it.Title
+	}
+	b.WriteString(theme.Header.Render(truncate(title, 56)) + "\n\n")
+	if it != nil {
+		if g := deref(it.Goal); g != "" {
+			b.WriteString(theme.Accent.Render("Goal: ") + truncate(g, 56) + "\n")
+		}
+		if bg := deref(it.Background); bg != "" {
+			b.WriteString(theme.Accent.Render("Background: ") + truncate(bg, 56) + "\n")
+		}
+	}
+	b.WriteString("\n" + theme.Dim.Render(fmt.Sprintf("User-Stories (%d):", len(m.usList))) + "\n")
+	if len(m.usList) == 0 {
+		b.WriteString(theme.Dim.Render("(keine — lädt oder keine vorhanden)") + "\n")
+	}
+	for i, us := range m.usList {
+		cursor := "  "
+		t := us.Title
+		if i == m.uslist.cursor {
+			cursor = theme.Accent.Render("▸ ")
+			t = theme.Header.Render(t)
+		}
+		b.WriteString(cursor + usVerdictBox(us.Verdict) + " " + truncate(t, 50) + "\n")
+	}
+	b.WriteString("\n" + theme.Dim.Render("a:accept  r:reject  o:open  j/k:↑↓  enter/esc:schließen"))
+	return lipgloss.NewStyle().
+		Width(64).
+		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
+		Background(theme.Base).Padding(0, 1).
+		Render(b.String())
+}
+
+func usVerdictBox(v string) string {
+	switch v {
+	case "accepted":
+		return lipgloss.NewStyle().Foreground(theme.Green).Render("[✓]")
+	case "rejected":
+		return lipgloss.NewStyle().Foreground(theme.Red).Render("[✗]")
+	default:
+		return theme.Dim.Render("[ ]")
+	}
 }
 
 // reviewHints zeigt nur die im aktuellen Zustand gültigen Aktionen.
 func (m model) reviewHints() string {
-	hints := []string{"j/k:↑↓", "s:Status"}
+	hints := []string{"j/k:↑↓", "enter:Abnahme", "s:Status"}
 	if it := m.reviewItem(); it != nil {
 		switch it.Status {
 		case "to_review":
@@ -410,7 +550,7 @@ func (m model) reviewHints() string {
 		case "active":
 			hints = append(hints, "S:→review")
 		case "review":
-			hints = append(hints, "C:abschließen(PO)")
+			hints = append(hints, "S:→active", "C:abschließen(PO)")
 		}
 	}
 	hints = append(hints, "q:zurück")

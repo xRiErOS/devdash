@@ -92,6 +92,40 @@ func TestPassBlockedWhenNotToReview(t *testing.T) {
 	}
 }
 
+func TestSToggleReviewToActive(t *testing.T) {
+	m := reviewModel() // Sprint-Status "review"
+	_, cmd := m.Update(keyMsg("S"))
+	if cmd == nil {
+		t.Error("'S' bei review-Sprint sollte review→active dispatchen (Runde beenden)")
+	}
+}
+
+func TestEnterOpensUserStoryModal(t *testing.T) {
+	m := reviewModel()
+	mi, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = mi.(model)
+	if !m.usOpen {
+		t.Fatal("enter sollte US-Abnahme-Modal öffnen")
+	}
+	if m.usIssueID != 100 {
+		t.Errorf("usIssueID=%d, want 100", m.usIssueID)
+	}
+	if cmd == nil {
+		t.Error("enter sollte User-Stories laden")
+	}
+}
+
+func TestStatusMenuExcludesPassed(t *testing.T) {
+	m := reviewModel()
+	mi, _ := m.Update(keyMsg("s"))
+	m = mi.(model)
+	for _, o := range m.sopts {
+		if o == "passed" || o == "rejected" || o == "done" {
+			t.Errorf("Status-Menü darf %q nicht enthalten (läuft über Review)", o)
+		}
+	}
+}
+
 func TestReviewCompleteDoubleConfirm(t *testing.T) {
 	m := reviewModel()
 	mi, cmd := m.Update(keyMsg("C"))

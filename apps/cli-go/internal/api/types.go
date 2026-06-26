@@ -58,6 +58,17 @@ type Tag struct {
 	Color string `json:"color"`
 }
 
+// UserStory: PO hakt sie vor pass/rejected ab (us_verdict open|accepted|rejected).
+type UserStory struct {
+	ID      int     `json:"id"`
+	Key     string  `json:"key"`
+	Title   string  `json:"title"`
+	Details *string `json:"details"`
+	QA      *string `json:"qa"`
+	Verdict string  `json:"us_verdict"`
+	Pos     int     `json:"position"`
+}
+
 // IssueCreateBody ist der POST-Body für CreateIssue.
 type IssueCreateBody struct {
 	Title       string  `json:"title"`
