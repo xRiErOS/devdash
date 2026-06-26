@@ -37,12 +37,25 @@ type Issue struct {
 	Priority       int     `json:"priority"`
 	AssignedSprint *int    `json:"assigned_sprint"`
 	SprintKey      *string `json:"sprint_key"`
+	Milestone      *string `json:"milestone"`
 	ReviewStatus   *string `json:"review_status"`
 	ReviewComment  *string `json:"review_comment"`
 	Goal           *string `json:"goal"`
 	Background     *string `json:"background"`
 	Description    *string `json:"description"`
+	ContextNotes   *string `json:"context_notes"`
+	PoNotes        *string `json:"po_notes"`
+	RelevantFiles  *string `json:"relevant_files"`
 	Result         *string `json:"result"`
+	CreatedAt      *string `json:"created_at"`
+	RefinedAt      *string `json:"refined_at"`
+	Tags           []Tag   `json:"tags,omitempty"`
+}
+
+type Tag struct {
+	ID    int    `json:"id"`
+	Name  string `json:"name"`
+	Color string `json:"color"`
 }
 
 // IssueCreateBody ist der POST-Body für CreateIssue.
@@ -54,12 +67,14 @@ type IssueCreateBody struct {
 }
 
 type Milestone struct {
-	ID         int      `json:"id"`
-	Name       string   `json:"name"`
-	Status     string   `json:"status"`
-	TargetDate *string  `json:"target_date"`
-	Position   int      `json:"position"`
-	Total      int      `json:"total"`
-	Done       int      `json:"done"`
-	Sprints    []Sprint `json:"sprints"`
+	ID          int      `json:"id"`
+	Name        string   `json:"name"`
+	Status      string   `json:"status"`
+	Description *string  `json:"description"`
+	TargetDate  *string  `json:"target_date"`
+	Position    int      `json:"position"`
+	Deferred    int      `json:"deferred"`
+	Total       int      `json:"total"`
+	Done        int      `json:"done"`
+	Sprints     []Sprint `json:"sprints"`
 }

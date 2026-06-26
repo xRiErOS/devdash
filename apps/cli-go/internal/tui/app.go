@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"devd-cli/internal/api"
+	"devd-cli/internal/clip"
 	"devd-cli/internal/config"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -17,7 +18,23 @@ const (
 	viewDetail
 	viewBacklog
 	viewReview
+	viewMilestone
 )
+
+// filterState hält pro Spalte, welche Werte ausgeblendet sind.
+type filterState struct {
+	hidden map[string]bool
+}
+
+func (f filterState) shown(val string) bool { return !f.hidden[val] }
+func (f *filterState) toggle(val string)     { f.hidden[val] = !f.hidden[val] }
+
+const deferredKey = "__deferred__" // Pseudo-Wert: zurückgestellte Meilensteine zeigen
+
+type filterOpt struct {
+	value string
+	label string
+}
 
 type model struct {
 	client  *api.Client // projekt-gescopt (nil bis Picker-Wahl)
@@ -41,6 +58,13 @@ type model struct {
 	curSprint  *api.Sprint // geladene items des selektierten Sprints
 	depth      int         // Fokus-Ebene 0=Meilenstein 1=Sprint 2=Issue
 
+	// Filter (Default-Hide + f-Modal)
+	fMile, fSprint, fIssue filterState
+	filtering              bool
+	fcur                   listState
+	fopts                  []filterOpt
+	ftarget                int // depth, dessen Filter editiert wird
+
 	// Backlog
 	backlog []api.Issue
 	blist   listState
@@ -54,6 +78,9 @@ type model struct {
 
 func newModel(client *api.Client, project *api.Project, global *api.Client) model {
 	m := model{client: client, project: project, global: global}
+	m.fMile = filterState{hidden: map[string]bool{"completed": true, "cancelled": true, deferredKey: true}}
+	m.fSprint = filterState{hidden: map[string]bool{"completed": true, "cancelled": true}}
+	m.fIssue = filterState{hidden: map[string]bool{"cancelled": true}}
 	if project == nil {
 		m.view = viewPicker
 	} else {
@@ -75,24 +102,65 @@ func (m model) Init() tea.Cmd {
 	return loadMilestones(m.client)
 }
 
-// --- Selektions-Helfer (bounds-sicher) ---
+// --- Sichtbare (gefilterte) Listen ---
+
+func (m *model) visSprints() []api.Sprint {
+	ms := m.selMilestone()
+	if ms == nil {
+		return nil
+	}
+	out := make([]api.Sprint, 0, len(ms.Sprints))
+	for _, s := range ms.Sprints {
+		if !m.fSprint.shown(s.Status) {
+			continue
+		}
+		out = append(out, s)
+	}
+	return out
+}
+
+func (m *model) visIssues() []api.Issue {
+	is := m.issuesOfSel()
+	if is == nil {
+		return nil
+	}
+	out := make([]api.Issue, 0, len(is))
+	for _, it := range is {
+		if !m.fIssue.shown(it.Status) {
+			continue
+		}
+		out = append(out, it)
+	}
+	return out
+}
+
+// --- Selektions-Helfer (bounds-sicher, auf sichtbaren Listen) ---
 
 func (m *model) selMilestone() *api.Milestone {
-	if m.mlist.cursor >= 0 && m.mlist.cursor < len(m.milestones) {
-		return &m.milestones[m.mlist.cursor]
+	vs := m.visMilestonesRaw()
+	if m.mlist.cursor >= 0 && m.mlist.cursor < len(vs) {
+		return &vs[m.mlist.cursor]
 	}
 	return nil
 }
 
-func (m *model) sprintsOfSel() []api.Sprint {
-	if ms := m.selMilestone(); ms != nil {
-		return ms.Sprints
+// visMilestonesRaw filtert ohne selMilestone-Rekursion (für selMilestone selbst).
+func (m *model) visMilestonesRaw() []api.Milestone {
+	out := make([]api.Milestone, 0, len(m.milestones))
+	for _, ms := range m.milestones {
+		if !m.fMile.shown(ms.Status) {
+			continue
+		}
+		if ms.Deferred == 1 && !m.fMile.shown(deferredKey) {
+			continue
+		}
+		out = append(out, ms)
 	}
-	return nil
+	return out
 }
 
 func (m *model) selSprint() *api.Sprint {
-	sp := m.sprintsOfSel()
+	sp := m.visSprints()
 	if m.slist.cursor >= 0 && m.slist.cursor < len(sp) {
 		return &sp[m.slist.cursor]
 	}
@@ -107,7 +175,7 @@ func (m *model) issuesOfSel() []api.Issue {
 }
 
 func (m *model) selIssue() *api.Issue {
-	is := m.issuesOfSel()
+	is := m.visIssues()
 	if m.ilist.cursor >= 0 && m.ilist.cursor < len(is) {
 		return &is[m.ilist.cursor]
 	}
@@ -159,12 +227,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case milestonesMsg:
 		m.milestones = msg.items
-		m.mlist.setLen(len(m.milestones))
+		m.mlist.setLen(len(m.visMilestonesRaw()))
 		return m, m.syncSprint()
 	case sprintMsg:
 		m.curSprint = msg.sprint
 		if s := m.selSprint(); s != nil && m.curSprint != nil && s.ID == m.curSprint.ID {
-			m.ilist.setLen(len(m.curSprint.Items))
+			m.ilist.setLen(len(m.visIssues()))
 		}
 		if m.view == viewReview && m.curSprint != nil {
 			m.rlist.setLen(len(m.curSprint.Items))
@@ -182,7 +250,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	// Review-Cockpit hat eigenen Eingabemodus → zuerst, vor globalen Tasten.
+	// Filter-Modal fängt zuerst.
+	if m.filtering {
+		return m.keyFilter(msg)
+	}
+	// Review-Cockpit hat eigenen Eingabemodus.
 	if m.view == viewReview {
 		return m.keyReview(msg)
 	}
@@ -190,7 +262,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Globale Tasten
 	switch k {
 	case "ctrl+c", "q":
-		if m.view == viewDetail || m.view == viewBacklog {
+		if m.view == viewDetail || m.view == viewBacklog || m.view == viewMilestone {
 			m.view = viewColumns
 			return m, nil
 		}
@@ -208,6 +280,11 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case viewColumns:
 		return m.keyColumns(k)
 	case viewDetail:
+		if k == "esc" {
+			m.view = viewColumns
+		}
+		return m, nil
+	case viewMilestone:
 		if k == "esc" {
 			m.view = viewColumns
 		}
@@ -264,9 +341,15 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 	}
 	switch k {
 	case "enter":
-		if m.depth == 2 && m.selIssue() != nil {
+		if m.depth == 0 && m.selMilestone() != nil {
+			m.view = viewMilestone
+		} else if m.depth == 2 && m.selIssue() != nil {
 			m.view = viewDetail
 		}
+	case "f":
+		return m.openFilter()
+	case "y":
+		return m.yankContext()
 	case "b":
 		m.view = viewBacklog
 		return m, loadBacklog(m.client)
@@ -283,6 +366,130 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 		}
 	}
 	return m, nil
+}
+
+// --- Filter-Modal ---
+
+func (m model) openFilter() (tea.Model, tea.Cmd) {
+	m.ftarget = m.depth
+	m.fopts = m.filterOptsFor(m.depth)
+	m.fcur = listState{}
+	m.fcur.setLen(len(m.fopts))
+	m.filtering = true
+	return m, nil
+}
+
+// filterOptsFor sammelt die Werte der Fokus-Spalte (Status + ggf. Deferred-Pseudo).
+func (m *model) filterOptsFor(depth int) []filterOpt {
+	seen := map[string]bool{}
+	var opts []filterOpt
+	add := func(val, label string) {
+		if val == "" || seen[val] {
+			return
+		}
+		seen[val] = true
+		opts = append(opts, filterOpt{val, label})
+	}
+	switch depth {
+	case 0:
+		for _, ms := range m.milestones {
+			add(ms.Status, ms.Status)
+		}
+		opts = append(opts, filterOpt{deferredKey, "zurückgestellte zeigen"})
+	case 1:
+		if ms := m.selMilestone(); ms != nil {
+			for _, s := range ms.Sprints {
+				add(s.Status, s.Status)
+			}
+		}
+	default:
+		for _, it := range m.issuesOfSel() {
+			add(it.Status, it.Status)
+		}
+	}
+	return opts
+}
+
+func (m *model) filterFor(depth int) *filterState {
+	switch depth {
+	case 0:
+		return &m.fMile
+	case 1:
+		return &m.fSprint
+	default:
+		return &m.fIssue
+	}
+}
+
+func (m model) keyFilter(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch navKey(msg.String()) {
+	case "up":
+		m.fcur.move(-1)
+		return m, nil
+	case "down":
+		m.fcur.move(1)
+		return m, nil
+	}
+	switch msg.String() {
+	case "q", "esc", "f":
+		m.filtering = false
+		return m, m.afterFilter()
+	case " ", "x":
+		if m.fcur.cursor < len(m.fopts) {
+			m.filterFor(m.ftarget).toggle(m.fopts[m.fcur.cursor].value)
+		}
+		return m, nil
+	case "enter":
+		m.filtering = false
+		return m, m.afterFilter()
+	}
+	return m, nil
+}
+
+// afterFilter klemmt Cursor + Längen nach Filter-Änderung neu.
+func (m *model) afterFilter() tea.Cmd {
+	m.mlist.setLen(len(m.visMilestonesRaw()))
+	m.slist.setLen(len(m.visSprints()))
+	m.ilist.setLen(len(m.visIssues()))
+	return m.syncSprint()
+}
+
+// --- Yank: Kontext (Meilenstein→Sprints / Sprint→Issues) in Clipboard ---
+
+func (m model) yankContext() (tea.Model, tea.Cmd) {
+	switch m.depth {
+	case 0:
+		if ms := m.selMilestone(); ms != nil {
+			if err := clip.Copy(milestoneClip(ms)); err != nil {
+				m.status = "Clipboard-Fehler: " + err.Error()
+			} else {
+				m.status = "Meilenstein-Kontext kopiert (" + ms.Name + ")"
+			}
+		}
+	case 1:
+		if s := m.selSprint(); s != nil {
+			src := s
+			if m.curSprint != nil && m.curSprint.ID == s.ID {
+				src = m.curSprint
+			}
+			if err := clip.Copy(sprintClip(src)); err != nil {
+				m.status = "Clipboard-Fehler: " + err.Error()
+			} else {
+				m.status = "Sprint-Kontext kopiert (" + s.Key + ")"
+			}
+		}
+	default:
+		m.status = "Yank: auf Meilenstein (Sprints) oder Sprint (Issues) — h zurück"
+	}
+	return m, nil
+}
+
+// reviewItem ist das aktuell im Cockpit selektierte Issue.
+func (m *model) reviewItem() *api.Issue {
+	if m.curSprint != nil && m.rlist.cursor >= 0 && m.rlist.cursor < len(m.curSprint.Items) {
+		return &m.curSprint.Items[m.rlist.cursor]
+	}
+	return nil
 }
 
 // keyReview behandelt das Review-Cockpit inkl. Reject-Kommentar-Eingabe.
@@ -365,14 +572,6 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// reviewItem ist das aktuell im Cockpit selektierte Issue.
-func (m *model) reviewItem() *api.Issue {
-	if m.curSprint != nil && m.rlist.cursor >= 0 && m.rlist.cursor < len(m.curSprint.Items) {
-		return &m.curSprint.Items[m.rlist.cursor]
-	}
-	return nil
-}
-
 // focusList liefert die Liste der aktuellen Fokus-Ebene.
 func (m *model) focusList() *listState {
 	switch m.depth {
@@ -391,7 +590,7 @@ func (m *model) onFocusMove() tea.Cmd {
 	case 0:
 		m.slist.reset()
 		m.ilist.reset()
-		m.slist.setLen(len(m.sprintsOfSel()))
+		m.slist.setLen(len(m.visSprints()))
 		return m.syncSprint()
 	case 1:
 		m.ilist.reset()

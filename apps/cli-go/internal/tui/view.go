@@ -13,64 +13,28 @@ func (m model) View() string {
 	if m.err != nil {
 		return fmt.Sprintf("\n  %s\n\n  q: quit\n", lipgloss.NewStyle().Foreground(theme.Red).Render("Fehler: "+m.err.Error()))
 	}
+	var base string
 	switch m.view {
 	case viewPicker:
-		return m.viewPicker()
+		base = m.viewPicker()
 	case viewBacklog:
-		return m.viewBacklog()
+		base = m.viewBacklog()
 	case viewDetail:
-		return m.viewDetail()
+		base = m.viewDetail()
+	case viewMilestone:
+		base = m.viewMilestone()
 	case viewReview:
-		return m.viewReview()
+		base = m.viewReview()
 	default:
-		return m.viewColumns()
+		base = m.viewColumns()
 	}
+	if m.filtering {
+		return m.overlayFilter(base)
+	}
+	return base
 }
 
-func (m model) viewReview() string {
-	var b strings.Builder
-	b.WriteString(m.header() + "\n\n")
-	title := "Review"
-	if m.curSprint != nil {
-		title = "Review " + m.curSprint.Key + " — " + m.curSprint.Name
-	}
-	b.WriteString("  " + theme.Header.Render(title) + "\n\n")
-	if m.curSprint == nil {
-		b.WriteString("  " + lipgloss.NewStyle().Foreground(theme.Overlay).Render("(lädt …)") + "\n")
-		return b.String()
-	}
-	for i, it := range m.curSprint.Items {
-		cursor := "  "
-		if i == m.rlist.cursor {
-			cursor = theme.Key.Render("▸ ")
-		}
-		b.WriteString("  " + cursor + fmt.Sprintf("%-9s %-40s %s", it.Key, truncate(it.Title, 40), api_short(it.Status)) + "\n")
-	}
-	if it := m.reviewItem(); it != nil {
-		b.WriteString("\n  " + theme.Header.Render(truncate(it.Key+" — "+it.Title, m.width-4)) + "\n")
-		if it.Result != nil && *it.Result != "" {
-			b.WriteString("  " + lipgloss.NewStyle().Foreground(theme.Subtext).Render("Result: "+truncate(*it.Result, maxInt(20, m.width-14))) + "\n")
-		}
-	}
-	b.WriteString("\n")
-	if m.inputting {
-		b.WriteString("  " + theme.Key.Render(m.status) + m.input + "▏\n")
-	} else {
-		hint := "a:pass  x:reject(+Kommentar)  S:→review  C:abschließen(PO)  j/k:↑↓  q:zurück"
-		if m.status != "" {
-			hint = m.status
-		}
-		b.WriteString("  " + lipgloss.NewStyle().Foreground(theme.Overlay).Render(hint) + "\n")
-	}
-	return b.String()
-}
-
-func maxInt(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
+// --- Header / Footer ---
 
 func (m model) header() string {
 	name := "—"
@@ -78,8 +42,9 @@ func (m model) header() string {
 		name = fmt.Sprintf("%s (%s)", m.project.Slug, m.project.Prefix)
 	}
 	left := theme.Header.Render("dd · " + name)
-	right := lipgloss.NewStyle().Foreground(theme.Overlay).Render("[p]rojekt  [b]acklog  [?]hilfe  [q]uit")
-	gap := m.width - lipgloss.Width(left) - lipgloss.Width(right)
+	right := theme.Dim.Render("[p]rojekt  [b]acklog  [f]ilter  [y]ank  [?]hilfe  [q]uit")
+	w := m.termWidth()
+	gap := w - lipgloss.Width(left) - lipgloss.Width(right)
 	if gap < 1 {
 		gap = 1
 	}
@@ -87,12 +52,29 @@ func (m model) header() string {
 }
 
 func (m model) footer() string {
-	hint := "j/k:↑↓  l/→/tab:rein  h/←:raus  enter:Detail  b:Backlog  q:quit"
+	hint := "j/k:↑↓  l/→/tab:rein  h/←:raus  enter:Detail  f:Filter  y:Yank  b:Backlog  R:Review  q:quit"
 	if m.status != "" {
 		hint = m.status
 	}
-	return lipgloss.NewStyle().Foreground(theme.Overlay).Render(hint)
+	return theme.Dim.Render(hint)
 }
+
+func (m model) termWidth() int {
+	if m.width < 30 {
+		return 100
+	}
+	return m.width
+}
+
+func (m model) bodyHeight() int {
+	h := m.height - 4
+	if h < 6 {
+		return 18
+	}
+	return h
+}
+
+// --- Picker ---
 
 func (m model) viewPicker() string {
 	var b strings.Builder
@@ -101,14 +83,16 @@ func (m model) viewPicker() string {
 		cursor := "  "
 		line := fmt.Sprintf("%-10s %-26s %d Sprints · %d Backlog", p.Prefix, p.Name, p.SprintCount, p.BacklogCount)
 		if i == m.plist.cursor {
-			cursor = theme.Key.Render("▸ ")
+			cursor = theme.Accent.Render("▸ ")
 			line = theme.Header.Render(line)
 		}
 		b.WriteString("  " + cursor + line + "\n")
 	}
-	b.WriteString("\n  " + lipgloss.NewStyle().Foreground(theme.Overlay).Render("j/k:↑↓  enter:wählen  q:quit") + "\n")
+	b.WriteString("\n  " + theme.Dim.Render("j/k:↑↓  enter:wählen  q:quit") + "\n")
 	return b.String()
 }
+
+// --- Miller-Columns ---
 
 type pane struct {
 	title  string
@@ -122,7 +106,7 @@ func (m model) viewColumns() string {
 		{title: "Meilensteine", rows: m.msRows(), cursor: m.mlist.cursor, isList: true},
 		{title: m.ctxTitle("Sprints", m.selMilestone() != nil, msName(m.selMilestone())), rows: m.spRows(), cursor: m.slist.cursor, isList: true},
 		{title: m.ctxTitle("Issues", m.selSprint() != nil, spKey(m.selSprint())), rows: m.isRows(), cursor: m.ilist.cursor, isList: true},
-		{title: "Detail", rows: m.detailRows(), isList: false},
+		{title: "Vorschau", rows: m.detailRows(), isList: false},
 	}
 	start := m.depth
 	end := start + 3
@@ -130,97 +114,151 @@ func (m model) viewColumns() string {
 		end = len(all)
 	}
 	visible := all[start:end]
+	n := len(visible)
 
-	w := m.width
-	if w < 30 {
-		w = 80
+	w := m.termWidth()
+	colW := (w - n*2) / n // Border frisst 2 Spalten je Pane
+	if colW < 12 {
+		colW = 24
 	}
-	colW := (w - len(visible)*1) / len(visible)
-	bodyH := m.height - 4
-	if bodyH < 5 {
-		bodyH = 16
-	}
+	h := m.bodyHeight()
 
-	cols := make([]string, len(visible))
+	cols := make([]string, n)
 	for i, p := range visible {
 		focused := (start + i) == m.depth
-		cols[i] = renderPane(p, colW, bodyH, focused)
+		cols[i] = renderPane(p, colW, h, focused)
 	}
 	body := lipgloss.JoinHorizontal(lipgloss.Top, cols...)
 	return m.header() + "\n" + body + "\n" + m.footer()
 }
 
 func renderPane(p pane, w, h int, focused bool) string {
-	titleStyle := lipgloss.NewStyle().Foreground(theme.Overlay)
+	titleStyle := theme.Dim
 	if focused {
 		titleStyle = theme.Header
 	}
 	var b strings.Builder
 	b.WriteString(titleStyle.Render(truncate(p.title, w)) + "\n")
-	b.WriteString(strings.Repeat("─", min(w, lipgloss.Width(p.title)+2)) + "\n")
-	for i := 0; i < h && i < len(p.rows); i++ {
+	b.WriteString(theme.Dim.Render(strings.Repeat("─", min(w, lipgloss.Width(p.title)+2))) + "\n")
+	max := h - 2 // Titel + Trennlinie
+	for i := 0; i < max && i < len(p.rows); i++ {
 		row := truncate(p.rows[i], w-2)
 		if p.isList && i == p.cursor && focused {
-			row = theme.Key.Render("▸ ") + row
+			row = theme.Accent.Render("▸ ") + row
 		} else if p.isList {
 			row = "  " + row
 		}
 		b.WriteString(row + "\n")
 	}
-	style := lipgloss.NewStyle().Width(w).Height(h)
+	border := lipgloss.RoundedBorder()
+	col := theme.Overlay
 	if focused {
-		style = style.BorderStyle(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve)
-	} else {
-		style = style.BorderStyle(lipgloss.RoundedBorder()).BorderForeground(theme.Overlay)
+		col = theme.Mauve
 	}
-	return style.Render(b.String())
+	return lipgloss.NewStyle().
+		Width(w).Height(h).
+		Border(border).BorderForeground(col).
+		Render(b.String())
 }
 
 func (m model) msRows() []string {
-	rows := make([]string, len(m.milestones))
-	for i, ms := range m.milestones {
-		rows[i] = fmt.Sprintf("%s  %s  %d/%d", statusDot(ms.Status), ms.Name, ms.Done, ms.Total)
+	ms := m.visMilestonesRaw()
+	rows := make([]string, len(ms))
+	for i, x := range ms {
+		def := ""
+		if x.Deferred == 1 {
+			def = theme.Dim.Render(" ⏸")
+		}
+		rows[i] = fmt.Sprintf("%s %s  %s%s", statusDot(x.Status), x.Name,
+			theme.Dim.Render(fmt.Sprintf("%d/%d", x.Done, x.Total)), def)
+	}
+	if len(rows) == 0 {
+		return []string{theme.Dim.Render("(keine — f für Filter)")}
 	}
 	return rows
 }
 
 func (m model) spRows() []string {
-	sp := m.sprintsOfSel()
+	sp := m.visSprints()
 	rows := make([]string, len(sp))
 	for i, s := range sp {
-		rows[i] = fmt.Sprintf("%-8s %s  %d/%d", s.Key, api_short(s.Status), s.DoneCount, s.ItemCount)
+		rows[i] = fmt.Sprintf("%-8s %s  %s", s.Key, statusText(s.Status),
+			theme.Dim.Render(fmt.Sprintf("%d/%d", s.DoneCount, s.ItemCount)))
+	}
+	if len(rows) == 0 && m.selMilestone() != nil {
+		return []string{theme.Dim.Render("(keine Sprints)")}
 	}
 	return rows
 }
 
 func (m model) isRows() []string {
-	is := m.issuesOfSel()
-	if is == nil && m.selSprint() != nil {
-		return []string{lipgloss.NewStyle().Foreground(theme.Overlay).Render("(lädt …)")}
+	if m.selSprint() != nil && m.curSprint == nil {
+		return []string{theme.Dim.Render("(lädt …)")}
 	}
+	is := m.visIssues()
 	rows := make([]string, len(is))
 	for i, it := range is {
-		rows[i] = fmt.Sprintf("%-9s %s", it.Key, it.Title)
+		rows[i] = fmt.Sprintf("%s %s %-9s %s", theme.TypeIcon(it.Type), theme.Priority(it.Priority), it.Key, it.Title)
+	}
+	if len(rows) == 0 && m.selSprint() != nil {
+		return []string{theme.Dim.Render("(keine Issues)")}
 	}
 	return rows
 }
 
+// detailRows ist die schmale Vorschau-Spalte (4. Pane).
 func (m model) detailRows() []string {
 	it := m.selIssue()
 	if it == nil {
-		return []string{lipgloss.NewStyle().Foreground(theme.Overlay).Render("(Issue wählen →)")}
+		return []string{theme.Dim.Render("(Issue wählen →)")}
 	}
 	rows := []string{
 		theme.Key.Render(it.Key),
-		fmt.Sprintf("%s · P%d", it.Type, it.Priority),
+		fmt.Sprintf("%s %s · %s", theme.TypeIcon(it.Type), theme.TypeStyle(it.Type).Render(it.Type), theme.Priority(it.Priority)),
 		theme.StatusStyle(it.Status).Render(it.Status),
 		"",
 	}
-	if it.Goal != nil && *it.Goal != "" {
-		rows = append(rows, "Goal:", *it.Goal)
+	if g := deref(it.Goal); g != "" {
+		rows = append(rows, theme.Dim.Render("Goal:"), g)
 	}
+	rows = append(rows, "", theme.Dim.Render("enter: Issue Details"))
 	return rows
 }
+
+// --- Meilenstein-Detail (#1) ---
+
+func (m model) viewMilestone() string {
+	ms := m.selMilestone()
+	if ms == nil {
+		return "\n  (kein Meilenstein)\n"
+	}
+	var b strings.Builder
+	b.WriteString(theme.Header.Render("Meilenstein") + "\n\n")
+	b.WriteString(theme.Header.Render(ms.Name) + "\n")
+	meta := fmt.Sprintf("Status: %s   Fortschritt: %d/%d", statusText(ms.Status), ms.Done, ms.Total)
+	if d := deref(ms.TargetDate); d != "" {
+		meta += "   Ziel: " + d
+	}
+	if ms.Deferred == 1 {
+		meta += "   " + theme.Dim.Render("⏸ zurückgestellt")
+	}
+	b.WriteString(meta + "\n")
+	if d := deref(ms.Description); d != "" {
+		b.WriteString("\n" + theme.Dim.Render("Beschreibung:") + "\n" + d + "\n")
+	}
+	b.WriteString("\n" + theme.Dim.Render(fmt.Sprintf("Sprints (%d):", len(ms.Sprints))) + "\n")
+	for _, s := range ms.Sprints {
+		goal := ""
+		if g := deref(s.Goal); g != "" {
+			goal = "  " + theme.Dim.Render("— "+truncate(g, 50))
+		}
+		b.WriteString(fmt.Sprintf("  %-8s %s  %s%s\n", s.Key, statusText(s.Status), truncate(s.Name, 30), goal))
+	}
+	b.WriteString("\n" + theme.Dim.Render("y: Sprints kopieren   esc/q: zurück") + "\n")
+	return boxed(b.String(), m.termWidth(), theme.Mauve)
+}
+
+// --- Issue-Detail (#5 Rahmen, #6 alle Felder, #9 Titel) ---
 
 func (m model) viewDetail() string {
 	it := m.selIssue()
@@ -228,35 +266,167 @@ func (m model) viewDetail() string {
 		return "\n  (kein Issue)\n"
 	}
 	var b strings.Builder
-	b.WriteString("\n  " + theme.StatusStyle(it.Status).Render(it.Status) + "  " + theme.Key.Render(it.Key) + "\n")
-	b.WriteString("  " + theme.Header.Render(it.Title) + "\n")
-	b.WriteString(fmt.Sprintf("  Typ: %s  Prio: P%d\n", it.Type, it.Priority))
-	if it.Goal != nil && *it.Goal != "" {
-		b.WriteString("\n  Goal:\n  " + *it.Goal + "\n")
+	b.WriteString(theme.Header.Render("Issue Details") + "\n\n")
+	b.WriteString(theme.StatusStyle(it.Status).Render(it.Status) + "  " +
+		theme.Key.Render(it.Key) + "  " + theme.TypeIcon(it.Type) + " " +
+		theme.TypeStyle(it.Type).Render(it.Type) + "  " + theme.Priority(it.Priority) + "\n")
+	b.WriteString(theme.Header.Render(it.Title) + "\n")
+
+	meta := []string{}
+	if s := deref(it.Milestone); s != "" {
+		meta = append(meta, "Meilenstein: "+s)
 	}
-	if it.Result != nil && *it.Result != "" {
-		b.WriteString("\n  Result:\n  " + *it.Result + "\n")
+	if s := deref(it.SprintKey); s != "" {
+		meta = append(meta, "Sprint: "+s)
 	}
-	b.WriteString("\n  " + lipgloss.NewStyle().Foreground(theme.Overlay).Render("esc/q: zurück") + "\n")
-	return b.String()
+	if len(it.Tags) > 0 {
+		names := make([]string, len(it.Tags))
+		for i, t := range it.Tags {
+			names[i] = t.Name
+		}
+		meta = append(meta, "Tags: "+strings.Join(names, ", "))
+	}
+	if len(meta) > 0 {
+		b.WriteString(theme.Dim.Render(strings.Join(meta, "   ")) + "\n")
+	}
+
+	field := func(label, val string) {
+		if strings.TrimSpace(val) == "" {
+			return
+		}
+		b.WriteString("\n" + theme.Accent.Render(label+":") + "\n" + val + "\n")
+	}
+	field("Goal", deref(it.Goal))
+	field("Background", deref(it.Background))
+	field("Beschreibung", deref(it.Description))
+	field("Context Notes", deref(it.ContextNotes))
+	field("Relevant Files", deref(it.RelevantFiles))
+	field("PO Notes", deref(it.PoNotes))
+	field("Result", deref(it.Result))
+	if rs := deref(it.ReviewStatus); rs != "" {
+		field("Review", rs+"  "+deref(it.ReviewComment))
+	}
+
+	stamp := []string{}
+	if s := deref(it.CreatedAt); s != "" {
+		stamp = append(stamp, "erstellt "+s)
+	}
+	if s := deref(it.RefinedAt); s != "" {
+		stamp = append(stamp, "refined "+s)
+	}
+	if len(stamp) > 0 {
+		b.WriteString("\n" + theme.Dim.Render(strings.Join(stamp, " · ")) + "\n")
+	}
+	b.WriteString("\n" + theme.Dim.Render("esc/q: zurück") + "\n")
+	return boxed(b.String(), m.termWidth(), theme.Mauve)
 }
+
+// --- Backlog (#2 Rahmen) ---
 
 func (m model) viewBacklog() string {
 	var b strings.Builder
-	b.WriteString(m.header() + "\n\n")
-	b.WriteString("  " + theme.Header.Render("Backlog") + "\n\n")
+	b.WriteString(theme.Header.Render("Backlog") + theme.Dim.Render("   (neu + geplant ohne Sprint)") + "\n\n")
+	if len(m.backlog) == 0 {
+		b.WriteString(theme.Dim.Render("(leer)") + "\n")
+	}
 	for i, it := range m.backlog {
 		cursor := "  "
 		if i == m.blist.cursor {
-			cursor = theme.Key.Render("▸ ")
+			cursor = theme.Accent.Render("▸ ")
 		}
-		b.WriteString("  " + cursor + fmt.Sprintf("%-9s %s  %s", it.Key, truncate(it.Title, 50), api_short(it.Status)) + "\n")
+		b.WriteString(cursor + fmt.Sprintf("%s %s %-9s %-46s %s",
+			theme.TypeIcon(it.Type), theme.Priority(it.Priority), it.Key,
+			truncate(it.Title, 46), statusText(it.Status)) + "\n")
 	}
-	b.WriteString("\n  " + lipgloss.NewStyle().Foreground(theme.Overlay).Render("j/k:↑↓  b/esc:zurück  q:quit") + "\n")
+	b.WriteString("\n" + theme.Dim.Render("j/k:↑↓  b/esc:zurück  q:quit") + "\n")
+	return boxed(b.String(), m.termWidth(), theme.Mauve)
+}
+
+// --- Review-Cockpit ---
+
+func (m model) viewReview() string {
+	var b strings.Builder
+	b.WriteString(m.header() + "\n\n")
+	title := "Review"
+	if m.curSprint != nil {
+		title = "Review " + m.curSprint.Key + " — " + m.curSprint.Name
+	}
+	b.WriteString("  " + theme.Header.Render(title) + "\n\n")
+	if m.curSprint == nil {
+		b.WriteString("  " + theme.Dim.Render("(lädt …)") + "\n")
+		return b.String()
+	}
+	for i, it := range m.curSprint.Items {
+		cursor := "  "
+		if i == m.rlist.cursor {
+			cursor = theme.Accent.Render("▸ ")
+		}
+		b.WriteString("  " + cursor + fmt.Sprintf("%s %s %-9s %-40s %s",
+			theme.TypeIcon(it.Type), theme.Priority(it.Priority), it.Key,
+			truncate(it.Title, 40), statusText(it.Status)) + "\n")
+	}
+	if it := m.reviewItem(); it != nil {
+		b.WriteString("\n  " + theme.Header.Render(truncate(it.Key+" — "+it.Title, m.termWidth()-4)) + "\n")
+		if g := deref(it.Goal); g != "" {
+			b.WriteString("  " + theme.Dim.Render("Goal: "+truncate(g, maxInt(20, m.termWidth()-14))) + "\n")
+		}
+		if r := deref(it.Result); r != "" {
+			b.WriteString("  " + lipgloss.NewStyle().Foreground(theme.Subtext).Render("Result: "+truncate(r, maxInt(20, m.termWidth()-14))) + "\n")
+		}
+	}
+	b.WriteString("\n")
+	if m.inputting {
+		b.WriteString("  " + theme.Key.Render(m.status) + m.input + "▏\n")
+	} else {
+		hint := "a:pass  x:reject(+Kommentar)  S:→review  C:abschließen(PO)  j/k:↑↓  q:zurück"
+		if m.status != "" {
+			hint = m.status
+		}
+		b.WriteString("  " + theme.Dim.Render(hint) + "\n")
+	}
 	return b.String()
 }
 
-// --- kleine Helfer ---
+// --- Filter-Modal (#4/#8) ---
+
+func (m model) overlayFilter(base string) string {
+	col := []string{"Meilensteine", "Sprints", "Issues"}[clampInt(m.ftarget, 0, 2)]
+	var b strings.Builder
+	b.WriteString(theme.Header.Render("Filter · "+col) + "\n")
+	b.WriteString(theme.Dim.Render("space: an/aus   enter: anwenden   esc: schließen") + "\n\n")
+	if len(m.fopts) == 0 {
+		b.WriteString(theme.Dim.Render("(keine Werte)") + "\n")
+	}
+	fs := m.filterFor(m.ftarget)
+	for i, o := range m.fopts {
+		box := "[ ]"
+		if fs.shown(o.value) {
+			box = theme.Accent.Render("[x]")
+		}
+		cursor := "  "
+		label := o.label
+		if i == m.fcur.cursor {
+			cursor = theme.Accent.Render("▸ ")
+			label = theme.Header.Render(label)
+		}
+		b.WriteString(cursor + box + " " + label + "\n")
+	}
+	modal := boxed(b.String(), 44, theme.Mauve)
+	return base + "\n" + modal
+}
+
+// --- Helfer ---
+
+func boxed(s string, w int, border lipgloss.Color) string {
+	if w > 8 {
+		w = w - 2
+	}
+	return lipgloss.NewStyle().
+		Width(w).
+		Border(lipgloss.RoundedBorder()).BorderForeground(border).
+		Padding(0, 1).
+		Render(s)
+}
 
 func (m model) ctxTitle(base string, ok bool, ctx string) string {
 	if ok && ctx != "" {
@@ -285,12 +455,14 @@ func statusDot(status string) string {
 		return theme.StatusStyle(status).Render("●")
 	case "completed", "closed":
 		return theme.StatusStyle(status).Render("○")
+	case "cancelled":
+		return theme.StatusStyle(status).Render("✗")
 	default:
 		return theme.StatusStyle(status).Render("◌")
 	}
 }
 
-func api_short(status string) string {
+func statusText(status string) string {
 	return theme.StatusStyle(status).Render(status)
 }
 
@@ -313,4 +485,21 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func clampInt(v, lo, hi int) int {
+	if v < lo {
+		return lo
+	}
+	if v > hi {
+		return hi
+	}
+	return v
 }

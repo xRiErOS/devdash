@@ -71,12 +71,27 @@ func doSprintTo(c *api.Client, sprintID int, to string) tea.Cmd {
 	}
 }
 
+// loadBacklog liefert das echte Backlog: status=new ODER (status=planned UND
+// kein Sprint). Zwei Queries, gemerged + nach id dedupliziert.
 func loadBacklog(c *api.Client) tea.Cmd {
 	return func() tea.Msg {
-		is, err := c.ListIssues(api.IssueListOpts{})
+		neu, err := c.ListIssues(api.IssueListOpts{Status: "new"})
 		if err != nil {
 			return errMsg{err}
 		}
-		return backlogMsg{is}
+		planned, err := c.ListIssues(api.IssueListOpts{Status: "planned", SprintID: "null"})
+		if err != nil {
+			return errMsg{err}
+		}
+		seen := map[int]bool{}
+		var out []api.Issue
+		for _, it := range append(neu, planned...) {
+			if seen[it.ID] {
+				continue
+			}
+			seen[it.ID] = true
+			out = append(out, it)
+		}
+		return backlogMsg{out}
 	}
 }
