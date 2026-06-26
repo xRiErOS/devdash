@@ -745,12 +745,14 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "q", "esc":
 		m.status = ""
+		// B01: Columns nach Review immer neu laden — Verdikte/Status-Mutationen
+		// im Cockpit ändern m.curSprint, aber m.milestones (Columns) blieb stale.
 		if m.reviewReturn == viewReviewsList {
 			m.view = viewReviewsList
-			return m, loadReviewSprints(m.client) // Liste neu (abgeschlossene Sprints raus)
+			return m, tea.Batch(loadReviewSprints(m.client), loadMilestones(m.client))
 		}
 		m.view = viewColumns
-		return m, nil
+		return m, loadMilestones(m.client)
 	case "enter": // Issue-Abnahme-Modal: goal/background/User-Stories abhaken
 		if it == nil {
 			return m, nil

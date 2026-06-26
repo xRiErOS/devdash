@@ -330,9 +330,9 @@ func (m model) viewSprint() string {
 	b.WriteString("\n" + theme.Dim.Render(fmt.Sprintf("Issues (%d):", len(items))) + "\n")
 	b.WriteString(issueColHeader(40) + "\n")
 	for _, it := range items {
-		b.WriteString(fmt.Sprintf("  %s %s %-9s %-40s %-12s %s\n",
+		b.WriteString(fmt.Sprintf("  %s %s %-9s %-40s %-12s %-16s %s\n",
 			theme.TypeIcon(it.Type), theme.Priority(it.Priority), it.Key,
-			truncate(it.Title, 40), statusText(it.Status), reviewBadge(it)))
+			truncate(it.Title, 40), statusText(it.Status), reviewBadge(it), resultDot(it)))
 	}
 	if len(items) > 0 {
 		old := m.curSprint
@@ -448,9 +448,9 @@ func (m model) viewReview() string {
 		if i == m.rlist.cursor {
 			cursor = theme.Accent.Render("▸ ")
 		}
-		b.WriteString(cursor + fmt.Sprintf("%s %s %-9s %-38s %-12s %s",
+		b.WriteString(cursor + fmt.Sprintf("%s %s %-9s %-38s %-12s %-16s %s",
 			theme.TypeIcon(it.Type), theme.Priority(it.Priority), it.Key,
-			truncate(it.Title, 38), statusText(it.Status), reviewBadge(it)) + "\n")
+			truncate(it.Title, 38), statusText(it.Status), reviewBadge(it), resultDot(it)) + "\n")
 	}
 	// Review-Ergebnisse (Runden-Übersicht) unten.
 	b.WriteString("\n" + m.reviewSummary() + "\n")
@@ -488,10 +488,20 @@ func (m model) viewReview() string {
 }
 
 // issueColHeader liefert die Spalten-Überschrift (macht Status vs. Review-Verdikt
-// klar unterscheidbar). titleW = Breite der Titel-Spalte.
+// klar unterscheidbar). titleW = Breite der Titel-Spalte. Letzte Spalte
+// "Ergebnisse" = result-Indikator (I01, Gate für Sprint-Abschluss).
 func issueColHeader(titleW int) string {
-	return theme.Dim.Render(fmt.Sprintf("  %-5s%-10s%-*s %-12s %s",
-		"Typ", "Kennung", titleW, "Titel", "Status", "Review-Verdikt"))
+	return theme.Dim.Render(fmt.Sprintf("  %-5s%-10s%-*s %-12s %-16s %s",
+		"Typ", "Kennung", titleW, "Titel", "Status", "Review-Verdikt", "Ergebnisse"))
+}
+
+// resultDot zeigt, ob das result-Feld gepflegt ist (grün) oder fehlt (rot).
+// Fehlendes result blockt den Sprint-Abschluss (Backend-Gate), I01.
+func resultDot(it api.Issue) string {
+	if strings.TrimSpace(deref(it.Result)) != "" {
+		return lipgloss.NewStyle().Foreground(theme.Green).Render("●")
+	}
+	return lipgloss.NewStyle().Foreground(theme.Red).Render("●")
 }
 
 // sprintStatusMenu: schwebendes Sprint-Status-Menü (Taste S), zeigt gültige Transitions.
