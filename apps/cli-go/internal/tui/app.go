@@ -300,6 +300,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.backlog = msg.items
 		m.blist.setLen(len(m.backlog))
 		return m, nil
+	case reworkDoneMsg:
+		m.curSprint = msg.sprint
+		if m.curSprint != nil {
+			m.rlist.setLen(len(m.curSprint.Items))
+		}
+		m.status = noticeText("Rework fertig → Issue ist to_review, jetzt a:pass")
+		return m, nil
 	case tea.KeyMsg:
 		return m.handleKey(msg)
 	}
@@ -639,11 +646,23 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		if it.Status != "to_review" {
-			m.status = noticeText("Reopen nur bei to_review — bei rejected: s→in_progress→to_review (Rework)")
+			m.status = noticeText("Reopen nur bei to_review — sonst w (Rework) drücken")
 			return m, nil
 		}
 		m.status = "Reopen gesendet …"
 		return m, doReopen(m.client, it.ID, m.curSprint.ID)
+	case "w": // Rework: Issue über die Lifecycle-Kette nach to_review (entsperrt
+		// re-Review bei Edit-Lock / status≠to_review, z.B. passed mit not_passed-Verdikt)
+		if it == nil {
+			return m, nil
+		}
+		path := reworkPath(it.Status)
+		if len(path) == 0 {
+			m.status = noticeText("Issue ist bereits to_review")
+			return m, nil
+		}
+		m.status = "Rework: " + it.Status + " → " + strings.Join(path, " → ") + " …"
+		return m, doRework(m.client, it.ID, path, m.curSprint.ID)
 	case "S": // Sprint-Status toggeln: active→review (Review starten) / review→active (Runde beenden)
 		if m.curSprint == nil {
 			return m, nil
@@ -737,6 +756,29 @@ func (m model) keyStatusPick(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, doStatus(m.client, it.ID, target, m.curSprint.ID)
 	}
 	return m, nil
+}
+
+// reworkPath liefert die Statuskette vom aktuellen Status nach to_review
+// (lifecycle-konform). Leer, wenn bereits to_review.
+func reworkPath(from string) []string {
+	switch from {
+	case "to_review":
+		return nil
+	case "in_progress":
+		return []string{"to_review"}
+	case "planned":
+		return []string{"in_progress", "to_review"}
+	case "rejected":
+		return []string{"in_progress", "to_review"}
+	case "passed", "done":
+		return []string{"planned", "in_progress", "to_review"}
+	case "refined":
+		return []string{"planned", "in_progress", "to_review"}
+	case "new":
+		return []string{"refined", "planned", "in_progress", "to_review"}
+	default:
+		return []string{"to_review"}
+	}
 }
 
 // keyUserStory steuert das Abnahme-Modal: User-Stories durchgehen + Verdikt setzen.

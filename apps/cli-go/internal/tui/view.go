@@ -537,8 +537,12 @@ func usVerdictBox(v string) string {
 // reviewHints zeigt nur die im aktuellen Zustand gültigen Aktionen.
 func (m model) reviewHints() string {
 	hints := []string{"j/k:↑↓", "enter:Abnahme", "s:Status", "a:pass", "x:reject"}
-	if it := m.reviewItem(); it != nil && it.Status == "to_review" {
-		hints = append(hints, "o:reopen")
+	if it := m.reviewItem(); it != nil {
+		if it.Status == "to_review" {
+			hints = append(hints, "o:reopen")
+		} else {
+			hints = append(hints, "w:Rework→to_review")
+		}
 	}
 	if m.curSprint != nil {
 		switch m.curSprint.Status {

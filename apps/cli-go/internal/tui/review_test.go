@@ -144,6 +144,28 @@ func TestStatusMenuFiltersInvalidTransitions(t *testing.T) {
 	}
 }
 
+func TestReworkPath(t *testing.T) {
+	cases := map[string]int{"to_review": 0, "in_progress": 1, "planned": 2, "rejected": 2, "passed": 3}
+	for from, want := range cases {
+		if got := len(reworkPath(from)); got != want {
+			t.Errorf("reworkPath(%q) len=%d, want %d", from, got, want)
+		}
+	}
+	p := reworkPath("passed")
+	if len(p) == 0 || p[len(p)-1] != "to_review" {
+		t.Errorf("reworkPath(passed) muss auf to_review enden: %v", p)
+	}
+}
+
+func TestReworkDispatchesForLockedPassed(t *testing.T) {
+	m := reviewModel()
+	m.curSprint.Items[0].Status = "passed" // letztes Verdikt not_passed → Edit-Lock-Fall
+	_, cmd := m.Update(keyMsg("w"))
+	if cmd == nil {
+		t.Error("'w' sollte die Rework-Kette dispatchen")
+	}
+}
+
 func TestReviewCompleteDoubleConfirm(t *testing.T) {
 	m := reviewModel()
 	mi, cmd := m.Update(keyMsg("C"))

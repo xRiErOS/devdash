@@ -78,6 +78,28 @@ func doSprintTo(c *api.Client, sprintID int, to string) tea.Cmd {
 	}
 }
 
+// doRework fährt ein Issue über die Lifecycle-Kette nach to_review (z.B.
+// passed→planned→in_progress→to_review). Beim Erreichen von to_review öffnet das
+// Backend (maybeAutoOpenReworkRound) bei letztem not_passed-Verdikt eine frische
+// pending-Runde UND resettet den Sprint-Review-Marker → entsperrt a:pass.
+func doRework(c *api.Client, issueID int, path []string, sprintID int) tea.Cmd {
+	return func() tea.Msg {
+		for _, st := range path {
+			if _, err := c.SetIssueStatus(issueID, st); err != nil {
+				return noticeMsg{"Rework bei →" + st + ": " + cleanAPIErr(err)}
+			}
+		}
+		s, err := c.GetSprint(sprintID)
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return reworkDoneMsg{s}
+	}
+}
+
+// reworkDoneMsg signalisiert erfolgreiches Rework (Sprint neu + Hinweis).
+type reworkDoneMsg struct{ sprint *api.Sprint }
+
 // doReopen öffnet eine entschiedene Review-Runde erneut und lädt neu.
 func doReopen(c *api.Client, issueID, sprintID int) tea.Cmd {
 	return func() tea.Msg {
