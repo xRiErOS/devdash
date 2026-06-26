@@ -59,6 +59,7 @@ import { validateSpecPath, MilestoneSpecPathError } from './lib/milestoneSpecPat
 import { listNotes as listComponentNotes, getNote as getComponentNote, upsertNote as upsertComponentNote, deleteNote as deleteComponentNote, ComponentNoteError } from './lib/componentNotes.js'
 import { listMemories as listProjectMemories, getMemory as getProjectMemory, createMemory as createProjectMemory, updateMemory as updateProjectMemory, deleteMemory as deleteProjectMemory, supersedeMemory as supersedeProjectMemory, searchMemories as searchProjectMemories, getMemoryByAnchor as getProjectMemoryByAnchor, patchByAnchor as patchProjectMemoryByAnchor, ProjectMemoryError } from './lib/projectMemories.js'
 import { renderSnapshot as renderProjectMemorySnapshot, renderSplitSnapshot as renderProjectMemorySplitSnapshot } from './lib/projectMemorySnapshot.js'
+import { cascadeDeleteSprints, milestoneDeletePreview } from './lib/cascadeDelete.js'
 import { listTags as listMemoryTags, createTag as createMemoryTag, renameTag as renameMemoryTag, deleteTag as deleteMemoryTag, pruneTagsNotInRegistry as pruneMemoryTags } from './lib/memoryTags.js'
 import { listIssueDependencies, countIssueDependencies } from './lib/issueDependencies.js'
 import { resolveIssueByNumber } from './lib/issueResolve.js'
@@ -2074,13 +2075,35 @@ app.post('/api/milestones/:id/close-with-issues', (req, res) => {
   }
 })
 
+// GET /api/milestones/:id/delete-preview — Counts für den TUI-Confirm (T02b).
+app.get('/api/milestones/:id/delete-preview', (req, res) => {
+  const id = Number(req.params.id)
+  const milestone = db.prepare('SELECT id, name FROM milestones WHERE id = ?').get(id)
+  if (!milestone) return res.status(404).json({ error: 'Milestone not found' })
+  const p = milestoneDeletePreview(db, id)
+  res.json({ milestone_id: id, milestone_name: milestone.name, sprints: p.sprints, issues: p.issues, documents: p.documents })
+})
+
 app.delete('/api/milestones/:id', (req, res) => {
   const id = Number(req.params.id)
-  const sprintIds = db.prepare('SELECT id FROM sprints WHERE milestone_id = ?').all(id).map(s => s.id)
+  const milestone = db.prepare('SELECT * FROM milestones WHERE id = ?').get(id)
+  if (!milestone) return res.status(404).json({ error: 'Milestone not found' })
+  const cascade = req.query.cascade === '1' || req.query.cascade === 'true'
+  const preview = milestoneDeletePreview(db, id)
+
+  if (cascade) {
+    // Transaktional: erst alle Sprints (inkl. ihrer Issues + Kinder), dann der Meilenstein.
+    db.transaction(() => {
+      cascadeDeleteSprints(db, preview.sprintIds)
+      db.prepare('DELETE FROM milestones WHERE id = ?').run(id)
+    })()
+    auditLog('milestones', id, 'delete_cascade', milestone, null, 'devd-ui')
+    return res.json({ ok: true, deleted: { milestone_id: id, sprints: preview.sprints, issues: preview.issues, documents: preview.documents } })
+  }
+
+  // Legacy (ohne ?cascade=1): nur den Meilenstein; Sprints via FK ON DELETE SET NULL gelöst.
   db.prepare('DELETE FROM milestones WHERE id = ?').run(id)
-  // sprints.milestone_id wurde via FK ON DELETE SET NULL automatisch geleert.
-  // backlog.milestone-Cache leeren fuer betroffene Sprints.
-  for (const sid of sprintIds) syncBacklogMilestoneForSprint(sid)
+  for (const sid of preview.sprintIds) syncBacklogMilestoneForSprint(sid)
   res.status(204).end()
 })
 
@@ -3580,29 +3603,41 @@ app.put('/api/sprints/:id', (req, res) => {
 
 // DD-90: Sprint löschen — nur wenn keine Items zugewiesen sind.
 // Aktive/closed Sprints können trotzdem gelöscht werden, sofern leer.
+// GET /api/sprints/:id/delete-preview — Counts für den TUI-Confirm (T02b).
+app.get('/api/sprints/:id/delete-preview', (req, res) => {
+  const sprint = db.prepare('SELECT id, name FROM sprints WHERE id = ?').get(req.params.id)
+  if (!sprint) return res.status(404).json({ error: 'Sprint not found' })
+  const issues = db.prepare('SELECT COUNT(*) AS c FROM backlog WHERE assigned_sprint = ?').get(req.params.id).c
+  res.json({ sprint_id: Number(req.params.id), sprint_name: sprint.name, issues, documents: 0 })
+})
+
 app.delete('/api/sprints/:id', (req, res) => {
   const sprint = db.prepare('SELECT * FROM sprints WHERE id = ?').get(req.params.id)
   if (!sprint) return res.status(404).json({ error: 'Sprint not found' })
+  const cascade = req.query.cascade === '1' || req.query.cascade === 'true'
 
   const itemCount = db.prepare('SELECT COUNT(*) AS c FROM backlog WHERE assigned_sprint = ?').get(req.params.id).c
-  if (itemCount > 0) {
+  // Ohne ?cascade=1 bleibt das alte Schutz-Verhalten: 409 wenn Items zugewiesen.
+  if (!cascade && itemCount > 0) {
     return res.status(409).json({
       error: 'sprint_has_items',
-      detail: `${itemCount} Item(s) zugewiesen — zuerst entfernen oder in anderen Sprint verschieben.`,
+      detail: `${itemCount} Item(s) zugewiesen — zuerst entfernen, verschieben, oder ?cascade=1 zum Mitlöschen.`,
       item_count: itemCount,
     })
   }
 
   db.transaction(() => {
-    db.prepare('DELETE FROM archon_runs WHERE sprint_id = ?').run(req.params.id)
-    db.prepare('DELETE FROM sprints WHERE id = ?').run(req.params.id)
+    // cascadeDeleteSprints räumt Issues (inkl. Kinder) + archon_runs + Sprint.
+    // Bei itemCount=0 ist das identisch zum alten Pfad (nur archon_runs + Sprint).
+    cascadeDeleteSprints(db, [Number(req.params.id)])
     db.prepare(`INSERT INTO audit_log (agent_id, action, table_name, record_id, old_value, new_value)
                 VALUES (?, ?, ?, ?, ?, ?)`).run(
-      'devd-ui', 'delete', 'sprints', req.params.id, JSON.stringify(sprint), null
+      'devd-ui', cascade ? 'delete_cascade' : 'delete', 'sprints', req.params.id, JSON.stringify(sprint), null
     )
   })()
 
-  res.json({ ok: true, deleted_id: Number(req.params.id) })
+  // deleted_id bleibt für Rückwärtskompatibilität (OpenAPI-Schema + alt-CLI).
+  res.json({ ok: true, deleted_id: Number(req.params.id), deleted: { sprint_id: Number(req.params.id), issues: itemCount, documents: 0 } })
 })
 
 // Helper — DD-Erik-Feedback: backlog.milestone als denormalisierten Cache der
