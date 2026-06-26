@@ -45,6 +45,14 @@ type Issue struct {
 	Result         *string `json:"result"`
 }
 
+// IssueCreateBody ist der POST-Body für CreateIssue.
+type IssueCreateBody struct {
+	Title       string  `json:"title"`
+	Type        string  `json:"type"`
+	Priority    int     `json:"priority"`
+	Description *string `json:"description,omitempty"`
+}
+
 type Milestone struct {
 	ID         int      `json:"id"`
 	Name       string   `json:"name"`

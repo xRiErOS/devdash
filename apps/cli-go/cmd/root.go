@@ -17,7 +17,8 @@ var rootCmd = &cobra.Command{
 	Short: "DevDashboard CLI",
 	Long: "Sprint-, Issue-, Review- und Projekt-Kommandos gegen die DevDash API.\n\n" +
 		"Ohne Subcommand startet die interaktive TUI (folgt in Phase 2).",
-	SilenceUsage: true,
+	SilenceUsage:  true,
+	SilenceErrors: true, // main gibt den Fehler aus — kein doppeltes "Error:"
 	// Bare `dd` (kein Subcommand) → TUI. Dispatch one-shot-vs-TUI wird in Task 15
 	// verdrahtet (Leading-Slug-Erkennung, ResolveProject). Vorerst Phase-2-Stub.
 	RunE: func(cmd *cobra.Command, args []string) error {
