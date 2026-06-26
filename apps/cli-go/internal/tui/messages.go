@@ -81,6 +81,20 @@ func doSprintTo(c *api.Client, sprintID int, to string) tea.Cmd {
 	}
 }
 
+// doMilestoneStatus mutiert den Meilenstein-Status (T01) und lädt die Columns neu.
+func doMilestoneStatus(c *api.Client, id int, status string) tea.Cmd {
+	return func() tea.Msg {
+		if _, err := c.SetMilestoneStatus(id, status); err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		ms, err := c.ListMilestones("all")
+		if err != nil {
+			return errMsg{err}
+		}
+		return milestonesMsg{ms}
+	}
+}
+
 // doRework fährt ein Issue über die Lifecycle-Kette nach to_review (z.B.
 // passed→planned→in_progress→to_review). Beim Erreichen von to_review öffnet das
 // Backend (maybeAutoOpenReworkRound) bei letztem not_passed-Verdikt eine frische

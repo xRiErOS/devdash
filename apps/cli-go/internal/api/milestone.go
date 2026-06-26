@@ -31,6 +31,17 @@ func (c *Client) CreateMilestone(body MilestoneCreateBody) (*Milestone, error) {
 	return &ms, json.Unmarshal(data, &ms)
 }
 
+// SetMilestoneStatus mutiert den Meilenstein-Status (PUT /api/milestones/:id
+// {status}). Backend validiert die Transition (lifecycle, forward-only).
+func (c *Client) SetMilestoneStatus(id int, status string) (*Milestone, error) {
+	data, err := c.Do("PUT", fmt.Sprintf("/api/milestones/%d", id), map[string]any{"status": status})
+	if err != nil {
+		return nil, err
+	}
+	var ms Milestone
+	return &ms, json.Unmarshal(data, &ms)
+}
+
 // GetMilestone liefert einen Meilenstein inkl. Sprints.
 func (c *Client) GetMilestone(id int) (*Milestone, error) {
 	data, err := c.Do("GET", fmt.Sprintf("/api/milestones/%d", id), nil)

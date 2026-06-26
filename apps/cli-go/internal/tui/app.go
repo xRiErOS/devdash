@@ -96,6 +96,12 @@ type model struct {
 	rvlist        listState
 	reviewReturn  viewID // wohin Cockpit-q/esc zurückkehrt (Liste vs. Columns)
 
+	// Meilenstein-Status-Menü (T01): S auf fokussiertem Meilenstein.
+	msPick     bool
+	msmenu     listState
+	msopts     []string
+	msTargetID int
+
 	// Memory-Browser (T18): Master-Detail über project_memories.
 	memList      []api.ProjectMemory
 	memlist      listState
@@ -139,6 +145,16 @@ var issueTransitions = map[string][]string{
 	"passed":      {"planned"}, // Reopen für nächsten Sprint
 	"done":        {"planned"},
 	"cancelled":   {"refined"},
+}
+
+// milestoneTransitions spiegelt canMilestoneTransition (lifecycle.js, forward-only).
+// cancelled ausgelassen (braucht cancellation_notes) — analog Sprint-Menü.
+// active→completed gated das Backend (alle Sprints terminal) → kommt als Hinweis zurück.
+var milestoneTransitions = map[string][]string{
+	"planning":  {"active"},
+	"active":    {"completed"},
+	"completed": {"active"}, // sanktionierter Reopen (DD-357)
+	"cancelled": {"planning"},
 }
 
 // sprintTransitions spiegelt canSprintTransition (lifecycle.js). completed läuft
@@ -436,6 +452,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m.openPalette()
 		}
 	}
+	// Meilenstein-Status-Menü (T01) fängt vor View-Tasten.
+	if m.msPick {
+		return m.keyMilestoneStatus(msg)
+	}
 	// Filter-Modal fängt zuerst.
 	if m.filtering {
 		return m.keyFilter(msg)
@@ -477,8 +497,11 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	case viewMilestone:
-		if k == "esc" {
+		switch k {
+		case "esc":
 			m.view = viewColumns
+		case "S":
+			return m.openMilestoneStatus()
 		}
 		return m, nil
 	case viewSprint:
@@ -594,6 +617,56 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 	case "b":
 		m.view = viewBacklog
 		return m, loadBacklog(m.client)
+	case "S": // T01: Meilenstein-Status (nur auf fokussiertem Meilenstein)
+		if m.depth == 0 {
+			return m.openMilestoneStatus()
+		}
+	}
+	return m, nil
+}
+
+// openMilestoneStatus öffnet das Meilenstein-Status-Menü (T01).
+func (m model) openMilestoneStatus() (tea.Model, tea.Cmd) {
+	ms := m.selMilestone()
+	if ms == nil {
+		return m, nil
+	}
+	opts := milestoneTransitions[ms.Status]
+	if len(opts) == 0 {
+		m.status = noticeText("Keine Meilenstein-Übergänge ab '" + ms.Status + "'")
+		return m, nil
+	}
+	m.msPick = true
+	m.msTargetID = ms.ID
+	m.msmenu = listState{}
+	m.msopts = opts
+	m.msmenu.setLen(len(opts))
+	return m, nil
+}
+
+// keyMilestoneStatus steuert das Meilenstein-Status-Menü (T01).
+func (m model) keyMilestoneStatus(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch navKey(msg.String()) {
+	case "up":
+		m.msmenu.move(-1)
+		return m, nil
+	case "down":
+		m.msmenu.move(1)
+		return m, nil
+	}
+	switch msg.String() {
+	case "esc", "q", "S":
+		m.msPick = false
+		m.status = ""
+		return m, nil
+	case "enter":
+		m.msPick = false
+		if m.msmenu.cursor < 0 || m.msmenu.cursor >= len(m.msopts) {
+			return m, nil
+		}
+		target := m.msopts[m.msmenu.cursor]
+		m.status = "Meilenstein → " + target + " …"
+		return m, doMilestoneStatus(m.client, m.msTargetID, target)
 	}
 	return m, nil
 }

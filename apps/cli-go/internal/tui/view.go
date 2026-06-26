@@ -22,7 +22,42 @@ func (m model) View() string {
 	if m.paletteOpen {
 		return placeOverlay(base, m.paletteBox(), m.termWidth(), m.height)
 	}
+	if m.msPick {
+		return placeOverlay(base, m.milestoneStatusMenu(), m.termWidth(), m.height)
+	}
 	return base
+}
+
+// milestoneStatusMenu: schwebendes Meilenstein-Status-Menü (Taste S, T01).
+func (m model) milestoneStatusMenu() string {
+	var b strings.Builder
+	b.WriteString(theme.Header.Render("Meilenstein-Status setzen") + "\n")
+	cur := ""
+	if ms := m.selMilestone(); ms != nil {
+		cur = ms.Status
+	}
+	b.WriteString(theme.Dim.Render("aktuell: "+cur) + "\n\n")
+	for i, s := range m.msopts {
+		cursor := "  "
+		label := statusText(s)
+		if s == "completed" {
+			label = statusText(s) + theme.Dim.Render(" (alle Sprints müssen terminal sein)")
+		}
+		if i == m.msmenu.cursor {
+			cursor = theme.Accent.Render("▸ ")
+			label = theme.Header.Render(s)
+			if s == "completed" {
+				label = theme.Header.Render(s) + theme.Dim.Render(" (alle Sprints müssen terminal sein)")
+			}
+		}
+		b.WriteString(cursor + label + "\n")
+	}
+	b.WriteString("\n" + theme.Dim.Render("enter: setzen   esc: abbrechen"))
+	return lipgloss.NewStyle().
+		Width(46).
+		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
+		Background(theme.Base).Padding(0, 1).
+		Render(b.String())
 }
 
 func (m model) viewBase() string {
@@ -92,7 +127,7 @@ func (m model) header() string {
 }
 
 func (m model) footer() string {
-	hint := "j/k:↑↓  l/→/tab:rein  h/←:raus  enter:Detail  f:Filter  y:Yank  b:Backlog  R:Reviews  q:quit"
+	hint := "j/k:↑↓  l/→/tab:rein  h/←:raus  enter:Detail  S:M-Status  f:Filter  y:Yank  b:Backlog  R:Reviews  q:quit"
 	if m.status != "" {
 		hint = m.status
 	}
@@ -300,7 +335,7 @@ func (m model) viewMilestone() string {
 		}
 		b.WriteString(fmt.Sprintf("  %-8s %s  %s%s\n", s.Key, statusText(s.Status), truncate(s.Name, 30), goal))
 	}
-	b.WriteString("\n" + theme.Dim.Render("y: Sprints kopieren   esc/q: zurück") + "\n")
+	b.WriteString("\n" + theme.Dim.Render("S: Status   y: Sprints kopieren   esc/q: zurück") + "\n")
 	return boxed(b.String(), m.termWidth(), theme.Mauve)
 }
 
