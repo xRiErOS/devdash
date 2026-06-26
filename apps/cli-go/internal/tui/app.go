@@ -104,6 +104,19 @@ type model struct {
 	msopts     []string
 	msTargetID int
 
+	// Sprint→Meilenstein-Picker (T03 Flow A): m in Sprint-Details (single-select).
+	smPick     bool
+	smSprintID int
+	smMenu     listState
+	smOpts     []smOpt
+
+	// Meilenstein→Sprints-Zuweisung (T03 Flow B): a in Meilenstein-Detail (Checkliste).
+	maPick        bool
+	maMilestoneID int
+	maSprints     []api.Sprint
+	maChecked     map[int]bool
+	maMenu        listState
+
 	// Memory-Browser (T18): Master-Detail über project_memories.
 	memList      []api.ProjectMemory
 	memlist      listState
@@ -401,6 +414,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.memDetailID = msg.mem.ID
 		}
 		return m, nil
+	case unassignedSprintsMsg:
+		m.maSprints = msg.items
+		m.maMenu.setLen(len(m.maSprints))
+		return m, nil
 	case reworkDoneMsg:
 		m.curSprint = msg.sprint
 		if m.curSprint != nil {
@@ -462,6 +479,13 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.sprintPick {
 		return m.keySprintPick(msg)
 	}
+	// Sprint↔Meilenstein-Zuweisung (T03).
+	if m.smPick {
+		return m.keySprintMilestone(msg)
+	}
+	if m.maPick {
+		return m.keyMilestoneAssign(msg)
+	}
 	// Filter-Modal fängt zuerst.
 	if m.filtering {
 		return m.keyFilter(msg)
@@ -508,6 +532,8 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.view = viewColumns
 		case "S":
 			return m.openMilestoneStatus()
+		case "a": // T03 Flow B: Sprints diesem Meilenstein zuweisen (Checkliste)
+			return m.openMilestoneAssign()
 		}
 		return m, nil
 	case viewSprint:
@@ -516,6 +542,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.view = viewColumns
 		case "y":
 			return m.yankContext()
+		case "m": // T03 Flow A: diesen Sprint einem Meilenstein zuweisen
+			if s := m.selSprint(); s != nil {
+				return m.openSprintMilestone(s.ID)
+			}
 		}
 		return m, nil
 	case viewReviewsList:

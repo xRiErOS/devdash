@@ -30,6 +30,18 @@ func (c *Client) CreateSprint(body SprintCreateBody) (*Sprint, error) {
 	return &s, json.Unmarshal(data, &s)
 }
 
+// SetSprintMilestone weist den Sprint einem Meilenstein zu (milestoneID=nil →
+// lösen). PUT /api/sprints/:id {milestone_id}. Backend prüft Projekt-Match +
+// lehnt abgeschlossene Meilensteine ab (422).
+func (c *Client) SetSprintMilestone(id int, milestoneID *int) (*Sprint, error) {
+	data, err := c.Do("PUT", fmt.Sprintf("/api/sprints/%d", id), map[string]any{"milestone_id": milestoneID})
+	if err != nil {
+		return nil, err
+	}
+	var s Sprint
+	return &s, json.Unmarshal(data, &s)
+}
+
 // GetSprint liefert einen Sprint inkl. eingebetteter items (Issues).
 func (c *Client) GetSprint(id int) (*Sprint, error) {
 	data, err := c.Do("GET", fmt.Sprintf("/api/sprints/%d", id), nil)

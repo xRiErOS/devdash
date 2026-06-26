@@ -28,6 +28,12 @@ func (m model) View() string {
 	if m.sprintPick { // T05: view-übergreifend (Cockpit + Ranger-Columns)
 		return placeOverlay(base, m.sprintStatusMenu(), m.termWidth(), m.height)
 	}
+	if m.smPick { // T03 Flow A: Sprint→Meilenstein-Picker
+		return placeOverlay(base, m.sprintMilestoneMenu(), m.termWidth(), m.height)
+	}
+	if m.maPick { // T03 Flow B: Meilenstein→Sprints-Checkliste
+		return placeOverlay(base, m.milestoneAssignMenu(), m.termWidth(), m.height)
+	}
 	return base
 }
 
@@ -338,7 +344,7 @@ func (m model) viewMilestone() string {
 		}
 		b.WriteString(fmt.Sprintf("  %-8s %s  %s%s\n", s.Key, statusText(s.Status), truncate(s.Name, 30), goal))
 	}
-	b.WriteString("\n" + theme.Dim.Render("S: Status   y: Sprints kopieren   esc/q: zurück") + "\n")
+	b.WriteString("\n" + theme.Dim.Render("S: Status   a: Sprints zuweisen   y: kopieren   esc/q: zurück") + "\n")
 	return boxed(b.String(), m.termWidth(), theme.Mauve)
 }
 
@@ -378,7 +384,7 @@ func (m model) viewSprint() string {
 		b.WriteString("\n" + m.reviewSummary() + "\n")
 		m.curSprint = old
 	}
-	b.WriteString("\n" + theme.Dim.Render("R: Review-Cockpit   y: Issues kopieren   esc/q: zurück"))
+	b.WriteString("\n" + theme.Dim.Render("R: Review-Cockpit   m: Meilenstein   y: Issues kopieren   esc/q: zurück"))
 	return "\n" + boxed(b.String(), m.termWidth(), theme.Mauve)
 }
 

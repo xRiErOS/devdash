@@ -95,6 +95,58 @@ func doMilestoneStatus(c *api.Client, id int, status string) tea.Cmd {
 	}
 }
 
+// doSetSprintMilestone weist einen Sprint einem Meilenstein zu (nil → lösen, T03)
+// und lädt die Columns neu.
+func doSetSprintMilestone(c *api.Client, sprintID int, milestoneID *int) tea.Cmd {
+	return func() tea.Msg {
+		if _, err := c.SetSprintMilestone(sprintID, milestoneID); err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		ms, err := c.ListMilestones("all")
+		if err != nil {
+			return errMsg{err}
+		}
+		return milestonesMsg{ms}
+	}
+}
+
+// doAssignSprintsToMilestone hängt mehrere Sprints an einen Meilenstein (Flow B, T03).
+func doAssignSprintsToMilestone(c *api.Client, sprintIDs []int, milestoneID int) tea.Cmd {
+	return func() tea.Msg {
+		for _, sid := range sprintIDs {
+			mid := milestoneID
+			if _, err := c.SetSprintMilestone(sid, &mid); err != nil {
+				return noticeMsg{cleanAPIErr(err)}
+			}
+		}
+		ms, err := c.ListMilestones("all")
+		if err != nil {
+			return errMsg{err}
+		}
+		return milestonesMsg{ms}
+	}
+}
+
+// unassignedSprintsMsg trägt die Sprints ohne Meilenstein (Flow B, T03).
+type unassignedSprintsMsg struct{ items []api.Sprint }
+
+// loadUnassignedSprints holt alle Sprints und filtert die ohne Meilenstein.
+func loadUnassignedSprints(c *api.Client) tea.Cmd {
+	return func() tea.Msg {
+		all, err := c.ListSprints("")
+		if err != nil {
+			return errMsg{err}
+		}
+		var out []api.Sprint
+		for _, s := range all {
+			if s.MilestoneID == nil {
+				out = append(out, s)
+			}
+		}
+		return unassignedSprintsMsg{out}
+	}
+}
+
 // doRework fährt ein Issue über die Lifecycle-Kette nach to_review (z.B.
 // passed→planned→in_progress→to_review). Beim Erreichen von to_review öffnet das
 // Backend (maybeAutoOpenReworkRound) bei letztem not_passed-Verdikt eine frische
