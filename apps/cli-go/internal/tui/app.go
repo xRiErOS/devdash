@@ -81,9 +81,11 @@ type model struct {
 	statusPick      bool   // s: Issue-Status-Menü aktiv
 	smenu           listState
 	sopts           []string
-	sprintPick      bool // S: Sprint-Status-Menü aktiv
+	sprintPick      bool // Sprint-Status-Menü aktiv (Cockpit S / Columns s, T05)
 	spmenu          listState
 	spopts          []string
+	spTargetID      int    // Ziel-Sprint des Status-Menüs (Cockpit oder Columns)
+	spCurStatus     string // aktueller Status des Ziel-Sprints (Menü-Kopf)
 
 	// User-Story-Abnahme-Modal (T14): enter im Review öffnet goal/background/US.
 	usOpen    bool
@@ -456,6 +458,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.msPick {
 		return m.keyMilestoneStatus(msg)
 	}
+	// Sprint-Status-Menü (T05) ist view-übergreifend (Cockpit S + Columns s).
+	if m.sprintPick {
+		return m.keySprintPick(msg)
+	}
 	// Filter-Modal fängt zuerst.
 	if m.filtering {
 		return m.keyFilter(msg)
@@ -621,7 +627,30 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 		if m.depth == 0 {
 			return m.openMilestoneStatus()
 		}
+	case "s": // T05: Sprint-Status auf fokussiertem Sprint (Ranger-Column)
+		if m.depth == 1 {
+			if sp := m.selSprint(); sp != nil {
+				return m.openSprintStatus(sp.ID, sp.Status)
+			}
+		}
 	}
+	return m, nil
+}
+
+// openSprintStatus öffnet das Sprint-Status-Menü für einen Ziel-Sprint
+// (Cockpit S oder Columns s, T05) — lifecycle-gültige Transitions.
+func (m model) openSprintStatus(id int, status string) (tea.Model, tea.Cmd) {
+	opts := sprintTransitions[status]
+	if len(opts) == 0 {
+		m.status = noticeText("Keine Sprint-Übergänge ab '" + status + "'")
+		return m, nil
+	}
+	m.sprintPick = true
+	m.spTargetID = id
+	m.spCurStatus = status
+	m.spmenu = listState{}
+	m.spopts = opts
+	m.spmenu.setLen(len(opts))
 	return m, nil
 }
 
@@ -905,16 +934,7 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.curSprint == nil {
 			return m, nil
 		}
-		opts := sprintTransitions[m.curSprint.Status]
-		if len(opts) == 0 {
-			m.status = noticeText("Keine Sprint-Übergänge ab '" + m.curSprint.Status + "'")
-			return m, nil
-		}
-		m.sprintPick = true
-		m.spmenu = listState{}
-		m.spopts = opts
-		m.spmenu.setLen(len(m.spopts))
-		return m, nil
+		return m.openSprintStatus(m.curSprint.ID, m.curSprint.Status)
 	case "C": // Sprint abschließen — nur wenn review
 		if m.curSprint == nil {
 			return m, nil
@@ -1029,18 +1049,23 @@ func (m model) keySprintPick(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	switch msg.String() {
-	case "esc", "q", "S":
+	case "esc", "q", "S", "s":
 		m.sprintPick = false
 		m.status = ""
 		return m, nil
 	case "enter":
 		m.sprintPick = false
-		if m.curSprint == nil || m.spmenu.cursor >= len(m.spopts) {
+		if m.spTargetID == 0 || m.spmenu.cursor < 0 || m.spmenu.cursor >= len(m.spopts) {
 			return m, nil
 		}
 		target := m.spopts[m.spmenu.cursor]
 		m.status = "Sprint → " + target + " …"
-		return m, doSprintTo(m.client, m.curSprint.ID, target) // completed → /complete (gated)
+		// doSprintTo aktualisiert curSprint (Cockpit); loadMilestones hält die
+		// Ranger-Columns frisch (Status im Sprint-Pane), egal von wo getriggert.
+		return m, tea.Batch(
+			doSprintTo(m.client, m.spTargetID, target), // completed → /complete (gated)
+			loadMilestones(m.client),
+		)
 	}
 	return m, nil
 }

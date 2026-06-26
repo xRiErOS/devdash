@@ -25,6 +25,9 @@ func (m model) View() string {
 	if m.msPick {
 		return placeOverlay(base, m.milestoneStatusMenu(), m.termWidth(), m.height)
 	}
+	if m.sprintPick { // T05: view-übergreifend (Cockpit + Ranger-Columns)
+		return placeOverlay(base, m.sprintStatusMenu(), m.termWidth(), m.height)
+	}
 	return base
 }
 
@@ -127,7 +130,7 @@ func (m model) header() string {
 }
 
 func (m model) footer() string {
-	hint := "j/k:↑↓  l/→/tab:rein  h/←:raus  enter:Detail  S:M-Status  f:Filter  y:Yank  b:Backlog  R:Reviews  q:quit"
+	hint := "j/k:↑↓  l/→/tab:rein  h/←:raus  enter:Detail  S:M-Status  s:S-Status  f:Filter  y:Yank  b:Backlog  R:Reviews  q:quit"
 	if m.status != "" {
 		hint = m.status
 	}
@@ -513,9 +516,7 @@ func (m model) viewReview() string {
 	if m.statusPick {
 		return placeOverlay(base, m.statusMenu(), m.termWidth(), m.height)
 	}
-	if m.sprintPick {
-		return placeOverlay(base, m.sprintStatusMenu(), m.termWidth(), m.height)
-	}
+	// sprintPick-Overlay liegt jetzt im View()-Wrapper (T05, view-übergreifend).
 	if m.usOpen {
 		return placeOverlay(base, m.userStoryModal(), m.termWidth(), m.height)
 	}
@@ -543,11 +544,7 @@ func resultDot(it api.Issue) string {
 func (m model) sprintStatusMenu() string {
 	var b strings.Builder
 	b.WriteString(theme.Header.Render("Sprint-Status setzen") + "\n")
-	cur := ""
-	if m.curSprint != nil {
-		cur = m.curSprint.Status
-	}
-	b.WriteString(theme.Dim.Render("aktuell: "+cur) + "\n\n")
+	b.WriteString(theme.Dim.Render("aktuell: "+m.spCurStatus) + "\n\n")
 	for i, s := range m.spopts {
 		cursor := "  "
 		label := statusText(s)
