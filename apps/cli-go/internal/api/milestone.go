@@ -21,6 +21,16 @@ func (c *Client) ListMilestones(status string) ([]Milestone, error) {
 	return list, json.Unmarshal(data, &list)
 }
 
+// CreateMilestone legt einen neuen Meilenstein an (POST /api/milestones).
+func (c *Client) CreateMilestone(body MilestoneCreateBody) (*Milestone, error) {
+	data, err := c.Do("POST", "/api/milestones", body)
+	if err != nil {
+		return nil, err
+	}
+	var ms Milestone
+	return &ms, json.Unmarshal(data, &ms)
+}
+
 // GetMilestone liefert einen Meilenstein inkl. Sprints.
 func (c *Client) GetMilestone(id int) (*Milestone, error) {
 	data, err := c.Do("GET", fmt.Sprintf("/api/milestones/%d", id), nil)

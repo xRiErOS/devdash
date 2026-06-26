@@ -145,6 +145,46 @@ func doUSVerdict(c *api.Client, usID int, verdict string, issueID int) tea.Cmd {
 	}
 }
 
+// createdMsg signalisiert eine erfolgreiche Anlage (Command-Center, T16).
+// kind ∈ {issue, milestone, sprint} steuert den Folge-Reload.
+type createdMsg struct {
+	kind  string
+	label string
+}
+
+// doCreateIssue legt ein Issue an (Command-Center). Fehler → Sapphire-Hinweis.
+func doCreateIssue(c *api.Client, body api.IssueCreateBody) tea.Cmd {
+	return func() tea.Msg {
+		it, err := c.CreateIssue(body)
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return createdMsg{"issue", it.Key + " " + it.Title}
+	}
+}
+
+// doCreateMilestone legt einen Meilenstein an (Command-Center).
+func doCreateMilestone(c *api.Client, body api.MilestoneCreateBody) tea.Cmd {
+	return func() tea.Msg {
+		ms, err := c.CreateMilestone(body)
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return createdMsg{"milestone", ms.Name}
+	}
+}
+
+// doCreateSprint legt einen Sprint an (Command-Center).
+func doCreateSprint(c *api.Client, body api.SprintCreateBody) tea.Cmd {
+	return func() tea.Msg {
+		s, err := c.CreateSprint(body)
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return createdMsg{"sprint", s.Name}
+	}
+}
+
 // refreshSprint lädt den Sprint neu (gemeinsam von Aktions-Cmds genutzt).
 func refreshSprint(c *api.Client, sprintID int) tea.Msg {
 	s, err := c.GetSprint(sprintID)

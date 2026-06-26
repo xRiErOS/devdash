@@ -1,0 +1,128 @@
+package tui
+
+// forms.go — eingebettete huh-Create-Formulare für das Command-Center (T16).
+// Die Formulare laufen als Sub-Modell INNERHALB der laufenden Bubble-Tea-Loop
+// (kein eigenes form.Run() wie der One-Shot-Fallback). Werte werden NICHT über
+// Pointer gebunden (würde am Value-Copy des Models brechen), sondern nach
+// StateCompleted per keyed GetString aus dem Formular gelesen.
+
+import (
+	"fmt"
+	"strconv"
+	"strings"
+
+	"devd-cli/internal/api"
+	"devd-cli/internal/theme"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/lipgloss"
+)
+
+func nonEmpty(s string) error {
+	if strings.TrimSpace(s) == "" {
+		return fmt.Errorf("darf nicht leer sein")
+	}
+	return nil
+}
+
+// openForm baut das huh-Formular für kind und initialisiert es.
+func (m model) openForm(kind string) (tea.Model, tea.Cmd) {
+	m.formKind = kind
+	m.form = buildForm(kind, m.milestones)
+	m.status = ""
+	return m, m.form.Init()
+}
+
+// buildForm konstruiert das keyed Formular je kind (issue|milestone|sprint).
+func buildForm(kind string, milestones []api.Milestone) *huh.Form {
+	switch kind {
+	case "issue":
+		return huh.NewForm(huh.NewGroup(
+			huh.NewInput().Key("title").Title("Titel").
+				Placeholder("Kurze Beschreibung des Issues").Validate(nonEmpty),
+			huh.NewSelect[string]().Key("type").Title("Typ").Options(
+				huh.NewOption("Feature", "feature"),
+				huh.NewOption("Bug", "bug"),
+				huh.NewOption("Improvement", "improvement"),
+				huh.NewOption("Core", "core"),
+			),
+			huh.NewSelect[string]().Key("priority").Title("Priorität").Options(
+				huh.NewOption("P1 — Kritisch", "1"),
+				huh.NewOption("P2 — Hoch", "2"),
+				huh.NewOption("P3 — Mittel", "3"),
+				huh.NewOption("P4 — Niedrig", "4"),
+			),
+			huh.NewText().Key("description").Title("Beschreibung (optional)"),
+		)).WithWidth(58).WithShowHelp(true)
+	case "milestone":
+		return huh.NewForm(huh.NewGroup(
+			huh.NewInput().Key("name").Title("Name").Validate(nonEmpty),
+			huh.NewText().Key("description").Title("Beschreibung (optional)"),
+			huh.NewInput().Key("target_date").Title("Zieldatum (optional, YYYY-MM-DD)"),
+		)).WithWidth(58).WithShowHelp(true)
+	case "sprint":
+		opts := []huh.Option[string]{huh.NewOption("(kein Meilenstein)", "")}
+		for _, ms := range milestones {
+			opts = append(opts, huh.NewOption(ms.Name, strconv.Itoa(ms.ID)))
+		}
+		return huh.NewForm(huh.NewGroup(
+			huh.NewInput().Key("name").Title("Name").Validate(nonEmpty),
+			huh.NewText().Key("goal").Title("Goal (optional)"),
+			huh.NewSelect[string]().Key("milestone_id").Title("Meilenstein").Options(opts...),
+		)).WithWidth(58).WithShowHelp(true)
+	}
+	return nil
+}
+
+// formCreateCmd liest die abgeschlossenen Formularwerte und liefert den
+// passenden Create-Cmd. Wird vor dem Nullen von m.form aufgerufen.
+func (m *model) formCreateCmd() tea.Cmd {
+	get := func(k string) string { return strings.TrimSpace(m.form.GetString(k)) }
+	switch m.formKind {
+	case "issue":
+		body := api.IssueCreateBody{Title: get("title"), Type: m.form.GetString("type"), Priority: 2}
+		if p, err := strconv.Atoi(m.form.GetString("priority")); err == nil {
+			body.Priority = p
+		}
+		if d := get("description"); d != "" {
+			body.Description = &d
+		}
+		return doCreateIssue(m.client, body)
+	case "milestone":
+		body := api.MilestoneCreateBody{Name: get("name")}
+		if d := get("description"); d != "" {
+			body.Description = &d
+		}
+		if td := get("target_date"); td != "" {
+			body.TargetDate = &td
+		}
+		return doCreateMilestone(m.client, body)
+	case "sprint":
+		body := api.SprintCreateBody{Name: get("name")}
+		if g := get("goal"); g != "" {
+			body.Goal = &g
+		}
+		if mid := m.form.GetString("milestone_id"); mid != "" {
+			if id, err := strconv.Atoi(mid); err == nil {
+				body.MilestoneID = &id
+			}
+		}
+		return doCreateSprint(m.client, body)
+	}
+	return nil
+}
+
+// formBox umrahmt das huh-Formular als schwebendes Modal.
+func (m model) formBox() string {
+	titles := map[string]string{
+		"issue":     "Neues Issue",
+		"milestone": "Neuer Meilenstein",
+		"sprint":    "Neuer Sprint",
+	}
+	inner := theme.Header.Render(titles[m.formKind]) + "\n\n" + m.form.View()
+	return lipgloss.NewStyle().
+		Width(64).
+		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
+		Background(theme.Base).Padding(0, 1).
+		Render(inner)
+}

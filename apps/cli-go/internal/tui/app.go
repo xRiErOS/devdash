@@ -8,6 +8,7 @@ import (
 	"devd-cli/internal/clip"
 	"devd-cli/internal/config"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/huh"
 )
 
 type viewID int
@@ -87,6 +88,15 @@ type model struct {
 	usList    []api.UserStory
 	uslist    listState
 	usIssueID int
+
+	// Command-Center (T16): globales Action-Palette-Modal (ctrl+k / shift+k).
+	paletteOpen bool
+	palQuery    string
+	palList     listState
+
+	// Eingebettetes huh-Create-Formular (T16). nil = inaktiv.
+	form     *huh.Form
+	formKind string // issue | milestone | sprint
 }
 
 // issueStatusOptions sind die manuell wählbaren Lifecycle-Ziele. Bewusst OHNE
@@ -274,9 +284,27 @@ func navKey(k string) string {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// Aktives huh-Create-Formular (T16) fängt alle Messages, bis abgeschlossen/abgebrochen.
+	if m.form != nil {
+		if sz, ok := msg.(tea.WindowSizeMsg); ok {
+			m.width, m.height = sz.Width, sz.Height
+		}
+		return m.updateForm(msg)
+	}
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
+		return m, nil
+	case createdMsg:
+		m.status = noticeText("Angelegt: " + msg.label)
+		switch msg.kind {
+		case "milestone", "sprint":
+			return m, loadMilestones(m.client) // Columns neu (neue Spalten-Items)
+		case "issue":
+			if m.view == viewBacklog {
+				return m, loadBacklog(m.client)
+			}
+		}
 		return m, nil
 	case errMsg:
 		m.err = msg.err
@@ -328,7 +356,46 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// updateForm leitet Messages ans laufende huh-Formular weiter und feuert nach
+// Abschluss den Create-Cmd (T16). Abbruch (esc) verwirft ohne Aktion.
+func (m model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// esc bricht das Formular ab (huh selbst kennt nur ctrl+c) — vertraute Cancel-Taste.
+	if k, ok := msg.(tea.KeyMsg); ok && k.Type == tea.KeyEsc {
+		m.form = nil
+		m.formKind = ""
+		m.status = ""
+		return m, nil
+	}
+	form, cmd := m.form.Update(msg)
+	if f, ok := form.(*huh.Form); ok {
+		m.form = f
+	}
+	switch m.form.State {
+	case huh.StateCompleted:
+		createCmd := m.formCreateCmd()
+		m.form = nil
+		m.formKind = ""
+		return m, createCmd
+	case huh.StateAborted:
+		m.form = nil
+		m.formKind = ""
+		m.status = ""
+		return m, nil
+	}
+	return m, cmd
+}
+
 func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// Command-Center (T16) ist das globalste Modal — fängt vor allem anderen.
+	if m.paletteOpen {
+		return m.keyPalette(msg)
+	}
+	// ctrl+k / shift+k öffnet das Command-Center von überall (außer in Text-Eingabe).
+	if k := msg.String(); k == "ctrl+k" || k == "K" {
+		if !m.inputting {
+			return m.openPalette()
+		}
+	}
 	// Filter-Modal fängt zuerst.
 	if m.filtering {
 		return m.keyFilter(msg)

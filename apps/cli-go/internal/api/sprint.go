@@ -20,6 +20,16 @@ func (c *Client) ListSprints(status string) ([]Sprint, error) {
 	return list, json.Unmarshal(data, &list)
 }
 
+// CreateSprint legt einen neuen Sprint an (POST /api/sprints, Status planning).
+func (c *Client) CreateSprint(body SprintCreateBody) (*Sprint, error) {
+	data, err := c.Do("POST", "/api/sprints", body)
+	if err != nil {
+		return nil, err
+	}
+	var s Sprint
+	return &s, json.Unmarshal(data, &s)
+}
+
 // GetSprint liefert einen Sprint inkl. eingebetteter items (Issues).
 func (c *Client) GetSprint(id int) (*Sprint, error) {
 	data, err := c.Do("GET", fmt.Sprintf("/api/sprints/%d", id), nil)

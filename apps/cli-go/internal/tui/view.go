@@ -14,6 +14,18 @@ func (m model) View() string {
 	if m.err != nil {
 		return fmt.Sprintf("\n  %s\n\n  q: quit\n", lipgloss.NewStyle().Foreground(theme.Red).Render("Fehler: "+m.err.Error()))
 	}
+	base := m.viewBase()
+	// Command-Center (T16): Formular bzw. Palette schweben zentriert über dem Frame.
+	if m.form != nil {
+		return placeOverlay(base, m.formBox(), m.termWidth(), m.height)
+	}
+	if m.paletteOpen {
+		return placeOverlay(base, m.paletteBox(), m.termWidth(), m.height)
+	}
+	return base
+}
+
+func (m model) viewBase() string {
 	switch m.view {
 	case viewPicker:
 		return m.viewPicker()
@@ -40,7 +52,7 @@ func (m model) header() string {
 		name = fmt.Sprintf("%s (%s)", m.project.Slug, m.project.Prefix)
 	}
 	left := theme.Header.Render("dd · " + name)
-	right := theme.Dim.Render("[p]rojekt  [b]acklog  [f]ilter  [y]ank  [?]hilfe  [q]uit")
+	right := theme.Dim.Render("ctrl+k:Cmd  [p]rojekt  [b]acklog  [f]ilter  [y]ank  [q]uit")
 	w := m.termWidth()
 	gap := w - lipgloss.Width(left) - lipgloss.Width(right)
 	if gap < 1 {

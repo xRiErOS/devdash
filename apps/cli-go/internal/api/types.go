@@ -77,6 +77,22 @@ type IssueCreateBody struct {
 	Description *string `json:"description,omitempty"`
 }
 
+// MilestoneCreateBody ist der POST-Body für CreateMilestone (name Pflicht;
+// target_date wird serverseitig auto-defaulted, wenn leer).
+type MilestoneCreateBody struct {
+	Name        string  `json:"name"`
+	Description *string `json:"description,omitempty"`
+	TargetDate  *string `json:"target_date,omitempty"`
+}
+
+// SprintCreateBody ist der POST-Body für CreateSprint (name Pflicht; Sprint
+// startet serverseitig immer im Status planning).
+type SprintCreateBody struct {
+	Name        string  `json:"name"`
+	Goal        *string `json:"goal,omitempty"`
+	MilestoneID *int    `json:"milestone_id,omitempty"`
+}
+
 type Milestone struct {
 	ID          int      `json:"id"`
 	Name        string   `json:"name"`
