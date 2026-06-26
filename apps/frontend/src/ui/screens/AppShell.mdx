@@ -1,0 +1,58 @@
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './AppShell.stories.jsx'
+
+<Meta of={Stories} />
+
+# AppShell
+
+`status:open` · Screen · Cluster `AppShell`
+
+## Kurzbeschreibung
+
+Die montierte App-Hülle: `NavigationRail` (links) + `Topbar` (oben, Breadcrumb) +
+Content-Bereich (`<Outlet/>`) + `ToastHost`. Hier mit echten Screens im Content-Slot,
+damit sich Screens **mit** Shell-Chrome bewerten lassen (Rail-Highlight, Breadcrumb,
+Spacing/Tokens) — nicht nur als nackte Insel.
+
+## Zweck
+
+Der Frame selbst lebt in `src/screens/_shell/AppShellFrame.jsx` (handgebaute, dünne
+Hülle aus den aktuellen Organismen — kein `src/ui`-Bauteil) und hat dort keine eigene
+Story. Diese Story komponiert ihn für den Review-Augenschein: `MemoryRouter` aktiviert
+die Router-Hooks (`useLocation`/`useProjectNav`), der **Pfad** je Story steuert das
+aktive Rail-Item und den Breadcrumb. Presentational — Screens über Fixtures/Props,
+Navigation als Spies.
+
+## Wann verwenden
+
+- **Ja:** Screen samt Shell-Chrome bewerten (sitzt das Rail-Highlight, stimmt der
+  Breadcrumb, passt das Content-Padding).
+- **Nein:** einen Screen isoliert prüfen → dessen eigene Story (`05 SCREENS/…`).
+
+## Props
+
+<ArgTypes of={Stories} />
+
+## Zustände
+
+`RoadmapImShell` (Roadmap-Board montiert, Rail auf „Roadmap"), `IssueDetailImShell`
+(Detail-Screen, issues ohne Rail-Item → Rail-Default) und `LeereHuelle` (nur Chrome,
+leerer Content).
+
+<Canvas of={Stories.RoadmapImShell} />
+<Canvas of={Stories.IssueDetailImShell} />
+<Canvas of={Stories.LeereHuelle} />
+
+## Abhängigkeiten (Komposition)
+
+{/* AUTOGEN:composition START */}
+```mermaid
+graph TD
+  AppShell
+  classDef screen fill:#cba6f7,stroke:#1e1e2e,color:#1e1e2e
+  classDef organism fill:#89b4fa,stroke:#1e1e2e,color:#1e1e2e
+  classDef molecule fill:#a6e3a1,stroke:#1e1e2e,color:#1e1e2e
+  classDef atom fill:#f2cdcd,stroke:#1e1e2e,color:#1e1e2e
+  class AppShell screen
+```
+{/* AUTOGEN:composition END */}
