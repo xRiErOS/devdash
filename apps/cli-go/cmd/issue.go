@@ -5,6 +5,7 @@ import (
 
 	"devd-cli/internal/api"
 	"devd-cli/internal/output"
+	"devd-cli/internal/tui"
 	"github.com/spf13/cobra"
 )
 
@@ -142,17 +143,22 @@ var issueAssignCmd = &cobra.Command{
 
 var issueCreateCmd = &cobra.Command{
 	Use:   "create",
-	Short: "Neues Issue erstellen (--title; interaktive Form folgt in Task 8)",
+	Short: "Neues Issue erstellen (--title non-interaktiv, sonst Formular)",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		title, _ := cmd.Flags().GetString("title")
-		if title == "" {
-			return fmt.Errorf("--title erforderlich (interaktive huh-Form folgt in Task 8)")
-		}
-		issueType, _ := cmd.Flags().GetString("type")
-		priority, _ := cmd.Flags().GetInt("priority")
-		body := api.IssueCreateBody{Title: title, Type: issueType, Priority: priority}
-		if desc, _ := cmd.Flags().GetString("description"); desc != "" {
-			body.Description = &desc
+		var body api.IssueCreateBody
+		if title, _ := cmd.Flags().GetString("title"); title != "" {
+			issueType, _ := cmd.Flags().GetString("type")
+			priority, _ := cmd.Flags().GetInt("priority")
+			body = api.IssueCreateBody{Title: title, Type: issueType, Priority: priority}
+			if desc, _ := cmd.Flags().GetString("description"); desc != "" {
+				body.Description = &desc
+			}
+		} else {
+			form, err := tui.RunIssueCreateForm()
+			if err != nil {
+				return err
+			}
+			body = *form
 		}
 		c, err := resolveClient()
 		if err != nil {
