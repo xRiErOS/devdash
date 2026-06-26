@@ -74,7 +74,14 @@ type model struct {
 	inputting       bool   // Reject-Kommentar-Eingabe aktiv
 	input           string // Kommentar-Puffer
 	confirmComplete bool   // Doppel-C-Bestätigung für Sprint-Abschluss
+	statusPick      bool   // s: Issue-Status-Menü aktiv
+	smenu           listState
+	sopts           []string
 }
+
+// issueStatusOptions sind die manuell wählbaren Lifecycle-Ziele (Backend
+// validiert; ungültige Übergänge kommen als Sapphire-Hinweis zurück).
+var issueStatusOptions = []string{"refined", "planned", "in_progress", "to_review", "passed", "rejected", "done"}
 
 func newModel(client *api.Client, project *api.Project, global *api.Client) model {
 	m := model{client: client, project: project, global: global}
@@ -220,6 +227,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case statusMsg:
 		m.status = msg.text
+		return m, nil
+	case noticeMsg:
+		m.status = noticeText(msg.text) // Sapphire-Hinweis (Aktions-Fehler/Info)
 		return m, nil
 	case projectsMsg:
 		m.projects = msg.items
@@ -492,39 +502,13 @@ func (m *model) reviewItem() *api.Issue {
 	return nil
 }
 
-// keyReview behandelt das Review-Cockpit inkl. Reject-Kommentar-Eingabe.
+// keyReview behandelt das Review-Cockpit: Reject-Eingabe, Status-Menü, Verdikte.
 func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.inputting {
-		switch msg.Type {
-		case tea.KeyEnter:
-			comment := strings.TrimSpace(m.input)
-			m.inputting = false
-			m.input = ""
-			if comment == "" {
-				m.status = "Reject abgebrochen — Kommentar war leer"
-				return m, nil
-			}
-			it := m.reviewItem()
-			if it == nil || m.curSprint == nil {
-				return m, nil
-			}
-			m.status = "Reject gesendet …"
-			return m, doVerdict(m.client, it.ID, "not_passed", comment, m.curSprint.ID)
-		case tea.KeyEsc:
-			m.inputting = false
-			m.input = ""
-			m.status = "Reject abgebrochen"
-			return m, nil
-		case tea.KeyBackspace, tea.KeyDelete:
-			if len(m.input) > 0 {
-				r := []rune(m.input)
-				m.input = string(r[:len(r)-1])
-			}
-			return m, nil
-		default:
-			m.input += string(msg.Runes)
-			return m, nil
-		}
+		return m.keyReviewInput(msg)
+	}
+	if m.statusPick {
+		return m.keyStatusPick(msg)
 	}
 
 	switch navKey(msg.String()) {
@@ -535,39 +519,137 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.rlist.move(1)
 		return m, nil
 	}
+
+	it := m.reviewItem()
 	switch msg.String() {
 	case "q", "esc":
 		m.view = viewColumns
 		m.status = ""
 		return m, nil
-	case "a":
-		if it := m.reviewItem(); it != nil && m.curSprint != nil {
-			m.status = "Pass gesendet …"
-			return m, doVerdict(m.client, it.ID, "passed", "", m.curSprint.ID)
+	case "s": // Status manuell mutieren (auch to_review-Override)
+		if it == nil {
+			m.status = "Kein Issue gewählt"
+			return m, nil
 		}
-	case "x":
-		if m.reviewItem() != nil {
-			m.inputting = true
-			m.input = ""
-			m.status = "Reject-Kommentar (enter=senden, esc=abbrechen): "
+		m.statusPick = true
+		m.smenu = listState{}
+		m.sopts = issueStatusOptions
+		m.smenu.setLen(len(m.sopts))
+		return m, nil
+	case "a": // Pass — nur sinnvoll bei to_review
+		if it == nil {
+			return m, nil
 		}
-	case "S":
-		if m.curSprint != nil {
-			m.status = "Sprint → review …"
-			return m, doSprintTo(m.client, m.curSprint.ID, "review")
+		if it.Status != "to_review" {
+			m.status = noticeText("Pass nur bei to_review (ist: " + it.Status + ") — s zum Mutieren")
+			return m, nil
 		}
-	case "C":
+		m.status = "Pass gesendet …"
+		return m, doVerdict(m.client, it.ID, "passed", "", m.curSprint.ID)
+	case "x": // Reject — nur sinnvoll bei to_review
+		if it == nil {
+			return m, nil
+		}
+		if it.Status != "to_review" {
+			m.status = noticeText("Reject nur bei to_review (ist: " + it.Status + ")")
+			return m, nil
+		}
+		m.inputting = true
+		m.input = ""
+		m.status = "Reject-Kommentar (enter=senden, esc=abbrechen): "
+	case "o": // Reopen — nur bei passed/rejected
+		if it == nil || (it.Status != "passed" && it.Status != "rejected") {
+			m.status = noticeText("Reopen nur bei passed/rejected")
+			return m, nil
+		}
+		m.status = "Reopen gesendet …"
+		return m, doReopen(m.client, it.ID, m.curSprint.ID)
+	case "S": // Sprint → review — nur wenn active
 		if m.curSprint == nil {
+			return m, nil
+		}
+		if m.curSprint.Status != "active" {
+			m.status = noticeText("→review nur aus active (Sprint ist: " + m.curSprint.Status + ")")
+			return m, nil
+		}
+		m.status = "Sprint → review …"
+		return m, doSprintTo(m.client, m.curSprint.ID, "review")
+	case "C": // Sprint abschließen — nur wenn review
+		if m.curSprint == nil {
+			return m, nil
+		}
+		if m.curSprint.Status != "review" {
+			m.status = noticeText("Abschluss nur aus review (Sprint ist: " + m.curSprint.Status + ") — erst S")
 			return m, nil
 		}
 		if !m.confirmComplete {
 			m.confirmComplete = true
-			m.status = "Sprint abschließen? Nochmal C zum Bestätigen (PO/DD-186)"
+			m.status = noticeText("Sprint abschließen? Nochmal C zum Bestätigen (PO/DD-186)")
 			return m, nil
 		}
 		m.confirmComplete = false
 		m.status = "Sprint wird abgeschlossen …"
 		return m, doSprintTo(m.client, m.curSprint.ID, "completed")
+	}
+	return m, nil
+}
+
+func (m model) keyReviewInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.Type {
+	case tea.KeyEnter:
+		comment := strings.TrimSpace(m.input)
+		m.inputting = false
+		m.input = ""
+		if comment == "" {
+			m.status = noticeText("Reject abgebrochen — Kommentar war leer")
+			return m, nil
+		}
+		it := m.reviewItem()
+		if it == nil || m.curSprint == nil {
+			return m, nil
+		}
+		m.status = "Reject gesendet …"
+		return m, doVerdict(m.client, it.ID, "not_passed", comment, m.curSprint.ID)
+	case tea.KeyEsc:
+		m.inputting = false
+		m.input = ""
+		m.status = "Reject abgebrochen"
+		return m, nil
+	case tea.KeyBackspace, tea.KeyDelete:
+		if len(m.input) > 0 {
+			r := []rune(m.input)
+			m.input = string(r[:len(r)-1])
+		}
+		return m, nil
+	default:
+		m.input += string(msg.Runes)
+		return m, nil
+	}
+}
+
+func (m model) keyStatusPick(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch navKey(msg.String()) {
+	case "up":
+		m.smenu.move(-1)
+		return m, nil
+	case "down":
+		m.smenu.move(1)
+		return m, nil
+	}
+	switch msg.String() {
+	case "esc", "q", "s":
+		m.statusPick = false
+		m.status = ""
+		return m, nil
+	case "enter":
+		m.statusPick = false
+		it := m.reviewItem()
+		if it == nil || m.curSprint == nil || m.smenu.cursor >= len(m.sopts) {
+			return m, nil
+		}
+		target := m.sopts[m.smenu.cursor]
+		m.status = "Status → " + target + " …"
+		return m, doStatus(m.client, it.ID, target, m.curSprint.ID)
 	}
 	return m, nil
 }

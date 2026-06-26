@@ -9,7 +9,7 @@ import (
 
 func reviewModel() model {
 	m := columnsModel()
-	m.curSprint = &api.Sprint{ID: 10, Key: "SPF#1", Items: []api.Issue{
+	m.curSprint = &api.Sprint{ID: 10, Key: "SPF#1", Status: "review", Items: []api.Issue{
 		{ID: 100, Key: "SPF-1", Title: "A", Status: "to_review"},
 	}}
 	mi, _ := m.Update(keyMsg("R")) // selSprint id10 == curSprint id10
@@ -60,6 +60,35 @@ func TestReviewRejectNeedsCommentThenDispatches(t *testing.T) {
 	}
 	if m.inputting {
 		t.Error("nach enter sollte inputting=false sein")
+	}
+}
+
+func TestStatusMenuOpensAndDispatches(t *testing.T) {
+	m := reviewModel()
+	mi, _ := m.Update(keyMsg("s"))
+	m = mi.(model)
+	if !m.statusPick {
+		t.Fatal("'s' sollte Status-Menü öffnen")
+	}
+	if len(m.sopts) == 0 {
+		t.Fatal("keine Status-Optionen")
+	}
+	mi, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = mi.(model)
+	if m.statusPick {
+		t.Error("nach enter sollte Menü zu sein")
+	}
+	if cmd == nil {
+		t.Error("enter sollte Status-Mutation dispatchen")
+	}
+}
+
+func TestPassBlockedWhenNotToReview(t *testing.T) {
+	m := reviewModel()
+	m.curSprint.Items[0].Status = "in_progress"
+	_, cmd := m.Update(keyMsg("a"))
+	if cmd != nil {
+		t.Error("Pass darf bei in_progress nicht dispatchen")
 	}
 }
 

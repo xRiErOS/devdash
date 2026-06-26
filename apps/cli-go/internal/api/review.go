@@ -39,6 +39,17 @@ func (c *Client) SprintTo(id int, to string) (*Sprint, error) {
 	return &s, json.Unmarshal(data, &s)
 }
 
+// SprintComplete schließt einen Sprint ab (review→completed). Eigener Endpoint
+// statt PATCH /status — das Backend prüft passed-Reviews. PO-exklusiv (DD-186).
+func (c *Client) SprintComplete(id int) (*Sprint, error) {
+	data, err := c.Do("POST", fmt.Sprintf("/api/sprints/%d/complete", id), nil)
+	if err != nil {
+		return nil, err
+	}
+	var s Sprint
+	return &s, json.Unmarshal(data, &s)
+}
+
 // SprintReviewSubmit reicht einen Sprint zur Review ein.
 func (c *Client) SprintReviewSubmit(id int) ([]byte, error) {
 	return c.Do("POST", fmt.Sprintf("/api/sprints/%d/review-submit", id), nil)

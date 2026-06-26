@@ -348,45 +348,108 @@ func (m model) viewBacklog() string {
 
 func (m model) viewReview() string {
 	var b strings.Builder
-	b.WriteString(m.header() + "\n\n")
 	title := "Review"
 	if m.curSprint != nil {
-		title = "Review " + m.curSprint.Key + " — " + m.curSprint.Name
+		title = "Review " + m.curSprint.Key + " — " + m.curSprint.Name +
+			"  " + statusText(m.curSprint.Status)
 	}
-	b.WriteString("  " + theme.Header.Render(title) + "\n\n")
+	b.WriteString(theme.Header.Render(title) + "\n\n")
 	if m.curSprint == nil {
-		b.WriteString("  " + theme.Dim.Render("(lädt …)") + "\n")
-		return b.String()
+		b.WriteString(theme.Dim.Render("(lädt …)") + "\n")
+		return "\n" + boxed(b.String(), m.termWidth(), theme.Mauve)
 	}
 	for i, it := range m.curSprint.Items {
 		cursor := "  "
 		if i == m.rlist.cursor {
 			cursor = theme.Accent.Render("▸ ")
 		}
-		b.WriteString("  " + cursor + fmt.Sprintf("%s %s %-9s %-40s %s",
+		b.WriteString(cursor + fmt.Sprintf("%s %s %-9s %-40s %s",
 			theme.TypeIcon(it.Type), theme.Priority(it.Priority), it.Key,
 			truncate(it.Title, 40), statusText(it.Status)) + "\n")
 	}
 	if it := m.reviewItem(); it != nil {
-		b.WriteString("\n  " + theme.Header.Render(truncate(it.Key+" — "+it.Title, m.termWidth()-4)) + "\n")
+		b.WriteString("\n" + theme.Header.Render(truncate(it.Key+" — "+it.Title, m.termWidth()-6)) + "\n")
 		if g := deref(it.Goal); g != "" {
-			b.WriteString("  " + theme.Dim.Render("Goal: "+truncate(g, maxInt(20, m.termWidth()-14))) + "\n")
+			b.WriteString(theme.Dim.Render("Goal: "+truncate(g, maxInt(20, m.termWidth()-16))) + "\n")
 		}
 		if r := deref(it.Result); r != "" {
-			b.WriteString("  " + lipgloss.NewStyle().Foreground(theme.Subtext).Render("Result: "+truncate(r, maxInt(20, m.termWidth()-14))) + "\n")
+			b.WriteString(lipgloss.NewStyle().Foreground(theme.Subtext).Render("Result: "+truncate(r, maxInt(20, m.termWidth()-16))) + "\n")
+		}
+		if c := deref(it.ReviewComment); c != "" {
+			b.WriteString(theme.Dim.Render("Review: "+truncate(c, maxInt(20, m.termWidth()-16))) + "\n")
 		}
 	}
 	b.WriteString("\n")
 	if m.inputting {
-		b.WriteString("  " + theme.Key.Render(m.status) + m.input + "▏\n")
+		b.WriteString(theme.Key.Render(m.status) + m.input + "▏\n")
+	} else if m.status != "" {
+		b.WriteString(m.status + "\n") // bereits gefärbt (Sapphire/Statuszeile)
 	} else {
-		hint := "a:pass  x:reject(+Kommentar)  S:→review  C:abschließen(PO)  j/k:↑↓  q:zurück"
-		if m.status != "" {
-			hint = m.status
-		}
-		b.WriteString("  " + theme.Dim.Render(hint) + "\n")
+		b.WriteString(theme.Dim.Render(m.reviewHints()) + "\n")
 	}
-	return b.String()
+	base := "\n" + boxed(b.String(), m.termWidth(), theme.Mauve)
+	if m.statusPick {
+		return placeOverlay(base, m.statusMenu(), m.termWidth(), m.height)
+	}
+	return base
+}
+
+// reviewHints zeigt nur die im aktuellen Zustand gültigen Aktionen.
+func (m model) reviewHints() string {
+	hints := []string{"j/k:↑↓", "s:Status"}
+	if it := m.reviewItem(); it != nil {
+		switch it.Status {
+		case "to_review":
+			hints = append(hints, "a:pass", "x:reject")
+		case "passed", "rejected":
+			hints = append(hints, "o:reopen")
+		}
+	}
+	if m.curSprint != nil {
+		switch m.curSprint.Status {
+		case "active":
+			hints = append(hints, "S:→review")
+		case "review":
+			hints = append(hints, "C:abschließen(PO)")
+		}
+	}
+	hints = append(hints, "q:zurück")
+	return strings.Join(hints, "  ")
+}
+
+// statusMenu ist das schwebende Issue-Status-Menü (Taste s).
+func (m model) statusMenu() string {
+	var b strings.Builder
+	b.WriteString(theme.Header.Render("Status setzen") + "\n")
+	cur := ""
+	if it := m.reviewItem(); it != nil {
+		cur = it.Status
+	}
+	b.WriteString(theme.Dim.Render("aktuell: "+cur) + "\n\n")
+	for i, s := range m.sopts {
+		cursor := "  "
+		label := statusText(s)
+		if i == m.smenu.cursor {
+			cursor = theme.Accent.Render("▸ ")
+			label = theme.Header.Render(s)
+		}
+		mark := "  "
+		if s == cur {
+			mark = theme.Dim.Render("• ")
+		}
+		b.WriteString(cursor + mark + label + "\n")
+	}
+	b.WriteString("\n" + theme.Dim.Render("enter: setzen   esc: abbrechen"))
+	return lipgloss.NewStyle().
+		Width(30).
+		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
+		Background(theme.Base).Padding(0, 1).
+		Render(b.String())
+}
+
+// noticeText färbt einen transienten Hinweis in Sapphire (gültige Aktionen/Fehler).
+func noticeText(s string) string {
+	return lipgloss.NewStyle().Foreground(theme.Sapphire).Render(s)
 }
 
 // --- Filter-Modal (#4/#8) ---

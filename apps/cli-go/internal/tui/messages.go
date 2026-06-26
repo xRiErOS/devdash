@@ -1,12 +1,15 @@
 package tui
 
 import (
+	"strings"
+
 	"devd-cli/internal/api"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 // tea.Msg-Typen: async geladene Daten oder Aktions-Ergebnisse.
-type errMsg struct{ err error }
+type errMsg struct{ err error }       // fatal (Lade-Fehler) → Fehlerschirm
+type noticeMsg struct{ text string }  // transient (Aktions-Fehler/Hinweis) → Sapphire-Zeile
 type projectsMsg struct{ items []api.Project }
 type milestonesMsg struct{ items []api.Milestone }
 type sprintMsg struct{ sprint *api.Sprint }
@@ -44,31 +47,72 @@ func loadSprint(c *api.Client, id int) tea.Cmd {
 }
 
 // doVerdict reicht ein Review-Verdikt ein und lädt den Sprint neu (optimistic refresh).
+// Aktions-Fehler werden als noticeMsg (inline, Sapphire) gemeldet, nicht fatal.
 func doVerdict(c *api.Client, issueID int, verdict, comment string, sprintID int) tea.Cmd {
 	return func() tea.Msg {
 		if _, err := c.SubmitReview(issueID, verdict, comment, ""); err != nil {
-			return errMsg{err}
+			return noticeMsg{cleanAPIErr(err)}
 		}
-		s, err := c.GetSprint(sprintID)
-		if err != nil {
-			return errMsg{err}
-		}
-		return sprintMsg{s}
+		return refreshSprint(c, sprintID)
 	}
 }
 
-// doSprintTo wechselt den Sprint-Status (review/active/completed) und lädt neu.
+// doSprintTo wechselt den Sprint-Status. completed läuft über den dedizierten
+// /complete-Endpoint (prüft passed-Reviews), sonst PATCH /status.
 func doSprintTo(c *api.Client, sprintID int, to string) tea.Cmd {
 	return func() tea.Msg {
-		if _, err := c.SprintTo(sprintID, to); err != nil {
-			return errMsg{err}
+		var err error
+		if to == "completed" {
+			_, err = c.SprintComplete(sprintID)
+		} else {
+			_, err = c.SprintTo(sprintID, to)
 		}
-		s, err := c.GetSprint(sprintID)
 		if err != nil {
-			return errMsg{err}
+			return noticeMsg{cleanAPIErr(err)}
 		}
-		return sprintMsg{s}
+		return refreshSprint(c, sprintID)
 	}
+}
+
+// doReopen öffnet eine entschiedene Review-Runde erneut und lädt neu.
+func doReopen(c *api.Client, issueID, sprintID int) tea.Cmd {
+	return func() tea.Msg {
+		if _, err := c.ReopenReview(issueID); err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return refreshSprint(c, sprintID)
+	}
+}
+
+// doStatus mutiert den Lifecycle-Status eines Issues (auch to_review-Override).
+func doStatus(c *api.Client, issueID int, status string, sprintID int) tea.Cmd {
+	return func() tea.Msg {
+		if _, err := c.SetIssueStatus(issueID, status); err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return refreshSprint(c, sprintID)
+	}
+}
+
+// refreshSprint lädt den Sprint neu (gemeinsam von Aktions-Cmds genutzt).
+func refreshSprint(c *api.Client, sprintID int) tea.Msg {
+	s, err := c.GetSprint(sprintID)
+	if err != nil {
+		return noticeMsg{cleanAPIErr(err)}
+	}
+	return sprintMsg{s}
+}
+
+// cleanAPIErr kürzt die rohe API-Fehlermeldung auf das error-Feld.
+func cleanAPIErr(err error) string {
+	msg := err.Error()
+	if i := strings.Index(msg, `"error":"`); i >= 0 {
+		rest := msg[i+len(`"error":"`):]
+		if j := strings.Index(rest, `"`); j >= 0 {
+			return rest[:j]
+		}
+	}
+	return msg
 }
 
 // loadBacklog liefert das echte Backlog: status=new ODER (status=planned UND
