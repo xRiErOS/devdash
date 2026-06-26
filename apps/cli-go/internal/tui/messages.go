@@ -14,6 +14,7 @@ type projectsMsg struct{ items []api.Project }
 type milestonesMsg struct{ items []api.Milestone }
 type sprintMsg struct{ sprint *api.Sprint }
 type backlogMsg struct{ items []api.Issue }
+type reviewSprintsMsg struct{ items []api.Sprint } // T17: offene Review-Sprints
 type statusMsg struct{ text string }
 type userStoriesMsg struct {
 	issueID int
@@ -204,6 +205,18 @@ func cleanAPIErr(err error) string {
 		}
 	}
 	return msg
+}
+
+// loadReviewSprints liefert die offenen Review-Sprints (status=review). Mehrere
+// Sprints können gleichzeitig im Review-Zyklus stehen (T17: R entkoppelt).
+func loadReviewSprints(c *api.Client) tea.Cmd {
+	return func() tea.Msg {
+		sp, err := c.ListSprints("review")
+		if err != nil {
+			return errMsg{err}
+		}
+		return reviewSprintsMsg{sp}
+	}
 }
 
 // loadBacklog liefert das echte Backlog: status=new ODER (status=planned UND

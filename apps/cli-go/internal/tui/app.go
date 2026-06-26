@@ -21,6 +21,7 @@ const (
 	viewReview
 	viewMilestone
 	viewSprint
+	viewReviewsList
 )
 
 // filterState hält pro Spalte, welche Werte ausgeblendet sind.
@@ -89,6 +90,11 @@ type model struct {
 	uslist    listState
 	usIssueID int
 
+	// Reviews-Page (T17): R öffnet zuerst die Liste offener Review-Sprints.
+	reviewSprints []api.Sprint
+	rvlist        listState
+	reviewReturn  viewID // wohin Cockpit-q/esc zurückkehrt (Liste vs. Columns)
+
 	// Command-Center (T16): globales Action-Palette-Modal (ctrl+k / shift+k).
 	paletteOpen bool
 	palQuery    string
@@ -151,6 +157,7 @@ func allowedManualStatuses(from string) []string {
 
 func newModel(client *api.Client, project *api.Project, global *api.Client) model {
 	m := model{client: client, project: project, global: global}
+	m.reviewReturn = viewColumns // Default-Rückkehr aus dem Cockpit
 	m.fMile = filterState{hidden: map[string]bool{"completed": true, "cancelled": true, deferredKey: true}}
 	m.fSprint = filterState{hidden: map[string]bool{"completed": true, "cancelled": true}}
 	m.fIssue = filterState{hidden: map[string]bool{"cancelled": true}}
@@ -343,6 +350,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.backlog = msg.items
 		m.blist.setLen(len(m.backlog))
 		return m, nil
+	case reviewSprintsMsg:
+		m.reviewSprints = msg.items
+		m.rvlist.setLen(len(m.reviewSprints))
+		return m, nil
 	case reworkDoneMsg:
 		m.curSprint = msg.sprint
 		if m.curSprint != nil {
@@ -408,7 +419,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Globale Tasten
 	switch k {
 	case "ctrl+c", "q":
-		if m.view == viewDetail || m.view == viewBacklog || m.view == viewMilestone || m.view == viewSprint {
+		if m.view == viewDetail || m.view == viewBacklog || m.view == viewMilestone || m.view == viewSprint || m.view == viewReviewsList {
 			m.view = viewColumns
 			return m, nil
 		}
@@ -418,6 +429,8 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.view = viewPicker
 			return m, loadProjects(m.global)
 		}
+	case "R": // T17: R öffnet von überall die Liste offener Review-Sprints
+		return m.openReviewsList()
 	}
 
 	switch m.view {
@@ -441,17 +454,48 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.view = viewColumns
 		case "y":
 			return m.yankContext()
-		case "R":
-			if s := m.selSprint(); s != nil {
-				m.view = viewReview
-				m.rlist.reset()
-				m.confirmComplete = false
-				return m, m.syncSprint()
-			}
 		}
 		return m, nil
+	case viewReviewsList:
+		return m.keyReviewsList(k)
 	case viewBacklog:
 		return m.keyBacklog(k)
+	}
+	return m, nil
+}
+
+// openReviewsList öffnet die Liste offener Review-Sprints (T17).
+func (m model) openReviewsList() (tea.Model, tea.Cmd) {
+	m.view = viewReviewsList
+	m.rvlist = listState{}
+	m.status = ""
+	return m, loadReviewSprints(m.client)
+}
+
+// keyReviewsList steuert die Review-Sprint-Liste: Auswahl öffnet das Cockpit.
+func (m model) keyReviewsList(k string) (tea.Model, tea.Cmd) {
+	switch navKey(k) {
+	case "up":
+		m.rvlist.move(-1)
+		return m, nil
+	case "down":
+		m.rvlist.move(1)
+		return m, nil
+	}
+	switch k {
+	case "esc", "R":
+		m.view = viewColumns
+		return m, nil
+	case "enter":
+		if m.rvlist.cursor >= 0 && m.rvlist.cursor < len(m.reviewSprints) {
+			s := m.reviewSprints[m.rvlist.cursor]
+			m.view = viewReview
+			m.reviewReturn = viewReviewsList // q/esc kehrt zur Liste zurück
+			m.rlist.reset()
+			m.confirmComplete = false
+			m.curSprint = nil
+			return m, loadSprint(m.client, s.ID)
+		}
 	}
 	return m, nil
 }
@@ -517,17 +561,6 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 	case "b":
 		m.view = viewBacklog
 		return m, loadBacklog(m.client)
-	case "R":
-		if s := m.selSprint(); s != nil {
-			m.view = viewReview
-			m.rlist.reset()
-			m.confirmComplete = false
-			cmd := m.syncSprint()
-			if m.curSprint != nil && m.curSprint.ID == s.ID {
-				m.rlist.setLen(len(m.curSprint.Items))
-			}
-			return m, cmd
-		}
 	}
 	return m, nil
 }
@@ -683,8 +716,12 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	it := m.reviewItem()
 	switch msg.String() {
 	case "q", "esc":
-		m.view = viewColumns
 		m.status = ""
+		if m.reviewReturn == viewReviewsList {
+			m.view = viewReviewsList
+			return m, loadReviewSprints(m.client) // Liste neu (abgeschlossene Sprints raus)
+		}
+		m.view = viewColumns
 		return m, nil
 	case "enter": // Issue-Abnahme-Modal: goal/background/User-Stories abhaken
 		if it == nil {

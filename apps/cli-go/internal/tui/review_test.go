@@ -12,8 +12,12 @@ func reviewModel() model {
 	m.curSprint = &api.Sprint{ID: 10, Key: "SPF#1", Status: "review", Items: []api.Issue{
 		{ID: 100, Key: "SPF-1", Title: "A", Status: "to_review"},
 	}}
-	mi, _ := m.Update(keyMsg("R")) // selSprint id10 == curSprint id10
-	return mi.(model)
+	// T17: R öffnet jetzt erst die Reviews-Liste; Cockpit wird wie nach
+	// Listen-Auswahl direkt betreten (Cockpit-Logik selbst unverändert).
+	m.view = viewReview
+	m.reviewReturn = viewReviewsList
+	m.rlist.setLen(len(m.curSprint.Items))
+	return m
 }
 
 func TestReviewEnter(t *testing.T) {

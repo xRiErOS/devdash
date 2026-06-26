@@ -25,6 +25,7 @@ func paletteActions(m *model) []paletteAction {
 		{"create_issue", "Neues Issue anlegen"},
 		{"create_milestone", "Neuen Meilenstein anlegen"},
 		{"create_sprint", "Neuen Sprint anlegen"},
+		{"go_reviews", "Gehe zu: Offene Reviews"},
 		{"go_backlog", "Gehe zu: Backlog"},
 	}
 	if m.global != nil {
@@ -110,6 +111,8 @@ func (m model) keyPalette(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // dispatchPalette führt die gewählte Aktion aus (View-Wechsel oder Formular).
 func (m model) dispatchPalette(id string) (tea.Model, tea.Cmd) {
 	switch id {
+	case "go_reviews":
+		return m.openReviewsList()
 	case "go_backlog":
 		m.view = viewBacklog
 		return m, loadBacklog(m.client)

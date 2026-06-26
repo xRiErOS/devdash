@@ -39,9 +39,37 @@ func (m model) viewBase() string {
 		return m.viewSprint()
 	case viewReview:
 		return m.viewReview()
+	case viewReviewsList:
+		return m.viewReviewsList()
 	default:
 		return m.viewColumns() // rendert Filter-Modal inline, wenn m.filtering
 	}
+}
+
+// --- Reviews-Page (T17): Liste offener Review-Sprints ---
+
+func (m model) viewReviewsList() string {
+	var b strings.Builder
+	b.WriteString(theme.Header.Render("Offene Reviews") +
+		theme.Dim.Render("   (Sprints im Status review)") + "\n\n")
+	if len(m.reviewSprints) == 0 {
+		b.WriteString(theme.Dim.Render("(keine Sprints im Review — S im Cockpit setzt active→review)") + "\n")
+	}
+	for i, s := range m.reviewSprints {
+		cursor := "  "
+		if i == m.rvlist.cursor {
+			cursor = theme.Accent.Render("▸ ")
+		}
+		ms := ""
+		if s.MilestoneName != nil && *s.MilestoneName != "" {
+			ms = theme.Dim.Render("  — " + truncate(*s.MilestoneName, 24))
+		}
+		b.WriteString(cursor + fmt.Sprintf("%-9s %-30s %s%s",
+			s.Key, truncate(s.Name, 30), statusText(s.Status),
+			theme.Dim.Render(fmt.Sprintf("  %d/%d", s.DoneCount, s.ItemCount))) + ms + "\n")
+	}
+	b.WriteString("\n" + theme.Dim.Render("j/k:↑↓  enter:Cockpit  esc/q:zurück") + "\n")
+	return "\n" + boxed(b.String(), m.termWidth(), theme.Mauve)
 }
 
 // --- Header / Footer ---
@@ -62,7 +90,7 @@ func (m model) header() string {
 }
 
 func (m model) footer() string {
-	hint := "j/k:↑↓  l/→/tab:rein  h/←:raus  enter:Detail  f:Filter  y:Yank  b:Backlog  R:Review  q:quit"
+	hint := "j/k:↑↓  l/→/tab:rein  h/←:raus  enter:Detail  f:Filter  y:Yank  b:Backlog  R:Reviews  q:quit"
 	if m.status != "" {
 		hint = m.status
 	}
