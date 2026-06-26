@@ -136,6 +136,73 @@ export const sprintReorderContract = z.object({
   ordered_ids: z.array(z.coerce.number().int()),
 })
 
+// ── Read-/Response-Contracts (DD2 RoadmapBoard Phase 3) ───────────────────────
+// Die obigen Contracts sind write-seitig (create/update/reorder). Der Connected-
+// Wrapper des RoadmapBoard (apps/frontend/src/lib/roadmapApi.js) braucht zusätzlich
+// Response-Schemata, um GET /api/milestones, /sprints?milestone_id=none und
+// /milestones/:id/dependencies vor dem Durchreichen zu validieren (doc-promote-loop
+// Phase 3: „Nie rohe API-Response durchreichen"). Bewusst LENIENT — zod-4-Objekte
+// strippen unbekannte Keys still (kein Throw), nur die vom Board konsumierten Felder
+// sind hier gepinnt. id-Felder coerce, da SQLite je nach Treiber String/Number liefert.
+
+// Genesteter Sprint im Milestone-Listing bzw. flacher /api/sprints-Eintrag.
+export const sprintReadContract = z.object({
+  id: z.coerce.number().int(),
+  key: z.string().nullish(),
+  name: z.string().nullish(),
+  status: z.string().nullish(),
+  milestone_id: z.coerce.number().int().nullable().optional(),
+  position: z.coerce.number().nullish(),
+  issue_total: z.coerce.number().nullish(),
+  issue_done: z.coerce.number().nullish(),
+  issue_cancelled: z.coerce.number().nullish(),
+  // G2: das flache GET /api/sprints liefert die Counts unter anderen Namen als
+  // das genestete /api/milestones — beide Namensschemata zulassen, der Mapper
+  // normalisiert auf issue_total/issue_done.
+  item_count: z.coerce.number().nullish(),
+  done_count: z.coerce.number().nullish(),
+  issues: z.array(z.object({
+    key: z.string().nullish(),
+    title: z.string().nullish(),
+    status: z.string().nullish(),
+  })).nullish(),
+})
+
+// Ein Milestone aus GET /api/milestones (mit genesteten sprints[]).
+export const milestoneReadContract = z.object({
+  id: z.coerce.number().int(),
+  name: z.string().nullish(),
+  description: z.string().nullish(),
+  goal: z.string().nullish(),
+  target_date: z.string().nullish(),
+  status: z.string().nullish(),
+  position: z.coerce.number().nullish(),
+  deferred: z.coerce.number().nullish(),
+  dod_total: z.coerce.number().nullish(),
+  issue_total: z.coerce.number().nullish(),
+  issue_done: z.coerce.number().nullish(),
+  sprints: z.array(sprintReadContract).nullish(),
+})
+
+export const milestoneListReadContract = z.array(milestoneReadContract)
+
+// Dependency-Response (G3): predecessor/successor Pflicht, id/dependency_id optional
+// (Endpunkt-Shape unbestätigt — der Mapper normalisiert auf { id, predecessor_id, successor_id }).
+export const milestoneDependencyReadContract = z.object({
+  id: z.coerce.number().int().nullish(),
+  dependency_id: z.coerce.number().int().nullish(),
+  predecessor_id: z.coerce.number().int(),
+  successor_id: z.coerce.number().int(),
+})
+
+export const milestoneDependencyListReadContract = z.array(milestoneDependencyReadContract)
+
+export const sprintListReadContract = z.array(sprintReadContract)
+
+/** @typedef {z.infer<typeof milestoneReadContract>} MilestoneRead */
+/** @typedef {z.infer<typeof sprintReadContract>} SprintRead */
+/** @typedef {z.infer<typeof milestoneDependencyReadContract>} MilestoneDependencyRead */
+
 // CLI-Helper: parst gegen einen Contract und wirft einen lesbaren Fehler (statt Zod-Rohdump).
 export function parseOrThrow(schema, data, label = 'input') {
   const r = schema.safeParse(data)

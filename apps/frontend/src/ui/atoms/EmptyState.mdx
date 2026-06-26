@@ -10,19 +10,24 @@ import * as Stories from './EmptyState.stories.jsx'
 
 ## Kurzbeschreibung
 
-Leerzustand einer Liste in zwei Varianten (Spec §7): `empty` (0 Elemente im
-Projekt) und `no-match` (Filter ergibt 0 Treffer). Icon + Headline + Subtext + CTA.
+Leerzustand einer Liste in drei Varianten: `empty` (0 Elemente im Projekt),
+`no-match` (Filter ergibt 0 Treffer) und `error` (Laden fehlgeschlagen). Icon +
+Headline + Subtext + CTA.
 
 ## Zweck
 
 Gibt einem leeren `ElementList` eine handlungsleitende Fläche statt einer weißen
-Leere. Presentational, props-driven; der CTA-Klick wird nach oben gemeldet
-(`onAction`). Icon über die Registry (`backlog`), CTA über das `Button`-Atom.
+Leere — und einem Connected-Wrapper (z.B. `RoadmapBoardConnected`) eine
+Retry-Fläche bei fehlgeschlagenem Laden. Presentational, props-driven; der
+CTA-Klick wird nach oben gemeldet (`onAction`). Icon über die Registry
+(`backlog`/`alert`), CTA über das `Button`-Atom. Der `error`-Glyph trägt die
+Danger-Rolle, die neutralen Varianten bleiben mono.
 
 ## Wann verwenden
 
-- **Ja:** eine Liste/Tabelle hat 0 Zeilen — projektleer oder filterleer.
-- **Nein:** Ladezustand → Skeleton/Spinner. Fehlerzustand → eigener Error-Block.
+- **Ja:** eine Liste/Tabelle hat 0 Zeilen (`empty`/`no-match`), oder ein
+  Connected-Datenabruf ist fehlgeschlagen (`error`, mit Retry-`onAction`).
+- **Nein:** Ladezustand → Skeleton/Spinner.
 
 ## Props
 
@@ -34,6 +39,7 @@ Achse `variant`:
 
 <Canvas of={Stories.Empty} />
 <Canvas of={Stories.NoMatch} />
+<Canvas of={Stories.Error} />
 
 ## Barrierefreiheit
 

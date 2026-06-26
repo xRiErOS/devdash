@@ -9,15 +9,16 @@
  */
 import { fn } from 'storybook/test'
 import RoadmapBoard from './RoadmapBoard.jsx'
+import RoadmapBoardConnected from './RoadmapBoardConnected.jsx'
 import milestones from '../../foundations/fixtures/milestone-list.json'
 import deps from '../../foundations/fixtures/milestone-deps.json'
 import unassignedSprints from '../../foundations/fixtures/roadmap-unassigned.json'
-import { roadmapHandlers } from '../../foundations/fixtures/roadmap.handlers.js'
+import { roadmapHandlers, roadmapErrorHandlers, roadmapLoadingHandlers } from '../../foundations/fixtures/roadmap.handlers.js'
 
 const meta = {
   title: '04 ORGANISMS/RoadmapBoard',
   component: RoadmapBoard,
-  tags: ['status:open', 'qa_behavioral:n/a'],
+  tags: ['status:review', 'qa_behavioral:n/a'],
   parameters: { layout: 'fullscreen' },
   argTypes: {
     snap: {
@@ -78,4 +79,40 @@ export const DragActive = {
     initialActiveDrag: { type: 'col', id: 1 },
     initialOverId: 'drop:3',
   },
+}
+
+// — Connected (Phase 3): RoadmapBoardConnected fetcht echte Daten via src/lib;
+//   MSW bedient die Endpunkte aus Fixtures (Roundtrip-Beweis ohne Backend). —
+
+// Happy-Path: Wrapper lädt, Zod-validiert, rendert das Board.
+export const Connected = {
+  render: (args) => (
+    <div data-ui="organism.roadmapBoard.story.connected" className="bg-[var(--base)] p-[var(--space-4)] min-h-screen">
+      <RoadmapBoardConnected {...args} />
+    </div>
+  ),
+  args: { onOpenSprint: fn(), onOpenMilestone: fn() },
+  parameters: { msw: { handlers: roadmapHandlers } },
+}
+
+// Fehlerpfad: GET → 500 → fetchRoadmap wirft → Error-State (EmptyState variant="error" + Retry).
+export const ConnectedError = {
+  render: (args) => (
+    <div data-ui="organism.roadmapBoard.story.connectedError" className="bg-[var(--base)] p-[var(--space-4)] min-h-screen">
+      <RoadmapBoardConnected {...args} />
+    </div>
+  ),
+  args: { onOpenSprint: fn(), onOpenMilestone: fn() },
+  parameters: { msw: { handlers: roadmapErrorHandlers } },
+}
+
+// Ladezustand: verzögerte Response → Skeleton-Spalten bleiben stehen.
+export const ConnectedLoading = {
+  render: (args) => (
+    <div data-ui="organism.roadmapBoard.story.connectedLoading" className="bg-[var(--base)] p-[var(--space-4)] min-h-screen">
+      <RoadmapBoardConnected {...args} />
+    </div>
+  ),
+  args: { onOpenSprint: fn(), onOpenMilestone: fn() },
+  parameters: { msw: { handlers: roadmapLoadingHandlers } },
 }

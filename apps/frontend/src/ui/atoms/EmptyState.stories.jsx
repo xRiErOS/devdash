@@ -1,5 +1,5 @@
 /**
- * EmptyState — Leerzustand, 2 Varianten (Spec §7). Achse: `variant`.
+ * EmptyState — Leerzustand, 3 Varianten (Spec §7 + error). Achse: `variant`.
  */
 import EmptyState from './EmptyState.jsx'
 
@@ -9,7 +9,7 @@ const meta = {
   tags: ['status:review', 'qa_behavioral:n/a'],
   parameters: { layout: 'centered' },
   argTypes: {
-    variant: { control: 'inline-radio', options: ['empty', 'no-match'] },
+    variant: { control: 'inline-radio', options: ['empty', 'no-match', 'error'] },
   },
   args: { variant: 'empty' },
 }
@@ -29,6 +29,15 @@ export const NoMatch = {
   render: (args) => (
     <div data-ui="atom.emptyState.story.noMatch" className="w-[420px]">
       <EmptyState {...args} dataUiScope="atom.emptyState.noMatch" />
+    </div>
+  ),
+}
+
+export const Error = {
+  args: { variant: 'error' },
+  render: (args) => (
+    <div data-ui="atom.emptyState.story.error" className="w-[420px]">
+      <EmptyState {...args} dataUiScope="atom.emptyState.error" />
     </div>
   ),
 }

@@ -5,7 +5,7 @@ import * as Stories from './RoadmapBoard.stories.jsx'
 
 # RoadmapBoard
 
-`status:open` · Organism (complex) · Cluster `RoadmapBoard`
+`status:review` · Organism (complex) · Cluster `RoadmapBoard`
 
 ## Kurzbeschreibung
 
@@ -30,10 +30,24 @@ die rechte Spalte gekoppelt ist: **mit** Unassigned feste 3-Column-Breite
 (deckungsgleich mit der `BrowserToolbar`), **ohne** Unassigned füllt der Strip die
 volle Breite (`flex-1`).
 
-**Mockup-Phase (Promote 1+2):** presentational — Daten kommen als Props
-(Story-Fixtures). Kein Live-Fetch hier; der Connected-Wrapper + Route folgen in
-Phase 3 (PO). MSW-Handler (`foundations/fixtures/roadmap.handlers.js`) liegen
-dafür bereit.
+**Connected-Phase (Promote 3):** Der Organismus bleibt presentational (Daten als
+Props), der dünne **`RoadmapBoardConnected`** holt echte Daten via
+`lib/roadmapApi.js` (fetch + **Zod**-Validierung gegen die Read-Contracts in
+`@devd/api-types/milestone-sprint.contracts.js`) und reicht sie hinein — Story und
+Prod rendern **dieselbe** Board-Komponente (Alignment-Garantie). MSW
+(`foundations/fixtures/roadmap.handlers.js`) bedient die Endpunkte in Storybook;
+in Prod ruft derselbe Wrapper das Live-Backend. Reorder/Card-Move-Echos gehen über
+`roadmapApi.reorderMilestones` / `moveSprint`.
+
+**Daten-/Fehlerfluss:** `fetchRoadmap` lädt `GET /api/milestones` (genestete
+`sprints[]`), aggregiert `GET /api/milestones/:id/dependencies` (dedupliziert) und
+`GET /api/sprints?milestone_id=none`; eine Contract-Verletzung degradiert zu `[]` +
+`console.warn` (kein UI-Crash). Der Wrapper hält `loading/error` und rendert
+Skeleton bzw. `EmptyState variant="error"` mit Retry.
+
+**Scope-Grenze:** Der Organismus ist connected/produktionsreif, aber erst **live**,
+wenn ein Screen ihn einbettet (Route-Wiring `/:slug/roadmap` = separater
+Screen-Task, bewusst außerhalb dieses Scopes). `status:stable` setzt die PO.
 
 ## Wann verwenden
 
@@ -47,13 +61,16 @@ dafür bereit.
 
 ## Zustände
 
-`Default` (3 Meilensteine + Staging, Live-Drag testbar), `Empty` (kein Meilenstein
-→ EmptyState), `Loading` (Skeleton-Spalten), `DragActive` (statisch: Spalte M1
-gezogen, Drop-Ziel M3 → Indikator-Linie + isOver-Highlight, Quelle gedimmt),
-`Wide` (breite Spalten + Meilenstein-/Sprint-Details, M2 mit Dep-Badge),
-`NoUnassigned` (keine Staging-Sprints → gepinnte Unassigned-Spalte ausgeblendet),
-`SnapPlayground` (6 Meilensteine + `snap`-Control zum Vergleich der
-Scroll-Snap-Modi).
+**Presentational** (Props): `Default` (3 Meilensteine + Staging, Live-Drag testbar),
+`Empty` (kein Meilenstein → EmptyState), `Loading` (Skeleton-Spalten), `DragActive`
+(statisch: Spalte M1 gezogen, Drop-Ziel M3 → Indikator-Linie + isOver-Highlight,
+Quelle gedimmt), `Wide` (breite Spalten + Meilenstein-/Sprint-Details, M2 mit
+Dep-Badge), `NoUnassigned` (keine Staging-Sprints → gepinnte Unassigned-Spalte
+ausgeblendet), `SnapPlayground` (6 Meilensteine + `snap`-Control).
+
+**Connected** (MSW, Phase 3): `Connected` (Wrapper fetcht + Zod → Board),
+`ConnectedError` (GET 500 → Error-State + Retry), `ConnectedLoading` (verzögerte
+Response → Skeleton bleibt stehen).
 
 <Canvas of={Stories.Default} />
 <Canvas of={Stories.DragActive} />
@@ -61,6 +78,9 @@ Scroll-Snap-Modi).
 <Canvas of={Stories.NoUnassigned} />
 <Canvas of={Stories.SnapPlayground} />
 <Canvas of={Stories.Empty} />
+<Canvas of={Stories.Connected} />
+<Canvas of={Stories.ConnectedError} />
+<Canvas of={Stories.ConnectedLoading} />
 
 ## Barrierefreiheit
 
@@ -80,7 +100,9 @@ bleibt separat per Tab fokussier- und mit Enter öffenbar.
 
 ### Board-Container
 - Rolle: Daten (Props) → Spalten/Cards, DnD-Orchestrierung, Optimistic Updates.
-- Wiring-Stand: **Mockup** — presentational verdrahtet; Connected-Wrapper offen (Phase 3).
+- Wiring-Stand: **Connected** — `RoadmapBoardConnected` (fetch + Zod via `lib/roadmapApi.js`)
+  speist den presentational Organismus; Error-/Loading-States verdrahtet. **Offen:**
+  Einbettung in einen Screen + Route `/:slug/roadmap` (Screen-Task), `status:stable` (PO).
 
 ### Decision-Log
 
@@ -128,15 +150,15 @@ bleibt separat per Tab fokussier- und mit Enter öffenbar.
 | T-route | Q05/I2-4: Klick auf SprintCard/„öffnen" → Route `/:slug/sprints/:id` bzw. `/:slug/milestones/:id`. Callbacks (`onOpenSprint`/`onOpenMilestone`) verdrahtet; Route-Wiring (`useProjectNav`) in Phase 3. | 🟣 offen |
 | T-depbadge | Q07/I2-3: Dep-Kette auf dem Header — als Wide-Badge („nach M{n}") umgesetzt. Schmaler Modus zeigt es (noch) nicht. | 🟢 teilweise |
 | T-filtermenu | I2-5: `BrowserToolbar`-FilterMenu-Popover ist im Mockup leer; Status-/Typ-Filter (Slot `filterMenu`) optional ergänzen. | 🟣 offen |
-| T-connect | Phase 3: Connected-Wrapper (`src/lib` + Hooks), Routen in `_shell/routes`, Create-Aktionen, Augenschein gegen Live-Backend. | 🟣 offen |
+| T-connect | Phase 3: Connected-Wrapper (`RoadmapBoardConnected` + `lib/roadmapApi.js`, Zod, MSW-Stories, Error-/Retry-State) umgesetzt. **Rest offen:** Route in `_shell/routes` (Screen-Task), Create-Aktionen. | 🟢 teilweise |
 
 ### Backend-Gap-Analyse (D08)
 
 | # | Lücke | Befund | Konsequenz |
 |---|---|---|---|
 | G1 | Milestone hat kein `goal` | `GET /api/milestones` liefert `description`, kein `goal` | Board mappt `goal ?? description` → Header-Ziel. Kein Backend-Change nötig. |
-| G2 | Count-Semantik divergiert | `/api/milestones` (genested) = `issue_done` (done+passed) / `issue_total` (ohne cancelled); flaches `/api/sprints` = `done_count`/`item_count` (andere Buckets) | **Primärquelle = `/api/milestones`** (konsistent). Unassigned-Sprints aus `/api/sprints?milestone_id=none` müssen im Phase-3-Wrapper auf `issue_done`/`issue_total` gemappt werden. |
-| G3 | Deps-Endpoint-Shape unbestätigt | `GET /api/milestones/:id/dependencies` existiert; Felder nicht final geprüft. Im Milestone-Detail liegen `dependencies_in/out` mit `dependency_id`. | Fixture nimmt `{ id, predecessor_id, successor_id }` an (Spec). Vor Phase-3-Verdrahtung gegen echte Response verifizieren. |
+| G2 | Count-Semantik divergiert | `/api/milestones` (genested) = `issue_done` (done+passed) / `issue_total` (ohne cancelled); flaches `/api/sprints` = `done_count`/`item_count` (andere Buckets) | **Gelöst:** `roadmapApi.mapSprint` normalisiert `issue_total ?? item_count` / `issue_done ?? done_count`. Primärquelle bleibt `/api/milestones`. |
+| G3 | Deps-Endpoint-Shape unbestätigt | `GET /api/milestones/:id/dependencies` existiert; Felder nicht final geprüft. Im Milestone-Detail liegen `dependencies_in/out` mit `dependency_id`. | **Gelöst:** `roadmapApi.mapDep` normalisiert `id ?? dependency_id ?? synthetisch`, `dedupeDeps` über alle Milestones. Live-Response in der Augenschein-Prüfung bestätigt. |
 | G4 | Issue-Liste je Sprint (Wide-Mode) | `GET /api/milestones` liefert je Sprint **keine** Issues. Fixtures tragen `sprint.issues[]` (`{ key, title, status }`) nur fürs Mockup. | Phase 3: pro aufgeklapptem Sprint `GET /api/issues?sprint_id=` (lazy) — kein Eager-Load aller Issues. `dod_total` (Header) analog aus Milestone-DoD ableiten. |
 | G5 | Wide-Felder nicht in `/api/milestones` | `target_date` vorhanden; `dod_total` ist abgeleitet (Anzahl DoD-Items), kein direktes Feld. | Phase-3-Wrapper berechnet `dod_total` aus `dependencies`/DoD-Endpoint; Fixture setzt es direkt. |
 

@@ -5,9 +5,10 @@
  *
  * - `empty`    → 0 Elemente im Projekt: Headline + primärer CTA (Issue anlegen).
  * - `no-match` → Filter ergibt 0 Treffer: Headline + Ghost-CTA (Filter zurücksetzen).
+ * - `error`    → Laden fehlgeschlagen: Danger-Glyph + Retry-CTA (Connected-Wrapper).
  *
  * @param {object} props
- * @param {'empty'|'no-match'} [props.variant='empty']
+ * @param {'empty'|'no-match'|'error'} [props.variant='empty']
  * @param {()=>void} [props.onAction] - Klick auf den CTA
  * @param {string} [props.dataUiScope='atom.emptyState']
  * @param {string} [props.className]
@@ -22,6 +23,7 @@ const COPY = {
     cta: 'Erstes Issue anlegen',
     variant: 'primary',
     iconName: 'add',
+    glyph: 'backlog',
   },
   'no-match': {
     headline: 'Kein Element passt',
@@ -29,17 +31,29 @@ const COPY = {
     cta: 'Filter zurücksetzen',
     variant: 'ghost',
     iconName: 'reset',
+    glyph: 'backlog',
+  },
+  error: {
+    headline: 'Laden fehlgeschlagen',
+    sub: 'Die Daten konnten nicht geladen werden.',
+    cta: 'Erneut versuchen',
+    variant: 'ghost',
+    iconName: 'reset',
+    glyph: 'alert',
+    glyphRole: 'danger',
   },
 }
 
 export default function EmptyState({ variant = 'empty', onAction, dataUiScope = 'atom.emptyState', className = '' }) {
   const c = COPY[variant] || COPY.empty
+  // error-Glyph trägt die Danger-Rolle (Token-Farbe), die neutralen Varianten bleiben mono.
+  const glyphProps = c.glyphRole ? { role: c.glyphRole } : { mono: true }
   return (
     <div
       data-ui={dataUiScope}
       className={`flex flex-col items-center justify-center text-center gap-[var(--space-3)] px-[var(--space-5)] py-[var(--space-6)] ${className}`}
     >
-      <Icon name="backlog" size={40} mono />
+      <Icon name={c.glyph} size={40} {...glyphProps} />
       <div data-ui={`${dataUiScope}.headline`} className="[font-family:var(--font-display)] text-[15px] font-bold text-[var(--text)]">
         {c.headline}
       </div>

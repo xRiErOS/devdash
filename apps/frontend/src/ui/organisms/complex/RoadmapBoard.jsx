@@ -15,6 +15,8 @@
  * @param {Array} [props.unassignedSprints=[]] - Sprints ohne milestone_id
  * @param {Array} [props.deps=[]] - { id, predecessor_id, successor_id } (Reorder-Validierung)
  * @param {boolean} [props.loading=false]
+ * @param {string|null} [props.error=null] - Fehlertext/Flag: zeigt den Error-State (EmptyState variant="error")
+ * @param {()=>void} [props.onRetry] - Retry-CTA im Error-State (Connected-Wrapper: erneut laden)
  * @param {boolean} [props.wide=false] - Wide-Mode: breitere Spalten + Meilenstein-/Sprint-Details
  * @param {(sprint:object)=>void} [props.onOpenSprint] - Navigation (Mockup: Spy)
  * @param {(milestoneId:number)=>void} [props.onOpenMilestone] - Navigation (Mockup: Spy)
@@ -167,7 +169,7 @@ function SkeletonColumns({ dataUiScope }) {
 }
 
 export default function RoadmapBoard({
-  milestones = [], unassignedSprints = [], deps = [], loading = false,
+  milestones = [], unassignedSprints = [], deps = [], loading = false, error = null, onRetry,
   wide = false, snap = 'mandatory', onOpenSprint, onOpenMilestone, onReorder, onCardMove,
   initialActiveDrag = null, initialOverId = null,
   dataUiScope = 'organism.roadmapBoard', className = '',
@@ -255,6 +257,16 @@ export default function RoadmapBoard({
     return (
       <div data-ui={dataUiScope} className={`p-[var(--space-4)] ${className}`}>
         <SkeletonColumns dataUiScope={`${dataUiScope}.skeleton`} />
+      </div>
+    )
+  }
+
+  // Render-Reihenfolge: loading → error → empty → board. Der Error-State kommt vom
+  // Connected-Wrapper (Fetch fehlgeschlagen); presentational hier nur dargestellt.
+  if (error) {
+    return (
+      <div data-ui={dataUiScope} className={`flex items-center justify-center min-h-[620px] ${className}`}>
+        <EmptyState variant="error" onAction={onRetry} dataUiScope={`${dataUiScope}.error`} />
       </div>
     )
   }
