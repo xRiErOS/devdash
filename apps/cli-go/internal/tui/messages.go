@@ -8,15 +8,15 @@ import (
 )
 
 // tea.Msg-Typen: async geladene Daten oder Aktions-Ergebnisse.
-type errMsg struct{ err error }       // fatal (Lade-Fehler) → Fehlerschirm
-type noticeMsg struct{ text string }  // transient (Aktions-Fehler/Hinweis) → Sapphire-Zeile
+type errMsg struct{ err error }      // fatal (Lade-Fehler) → Fehlerschirm
+type noticeMsg struct{ text string } // transient (Aktions-Fehler/Hinweis) → Sapphire-Zeile
 type projectsMsg struct{ items []api.Project }
 type milestonesMsg struct{ items []api.Milestone }
 type sprintMsg struct{ sprint *api.Sprint }
 type backlogMsg struct{ items []api.Issue }
-type reviewSprintsMsg struct{ items []api.Sprint }      // T17: offene Review-Sprints
-type memoriesMsg struct{ items []api.ProjectMemory }    // T18: Memory-Liste
-type memDetailMsg struct{ mem *api.ProjectMemory }      // T18: Memory-Detail (content)
+type reviewSprintsMsg struct{ items []api.Sprint }   // T17: offene Review-Sprints
+type memoriesMsg struct{ items []api.ProjectMemory } // T18: Memory-Liste
+type memDetailMsg struct{ mem *api.ProjectMemory }   // T18: Memory-Detail (content)
 type statusMsg struct{ text string }
 type userStoriesMsg struct {
 	issueID int
@@ -124,6 +124,59 @@ func doAssignSprintsToMilestone(c *api.Client, sprintIDs []int, milestoneID int)
 			return errMsg{err}
 		}
 		return milestonesMsg{ms}
+	}
+}
+
+// deletePreviewMsg trägt die Cascade-Counts für den Confirm-Dialog (T02b).
+type deletePreviewMsg struct {
+	kind    string // milestone | sprint
+	id      int
+	name    string
+	sprints int
+	issues  int
+	docs    int
+}
+
+// deleteDoneMsg signalisiert einen erfolgreichen Cascade-Delete (T02b).
+type deleteDoneMsg struct {
+	kind string
+	name string
+}
+
+// loadDeletePreview holt die Cascade-Counts (T02b).
+func loadDeletePreview(c *api.Client, kind string, id int) tea.Cmd {
+	return func() tea.Msg {
+		var p *api.DeletePreview
+		var err error
+		if kind == "milestone" {
+			p, err = c.MilestoneDeletePreview(id)
+		} else {
+			p, err = c.SprintDeletePreview(id)
+		}
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		name := p.MilestoneName
+		if kind == "sprint" {
+			name = p.SprintName
+		}
+		return deletePreviewMsg{kind, id, name, p.Sprints, p.Issues, p.Documents}
+	}
+}
+
+// doCascadeDelete führt den Cascade-Delete aus und lädt die Columns neu (T02b).
+func doCascadeDelete(c *api.Client, kind string, id int, name string) tea.Cmd {
+	return func() tea.Msg {
+		var err error
+		if kind == "milestone" {
+			err = c.DeleteMilestoneCascade(id)
+		} else {
+			err = c.DeleteSprintCascade(id)
+		}
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return deleteDoneMsg{kind, name}
 	}
 }
 

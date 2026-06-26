@@ -31,7 +31,7 @@ type filterState struct {
 }
 
 func (f filterState) shown(val string) bool { return !f.hidden[val] }
-func (f *filterState) toggle(val string)     { f.hidden[val] = !f.hidden[val] }
+func (f *filterState) toggle(val string)    { f.hidden[val] = !f.hidden[val] }
 
 const deferredKey = "__deferred__" // Pseudo-Wert: zurückgestellte Meilensteine zeigen
 
@@ -116,6 +116,16 @@ type model struct {
 	maSprints     []api.Sprint
 	maChecked     map[int]bool
 	maMenu        listState
+
+	// Cascade-Delete-Confirm (T02b): d auf Meilenstein/Sprint.
+	delConfirm bool
+	delKind    string // milestone | sprint
+	delID      int
+	delName    string
+	delLoading bool // wartet auf Preview-Counts
+	delSprints int
+	delIssues  int
+	delDocs    int
 
 	// Memory-Browser (T18): Master-Detail über project_memories.
 	memList      []api.ProjectMemory
@@ -418,6 +428,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.maSprints = msg.items
 		m.maMenu.setLen(len(m.maSprints))
 		return m, nil
+	case deletePreviewMsg:
+		if m.delConfirm && msg.id == m.delID && msg.kind == m.delKind {
+			m.delLoading = false
+			m.delSprints, m.delIssues, m.delDocs = msg.sprints, msg.issues, msg.docs
+			if msg.name != "" {
+				m.delName = msg.name
+			}
+		}
+		return m, nil
+	case deleteDoneMsg:
+		m.status = noticeText("Gelöscht: " + msg.name)
+		// Columns + ggf. Cockpit/Detail-Quelle frisch; zurück auf Columns-Sicht.
+		m.curSprint = nil
+		if m.view == viewMilestone || m.view == viewSprint {
+			m.view = viewColumns
+		}
+		return m, loadMilestones(m.client)
 	case reworkDoneMsg:
 		m.curSprint = msg.sprint
 		if m.curSprint != nil {
@@ -486,6 +513,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.maPick {
 		return m.keyMilestoneAssign(msg)
 	}
+	// Cascade-Delete-Confirm (T02b) fängt vor View-Tasten.
+	if m.delConfirm {
+		return m.keyDelete(msg)
+	}
 	// Filter-Modal fängt zuerst.
 	if m.filtering {
 		return m.keyFilter(msg)
@@ -534,6 +565,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m.openMilestoneStatus()
 		case "a": // T03 Flow B: Sprints diesem Meilenstein zuweisen (Checkliste)
 			return m.openMilestoneAssign()
+		case "d": // T02b: Meilenstein kaskadierend löschen
+			if ms := m.selMilestone(); ms != nil {
+				return m.openDelete("milestone", ms.ID, ms.Name)
+			}
 		}
 		return m, nil
 	case viewSprint:
@@ -545,6 +580,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "m": // T03 Flow A: diesen Sprint einem Meilenstein zuweisen
 			if s := m.selSprint(); s != nil {
 				return m.openSprintMilestone(s.ID)
+			}
+		case "d": // T02b: Sprint kaskadierend löschen
+			if s := m.selSprint(); s != nil {
+				return m.openDelete("sprint", s.ID, s.Name)
 			}
 		}
 		return m, nil
@@ -661,6 +700,16 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 		if m.depth == 1 {
 			if sp := m.selSprint(); sp != nil {
 				return m.openSprintStatus(sp.ID, sp.Status)
+			}
+		}
+	case "d": // T02b: Cascade-Delete des fokussierten Meilensteins/Sprints
+		if m.depth == 0 {
+			if ms := m.selMilestone(); ms != nil {
+				return m.openDelete("milestone", ms.ID, ms.Name)
+			}
+		} else if m.depth == 1 {
+			if sp := m.selSprint(); sp != nil {
+				return m.openDelete("sprint", sp.ID, sp.Name)
 			}
 		}
 	}

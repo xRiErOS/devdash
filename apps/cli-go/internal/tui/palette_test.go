@@ -12,7 +12,7 @@ func TestFuzzyMatch(t *testing.T) {
 		query, target string
 		want          bool
 	}{
-		{"", "Neues Issue anlegen", true},          // leer matcht alles
+		{"", "Neues Issue anlegen", true},           // leer matcht alles
 		{"issue", "Neues Issue anlegen", true},      // direkter Teilstring
 		{"nia", "Neues Issue anlegen", true},        // Subsequenz N..I..A
 		{"sprint", "Neuen Sprint anlegen", true},    // case-insensitiv

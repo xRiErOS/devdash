@@ -34,6 +34,9 @@ func (m model) View() string {
 	if m.maPick { // T03 Flow B: Meilenstein→Sprints-Checkliste
 		return placeOverlay(base, m.milestoneAssignMenu(), m.termWidth(), m.height)
 	}
+	if m.delConfirm { // T02b: Cascade-Delete-Confirm
+		return placeOverlay(base, m.deleteBox(), m.termWidth(), m.height)
+	}
 	return base
 }
 
@@ -136,7 +139,7 @@ func (m model) header() string {
 }
 
 func (m model) footer() string {
-	hint := "j/k:↑↓  l/→/tab:rein  h/←:raus  enter:Detail  S:M-Status  s:S-Status  f:Filter  y:Yank  b:Backlog  R:Reviews  q:quit"
+	hint := "j/k:↑↓  l/→/tab:rein  h/←:raus  enter:Detail  S:M-Status  s:S-Status  d:löschen  f:Filter  y:Yank  b:Backlog  R:Reviews  q:quit"
 	if m.status != "" {
 		hint = m.status
 	}

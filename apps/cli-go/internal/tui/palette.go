@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"devd-cli/internal/theme"
-	"github.com/charmbracelet/lipgloss"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 // paletteAction ist ein wählbarer Eintrag im Command-Center.
