@@ -84,6 +84,19 @@ func buildForm(kind string, milestones []api.Milestone) *huh.Form {
 			huh.NewText().Key("content").Title("Inhalt (optional)"),
 			huh.NewInput().Key("anchor").Title("Anchor (optional, z.B. d01)"),
 		)).WithWidth(58).WithShowHelp(true)
+	case "result":
+		return huh.NewForm(huh.NewGroup(
+			huh.NewInput().Key("outcome_summary").Title("Ergebnis-Summary (Pflicht)").Validate(nonEmpty),
+			huh.NewSelect[string]().Key("outcome_type").Title("Typ").Options(
+				huh.NewOption("feat", "feat"),
+				huh.NewOption("fix", "fix"),
+				huh.NewOption("refactor", "refactor"),
+				huh.NewOption("chore", "chore"),
+				huh.NewOption("docs", "docs"),
+			),
+			huh.NewInput().Key("commits").Title("Commits (Komma-getrennt, optional)"),
+			huh.NewText().Key("vorgehen").Title("Vorgehen (optional, Markdown)"),
+		)).WithWidth(58).WithShowHelp(true)
 	}
 	return nil
 }
@@ -131,6 +144,15 @@ func (m *model) formCreateCmd() tea.Cmd {
 			body.Anchor = &a
 		}
 		return doCreateMemory(m.client, body)
+	case "result":
+		yaml := buildResultYAML(
+			get("outcome_summary"),
+			m.form.GetString("outcome_type"),
+			splitCSV(get("commits")),
+			get("vorgehen"),
+			m.resultIssueKey,
+		)
+		return doSetResult(m.client, m.resultIssueID, yaml, m.resultSprintID)
 	}
 	return nil
 }
@@ -142,6 +164,7 @@ func (m model) formBox() string {
 		"milestone": "Neuer Meilenstein",
 		"sprint":    "Neuer Sprint",
 		"memory":    "Neue Memory",
+		"result":    "Ergebnisfeld setzen",
 	}
 	inner := theme.Header.Render(titles[m.formKind]) + "\n\n" + m.form.View()
 	return lipgloss.NewStyle().

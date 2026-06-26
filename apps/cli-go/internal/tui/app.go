@@ -112,7 +112,12 @@ type model struct {
 
 	// Eingebettetes huh-Create-Formular (T16). nil = inaktiv.
 	form     *huh.Form
-	formKind string // issue | milestone | sprint
+	formKind string // issue | milestone | sprint | memory | result
+
+	// Ziel des result-Formulars (I02): r im Cockpit füllt das Ergebnisfeld.
+	resultIssueID  int
+	resultIssueKey string
+	resultSprintID int
 }
 
 // issueStatusOptions sind die manuell wählbaren Lifecycle-Ziele. Bewusst OHNE
@@ -763,6 +768,14 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.uslist = listState{}
 		m.status = ""
 		return m, loadUserStories(m.client, it.ID)
+	case "r": // I02: Ergebnisfeld setzen (löst das result-Gate ohne Tool-Wechsel)
+		if it == nil {
+			return m, nil
+		}
+		m.resultIssueID = it.ID
+		m.resultIssueKey = it.Key
+		m.resultSprintID = m.curSprint.ID
+		return m.openForm("result")
 	case "s": // Status manuell mutieren — nur lifecycle-gültige Ziele
 		if it == nil {
 			m.status = "Kein Issue gewählt"
