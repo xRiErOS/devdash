@@ -583,30 +583,27 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.sopts = issueStatusOptions
 		m.smenu.setLen(len(m.sopts))
 		return m, nil
-	case "a": // Pass — nur sinnvoll bei to_review
+	case "a": // Pass — Backend erlaubt Verdikt unabhängig vom Issue-Status
+		// (autoSetPassedOnReviewPass setzt to_review/rejected→passed). Edit-Lock
+		// (submitted Sprint + entschiedene Runde) kommt als Sapphire-Hinweis zurück.
 		if it == nil {
-			return m, nil
-		}
-		if it.Status != "to_review" {
-			m.status = noticeText("Pass nur bei to_review (ist: " + it.Status + ") — s zum Mutieren")
 			return m, nil
 		}
 		m.status = "Pass gesendet …"
 		return m, doVerdict(m.client, it.ID, "passed", "", m.curSprint.ID)
-	case "x": // Reject — nur sinnvoll bei to_review
+	case "x": // Reject — analog, Backend validiert
 		if it == nil {
-			return m, nil
-		}
-		if it.Status != "to_review" {
-			m.status = noticeText("Reject nur bei to_review (ist: " + it.Status + ")")
 			return m, nil
 		}
 		m.inputting = true
 		m.input = ""
 		m.status = "Reject-Kommentar (enter=senden, esc=abbrechen): "
-	case "o": // Reopen — nur bei passed/rejected
-		if it == nil || (it.Status != "passed" && it.Status != "rejected") {
-			m.status = noticeText("Reopen nur bei passed/rejected")
+	case "o": // Reopen — Backend verlangt to_review (öffnet frische Runde)
+		if it == nil {
+			return m, nil
+		}
+		if it.Status != "to_review" {
+			m.status = noticeText("Reopen nur bei to_review — bei rejected: s→in_progress→to_review (Rework)")
 			return m, nil
 		}
 		m.status = "Reopen gesendet …"

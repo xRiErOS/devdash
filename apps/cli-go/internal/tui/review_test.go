@@ -83,12 +83,14 @@ func TestStatusMenuOpensAndDispatches(t *testing.T) {
 	}
 }
 
-func TestPassBlockedWhenNotToReview(t *testing.T) {
+func TestPassDispatchesRegardlessOfStatus(t *testing.T) {
+	// Backend erlaubt Verdikt unabhängig vom Issue-Status (autoSetPassedOnReviewPass
+	// setzt to_review/rejected→passed). TUI darf nicht clientseitig blocken.
 	m := reviewModel()
-	m.curSprint.Items[0].Status = "in_progress"
+	m.curSprint.Items[0].Status = "rejected"
 	_, cmd := m.Update(keyMsg("a"))
-	if cmd != nil {
-		t.Error("Pass darf bei in_progress nicht dispatchen")
+	if cmd == nil {
+		t.Error("Pass sollte auch bei rejected dispatchen (Backend validiert)")
 	}
 }
 
