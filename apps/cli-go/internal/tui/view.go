@@ -7,31 +7,27 @@ import (
 	"devd-cli/internal/api"
 	"devd-cli/internal/theme"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 )
 
 func (m model) View() string {
 	if m.err != nil {
 		return fmt.Sprintf("\n  %s\n\n  q: quit\n", lipgloss.NewStyle().Foreground(theme.Red).Render("Fehler: "+m.err.Error()))
 	}
-	var base string
 	switch m.view {
 	case viewPicker:
-		base = m.viewPicker()
+		return m.viewPicker()
 	case viewBacklog:
-		base = m.viewBacklog()
+		return m.viewBacklog()
 	case viewDetail:
-		base = m.viewDetail()
+		return m.viewDetail()
 	case viewMilestone:
-		base = m.viewMilestone()
+		return m.viewMilestone()
 	case viewReview:
-		base = m.viewReview()
+		return m.viewReview()
 	default:
-		base = m.viewColumns()
+		return m.viewColumns() // rendert Filter-Modal inline, wenn m.filtering
 	}
-	if m.filtering {
-		return m.overlayFilter(base)
-	}
-	return base
 }
 
 // --- Header / Footer ---
@@ -78,7 +74,7 @@ func (m model) bodyHeight() int {
 
 func (m model) viewPicker() string {
 	var b strings.Builder
-	b.WriteString("\n  " + theme.Header.Render("Projekt wählen") + "\n\n")
+	b.WriteString(theme.Header.Render("Projekt wählen") + "\n\n")
 	for i, p := range m.projects {
 		cursor := "  "
 		line := fmt.Sprintf("%-10s %-26s %d Sprints · %d Backlog", p.Prefix, p.Name, p.SprintCount, p.BacklogCount)
@@ -86,10 +82,10 @@ func (m model) viewPicker() string {
 			cursor = theme.Accent.Render("▸ ")
 			line = theme.Header.Render(line)
 		}
-		b.WriteString("  " + cursor + line + "\n")
+		b.WriteString(cursor + line + "\n")
 	}
-	b.WriteString("\n  " + theme.Dim.Render("j/k:↑↓  enter:wählen  q:quit") + "\n")
-	return b.String()
+	b.WriteString("\n" + theme.Dim.Render("j/k:↑↓  enter:wählen  q:quit"))
+	return "\n" + boxed(b.String(), m.termWidth(), theme.Mauve)
 }
 
 // --- Miller-Columns ---
@@ -116,12 +112,12 @@ func (m model) viewColumns() string {
 	visible := all[start:end]
 	n := len(visible)
 
+	h := m.bodyHeight()
 	w := m.termWidth()
 	colW := (w - n*2) / n // Border frisst 2 Spalten je Pane
 	if colW < 12 {
-		colW = 24
+		colW = 20
 	}
-	h := m.bodyHeight()
 
 	cols := make([]string, n)
 	for i, p := range visible {
@@ -129,7 +125,13 @@ func (m model) viewColumns() string {
 		cols[i] = renderPane(p, colW, h, focused)
 	}
 	body := lipgloss.JoinHorizontal(lipgloss.Top, cols...)
-	return m.header() + "\n" + body + "\n" + m.footer()
+	frame := m.header() + "\n" + body + "\n" + m.footer()
+
+	// Filter-Modal schwebt zentriert über dem Frame (Liste bleibt darunter sichtbar).
+	if m.filtering {
+		return placeOverlay(frame, m.filterBox(), w, m.height)
+	}
+	return frame
 }
 
 func renderPane(p pane, w, h int, focused bool) string {
@@ -389,17 +391,18 @@ func (m model) viewReview() string {
 
 // --- Filter-Modal (#4/#8) ---
 
-func (m model) overlayFilter(base string) string {
+// filterBox rendert das schwebende Filter-Modal (kompakt, wird zentriert overlaid).
+func (m model) filterBox() string {
 	col := []string{"Meilensteine", "Sprints", "Issues"}[clampInt(m.ftarget, 0, 2)]
 	var b strings.Builder
 	b.WriteString(theme.Header.Render("Filter · "+col) + "\n")
-	b.WriteString(theme.Dim.Render("space: an/aus   enter: anwenden   esc: schließen") + "\n\n")
+	b.WriteString(theme.Dim.Render("space: an/aus   enter/esc: schließen") + "\n\n")
 	if len(m.fopts) == 0 {
 		b.WriteString(theme.Dim.Render("(keine Werte)") + "\n")
 	}
 	fs := m.filterFor(m.ftarget)
 	for i, o := range m.fopts {
-		box := "[ ]"
+		box := theme.Dim.Render("[ ]")
 		if fs.shown(o.value) {
 			box = theme.Accent.Render("[x]")
 		}
@@ -411,8 +414,12 @@ func (m model) overlayFilter(base string) string {
 		}
 		b.WriteString(cursor + box + " " + label + "\n")
 	}
-	modal := boxed(b.String(), 44, theme.Mauve)
-	return base + "\n" + modal
+	return lipgloss.NewStyle().
+		Width(38).
+		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
+		Background(theme.Base).
+		Padding(0, 1).
+		Render(b.String())
 }
 
 // --- Helfer ---
@@ -466,18 +473,13 @@ func statusText(status string) string {
 	return theme.StatusStyle(status).Render(status)
 }
 
+// truncate kürzt ANSI-sicher auf w Zellen (schneidet nie Escape-Sequenzen) —
+// kritisch, da Zeilen gefärbt sind; Rune-Slicing würde Sequenzen zerstören.
 func truncate(s string, w int) string {
 	if w < 1 {
 		return ""
 	}
-	r := []rune(s)
-	if len(r) <= w {
-		return s
-	}
-	if w <= 1 {
-		return string(r[:w])
-	}
-	return string(r[:w-1]) + "…"
+	return ansi.Truncate(s, w, "…")
 }
 
 func min(a, b int) int {

@@ -30,6 +30,9 @@ var (
 	Subtext = lipgloss.Color("#a5adcb")
 	Overlay = lipgloss.Color("#8087a2")
 	Surface = lipgloss.Color("#494d64")
+	Base    = lipgloss.Color("#24273a") // App-Hintergrund (opakes Modal)
+	Mantle  = lipgloss.Color("#1e2030")
+	Crust   = lipgloss.Color("#181926")
 
 	Header = lipgloss.NewStyle().Bold(true).Foreground(Mauve)
 	Key    = lipgloss.NewStyle().Foreground(Lavender)
