@@ -1,0 +1,49 @@
+{/* Typography Begleit-MDX (D04 — herausgelöst aus Design Tokens).
+    <Meta of={…}> hängt diese Seite als Doku-Tab der Typography-Story ein.
+    Visueller Katalog ohne Props → kein <ArgTypes> (wie DesignTokens.mdx). */}
+import { Meta, Canvas } from '@storybook/addon-docs/blocks'
+import * as TypographyStories from './Typography.stories.jsx'
+
+<Meta of={TypographyStories} />
+
+# Typography
+
+`status:review` · Foundation · Cluster `Typography`
+
+## Kurzbeschreibung
+
+Die de-facto genutzte Typo-Skala der App, als eine Katalog-Story: Schriftarten,
+Größen, Gewichte, Hinweis-Farben, Überschriften und die Text-Hierarchie-Anwendung.
+
+## Zweck
+
+Spezifikations-/Referenz-Katalog, kein Bauteil. Token-Master bleibt `src/index.css`
+(D02): `--font-display` (JetBrains Mono) und `--font-body` (system-ui) sind echte
+Tokens; Größen (`text-xs…xl`) und Gewichte (`font-*`) sind Tailwind-v4-Utilities,
+KEINE Custom-Tokens (PO 2026-06-15). Diese Story spiegelt die Skala 1:1 — sie führt
+keinen neuen Token ein.
+
+## Wann verwenden
+
+- **Ja:** Referenz, welche Schriftart/Größe/Gewicht/Hinweis-Farbe für ein Element
+  zu wählen ist, und wie die 3-Tier-Text-Hierarchie in EntityDetail-Kompositionen
+  gestaffelt wird.
+- **Nein:** Farb-/Surface-/Spacing-Werte → `Design Tokens`. Anwendung der
+  Farb-Tiefe → `Color Hierarchy`.
+
+## Abschnitte
+
+Schriftart (Display/Body), Größe (`text-xs…xl`), Gewicht (normal/medium/bold),
+Hinweis-Texte (semantische `--accent-*`, DD-47), Überschriften (`font-display`)
+und die Text-Hierarchie-Anwendung. Letztere staffelt die bestehenden rem-Sprossen
+relational (Section-Titel → `//` Slot-Heading → `///` Inline-Label → Body/Value);
+Regel: Heading nie kleiner als Body.
+
+<Canvas of={TypographyStories.Typography} />
+
+## Barrierefreiheit
+
+- Größe/Gewicht tragen die visuelle Hierarchie redundant zur Position — Bedeutung
+  hängt nie allein an der Schriftgröße.
+- Hinweis-Farben (DD-47) sind semantisch redundant durch Label-Text; Farbe ist nie
+  das alleinige Signal.

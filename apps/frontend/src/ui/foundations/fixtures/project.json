@@ -1,0 +1,13 @@
+{
+  "id": 10,
+  "name": "DevD 2.0",
+  "prefix": "DD2",
+  "slug": "devd2",
+  "color": "mauve",
+  "repo_path": "/data/repos/DeveloperDashboard",
+  "docs_path": null,
+  "context_file_path": null,
+  "archived": 0,
+  "sprint_count": 3,
+  "backlog_count": 42
+}

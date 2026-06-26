@@ -1,0 +1,8 @@
+{
+  "id": 7,
+  "milestone_id": 26,
+  "label": "Alle Storybook-Stories rendern fehlerfrei (Render-Smoke grün)",
+  "details": "npm test muss ohne Error durchlaufen",
+  "done": 0,
+  "position": 1
+}

@@ -1,0 +1,5 @@
+[
+  { "id": 49, "key": "DD2#49", "name": "Browser-Organismus + Bausteine", "goal": "ElementBrowser-Bauteile finishen", "status": "active", "project_id": 10, "project_prefix": "DD2", "project_number": 49, "milestone_id": 3, "milestone_name": "ElementBrowser-Reihe ausliefern", "wip_limit": null, "position": 0, "item_count": 5, "done_count": 1, "terminal_count": 3 },
+  { "id": 50, "key": "DD2#50", "name": "Promote: _mockups → src/ui", "goal": "Sandbox nach src/ui überführen", "status": "planning", "project_id": 10, "project_prefix": "DD2", "project_number": 50, "milestone_id": 3, "milestone_name": "ElementBrowser-Reihe ausliefern", "wip_limit": null, "position": 1, "item_count": 3, "done_count": 0, "terminal_count": 1 },
+  { "id": 51, "key": "DD2#51", "name": "Connected-Wrapper + Daten-Layer", "goal": "Adapter + Hooks + MSW", "status": "planning", "project_id": 10, "project_prefix": "DD2", "project_number": 51, "milestone_id": 4, "milestone_name": "Backlog- & SprintReview-Screen", "wip_limit": null, "position": 2, "item_count": 1, "done_count": 0, "terminal_count": 0 }
+]

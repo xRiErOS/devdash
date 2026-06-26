@@ -1,0 +1,48 @@
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './UnassignedColumnHeader.stories.jsx'
+
+<Meta of={Stories} />
+
+# UnassignedColumnHeader
+
+`status:open` · Molecule · Cluster `RoadmapBoard`
+
+## Kurzbeschreibung
+
+Kopf der „Nicht zugeordnet"-Spalte: Titel + Sprint-Anzahl als Chip.
+
+## Zweck
+
+Reines Molecule (props-driven). Analog `MilestoneColumnHeader`, aber ohne
+DragHandle (die Staging-Spalte ist nicht verschiebbar) und ohne Entity-ID. Der
+`Chip` zeigt die Anzahl nicht zugeordneter Sprints.
+
+## Wann verwenden
+
+- **Ja:** als Header in `UnassignedColumn`.
+- **Nein:** Meilenstein-Spalte → `MilestoneColumnHeader`.
+
+## Props
+
+<ArgTypes of={Stories} />
+
+## Zustände
+
+`Empty` (count 0), `WithCount` (count 3).
+
+<Canvas of={Stories.WithCount} />
+
+## Abhängigkeiten (Komposition)
+
+{/* AUTOGEN:composition START */}
+```mermaid
+graph TD
+  UnassignedColumnHeader --> Chip
+  classDef screen fill:#cba6f7,stroke:#1e1e2e,color:#1e1e2e
+  classDef organism fill:#89b4fa,stroke:#1e1e2e,color:#1e1e2e
+  classDef molecule fill:#a6e3a1,stroke:#1e1e2e,color:#1e1e2e
+  classDef atom fill:#f2cdcd,stroke:#1e1e2e,color:#1e1e2e
+  class UnassignedColumnHeader molecule
+  class Chip atom
+```
+{/* AUTOGEN:composition END */}

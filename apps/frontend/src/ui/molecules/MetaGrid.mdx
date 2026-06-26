@@ -1,0 +1,57 @@
+{/* MetaGrid — Narrativ-Wahrheit. Norm: docs/doc-mdx-Norm.md. */}
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './MetaGrid.stories.jsx'
+
+<Meta of={Stories} />
+
+# MetaGrid
+
+`status:open` · Molecule · Cluster `03 MOLECULES/MetaGrid`
+
+## Kurzbeschreibung
+
+Zweispaltige Detail-Tabelle (Label → Wert) für die Meta-Daten eines Issues/
+Sprints: Status, Priorität, Sprint, Typ.
+
+## Zweck
+
+Kompakte Schlüssel/Wert-Darstellung über ein `grid-cols-[auto_1fr]`. Label
+gedämpft, Wert hervorgehoben. Presentational, props-driven — `rows` als Array.
+
+## Wann verwenden
+
+- **Ja:** mehrere Meta-Felder kompakt nebeneinanderstellen.
+- **Nein:** einklappbarer Block → `WidgetBase`. Reintext → `Section`.
+
+## Props
+
+<ArgTypes of={Stories} />
+
+## Zustände
+
+Achse `rows` (Anzahl/Inhalt der Label-Wert-Paare):
+
+<Canvas of={Stories.Default} />
+<Canvas of={Stories.Compact} />
+
+## Abhängigkeiten (Komposition)
+
+{/* AUTOGEN:composition START */}
+```mermaid
+graph TD
+  MetaGrid
+  classDef screen fill:#cba6f7,stroke:#1e1e2e,color:#1e1e2e
+  classDef organism fill:#89b4fa,stroke:#1e1e2e,color:#1e1e2e
+  classDef molecule fill:#a6e3a1,stroke:#1e1e2e,color:#1e1e2e
+  classDef atom fill:#f2cdcd,stroke:#1e1e2e,color:#1e1e2e
+  class MetaGrid molecule
+```
+{/* AUTOGEN:composition END */}
+
+## data-ui-Anker
+
+```mermaid
+graph TD
+  Root["molecule.metaGrid (div, grid)"] --> Label["…​.label-<label> (Spalte 1)"]
+  Root --> Value["…​.value-<label> (Spalte 2, b)"]
+```

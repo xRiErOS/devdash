@@ -1,0 +1,64 @@
+{/* ============================================================================
+    docs.mdx-NORM — kanonische Vorlage (Slim 2026-06-25). Regeln: docs/doc-mdx-Norm.md.
+    Die `.mdx` je Story ist DIE Narrativ-Quelle (Pflicht: VOR Arbeit lesen, NACH
+    Änderung nachziehen). Kopieren → <Name>.mdx, Platzhalter füllen.
+
+    HART: Code-Fakten LIVE ziehen (<ArgTypes>/<Canvas of>), NIE abtippen (0-Duplikat).
+    Status = inline-Text aus meta.tags, nicht zweitgepflegt.
+    Bedingte Sektion nicht zutreffend → GANZ weglassen (keine leeren Hüllen).
+    Import-Pfad (`@storybook/addon-docs/blocks`) bleibt; `of`-Ziele je Story anpassen.
+   ============================================================================ */}
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './<Name>.stories.jsx'
+
+<Meta of={Stories} />
+
+{/* [Pflicht] H1 = Komponenten-Name */}
+# [Name]
+
+{/* [Pflicht] Status-Zeile (inline aus meta.tags) + Tier/Cluster — kein Auto-Block. */}
+`status:<open|review|stable|archive>` · [Atom|Molecule|Organism|Feature|Screen] · Cluster `NN.NN [Name]`
+
+{/* [Pflicht] 1–3 Sätze: was, wofür. */}
+## Kurzbeschreibung
+
+[Text]
+
+{/* [Pflicht] Rolle + Komposition (welche Atome/Molecules) + Dumb/Smart. */}
+## Zweck
+
+[Text]
+
+{/* [Pflicht] Ja/Nein mit Verweis auf die richtige Alternative. */}
+## Wann verwenden
+
+- **Ja:** [Anwendungsfall]
+- **Nein:** [Abgrenzung] → [richtige Komponente]
+
+{/* [Pflicht] Props LIVE — kein hand-getipptes Table. */}
+## Props
+
+<ArgTypes of={Stories} />
+
+{/* [Pflicht] Zustände/Achsen beschreiben + Story live einbinden. */}
+## Zustände
+
+[Beschreibung der Achsen/States — je relevante Story ein Canvas.]
+
+<Canvas of={Stories.Default} />
+
+{/* [bedingt] Barrierefreiheit — nur interaktiv; rein-präsentational → weglassen. */}
+## Barrierefreiheit
+
+### ARIA
+[ARIA-Rollen]
+
+### Keyboard
+[Tastatur-Interaktionen]
+
+{/* [Screen, nur 08-*] Aktueller Stand — je Region Beschreibung + Wiring-Stand. */}
+## Aktueller Stand
+
+### [Region / Komponente]
+- [Beschreibung + Rolle im Screen]
+- Wiring-Stand: [verdrahtet | offen | net-new]

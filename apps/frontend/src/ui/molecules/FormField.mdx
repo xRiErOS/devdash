@@ -1,0 +1,67 @@
+{/* FormField — Narrativ-Wahrheit. Norm: docs/doc-mdx-Norm.md. */}
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './FormField.stories.jsx'
+
+<Meta of={Stories} />
+
+# FormField
+
+`status:open` · Molecule · Cluster `03 MOLECULES/FormField`
+
+## Kurzbeschreibung
+
+Betiteltes Eingabe-Wrapping: ein Display-Caps-Label über dem Eingabe-Atom
+(`Input`/`Textarea`), das der Consumer als `children` reicht.
+
+## Zweck
+
+Rendert das `<label>` selbst (legitimes Eingabe-Wrapping) und liefert nur
+Beschriftung plus vertikalen Stack — das Atom bleibt das eigentliche Feld.
+Presentational, props-driven, kein Store/Fetch.
+
+## Wann verwenden
+
+- **Ja:** ein Formularfeld mit Label + Eingabe-Atom beschriften.
+- **Nein:** reiner Lesetext mit Label → `Section`. Toggle-Block → `WidgetBase`.
+
+## Props
+
+<ArgTypes of={Stories} />
+
+## Zustände
+
+Achse `label` + das komponierte Eingabe-Atom (Input einzeilig, Textarea mehrzeilig):
+
+<Canvas of={Stories.Default} />
+<Canvas of={Stories.WithTextarea} />
+
+## Barrierefreiheit
+
+### ARIA
+Das `<label htmlFor>` verknüpft die Beschriftung mit dem Eingabe-Atom (id),
+Klick auf das Label fokussiert das Feld.
+
+### Keyboard
+Fokus/Eingabe leistet das gewrappte Atom; FormField fügt keine Tab-Stops hinzu.
+
+## Abhängigkeiten (Komposition)
+
+{/* AUTOGEN:composition START */}
+```mermaid
+graph TD
+  FormField
+  classDef screen fill:#cba6f7,stroke:#1e1e2e,color:#1e1e2e
+  classDef organism fill:#89b4fa,stroke:#1e1e2e,color:#1e1e2e
+  classDef molecule fill:#a6e3a1,stroke:#1e1e2e,color:#1e1e2e
+  classDef atom fill:#f2cdcd,stroke:#1e1e2e,color:#1e1e2e
+  class FormField molecule
+```
+{/* AUTOGEN:composition END */}
+
+## data-ui-Anker
+
+```mermaid
+graph TD
+  Root["molecule.formField (label)"] --> Label["…​.label (Caps-Span)"]
+  Root --> Child["children (Input/Textarea-Atom)"]
+```

@@ -25,6 +25,8 @@
     "build-storybook": "storybook build -c apps/frontend/.storybook",
     "gen:openapi": "node apps/backend/openapi/generate.js",
     "gen:openapi:check": "node apps/backend/openapi/generate.js --check",
+    "gen:composition": "npm --prefix apps/frontend run gen:composition",
+    "gen:composition:check": "npm --prefix apps/frontend run gen:composition:check",
     "generate-pwa-icons": "node scripts/generate-pwa-icons.mjs",
     "prepare": "husky"
   },
@@ -35,13 +37,10 @@
   },
   "dependencies": {
     "@devd/api-types": "*",
-    "@codemirror/lang-markdown": "^6.5.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@retronav/ixora": "^0.3.3",
-    "@uiw/react-codemirror": "^4.25.9",
     "better-sqlite3": "^12.9.0",
     "concurrently": "^9.2.1",
     "cors": "^2.8.6",
@@ -52,7 +51,6 @@
     "lucide-react": "^1.11.0",
     "mermaid": "^11.15.0",
     "multer": "^2.1.1",
-    "note-field": "file:vendor/note-field-0.2.0.tgz",
     "sqlite-vec": "^0.1.9",
     "ws": "^8.20.0",
     "zod": "^4.4.2"
@@ -86,6 +84,7 @@
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-router-dom": "^7.14.2",
+    "rehype-mermaid": "^3.0.0",
     "sharp": "^0.34.5",
     "storybook": "^10.4.6",
     "stylelint": "^17.12.0",

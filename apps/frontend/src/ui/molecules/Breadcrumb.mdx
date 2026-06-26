@@ -1,0 +1,69 @@
+{/* Breadcrumb — Narrativ-Wahrheit. Norm: docs/doc-mdx-Norm.md. */}
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './Breadcrumb.stories.jsx'
+
+<Meta of={Stories} />
+
+# Breadcrumb
+
+`status:open` · Molecule · Cluster `03 MOLECULES/Breadcrumb`
+
+## Kurzbeschreibung
+
+Pfad-Anzeige (`devd2 / DD#49 / DD2-7`) mit führendem Prompt-Zeichen `❯`. Das
+letzte Segment ist hervorgehoben, Segmente sind per `/` getrennt.
+
+## Zweck
+
+Zeigt die Position in der Hierarchie. Default-Segmente sind Display-Text; ein
+Segment mit `kind` wird über das Atom `EntityId` farbcodiert (Issue/Sprint/
+Milestone). Presentational, props-driven.
+
+## Wann verwenden
+
+- **Ja:** Pfad-/Position-Anzeige oben in einem Screen.
+- **Nein:** ganze Baum-Navigation → `TreeRow`. Einzelne ID → `EntityId`.
+
+## Props
+
+<ArgTypes of={Stories} />
+
+## Zustände
+
+Achse Segmentzahl + `last` (Hervorhebung) + optionales `kind` (EntityId-Farbe):
+
+<Canvas of={Stories.Default} />
+<Canvas of={Stories.EntityColored} />
+
+## Barrierefreiheit
+
+### ARIA
+Wurzel ist `<nav aria-label="Breadcrumb">`; das Prompt-Zeichen ist
+`aria-hidden` (rein dekorativ).
+
+### Keyboard
+Rein präsentational — keine eigenen Fokus-Stops (Links/Aktionen liegen im
+Consumer).
+
+## Abhängigkeiten (Komposition)
+
+{/* AUTOGEN:composition START */}
+```mermaid
+graph TD
+  Breadcrumb --> EntityId
+  classDef screen fill:#cba6f7,stroke:#1e1e2e,color:#1e1e2e
+  classDef organism fill:#89b4fa,stroke:#1e1e2e,color:#1e1e2e
+  classDef molecule fill:#a6e3a1,stroke:#1e1e2e,color:#1e1e2e
+  classDef atom fill:#f2cdcd,stroke:#1e1e2e,color:#1e1e2e
+  class Breadcrumb molecule
+  class EntityId atom
+```
+{/* AUTOGEN:composition END */}
+
+## data-ui-Anker
+
+```mermaid
+graph TD
+  Root["molecule.breadcrumb (nav)"] --> Prompt["…​.prompt (❯, aria-hidden)"]
+  Root --> Seg["…​.seg-<label> (Text oder EntityId)"]
+```

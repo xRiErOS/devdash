@@ -1,0 +1,74 @@
+{/* ChildWidget — Narrativ-Wahrheit. Norm: docs/doc-mdx-Norm.md. */}
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './ChildWidget.stories.jsx'
+
+<Meta of={Stories} />
+
+# ChildWidget
+
+`status:open` · Organism · Cluster `04 ORGANISMS/ChildWidget`
+
+## Kurzbeschreibung
+
+Liste der Kind-Issues (Issues eines Sprints, Sprints eines Milestones) — volle
+Breite im Content-Grid.
+
+## Zweck
+
+Konkreter Content-Organism. Komponiert `WidgetBase` + `ListItem` (Molecule) +
+`EntityId` + `StatusDot` (Atome) + `Icon` (Issue-Typ). Der Typ wird über eine
+feste Map auf ein Registry-Icon abgebildet (`core → type-chore`, mangels eigenem
+Glyph). Presentational, props-driven.
+
+## Wann verwenden
+
+- **Ja:** untergeordnete Entitäten als Zeilen-Liste mit Status.
+- **Nein:** abhakbare Kriterien → `ChecklistWidget`. Freitext → `TextWidget`.
+
+## Props
+
+<ArgTypes of={Stories} />
+
+## Zustände
+
+Achse `collapsed`; jede Zeile trägt Typ-Icon (links) und Status (rechts):
+
+<Canvas of={Stories.Default} />
+
+## Abhängigkeiten (Komposition)
+
+{/* AUTOGEN:composition START */}
+```mermaid
+graph TD
+  ChildWidget --> EntityId
+  ChildWidget --> IconButton
+  ChildWidget --> ListItem
+  ChildWidget --> StatusDot
+  ChildWidget --> WidgetBase
+  classDef screen fill:#cba6f7,stroke:#1e1e2e,color:#1e1e2e
+  classDef organism fill:#89b4fa,stroke:#1e1e2e,color:#1e1e2e
+  classDef molecule fill:#a6e3a1,stroke:#1e1e2e,color:#1e1e2e
+  classDef atom fill:#f2cdcd,stroke:#1e1e2e,color:#1e1e2e
+  class ChildWidget organism
+  class ListItem,WidgetBase molecule
+  class EntityId,IconButton,StatusDot atom
+```
+{/* AUTOGEN:composition END */}
+
+## data-ui-Anker
+
+| Teil | data-ui | Zweck |
+| --- | --- | --- |
+| Wurzel | `organism.widget.children` | Widget |
+| Zeile | `…​.row-<id>` | ListItem je Issue |
+| ID | `…​.row-<id>.id` | EntityId |
+| Status | `…​.row-<id>.status` | StatusDot |
+
+```mermaid
+graph TD
+  CW["organism.widget.children"] --> WB["molecule.widget (WidgetBase)"]
+  WB --> Row["…​.row-&lt;id&gt; (ListItem)"]
+  Row --> Id["…​.row-&lt;id&gt;.id (EntityId)"]
+  Row --> Type["Icon type-*"]
+  Row --> Status["…​.row-&lt;id&gt;.status (StatusDot)"]
+```

@@ -1,0 +1,10 @@
+{
+  "id": 5,
+  "backlog_id": 192,
+  "key": "US-5",
+  "title": "Als PO kann ich User Stories pro Issue anlegen",
+  "details": "Formular öffnet per Button im Issue-Detail",
+  "qa": "Neue Story erscheint sofort in der Liste ohne Reload",
+  "us_verdict": "open",
+  "position": 1
+}

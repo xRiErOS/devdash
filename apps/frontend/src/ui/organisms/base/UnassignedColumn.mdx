@@ -1,0 +1,65 @@
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './UnassignedColumn.stories.jsx'
+
+<Meta of={Stories} />
+
+# UnassignedColumn
+
+`status:open` · Organism (base) · Cluster `RoadmapBoard`
+
+## Kurzbeschreibung
+
+Staging-Spalte für Sprints ohne Meilenstein. Rechtes Ende des RoadmapBoard (D05),
+optisch abgesetzt: layer-3 + gestrichelte Border (Q03).
+
+## Zweck
+
+Presentational, analog `MilestoneColumn`, aber ohne DragHandle (nicht
+verschiebbar) und ohne „Abgeschlossen"-Bereich. Drop-Ziel-Verdrahtung
+(`droppableRef`/`isOver`) und Card-Drag (`CardComponent`) kommen vom Container.
+
+## Wann verwenden
+
+- **Ja:** als feste letzte Spalte im `RoadmapBoard` (Sprint-Staging).
+- **Nein:** Meilenstein-Spalte → `MilestoneColumn`.
+
+## Props
+
+<ArgTypes of={Stories} />
+
+## Zustände
+
+`WithSprints`, `Empty` („Alle Sprints zugeordnet"), `IsOver` (Drop-Highlight).
+
+<Canvas of={Stories.WithSprints} />
+<Canvas of={Stories.IsOver} />
+
+## Barrierefreiheit
+
+### ARIA
+
+`role="group"` mit `aria-label="Nicht zugeordnet"`.
+
+## Abhängigkeiten (Komposition)
+
+{/* AUTOGEN:composition START */}
+```mermaid
+graph TD
+  SprintCard --> DragHandle
+  SprintCard --> EntityId
+  SprintCard --> IconButton
+  SprintCard --> ListItem
+  SprintCard --> ProgressBar
+  SprintCard --> StatusDot
+  UnassignedColumn --> SprintCard
+  UnassignedColumn --> UnassignedColumnHeader
+  UnassignedColumnHeader --> Chip
+  classDef screen fill:#cba6f7,stroke:#1e1e2e,color:#1e1e2e
+  classDef organism fill:#89b4fa,stroke:#1e1e2e,color:#1e1e2e
+  classDef molecule fill:#a6e3a1,stroke:#1e1e2e,color:#1e1e2e
+  classDef atom fill:#f2cdcd,stroke:#1e1e2e,color:#1e1e2e
+  class SprintCard,UnassignedColumn organism
+  class ListItem,UnassignedColumnHeader molecule
+  class Chip,DragHandle,EntityId,IconButton,ProgressBar,StatusDot atom
+```
+{/* AUTOGEN:composition END */}

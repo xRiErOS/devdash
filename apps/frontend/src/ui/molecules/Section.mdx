@@ -1,0 +1,57 @@
+{/* Section — Narrativ-Wahrheit. Norm: docs/doc-mdx-Norm.md. */}
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './Section.stories.jsx'
+
+<Meta of={Stories} />
+
+# Section
+
+`status:open` · Molecule · Cluster `03 MOLECULES/Section`
+
+## Kurzbeschreibung
+
+Betitelter Reintext-Abschnitt (Goal/Background/Description): ein Display-Caps-Label
+über fließendem Lesetext.
+
+## Zweck
+
+Reiner Textabschnitt im TextWidget. Label und Body kommen als Props/`children` —
+kein Toggle, keine Eingabe, kein Icon. Presentational, props-driven.
+
+## Wann verwenden
+
+- **Ja:** betitelter Lesetext-Block (Goal, Background, Description).
+- **Nein:** einklappbarer Block → `WidgetBase`. Label + Eingabe → `FormField`.
+
+## Props
+
+<ArgTypes of={Stories} />
+
+## Zustände
+
+Achse `label` + Body-Länge; mehrere Abschnitte werden im Consumer gestapelt:
+
+<Canvas of={Stories.Default} />
+<Canvas of={Stories.Stack} />
+
+## Abhängigkeiten (Komposition)
+
+{/* AUTOGEN:composition START */}
+```mermaid
+graph TD
+  Section
+  classDef screen fill:#cba6f7,stroke:#1e1e2e,color:#1e1e2e
+  classDef organism fill:#89b4fa,stroke:#1e1e2e,color:#1e1e2e
+  classDef molecule fill:#a6e3a1,stroke:#1e1e2e,color:#1e1e2e
+  classDef atom fill:#f2cdcd,stroke:#1e1e2e,color:#1e1e2e
+  class Section molecule
+```
+{/* AUTOGEN:composition END */}
+
+## data-ui-Anker
+
+```mermaid
+graph TD
+  Root["molecule.section (div)"] --> Label["…​.label (Caps)"]
+  Root --> Body["…​.body (Lesetext)"]
+```

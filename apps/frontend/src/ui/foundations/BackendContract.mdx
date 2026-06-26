@@ -1,0 +1,185 @@
+import { Meta } from '@storybook/addon-docs/blocks'
+import issue from './fixtures/issue.json'
+import sprint from './fixtures/sprint.json'
+import milestone from './fixtures/milestone.json'
+import project from './fixtures/project.json'
+import tag from './fixtures/tag.json'
+import userStory from './fixtures/user-story.json'
+import todo from './fixtures/todo.json'
+import projectMemory from './fixtures/project-memory.json'
+import attachment from './fixtures/attachment.json'
+import dodItem from './fixtures/dod-item.json'
+
+<Meta title="01 FOUNDATIONS/Backend Contract/Overview" tags={['status:stable']} />
+
+# Backend-Contract (Living Doc)
+
+**SSoT für KI-Agenten** — diese Datei ist der einzige Einstiegspunkt für Entity→Schema→Routes→Fixture-Mapping.
+Fixtures (`./fixtures/*.json`) sind eingefrorene Response-Shapes des Backends. Alle datenladenden Stories und MSW-Handler importieren ausschließlich aus diesem Verzeichnis.
+
+Zod-Contract-Wahrheit: `packages/api-types/*.contracts.js`. Route-Wahrheit: `apps/backend/openapi/routes/*.routes.js`.
+
+## Master-Tabelle: alle Entities
+
+<table>
+  <thead>
+    <tr>
+      <th>Entity</th>
+      <th>Contract-Datei</th>
+      <th>Key-Routes</th>
+      <th>Fixture</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Issue</strong></td>
+      <td><code>backlog.contracts.js</code></td>
+      <td><code>GET/POST /api/backlog</code> · <code>GET/PATCH/DELETE /api/backlog/:id</code> · <code>/status</code> · <code>/sprint</code> · <code>/tags</code> · <code>/dependencies</code> · <code>/move</code></td>
+      <td><code>fixtures/issue.json</code></td>
+    </tr>
+    <tr>
+      <td><strong>Sprint</strong></td>
+      <td><code>milestone-sprint.contracts.js</code></td>
+      <td><code>GET/POST /api/sprints</code> · <code>GET/PUT/DELETE /api/sprints/:id</code> · <code>/reorder</code> · <code>/tags</code></td>
+      <td><code>fixtures/sprint.json</code></td>
+    </tr>
+    <tr>
+      <td><strong>Milestone</strong></td>
+      <td><code>milestone-sprint.contracts.js</code></td>
+      <td><code>GET/POST /api/milestones</code> · <code>GET/PUT/DELETE /api/milestones/:id</code> · <code>/tags</code></td>
+      <td><code>fixtures/milestone.json</code></td>
+    </tr>
+    <tr>
+      <td><strong>DoD-Item</strong></td>
+      <td><code>milestone-sprint.contracts.js</code></td>
+      <td><code>GET/POST /api/milestones/:id/dod-items</code> · <code>PATCH/DELETE /api/dod-items/:id</code> · <code>/reorder</code></td>
+      <td><code>fixtures/dod-item.json</code></td>
+    </tr>
+    <tr>
+      <td><strong>Project</strong></td>
+      <td><em>inline Zod in routes</em></td>
+      <td><code>GET /api/projects</code> · <code>GET/PATCH/DELETE /api/projects/:id</code> · <code>GET /api/projects/list-minimal</code></td>
+      <td><code>fixtures/project.json</code></td>
+    </tr>
+    <tr>
+      <td><strong>Tag</strong></td>
+      <td><code>tag.contracts.js</code></td>
+      <td><code>GET/POST /api/tags</code> · <code>GET/PATCH/DELETE /api/tags/:id</code></td>
+      <td><code>fixtures/tag.json</code></td>
+    </tr>
+    <tr>
+      <td><strong>UserStory</strong></td>
+      <td><code>userStory.contracts.js</code></td>
+      <td><code>GET/POST /api/backlog/:id/user-stories</code> · <code>GET/PATCH/DELETE /api/user-stories/:id</code> · <code>/verdict</code></td>
+      <td><code>fixtures/user-story.json</code></td>
+    </tr>
+    <tr>
+      <td><strong>Subtask</strong></td>
+      <td><code>subtask.contracts.js</code></td>
+      <td><code>GET/POST /api/backlog/:id/subtasks</code> · <code>PATCH/DELETE /api/subtasks/:id</code> · <code>/status</code> · <code>/order</code></td>
+      <td><em>nested in issue.json</em></td>
+    </tr>
+    <tr>
+      <td><strong>Todo</strong></td>
+      <td><code>todo.contracts.js</code></td>
+      <td><code>GET/POST /api/projects/:pid/todos</code> · <code>PATCH/DELETE /api/projects/:pid/todos/:id</code> · <code>/links</code></td>
+      <td><code>fixtures/todo.json</code></td>
+    </tr>
+    <tr>
+      <td><strong>ProjectMemory</strong></td>
+      <td><code>project-memory.contracts.js</code></td>
+      <td><code>GET/POST /api/project-memories</code> · <code>GET/PATCH/DELETE /api/project-memories/:id</code> · <code>/supersede</code> · <code>/anchor/:anchor</code></td>
+      <td><code>fixtures/project-memory.json</code></td>
+    </tr>
+    <tr>
+      <td><strong>Attachment</strong></td>
+      <td><em>inline, file_path: string</em></td>
+      <td><code>GET /api/backlog/:id/attachments</code> · <code>POST /api/backlog/:id/attachments</code></td>
+      <td><code>fixtures/attachment.json</code></td>
+    </tr>
+  </tbody>
+</table>
+
+---
+
+## Issue — `GET /api/backlog/:id`
+
+Schlüssel-Felder: `key` (`<prefix>-<project_number>`), `status`, `type`, `priority`,
+Refinement-Felder (`goal`, `background`, `context_notes`, `relevant_files`), `result`,
+`assigned_sprint` + `sprint_key`, `review_status`, sowie nested `tasks` / `subtasks` /
+`user_stories` / `feedback` / `dependencies`. (E01/D09: `acceptance_criteria` +
+`test_instruction` abgelöst durch `user_stories[].qa`.)
+
+Enums: `ISSUE_TYPES = bug|feature|improvement|core` · `ISSUE_STATUSES = new|refined|planned|in_progress|to_review|passed|rejected|done|cancelled`
+
+<pre>{JSON.stringify(issue, null, 2)}</pre>
+
+## Sprint — `GET /api/sprints/:key`
+
+`key` (`DD#<n>`), `status` (`planning|active|review|completed|closed|cancelled`),
+`milestone_id`, `wip_limit`, plus nested `items[]` (volle Backlog-Rows + `review_status`
++ `screenshot_files`).
+
+<pre>{JSON.stringify(sprint, null, 2)}</pre>
+
+## Milestone — `GET /api/milestones/:id`
+
+`status`, `target_date`, `deferred`, nested `sprints[]` (mit `issue_total/done/cancelled`),
+`dod_items[]`, `dependencies_in/out[]`, plus aggregierte Counts (`total`, `done`,
+`cancelled`, `terminal_count`).
+
+<pre>{JSON.stringify(milestone, null, 2)}</pre>
+
+## DoD-Item — `GET /api/milestones/:milestone_id/dod-items`
+
+Nested in Milestone-Response als `dod_items[]`. CRUD über dedizierte Routes. `done` ist
+`0|1` (SQLite integer). `position` bestimmt Reihenfolge (Reorder via PUT).
+
+Contract: `dodItemCreateContract` (label Pflicht, details optional) · `dodItemUpdateContract`
+(label/done/details alle optional).
+
+<pre>{JSON.stringify(dodItem, null, 2)}</pre>
+
+## Project — `GET /api/projects/:id`
+
+`prefix` ist Key-Präfix für Issues (`DD2-42`). `slug` = URL-Safe-Name für Capture-API.
+`color` = Catppuccin-Token-Name. `archived = 0|1`.
+
+<pre>{JSON.stringify(project, null, 2)}</pre>
+
+## Tag — `GET /api/tags`
+
+`color` ∈ `blue|green|peach|mauve|teal|overlay0`. Tags sind project-scoped (`project_id`).
+Vollständiger Replace via `PUT /api/backlog/:id/tags` mit `{ tag_ids: number[] }`.
+
+<pre>{JSON.stringify(tag, null, 2)}</pre>
+
+## UserStory — `GET /api/backlog/:id/user-stories`
+
+`key` generiert als `US-${id}`. `us_verdict` ∈ `open|accepted|rejected` (Story-Ebene,
+≠ Issue-`review_status`). `qa`-Feld = Single Source für Prüfkriterien (E01/D09, ersetzt
+altes `acceptance_criteria` + `test_instruction` auf Issue-Ebene).
+
+<pre>{JSON.stringify(userStory, null, 2)}</pre>
+
+## Todo — `GET /api/projects/:project_id/todos`
+
+`status` ∈ `open|done|cancelled`. `links[]` typisiert mit `type ∈ spec|issue|vault|url`.
+Position via Reorder-Route (`PATCH /api/projects/:pid/todos/reorder`).
+
+<pre>{JSON.stringify(todo, null, 2)}</pre>
+
+## ProjectMemory — `GET /api/project-memories/:id`
+
+`category` ∈ `architecture_decision|dead_end|bug_pattern|convention|external_constraint|session_note`.
+`importance` 1 (hoch) – 3 (niedrig). `anchor` = unique String-Identifier (optional).
+`stability` ∈ `stable|volatile`. Ersatz via `/supersede` (append-only Korrektur-Chain).
+
+<pre>{JSON.stringify(projectMemory, null, 2)}</pre>
+
+## Attachment — `GET /api/backlog/:id/attachments`
+
+Array von Datei-Referenzen. `file_path` ist relativer Pfad im Projekt-`repo_path`.
+Upload via `POST /api/backlog/:id/attachments` (multipart oder `{ file_path: string }`).
+
+<pre>{JSON.stringify(attachment, null, 2)}</pre>

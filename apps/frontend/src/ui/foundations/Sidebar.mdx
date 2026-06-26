@@ -1,0 +1,39 @@
+{/* GF-226 / LP-05 — Sidebar-Doku inkl. Reflow-Vertrag (D10-G). */}
+import { Meta, Canvas, Controls } from '@storybook/addon-docs/blocks'
+import * as SidebarStories from './Sidebar.stories.jsx'
+
+<Meta of={SidebarStories} />
+
+# Sidebar
+
+`status:stable` · Layout-Primitiv · `Primitives`
+
+## Zweck
+
+Schmale, breiten-fixe Spalte neben flexiblem Hauptinhalt (Master-Detail, Nav-plus-
+Content). Der Inhalt nimmt den Restplatz, mindestens aber die halbe Breite.
+
+## Wann verwenden
+
+- **Ja:** asymmetrisches Zwei-Spalten-Layout mit einer festen und einer fluiden Spalte.
+- **Nein:** gleichbreite Kacheln → `Grid`. Symmetrischer Achsen-Wechsel → `Switcher`.
+
+## Props
+
+`side` (Inhalt der fixen Spalte), `sideWidth` (rem — kein px, D10-C), `sideRight`
+(Spalte rechts), `gap` (none/xs/sm/md/lg → `--space-*`).
+
+## Reflow-Vertrag (D10-B/C)
+
+Bei Platzmangel bricht die fixe Spalte via `flex-wrap` um und stapelt über/unter den
+Inhalt (volle Breite). EINSCHRÄNKUNG: die kanonische Sidebar steuert diesen Collapse
+aktuell über einen Viewport-`lg:`-Breakpoint (DD-516), NICHT über die Container-/
+Token-Schwelle. Das ist eine bewusste Abweichung von D10-B und als Follow-up
+GF-282 (I02) erfasst — Migration auf den intrinsischen `--cq-*`-Reflow (analog
+Switcher) steht aus. `sideWidth` ist fluid (rem), keine fixen px.
+
+## Beispiele
+
+<Canvas of={SidebarStories.Default} />
+<Controls of={SidebarStories.Default} />
+<Canvas of={SidebarStories.SideRight} />

@@ -1,0 +1,37 @@
+{/* GF-226 / LP-01 — Stack-Doku inkl. Reflow-Vertrag (D10-G). */}
+import { Meta, Canvas, Controls } from '@storybook/addon-docs/blocks'
+import * as StackStories from './Stack.stories.jsx'
+
+<Meta of={StackStories} />
+
+# Stack
+
+`status:stable` · Layout-Primitiv · `Primitives`
+
+## Zweck
+
+Vertikaler Fluss mit Token-Gap. Das Standard-Primitiv für „Dinge untereinander"
+(Formularzeilen, Karten-Inhalt, Sektionen). Content-agnostisch, kein Reflow.
+
+## Wann verwenden
+
+- **Ja:** vertikale Anordnung mit konsistentem Abstand.
+- **Nein:** horizontale Gruppe → `Cluster`. Achsen-Wechsel je Breite → `Switcher`.
+
+## Props
+
+`gap` (none/xs/sm/md/lg → `--space-*`), `align` (start/center/stretch), `as`
+(Element-Tag).
+
+## Reflow-Vertrag (D10-B/C)
+
+Stack reflowt NICHT — die Achse bleibt immer vertikal, auf jeder Containerbreite.
+Der Abstand ist token-gebunden (`--space-*`) und schrumpft systemweit über den
+Mobile-Density-Override (DD-636) mit. Keine fixen px, keine Viewport-Media.
+
+## Beispiele
+
+<Canvas of={StackStories.Default} />
+<Controls of={StackStories.Default} />
+<Canvas of={StackStories.Gaps} />
+<Canvas of={StackStories.Alignment} />

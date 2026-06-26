@@ -1,0 +1,17 @@
+{
+  "id": 303,
+  "project_id": 10,
+  "category": "architecture_decision",
+  "summary": "CONTRACT-GATEWAY-PATTERN: Zod-Contracts als Single Source für REST/CLI/MCP",
+  "content": "Alle REST-, CLI- und MCP-Layer importieren dieselben Zod-Contracts aus packages/api-types/. Business-Regeln bleiben in den Lib-Dateien.",
+  "tags": ["zod", "contract", "single-source"],
+  "importance": 1,
+  "pinned": 1,
+  "anchor": "CONTRACT-GATEWAY-PATTERN",
+  "stability": "stable",
+  "source_type": "session",
+  "source_ref": "DD-557",
+  "created_at": "2026-06-25T10:00:00Z",
+  "updated_at": "2026-06-25T10:00:00Z",
+  "superseded_by": null
+}

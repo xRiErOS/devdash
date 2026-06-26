@@ -1,0 +1,84 @@
+{/* MilestoneDetails — Narrativ-Wahrheit. Norm: docs/doc-mdx-Norm.md. */}
+import { Meta, Canvas } from '@storybook/addon-docs/blocks'
+import * as Stories from './MilestoneDetails.stories.jsx'
+
+<Meta of={Stories} />
+
+# MilestoneDetails
+
+`status:open` · Screen · Cluster `05 SCREENS/MilestoneDetails`
+
+## Kurzbeschreibung
+
+Detail-Screen eines Milestones — dasselbe `DetailLayout`, befüllt mit
+Milestone-Widgets (Beschreibung, Sprints, Definition of Done).
+
+## Zweck
+
+Komponiert `DetailLayout` mit `TextWidget` (Beschreibung) + `ChildWidget`
+(Sprints, `kind=sprint`) + `ChecklistWidget` (DoD-Items, normalisiert auf
+`{id,name,done}`). Presentational; Default = `foundations/fixtures/milestone.json`.
+Da Milestones keinen kurzen Key tragen, wird ein führendes `M<n>` aus dem Namen
+gezogen.
+
+## Wann verwenden
+
+- **Ja:** Detailansicht eines Milestones.
+- **Nein:** Sprint → `SprintDetails`. Issue → `IssueDetails`.
+
+## Zustände
+
+<Canvas of={Stories.Populated} />
+<Canvas of={Stories.Default} />
+
+## Aktueller Stand
+
+### DetailLayout + Widgets
+- TextWidget(description) · ChildWidget(sprints) · ChecklistWidget(dod_items).
+- Wiring-Stand: verdrahtet gegen Fixture; Connected-Wrapper = net-new (Promote-Loop).
+
+## Abhängigkeiten (Komposition)
+
+{/* AUTOGEN:composition START */}
+```mermaid
+graph TD
+  ChecklistWidget --> Checkbox
+  ChecklistWidget --> IconButton
+  ChecklistWidget --> ListItem
+  ChecklistWidget --> WidgetBase
+  ChildWidget --> EntityId
+  ChildWidget --> IconButton
+  ChildWidget --> ListItem
+  ChildWidget --> StatusDot
+  ChildWidget --> WidgetBase
+  DetailLayout --> PageTitle
+  MilestoneDetails --> ChecklistWidget
+  MilestoneDetails --> ChildWidget
+  MilestoneDetails --> DetailLayout
+  MilestoneDetails --> TextWidget
+  PageTitle --> EntityId
+  PageTitle --> StatusDot
+  TextWidget --> IconButton
+  TextWidget --> Section
+  TextWidget --> WidgetBase
+  classDef screen fill:#cba6f7,stroke:#1e1e2e,color:#1e1e2e
+  classDef organism fill:#89b4fa,stroke:#1e1e2e,color:#1e1e2e
+  classDef molecule fill:#a6e3a1,stroke:#1e1e2e,color:#1e1e2e
+  classDef atom fill:#f2cdcd,stroke:#1e1e2e,color:#1e1e2e
+  class DetailLayout,MilestoneDetails screen
+  class ChecklistWidget,ChildWidget,PageTitle,TextWidget organism
+  class ListItem,Section,WidgetBase molecule
+  class Checkbox,EntityId,IconButton,StatusDot atom
+```
+{/* AUTOGEN:composition END */}
+
+## data-ui-Anker
+
+```mermaid
+graph TD
+  Fix["milestone.json"] --> M["screen.milestoneDetails"]
+  M --> DL["…​.layout (DetailLayout)"]
+  DL --> T["…​.widget.text (TextWidget)"]
+  DL --> C["…​.widget.children (ChildWidget · Sprints)"]
+  DL --> D["…​.widget.dod (ChecklistWidget · DoD)"]
+```

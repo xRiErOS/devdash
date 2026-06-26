@@ -1,0 +1,107 @@
+{/* IssueDetails — Narrativ-Wahrheit. Norm: docs/doc-mdx-Norm.md. */}
+import { Meta, Canvas } from '@storybook/addon-docs/blocks'
+import * as Stories from './IssueDetails.stories.jsx'
+
+<Meta of={Stories} />
+
+# IssueDetails
+
+`status:open` · Screen · Cluster `05 SCREENS/IssueDetails`
+
+## Kurzbeschreibung
+
+Detail-Screen eines Issues — die erste vertikale Wahrheit der Komponenten-
+Extraktion: Fixture → DetailLayout → Widgets, End-to-End.
+
+## Zweck
+
+Komponiert `DetailLayout` mit `TextWidget` (Beschreibung), `AttachmentWidget`
+(Anhänge) und `ChecklistWidget` (Subtasks). Issues haben keine Kind-Issues →
+**kein** `ChildWidget`. Presentational: nimmt das Issue als Prop (Default =
+`foundations/fixtures/issue.json`), mappt Felder auf Widget-Props. Kein Live-Fetch.
+
+## Wann verwenden
+
+- **Ja:** Detailansicht eines Issues im Content-Bereich.
+- **Nein:** Sprint/Milestone → `SprintDetails`/`MilestoneDetails` (gleiches DetailLayout).
+
+## Zustände
+
+`Default` rendert das (bewusst sparse) Fixture; `Populated` ein reich befülltes
+Issue mit allen Widgets:
+
+<Canvas of={Stories.Populated} />
+<Canvas of={Stories.Default} />
+
+## Aktueller Stand
+
+### DetailLayout
+- Lead-Panel + Widget-Grid.
+- Wiring-Stand: verdrahtet (Fixture-Mapping in `IssueDetails.jsx`).
+
+### Widgets
+- TextWidget(goal/background/description) · AttachmentWidget(attachments) · ChecklistWidget(subtasks).
+- Wiring-Stand: verdrahtet gegen Fixture-Felder; Connected-Wrapper (echter Fetch) = net-new (Promote-Loop).
+
+## Abhängigkeiten (Komposition)
+
+{/* AUTOGEN:composition START */}
+```mermaid
+graph TD
+  AttachmentWidget --> FileItem
+  AttachmentWidget --> IconButton
+  AttachmentWidget --> WidgetBase
+  ChecklistWidget --> Checkbox
+  ChecklistWidget --> IconButton
+  ChecklistWidget --> ListItem
+  ChecklistWidget --> WidgetBase
+  DetailLayout --> PageTitle
+  FileItem --> IconButton
+  IssueDetails --> AttachmentWidget
+  IssueDetails --> ChecklistWidget
+  IssueDetails --> DetailLayout
+  IssueDetails --> TextWidget
+  PageTitle --> EntityId
+  PageTitle --> StatusDot
+  TextWidget --> IconButton
+  TextWidget --> Section
+  TextWidget --> WidgetBase
+  classDef screen fill:#cba6f7,stroke:#1e1e2e,color:#1e1e2e
+  classDef organism fill:#89b4fa,stroke:#1e1e2e,color:#1e1e2e
+  classDef molecule fill:#a6e3a1,stroke:#1e1e2e,color:#1e1e2e
+  classDef atom fill:#f2cdcd,stroke:#1e1e2e,color:#1e1e2e
+  class DetailLayout,IssueDetails screen
+  class AttachmentWidget,ChecklistWidget,PageTitle,TextWidget organism
+  class FileItem,ListItem,Section,WidgetBase molecule
+  class Checkbox,EntityId,IconButton,StatusDot atom
+```
+{/* AUTOGEN:composition END */}
+
+## data-ui-Anker
+
+Daten-Wiring + Issue-Lifecycle (kanonisch, `lifecycle.js`):
+
+```mermaid
+graph TD
+  Fix["issue.json"] --> ID["screen.issueDetails"]
+  ID --> DL["…​.layout (DetailLayout)"]
+  DL --> T["…​.widget.text (TextWidget)"]
+  DL --> A["…​.widget.attachments (AttachmentWidget)"]
+  DL --> C["…​.widget.checklist (ChecklistWidget)"]
+```
+
+```mermaid
+stateDiagram-v2
+  [*] --> new
+  new --> refined
+  refined --> planned
+  planned --> in_progress
+  in_progress --> to_review
+  to_review --> passed
+  to_review --> rejected
+  rejected --> in_progress
+  passed --> done
+  done --> [*]
+  new --> cancelled
+  in_progress --> cancelled
+```

@@ -1,0 +1,76 @@
+{/* SprintDetails — Narrativ-Wahrheit. Norm: docs/doc-mdx-Norm.md. */}
+import { Meta, Canvas } from '@storybook/addon-docs/blocks'
+import * as Stories from './SprintDetails.stories.jsx'
+
+<Meta of={Stories} />
+
+# SprintDetails
+
+`status:open` · Screen · Cluster `05 SCREENS/SprintDetails`
+
+## Kurzbeschreibung
+
+Detail-Screen eines Sprints — dasselbe `DetailLayout` wie IssueDetails, befüllt
+mit Sprint-Widgets.
+
+## Zweck
+
+Komponiert `DetailLayout` mit `TextWidget` (Goal/Notes) + `ChildWidget` (Issues
+des Sprints). Presentational; Default = `foundations/fixtures/sprint.json`. Zeigt,
+dass das geteilte Layout ohne neuen Code für eine zweite Entität trägt.
+
+## Wann verwenden
+
+- **Ja:** Detailansicht eines Sprints.
+- **Nein:** Issue → `IssueDetails`. Milestone → `MilestoneDetails`.
+
+## Zustände
+
+<Canvas of={Stories.Populated} />
+<Canvas of={Stories.Default} />
+
+## Aktueller Stand
+
+### DetailLayout + Widgets
+- TextWidget(goal/notes) · ChildWidget(items=Issues, kind=issue).
+- Wiring-Stand: verdrahtet gegen Fixture; Connected-Wrapper = net-new (Promote-Loop).
+
+## Abhängigkeiten (Komposition)
+
+{/* AUTOGEN:composition START */}
+```mermaid
+graph TD
+  ChildWidget --> EntityId
+  ChildWidget --> IconButton
+  ChildWidget --> ListItem
+  ChildWidget --> StatusDot
+  ChildWidget --> WidgetBase
+  DetailLayout --> PageTitle
+  PageTitle --> EntityId
+  PageTitle --> StatusDot
+  SprintDetails --> ChildWidget
+  SprintDetails --> DetailLayout
+  SprintDetails --> TextWidget
+  TextWidget --> IconButton
+  TextWidget --> Section
+  TextWidget --> WidgetBase
+  classDef screen fill:#cba6f7,stroke:#1e1e2e,color:#1e1e2e
+  classDef organism fill:#89b4fa,stroke:#1e1e2e,color:#1e1e2e
+  classDef molecule fill:#a6e3a1,stroke:#1e1e2e,color:#1e1e2e
+  classDef atom fill:#f2cdcd,stroke:#1e1e2e,color:#1e1e2e
+  class DetailLayout,SprintDetails screen
+  class ChildWidget,PageTitle,TextWidget organism
+  class ListItem,Section,WidgetBase molecule
+  class EntityId,IconButton,StatusDot atom
+```
+{/* AUTOGEN:composition END */}
+
+## data-ui-Anker
+
+```mermaid
+graph TD
+  Fix["sprint.json"] --> S["screen.sprintDetails"]
+  S --> DL["…​.layout (DetailLayout)"]
+  DL --> T["…​.widget.text (TextWidget)"]
+  DL --> C["…​.widget.children (ChildWidget · Issues)"]
+```

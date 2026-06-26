@@ -1,0 +1,68 @@
+{/* ListItem — Narrativ-Wahrheit. Norm: docs/doc-mdx-Norm.md. */}
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './ListItem.stories.jsx'
+
+<Meta of={Stories} />
+
+# ListItem
+
+`status:open` · Molecule · Cluster `03 MOLECULES/ListItem`
+
+## Kurzbeschreibung
+
+Generische Listenzeile (Rahmen + optionaler Drag-Grip). Der eigentliche Inhalt —
+ID, Icon, Name, Status oder Checkbox — kommt als `children`.
+
+## Zweck
+
+Geteilte Hülle für ChildWidget- und ChecklistWidget-Zeilen. Komponiert `Icon`
+(Grip); der restliche Zeileninhalt wird vom Consumer aus Atomen (`EntityId`,
+`StatusDot`, `Checkbox`) zusammengesetzt. Presentational, props-driven. Das
+Durchstreichen (`struck`) macht der Consumer am Namen — hier nur als
+`data-struck`-Hinweis.
+
+## Wann verwenden
+
+- **Ja:** eine Zeile in einer sortierbaren/abhakbaren Liste.
+- **Nein:** Hierarchie-Navigation → `TreeRow`. Datei-Zeile → `FileItem`.
+
+## Props
+
+<ArgTypes of={Stories} />
+
+## Zustände
+
+Achsen `grip` (Drag-Anfasser), `active` (ausgewählt → state-active), `struck`
+(Durchstreich-Hinweis):
+
+<Canvas of={Stories.Default} />
+<Canvas of={Stories.Variants} />
+
+`SprintIssueRow` ist die importierte Variante, die `SprintCard` im Wide-Mode für
+`sprint.issues[]` rendert (EntityId 11px + StatusDot + truncatender Titel) — seit
+Iteration 3 nutzt die Issue-Liste dieses Molecule statt eines rohen `<li>` (eine
+Quelle, kein Drift).
+
+<Canvas of={Stories.SprintIssueRow} />
+
+## Abhängigkeiten (Komposition)
+
+{/* AUTOGEN:composition START */}
+```mermaid
+graph TD
+  ListItem
+  classDef screen fill:#cba6f7,stroke:#1e1e2e,color:#1e1e2e
+  classDef organism fill:#89b4fa,stroke:#1e1e2e,color:#1e1e2e
+  classDef molecule fill:#a6e3a1,stroke:#1e1e2e,color:#1e1e2e
+  classDef atom fill:#f2cdcd,stroke:#1e1e2e,color:#1e1e2e
+  class ListItem molecule
+```
+{/* AUTOGEN:composition END */}
+
+## data-ui-Anker
+
+```mermaid
+graph TD
+  Root["molecule.listItem (div)"] --> Grip["…​.grip (Icon drag, nur grip=true)"]
+  Root --> Children["children (EntityId/StatusDot/Checkbox …)"]
+```

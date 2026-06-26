@@ -1,0 +1,38 @@
+{/* GF-226 / LP-02 — Cluster-Doku inkl. Reflow-Vertrag (D10-G). */}
+import { Meta, Canvas, Controls } from '@storybook/addon-docs/blocks'
+import * as ClusterStories from './Cluster.stories.jsx'
+
+<Meta of={ClusterStories} />
+
+# Cluster
+
+`status:stable` · Layout-Primitiv · `Primitives`
+
+## Zweck
+
+Horizontale Gruppe mit Token-Gap, die intrinsisch umbricht. Für Toolbars,
+Pill-/Tag-Reihen, Filter- und Aktionsgruppen.
+
+## Wann verwenden
+
+- **Ja:** mehrere gleichrangige Inline-Elemente nebeneinander, die bei Platzmangel
+  in die nächste Zeile fließen dürfen.
+- **Nein:** strikt vertikal → `Stack`. Karten-Raster → `Grid`.
+
+## Props
+
+`gap` (none/xs/sm/md/lg → `--space-*`), `justify` (start/center/between/end).
+
+## Reflow-Vertrag (D10-B/C)
+
+Cluster reflowt INTRINSISCH über `flex-wrap` — sobald die Kinder die Containerbreite
+überschreiten, brechen sie in die nächste Zeile um. Keine Schwelle, keine Viewport-
+Media: das Umbruchverhalten folgt allein dem verfügbaren Platz im Container. Gap ist
+token-gebunden (`--space-*`).
+
+## Beispiele
+
+<Canvas of={ClusterStories.Default} />
+<Controls of={ClusterStories.Default} />
+<Canvas of={ClusterStories.Wrapping} />
+<Canvas of={ClusterStories.Justify} />

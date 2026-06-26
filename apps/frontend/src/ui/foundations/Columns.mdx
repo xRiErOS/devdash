@@ -1,0 +1,47 @@
+{/* GF-285 / LP-07 — Columns-Doku inkl. Reflow-Vertrag (D10-G). */}
+import { Meta, Canvas, Controls } from '@storybook/addon-docs/blocks'
+import * as ColumnsStories from './Columns.stories.jsx'
+
+<Meta of={ColumnsStories} />
+
+# Columns
+
+`status:stable` · Layout-Primitiv · `Primitives`
+
+## Zweck
+
+Explizites Spalten-Raster mit FESTER Anzahl und fr-Ratio (z.B. `2fr 1fr`). Für
+Layouts, die eine bestimmte asymmetrische Aufteilung brauchen — Content-plus-Aside,
+Form-plus-Vorschau —, die weder Grid noch Sidebar liefern.
+
+## Wann verwenden
+
+- **Ja:** definierte asymmetrische Aufteilung mit fester Spaltenzahl (2fr/1fr, 3fr/1fr).
+- **Nein:** symmetrisches Karten-Raster mit variabler Spaltenzahl → `Grid` (auto-fit).
+  Eine fixe + eine fluide Spalte mit Wrap → `Sidebar`. Achsen-Kippen → `Switcher`.
+
+## Abgrenzung (Review I01 — „warum nicht eins?")
+
+Bewusst drei getrennte Primitive (Every-Layout-Disziplin): **Grid** = symmetrisch,
+auto-fit, intrinsische Spaltenzahl · **Sidebar** = genau 2 Spalten, fix+fluid, Wrap ·
+**Columns** = feste N Spalten, explizite fr-Ratio. Ein Allzweck-Primitiv wäre
+mächtiger, aber schwerer zu reviewen und token-unscharf — daher getrennt.
+
+## Props
+
+`cols` (Ratio-Preset: `1-1` / `2-1` / `1-2` / `1-1-1` / `3-1` / `1-3` …),
+`gap` (none/xs/sm/md/lg → `--space-*`).
+
+## Reflow-Vertrag (D10-B/C)
+
+Columns hält die explizite Ratio bei — KEIN intrinsischer Reflow (das ist Absicht:
+wer eine feste Aufteilung will, will sie auch behalten). Spaltenbreiten sind fluid
+(`fr`), keine fixen px. Wird komponenten-lokaler Achsen-Reflow gebraucht, ist das
+`Switcher`/`Grid`, nicht Columns. Die Ratio-Presets sind statische Token-nahe
+Klassen (0 inline-style).
+
+## Beispiele
+
+<Canvas of={ColumnsStories.Default} />
+<Controls of={ColumnsStories.Default} />
+<Canvas of={ColumnsStories.Ratios} />

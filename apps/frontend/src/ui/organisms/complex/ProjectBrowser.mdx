@@ -1,0 +1,100 @@
+{/* ProjectBrowser — Narrativ-Wahrheit. Norm: docs/doc-mdx-Norm.md. */}
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './ProjectBrowser.stories.jsx'
+
+<Meta of={Stories} />
+
+# ProjectBrowser
+
+`status:open` · Organism · Cluster `04 ORGANISMS/ProjectBrowser`
+
+## Kurzbeschreibung
+
+Linke Shell-Spalte (VS-Code-artig): zeigt die Projekt-Struktur Milestone › Sprint
+› Issue als Baum, mit Such-/Sort-/Filter-Tools und Umschalt Struktur↔Backlog.
+Ein-/ausklappbar.
+
+## Zweck
+
+Konkreter Shell-Organism. Komponiert `CommandBar` (Filter-Feld), `IconButton`
+(Sort/Filter/Toggle), `SegmentedControl` (View-Umschalt) und je Baum-Zeile ein
+`TreeRow` (farbcodierte ID + Caret + Lead/Label). Kollabiert auf einen schmalen
+Streifen mit vertikalem Label. Presentational, props-driven.
+
+## Wann verwenden
+
+- **Ja:** linke Struktur-/Navigations-Spalte eines Projekts.
+- **Nein:** App-weite Haupt-Navigation → `NavigationRail`. Einzelne Zeile → `TreeRow`.
+
+## Props
+
+<ArgTypes of={Stories} />
+
+## Zustände
+
+Achse `collapsed`: offen (Kopf + Tools + Baum, 264px) ↔ Streifen (40px, vertikales
+Label). Der aktive Baum-Knoten ist hervorgehoben.
+
+<Canvas of={Stories.Open} />
+<Canvas of={Stories.Collapsed} />
+
+## Barrierefreiheit
+
+### ARIA
+
+Toggle, Sort und Filter sind echte `<button>` (`IconButton`) mit `aria-label`.
+Der View-Umschalter (`SegmentedControl`) trägt `role="tablist"` mit `role="tab"`
++ `aria-selected` je Segment.
+
+### Keyboard
+
+Alle Bedien-Elemente (Toggle, Sort, Filter, View-Segmente) sind per Tab fokus-
+und per Enter/Space aktivierbar. Die Baum-Zeilen sind hier Anzeige (Klick-Logik
+im Consumer).
+
+## Abhängigkeiten (Komposition)
+
+{/* AUTOGEN:composition START */}
+```mermaid
+graph TD
+  CommandBar --> Kbd
+  ProjectBrowser --> CommandBar
+  ProjectBrowser --> IconButton
+  ProjectBrowser --> SegmentedControl
+  ProjectBrowser --> TreeRow
+  TreeRow --> EntityId
+  classDef screen fill:#cba6f7,stroke:#1e1e2e,color:#1e1e2e
+  classDef organism fill:#89b4fa,stroke:#1e1e2e,color:#1e1e2e
+  classDef molecule fill:#a6e3a1,stroke:#1e1e2e,color:#1e1e2e
+  classDef atom fill:#f2cdcd,stroke:#1e1e2e,color:#1e1e2e
+  class ProjectBrowser organism
+  class CommandBar,TreeRow molecule
+  class EntityId,IconButton,Kbd,SegmentedControl atom
+```
+{/* AUTOGEN:composition END */}
+
+## data-ui-Anker
+
+| Teil | data-ui | Zweck |
+| --- | --- | --- |
+| Wurzel | `organism.projectBrowser` | Panel/Streifen |
+| Kopf | `…​.head` | Titel + Toggle |
+| Toggle | `…​.toggle` | Ein-/Ausklapp-Button |
+| Tools | `…​.tools` | Filter + Sort/Filter + View |
+| Filter | `…​.filter` | CommandBar |
+| View | `…​.view` | SegmentedControl |
+| Baum | `…​.tree` | Scroll-Bereich |
+| Zeile | `…​.row-<id>` | TreeRow |
+| Label | `…​.label` | vertikales Label (kollabiert) |
+
+```mermaid
+graph TD
+  PB["organism.projectBrowser"] --> HEAD["…​.head"]
+  PB --> TOOLS["…​.tools"]
+  PB --> TREE["…​.tree"]
+  HEAD --> TG["…​.toggle (IconButton)"]
+  TOOLS --> FT["…​.filter (CommandBar)"]
+  TOOLS --> SR["…​.sort (IconButton)"]
+  TOOLS --> VW["…​.view (SegmentedControl)"]
+  TREE --> ROW["…​.row-&lt;id&gt; (TreeRow)"]
+```

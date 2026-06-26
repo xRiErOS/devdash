@@ -1,0 +1,48 @@
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './ProgressBar.stories.jsx'
+
+<Meta of={Stories} />
+
+# ProgressBar
+
+`status:open` · Atom · Cluster `RoadmapBoard`
+
+## Kurzbeschreibung
+
+Dichotomer Fortschrittsbalken `value / total`. Zeigt je SprintCard, wie viele
+Issues erledigt sind — grün gefüllt, neutrale Spur für den Rest.
+
+## Zweck
+
+Reines Display-Atom (props-driven, kein Store/Fetch). Erledigt = `value`
+(`issue_done` = done+passed), Nenner = `total` (`issue_total`, cancelled
+exkludiert) — exakt die Count-Semantik von `GET /api/milestones`
+(PO-Entscheidung 2026-06-26). Dynamische Breite über eine CSS-Variable
+(`--pb-pct`, sanktioniertes Muster wie Sidebar/DebugOverlay) statt roher
+Style-Visualwerte.
+
+## Wann verwenden
+
+- **Ja:** Fortschritt eines Sprints (erledigte/offene Issues) auf der SprintCard.
+- **Nein:** unbestimmtes Laden → Spinner/Skeleton. Mehrstufige Segmente (mehr als
+  done/offen) → eigener SegmentBar.
+
+## Props
+
+<ArgTypes of={Stories} />
+
+## Zustände
+
+`Empty` (0/5), `Half` (3/6), `Full` (8/8) und `AllCancelled` (0/0 → leere Spur,
+Sprint rein storniert). Edge `total = 0` rendert ohne NaN.
+
+<Canvas of={Stories.Half} />
+<Canvas of={Stories.Full} />
+<Canvas of={Stories.AllCancelled} />
+
+## Barrierefreiheit
+
+### ARIA
+
+`role="progressbar"` mit `aria-valuenow` / `aria-valuemin` / `aria-valuemax` und
+`aria-label` (Fortschritt). Rein visuell sonst.

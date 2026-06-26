@@ -1,0 +1,37 @@
+{/* Kbd — Narrativ-Wahrheit. Norm: docs/doc-mdx-Norm.md. */}
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './Kbd.stories.jsx'
+
+<Meta of={Stories} />
+
+# Kbd
+
+`status:open` · Atom · Cluster `02 ATOMS/Kbd`
+
+## Kurzbeschreibung
+
+Visuelle Tastatur-Taste für Shortcut-Anzeigen (`⌘K`, `esc`, `⇧⌘P`).
+
+## Zweck
+
+Reines Display-Atom, props-driven. Ein Glyph je Instanz — Kombinationen entstehen
+durch Aneinanderreihen mehrerer `Kbd` (siehe Story `Shortcuts`).
+
+## Wann verwenden
+
+- **Ja:** Shortcut-Hinweis in Command-Bar, Command-Palette, Menü-Zeile.
+- **Nein:** klickbarer Filter/Tag → `Chip`. Entitäts-ID → `EntityId`.
+
+## Props
+
+<ArgTypes of={Stories} />
+
+## Zustände
+
+Keine Achsen — nur Inhalt. Einzeltaste und Kombination:
+
+<Canvas of={Stories.Shortcuts} />
+
+## data-ui-Anker
+
+Schema `atom.kbd.<story>` am Wurzel-`<span>`.

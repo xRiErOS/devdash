@@ -1,0 +1,101 @@
+{/* FormDialog — Narrativ-Wahrheit. Norm: docs/doc-mdx-Norm.md. */}
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './FormDialog.stories.jsx'
+
+<Meta of={Stories} />
+
+# FormDialog
+
+`status:open` · Organism · Cluster `04 ORGANISMS/FormDialog`
+
+## Kurzbeschreibung
+
+Modaler Eingabe-Dialog über einem Dim-Scrim — Kopf (Titel + Schließen), Body
+(betitelte Felder + Prioritäts-Umschalter), Fuß (Abbrechen / Speichern).
+
+## Zweck
+
+Konkreter, presentational Organism. Komponiert `IconButton` (Schließen),
+`FormField` (Molecule) um `Input`/`Textarea`, `SegmentedControl` (Priorität)
+und `Button` (Fuß-Aktionen). Keine rohen Controls. Dumb — Daten als Props,
+Callbacks `onClose`/`onSubmit` reicht der Consumer.
+
+## Wann verwenden
+
+- **Ja:** fokussierte Erfassung weniger Felder über dem aktuellen Screen (z.B. neues Akzeptanzkriterium).
+- **Nein:** anker-loses Optionen-Popover ohne Scrim → `FilterMenu`. Voller Bearbeitungs-Screen → eigener Screen.
+
+## Props
+
+<ArgTypes of={Stories} />
+
+## Zustände
+
+Achsen `title`, `fields` (Input/Textarea), `priority` (aktiver Prio-Key),
+`primaryLabel`. Der Scrim (Dim via `color-mix`) füllt den nächsten
+`relative`-Vorfahren.
+
+<Canvas of={Stories.Default} />
+
+## Barrierefreiheit
+
+### ARIA
+
+Modal trägt `role="dialog"` + `aria-modal="true"` + `aria-label` (Titel).
+Schließen-Button hat `aria-label="Schließen"` (Icon-only).
+
+### Keyboard
+
+Felder/Buttons sind native, fokussierbare Atome → Tab-Reihenfolge folgt dem
+DOM (Felder → Priorität → Abbrechen → Speichern). Enter/Space lösen Buttons aus.
+
+## Abhängigkeiten (Komposition)
+
+{/* AUTOGEN:composition START */}
+```mermaid
+graph TD
+  FormDialog --> Button
+  FormDialog --> FormField
+  FormDialog --> IconButton
+  FormDialog --> Input
+  FormDialog --> SegmentedControl
+  FormDialog --> Textarea
+  classDef screen fill:#cba6f7,stroke:#1e1e2e,color:#1e1e2e
+  classDef organism fill:#89b4fa,stroke:#1e1e2e,color:#1e1e2e
+  classDef molecule fill:#a6e3a1,stroke:#1e1e2e,color:#1e1e2e
+  classDef atom fill:#f2cdcd,stroke:#1e1e2e,color:#1e1e2e
+  class FormDialog organism
+  class FormField molecule
+  class Button,IconButton,Input,SegmentedControl,Textarea atom
+```
+{/* AUTOGEN:composition END */}
+
+## data-ui-Anker
+
+| Teil | data-ui | Zweck |
+| --- | --- | --- |
+| Wurzel/Scrim | `organism.formDialog.<scope>` | Dim-Layer |
+| Modal | `…​.modal` | Dialog-Box (role=dialog) |
+| Kopf | `…​.head` | Titel-Zeile |
+| Titel | `…​.title` | Überschrift |
+| Schließen | `…​.close` | IconButton |
+| Body | `…​.body` | Feld-Stack |
+| Feld | `…​.field-<label>` | FormField je Feld |
+| Priorität | `…​.field-priority.seg` | SegmentedControl |
+| Fuß | `…​.foot` | Aktions-Zeile |
+| Abbrechen | `…​.cancel` | Ghost-Button |
+| Speichern | `…​.submit` | Primary-Button |
+
+```mermaid
+graph TD
+  FormDialog["organism.formDialog (scrim)"] --> Modal["…​.modal"]
+  Modal --> Head["…​.head"]
+  Head --> Title["…​.title"]
+  Head --> Close["…​.close (atom IconButton)"]
+  Modal --> Body["…​.body"]
+  Body --> Field["…​.field-<label> (molecule FormField → Input/Textarea)"]
+  Body --> Prio["…​.field-priority.seg (atom SegmentedControl)"]
+  Modal --> Foot["…​.foot"]
+  Foot --> Cancel["…​.cancel (atom Button ghost)"]
+  Foot --> Submit["…​.submit (atom Button primary)"]
+```

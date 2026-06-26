@@ -1,0 +1,64 @@
+{/* TextWidget — Narrativ-Wahrheit. Norm: docs/doc-mdx-Norm.md. */}
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './TextWidget.stories.jsx'
+
+<Meta of={Stories} />
+
+# TextWidget
+
+`status:open` · Organism · Cluster `04 ORGANISMS/TextWidget`
+
+## Kurzbeschreibung
+
+Beschreibungs-Widget mit benannten Abschnitten (Goal · Background · Description).
+
+## Zweck
+
+Konkreter Content-Organism. Komponiert `WidgetBase` (Accordion) + `Section` je
+Abschnitt + `IconButton` (Bearbeiten). Presentational; `collapsed`/`onToggle`
+werden an `WidgetBase` durchgereicht. Halbe Breite im Detail-Grid.
+
+## Wann verwenden
+
+- **Ja:** Freitext-Beschreibung/Refinement eines Issues/Sprints/Milestones.
+- **Nein:** Datei-Liste → `AttachmentWidget`. Kind-Liste → `ChildWidget`.
+
+## Props
+
+<ArgTypes of={Stories} />
+
+## Zustände
+
+Achse `collapsed`:
+
+<Canvas of={Stories.Default} />
+<Canvas of={Stories.Collapsed} />
+
+## Abhängigkeiten (Komposition)
+
+{/* AUTOGEN:composition START */}
+```mermaid
+graph TD
+  TextWidget --> IconButton
+  TextWidget --> Section
+  TextWidget --> WidgetBase
+  classDef screen fill:#cba6f7,stroke:#1e1e2e,color:#1e1e2e
+  classDef organism fill:#89b4fa,stroke:#1e1e2e,color:#1e1e2e
+  classDef molecule fill:#a6e3a1,stroke:#1e1e2e,color:#1e1e2e
+  classDef atom fill:#f2cdcd,stroke:#1e1e2e,color:#1e1e2e
+  class TextWidget organism
+  class Section,WidgetBase molecule
+  class IconButton atom
+```
+{/* AUTOGEN:composition END */}
+
+## data-ui-Anker
+
+```mermaid
+graph TD
+  TW["organism.widget.text"] --> WB["molecule.widget (WidgetBase)"]
+  TW --> Edit["…​.edit (IconButton)"]
+  WB --> Goal["…​.goal (Section)"]
+  WB --> Background["…​.background (Section)"]
+  WB --> Description["…​.description (Section)"]
+```

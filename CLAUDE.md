@@ -23,6 +23,10 @@ Storybook (`src/storybook/`, kuratierte Stories) ist Design-Wahrheit **und** Bau
 
 **Design-Foundations:** `DESIGN.md` (visuell) + `PRODUCT.md` (strategisch). Token-Master ist `src/index.css` (Tailwind v4, Catppuccin) — bei Konflikt gewinnt die CSS. Lucide-Icons (kein Emoji), echte Tokens.
 
+**Regel-Verortung (D07):** Directory-spezifische Regeln gehören in eine eigene `CLAUDE.md` im jeweiligen Verzeichnis — nur repo-weite Regeln in diese Root-Datei. Keine Doppelpflege. Frontend-Detail:
+- `apps/frontend/CLAUDE.md` — Frontend-weit: Token/Stil, Komponenten-Pfad, Icon-Registry, Render-Smoke (`tests/frontend-render-smoke/`), Storybook-Setup.
+- `apps/frontend/src/storybook/CLAUDE.md` — Storybook-Insel: Tier-Verortung, Story-Namens-Vokabular, `status:`-Tags, `data-ui`-Konvention, presentational-only, MDX-Norm.
+
 ## Entwicklungs-Methodik
 
 - **TDD** für Verhalten/Logik (red→green→refactor). Reine Präsentation ausgenommen (Storybook + Augenschein). Framework: vitest (node-env, `renderToStaticMarkup`, kein jsdom).
@@ -55,6 +59,18 @@ Security-relevant — vor Änderungen an Hostname-Routing / `issues.*` / `server
 ## Deployment-Kontext
 
 Produktiv auf NAS (Synology), NICHT lokal. KI-Agenten/MCP/CLI gegen `http://100.71.39.53:3001` (Tailscale). NAS-DB = Master. Prod = gepinnter Tag `vX.Y.Z` (Portainer ← `build-image.yml` → GHCR); Deploy exklusiv Erik.
+
+## Doku-Index
+
+Wichtige Projektdateien hier eintragen. Neue zentrale Doku-Dateien → Zeile ergänzen.
+
+| Trigger-Words | File Location | Summary |
+|---------------|--------------|---------|
+| Design, Farben, Tokens, Catppuccin, Layout, UX, Typografie | `docs/DESIGN.md` | Visuelles Design-System: Farbschema (Catppuccin Latte/Macchiato), Token-Hierarchie, Layer-System, Spacing, Typografie, UX-Guidelines |
+| Produkt, Vision, Stack, Features, Roadmap, Architektur, Scope | `docs/PRODUCT.md` | Strategische Produkt-Referenz: Value Proposition, Kernfunktionen, Technologie-Stack, Datenmodell, Architektur-Prinzipien |
+| data-ui, Attribut, Storybook-Anker, Namensschema | `apps/frontend/src/storybook/CLAUDE.md` | `data-ui`-Konvention (Punkt-Schema, PO-Ansprechkanal) — Konvention, KEIN Gate (Clean-Cut D02) |
+| mdx, Story-Doku, Norm, Template, Sektionen, Status | `docs/doc-mdx-Norm.md` | Pflicht-Norm für `.mdx`-Dateien je Story: Pflicht-Sektionen, bedingte Sektionen, Screen-Erweiterung; Template: `docs/doc-mdx-Norm-Template.mdx` |
+| Storybook, Tailscale, Remote, ThinkPad, allowedHosts, 0.0.0.0, 6006 | `docs/storybook-tailscale.md` | Storybook vom Mac über Tailscale am ThinkPad ansehen: `npm run storybook:remote` (`-h 0.0.0.0`), allowedHosts-Hintergrund, Troubleshooting |
 
 ## Doku-Archiv
 

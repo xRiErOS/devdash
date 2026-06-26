@@ -1,0 +1,42 @@
+{/* GF-226 / LP-04 — Switcher-Doku inkl. Reflow-Vertrag (D10-G). */}
+import { Meta, Canvas, Controls } from '@storybook/addon-docs/blocks'
+import * as SwitcherStories from './Switcher.stories.jsx'
+
+<Meta of={SwitcherStories} />
+
+# Switcher
+
+`status:stable` · Layout-Primitiv · `Primitives`
+
+## Zweck
+
+Kippt seine Kinder zwischen einer horizontalen Reihe und einem vertikalen Stack,
+sobald der CONTAINER eine Token-Schwelle unterschreitet. Für Element-Paare/-Tripel,
+die ab genug Platz nebeneinander, sonst untereinander stehen (Toolbar-Hälften,
+Label-plus-Control, Action-Paare).
+
+## Wann verwenden
+
+- **Ja:** wenige gleichrangige Blöcke, die je Containerbreite Reihe ODER Stack sein sollen.
+- **Nein:** beliebig viele Items, die nur umbrechen → `Cluster`. Festes Raster → `Grid`.
+
+## Props
+
+`threshold` (sm/md/lg → `--cq-sm` 480px / `--cq-md` 768px / `--cq-lg` 1024px),
+`gap` (none/xs/sm/md/lg → `--space-*`).
+
+## Reflow-Vertrag (D10-B/C)
+
+Schwelle ist TOKEN-GEBUNDEN an die `--cq-*`-Skala (GF-228/D01). Der Wechsel ist
+INTRINSISCH (Every-Layout-`flex-basis`-calc), nicht Viewport-Media und nicht CSS-
+Container-Query — bewusst, weil `var()` in container-/media-Feature-Conditions
+spec-verboten ist, im `calc()` aber erlaubt. Ergebnis: liegt der Container breiter
+als die Schwelle, stehen die Kinder in einer Reihe (gleichmäßig wachsend); darunter
+nimmt jedes Kind die volle Breite und sie stapeln. Keine fixen px in der Story —
+die Schwelle reist ausschließlich über das Token.
+
+## Beispiele
+
+<Canvas of={SwitcherStories.Default} />
+<Controls of={SwitcherStories.Default} />
+<Canvas of={SwitcherStories.Constrained} />

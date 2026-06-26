@@ -357,6 +357,11 @@ button[role="radio"]:focus-visible {
   border-radius: 0;
 }
 
+/* DD-97 Scope-Override: APG-Tree-Container zeigt keinen Rahmen — Roving-Ring
+   auf der aktiven Zeile traegt die visuelle Fokus-Affordanz. Hoehere Spezifitaet
+   + spaetere Quellreihenfolge schlaegt *:focus-visible (beide unlayered). */
+[role="tree"]:focus-visible { outline: none; }
+
 /* Im Dark Mode haben Catppuccin-Macchiato-Akzentfarben (red/peach/green/...) eine
    pastellige Sättigung. Weißer Text darauf hat zu wenig Kontrast.
    Wir mappen Tailwinds text-white automatisch auf --on-accent (dunkles crust). */
@@ -451,6 +456,17 @@ html[data-theme="dark"] ::selection {
 }
 *::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+/* no-scrollbar — blendet die Scrollbar eines Containers aus (z.B. die horizontale
+   Roadmap-Meilenstein-Reihe, damit deren Höhe = Spaltenhöhe bleibt). Muss
+   unlayered stehen, um die globalen *-Scrollbar-Regeln oben zu überschreiben
+   (Cascade-Layer: unlayered schlägt @layer utilities). */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* =====================================================================

@@ -7,10 +7,17 @@
     "dev": "vite",
     "build": "vite build",
     "storybook": "storybook dev -c .storybook -p 6006",
-    "build-storybook": "storybook build -c .storybook"
+    "storybook:remote": "storybook dev -c .storybook -p 6006 -h 0.0.0.0 --no-open",
+    "build-storybook": "storybook build -c .storybook",
+    "gen:composition": "node scripts/gen-composition.mjs",
+    "gen:composition:check": "node scripts/gen-composition.mjs --check",
+    "index:components": "node scripts/build-component-index.mjs"
   },
   "dependencies": {
     "@devd/api-types": "*",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-router-dom": "^7.14.2"

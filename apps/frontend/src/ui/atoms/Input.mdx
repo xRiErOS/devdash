@@ -1,0 +1,47 @@
+{/* Input — Narrativ-Wahrheit. Norm: docs/doc-mdx-Norm.md. */}
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './Input.stories.jsx'
+
+<Meta of={Stories} />
+
+# Input
+
+`status:open` · Atom · Cluster `02 ATOMS/Input`
+
+## Kurzbeschreibung
+
+Einzeiliges Text-Eingabe-Atom — das Pendant zu `Textarea`.
+
+## Zweck
+
+Token-saubere Form-Eingabe, props-driven. `text-base` (16px) verhindert iOS-Zoom
+beim Fokus. Such-/Filter-Felder mit führendem Icon sind eine eigene Molecule
+(`SearchField`), nicht dieses Atom.
+
+## Wann verwenden
+
+- **Ja:** einzeiliges Textfeld in Formularen (Titel, Wert).
+- **Nein:** mehrzeilig → `Textarea`. Suchfeld mit Icon → `SearchField` (Molecule).
+
+## Props
+
+<ArgTypes of={Stories} />
+
+## Zustände
+
+Achse `disabled`:
+
+<Canvas of={Stories.Default} />
+<Canvas of={Stories.Disabled} />
+
+## Barrierefreiheit
+
+### ARIA
+Natives `<input>`; Label kommt vom umgebenden `FormField` (Molecule).
+
+### Keyboard
+Native Texteingabe/Fokus.
+
+## data-ui-Anker
+
+Schema `atom.input.<story>` am `<input>`.

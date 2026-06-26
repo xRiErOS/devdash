@@ -1,0 +1,45 @@
+{/* Chip — Narrativ-Wahrheit. Norm: docs/doc-mdx-Norm.md. */}
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './Chip.stories.jsx'
+
+<Meta of={Stories} />
+
+# Chip
+
+`status:open` · Atom · Cluster `02 ATOMS/Chip`
+
+## Kurzbeschreibung
+
+Kleines, klickbares Filter-/Auswahl-Pill (z.B. Prioritäten P1–P4 im Filter-Menü).
+
+## Zweck
+
+Atom mit echtem `<button>` (kein rohes Element im Consumer). Props-driven;
+`active` markiert die Auswahl (`aria-pressed`).
+
+## Wann verwenden
+
+- **Ja:** Mehrfach-/Einfach-Filter, Tag-Auswahl in einem Menü.
+- **Nein:** Entitäts-ID → `EntityId`. Status → `StatusDot`. Aktion → `Button`.
+
+## Props
+
+<ArgTypes of={Stories} />
+
+## Zustände
+
+Achse `active` (an/aus):
+
+<Canvas of={Stories.Row} />
+
+## Barrierefreiheit
+
+### ARIA
+`<button>` mit `aria-pressed={active}` — Screenreader liest den Toggle-Zustand.
+
+### Keyboard
+Fokussierbar; Enter/Space lösen aus (native Button-Semantik).
+
+## data-ui-Anker
+
+Schema `atom.chip.<story>` am `<button>`.

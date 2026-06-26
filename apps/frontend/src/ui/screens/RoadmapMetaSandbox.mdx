@@ -1,0 +1,103 @@
+{/* RoadmapMetaSandbox — Narrativ-Wahrheit. Norm: docs/doc-mdx-Norm.md. */}
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './RoadmapMetaSandbox.stories.jsx'
+
+<Meta of={Stories} />
+
+# RoadmapMetaSandbox
+
+`status:open` · Screen (Sandbox) · Cluster `05 SCREENS/RoadmapMetaSandbox`
+
+## Kurzbeschreibung
+
+Explorative Spielwiese (KEIN Prod-Screen): stellt `RoadmapBoard` neben `MetaPanel`
+und macht die offenen Layout-/Panel-Forks als Controls erfahrbar. Grundlage der
+PO-Entscheidung, welche Variante in den echten `RoadmapBoardScreen` promotet wird.
+
+## Zweck
+
+Die Idee „MetaPanel füllt den rechten Dead-Space" hat mehrere Forks (wann sichtbar,
+was selektiert, ein-/ausgeklappt). Statt vorab zu entscheiden, sind sie hier args:
+
+| Fork | Control | Werte |
+| --- | --- | --- |
+| Panel-Modus | `panelMode` | `on-select` (Board füllt, reflowt bei Auswahl) · `always` (Panel dauerhaft, Platzhalter ohne Auswahl) |
+| Auswahl | `selected` | `none` · `sprint` · `milestone` |
+| Klappen | `collapsed` | Panel ↔ Rail |
+
+Auswahl ist im Mockup **arg-gesteuert** — die Klick→Select-Verdrahtung ins Board ist
+Promote-Arbeit (Phase 2/3), nicht Teil dieser Exploration.
+
+## Wann verwenden
+
+- **Ja:** Varianten durchspielen, Variante für den Prod-Screen wählen.
+- **Nein:** als echter Screen einbinden — dafür den gewählten Modus in
+  `RoadmapBoardScreen` promoten.
+
+## Props
+
+<ArgTypes of={Stories} />
+
+## Zustände
+
+<Canvas of={Stories.FullWidth} />
+<Canvas of={Stories.SprintSelected} />
+<Canvas of={Stories.MilestoneSelected} />
+<Canvas of={Stories.AlwaysPlaceholder} />
+<Canvas of={Stories.CollapsedRail} />
+
+## Abhängigkeiten (Komposition)
+
+{/* AUTOGEN:composition START */}
+```mermaid
+graph TD
+  EmptyState --> Button
+  MetaPanel --> Chip
+  MetaPanel --> EntityId
+  MetaPanel --> IconButton
+  MetaPanel --> MetaGrid
+  MetaPanel --> ProgressBar
+  MetaPanel --> StatusDot
+  MilestoneColumn --> IconButton
+  MilestoneColumn --> MilestoneColumnHeader
+  MilestoneColumn --> SprintCard
+  MilestoneColumnHeader --> DragHandle
+  MilestoneColumnHeader --> EntityId
+  MilestoneColumnHeader --> IconButton
+  RoadmapBoard --> EmptyState
+  RoadmapBoard --> EntityId
+  RoadmapBoard --> MilestoneColumn
+  RoadmapBoard --> SprintCard
+  RoadmapBoard --> UnassignedColumn
+  RoadmapMetaSandbox --> MetaPanel
+  RoadmapMetaSandbox --> RoadmapBoard
+  SprintCard --> DragHandle
+  SprintCard --> EntityId
+  SprintCard --> IconButton
+  SprintCard --> ListItem
+  SprintCard --> ProgressBar
+  SprintCard --> StatusDot
+  UnassignedColumn --> SprintCard
+  UnassignedColumn --> UnassignedColumnHeader
+  UnassignedColumnHeader --> Chip
+  classDef screen fill:#cba6f7,stroke:#1e1e2e,color:#1e1e2e
+  classDef organism fill:#89b4fa,stroke:#1e1e2e,color:#1e1e2e
+  classDef molecule fill:#a6e3a1,stroke:#1e1e2e,color:#1e1e2e
+  classDef atom fill:#f2cdcd,stroke:#1e1e2e,color:#1e1e2e
+  class RoadmapMetaSandbox screen
+  class MetaPanel,MilestoneColumn,RoadmapBoard,SprintCard,UnassignedColumn organism
+  class ListItem,MetaGrid,MilestoneColumnHeader,UnassignedColumnHeader molecule
+  class Button,Chip,DragHandle,EmptyState,EntityId,IconButton,ProgressBar,StatusDot atom
+```
+{/* AUTOGEN:composition END */}
+
+## data-ui-Anker
+
+| Teil | data-ui | Zweck |
+| --- | --- | --- |
+| Wurzel | `screen.roadmapMetaSandbox` | Sandbox-Rahmen |
+| Hinweis | `…​.note` | aktive arg-Kombination |
+| Reihe | `…​.row` | Board + Panel (flex) |
+| Board-Bereich | `…​.boardArea` | reflowt bei Panel |
+| Board | `…​.board` | RoadmapBoard |
+| Panel | `…​.panel` | MetaPanel |

@@ -1,0 +1,51 @@
+{/* IconButton — Narrativ-Wahrheit. Norm: docs/doc-mdx-Norm.md. */}
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './IconButton.stories.jsx'
+
+<Meta of={Stories} />
+
+# IconButton
+
+`status:open` · Atom · Cluster `02 ATOMS/IconButton`
+
+## Kurzbeschreibung
+
+Icon-only-Aktion (Tool/Toggle) — Edit, Close, Filter, Expand. Das meistgenutzte
+Atom der Shell.
+
+## Zweck
+
+Rendert ein echtes `<button>` mit einem Registry-Icon (inherit-Farbe). `on`
+markiert den aktiven Zustand (Akzentfläche). Zwei Größen (`md` 30px, `sm` 20px).
+Da Icon-only bedeutungstragend ist, ist `label` Pflicht (aria-label + title).
+
+## Wann verwenden
+
+- **Ja:** Werkzeug-Buttons ohne Text (Toolbar, Widget-Header, Panel-Toggle).
+- **Nein:** Aktion mit Text → `Button`. Filter-Pill → `Chip`.
+
+## Props
+
+<ArgTypes of={Stories} />
+
+## Zustände
+
+Achsen `on` (neutral/aktiv) und `size` (md/sm):
+
+<Canvas of={Stories.States} />
+
+## Barrierefreiheit
+
+### ARIA
+`<button>` mit `aria-pressed={on}`; `label` → `aria-label` (Icon ist sonst
+`aria-hidden`).
+
+### Keyboard
+Enter/Space lösen aus.
+
+## data-ui-Anker
+
+| Teil | data-ui | Zweck |
+| --- | --- | --- |
+| Button | `atom.iconButton.<story>` | die Aktion |
+| Icon | `icon.<name>` | das Glyph (inherit) |

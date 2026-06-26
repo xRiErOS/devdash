@@ -1,0 +1,46 @@
+{/* Textarea — Narrativ-Wahrheit. Norm: docs/doc-mdx-Norm.md. */}
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './Textarea.stories.jsx'
+
+<Meta of={Stories} />
+
+# Textarea
+
+`status:open` · Atom · Cluster `02 ATOMS/Textarea`
+
+## Kurzbeschreibung
+
+Mehrzeiliges Text-Eingabe-Atom — das vertikale Pendant zu `Input`.
+
+## Zweck
+
+Token-saubere, props-driven Eingabe (DD-56 Harvest). Vertikaler Resize-Handle
+(`resize-y`), `text-base` (16px) gegen iOS-Zoom auf Focus. Kein Store/Fetch.
+
+## Wann verwenden
+
+- **Ja:** mehrzeilige Texte (Beschreibung, Notizen, Refinement).
+- **Nein:** einzeilig → `Input`. Suchfeld mit Icon → `SearchField` (Molecule).
+
+## Props
+
+<ArgTypes of={Stories} />
+
+## Zustände
+
+Achsen `rows` und `disabled`:
+
+<Canvas of={Stories.Default} />
+<Canvas of={Stories.Disabled} />
+
+## Barrierefreiheit
+
+### ARIA
+Natives `<textarea>`; Label kommt vom umgebenden `FormField` (Molecule).
+
+### Keyboard
+Native Texteingabe/Fokus.
+
+## data-ui-Anker
+
+Schema `atom.textarea.<story>` am Wrapper; das Feld selbst trägt `textarea`.

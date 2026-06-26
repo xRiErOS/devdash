@@ -1,0 +1,49 @@
+{/* Checkbox — Narrativ-Wahrheit. Norm: docs/doc-mdx-Norm.md. */}
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './Checkbox.stories.jsx'
+
+<Meta of={Stories} />
+
+# Checkbox
+
+`status:open` · Atom · Cluster `02 ATOMS/Checkbox`
+
+## Kurzbeschreibung
+
+Abhakbares Kontrollkästchen mit optionalem Label — z.B. für Akzeptanzkriterien.
+
+## Zweck
+
+Echtes `<button role="checkbox">`, props-driven. Der Haken im abgehakten Zustand
+ist das Registry-Icon `check` (inherit-Farbe auf grüner Box) — kein CSS-Pseudo-
+Element, damit der Stil utility-only bleibt.
+
+## Wann verwenden
+
+- **Ja:** Einzel-Toggle in Listen (Checklist, Akzeptanzkriterien).
+- **Nein:** mehrere exklusive Optionen → `SegmentedControl`. Filter → `Chip`.
+
+## Props
+
+<ArgTypes of={Stories} />
+
+## Zustände
+
+Achse `checked` (offen/abgehakt):
+
+<Canvas of={Stories.States} />
+
+## Barrierefreiheit
+
+### ARIA
+`<button role="checkbox">` mit `aria-checked`.
+
+### Keyboard
+Enter/Space togglen (native Button-Semantik).
+
+## data-ui-Anker
+
+| Teil | data-ui | Zweck |
+| --- | --- | --- |
+| Wurzel | `atom.checkbox.<story>` | gesamtes Control |
+| Box | `atom.checkbox.<story>.box` | nur das Kästchen |

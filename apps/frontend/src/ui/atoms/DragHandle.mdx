@@ -1,0 +1,49 @@
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './DragHandle.stories.jsx'
+
+<Meta of={Stories} />
+
+# DragHandle
+
+`status:open` · Atom · Cluster `RoadmapBoard`
+
+## Kurzbeschreibung
+
+Greif-/Sortier-Anfasser (Grip-Icon-Button). Einziger Drag-Trigger einer Card oder
+Spalte, damit ein Klick auf den Body nicht versehentlich zieht.
+
+## Zweck
+
+Reines Atom über die Icon-Registry (`drag` = GripVertical). Die DnD-Logik lebt im
+Container — er reicht `listeners`/`attributes` aus `useDraggable` als
+`...dragHandleProps` herein und markiert den Knoten via `ref`
+(`setActivatorNodeRef`, forwardRef). Cursor folgt dem Zustand (`grab` ↔
+`grabbing`).
+
+## Wann verwenden
+
+- **Ja:** als Anfasser an SprintCard und MilestoneColumnHeader.
+- **Nein:** generische Icon-Aktion (Edit/Close/Toggle) → `IconButton`.
+
+## Props
+
+<ArgTypes of={Stories} />
+
+## Zustände
+
+`Default`, `Disabled` (nicht ziehbar, `tabIndex=-1`), `Grabbing` (aktiver Drag).
+
+<Canvas of={Stories.Default} />
+<Canvas of={Stories.Disabled} />
+
+## Barrierefreiheit
+
+### ARIA
+
+`aria-label` via Prop (z.B. „Sprint X verschieben"). Im `disabled`-Zustand aus
+der Tab-Reihenfolge genommen.
+
+### Keyboard
+
+Fokussierbar (`tabIndex=0`); `Space`/`Enter` startet den @dnd-kit-KeyboardSensor-
+Drag, Pfeiltasten bewegen, `Escape` bricht ab.

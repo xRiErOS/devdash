@@ -1,0 +1,64 @@
+{/* AttachmentWidget — Narrativ-Wahrheit. Norm: docs/doc-mdx-Norm.md. */}
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './AttachmentWidget.stories.jsx'
+
+<Meta of={Stories} />
+
+# AttachmentWidget
+
+`status:open` · Organism · Cluster `04 ORGANISMS/AttachmentWidget`
+
+## Kurzbeschreibung
+
+Datei-Anhänge: Stack aus `FileItem`s, Dropzone am Boden zum Hinzufügen.
+
+## Zweck
+
+Konkreter Content-Organism. Komponiert `WidgetBase` + `FileItem` (Molecule) +
+`IconButton` (Hinzufügen) + `Icon` (Dropzone). Presentational, props-driven.
+Halbe Breite im Detail-Grid.
+
+## Wann verwenden
+
+- **Ja:** Datei-Anhänge eines Issues anzeigen/hochladen.
+- **Nein:** Freitext → `TextWidget`. Kriterien → `ChecklistWidget`.
+
+## Props
+
+<ArgTypes of={Stories} />
+
+## Zustände
+
+Achse `files` (befüllt/leer) und `collapsed`:
+
+<Canvas of={Stories.Default} />
+<Canvas of={Stories.Empty} />
+
+## Abhängigkeiten (Komposition)
+
+{/* AUTOGEN:composition START */}
+```mermaid
+graph TD
+  AttachmentWidget --> FileItem
+  AttachmentWidget --> IconButton
+  AttachmentWidget --> WidgetBase
+  FileItem --> IconButton
+  classDef screen fill:#cba6f7,stroke:#1e1e2e,color:#1e1e2e
+  classDef organism fill:#89b4fa,stroke:#1e1e2e,color:#1e1e2e
+  classDef molecule fill:#a6e3a1,stroke:#1e1e2e,color:#1e1e2e
+  classDef atom fill:#f2cdcd,stroke:#1e1e2e,color:#1e1e2e
+  class AttachmentWidget organism
+  class FileItem,WidgetBase molecule
+  class IconButton atom
+```
+{/* AUTOGEN:composition END */}
+
+## data-ui-Anker
+
+```mermaid
+graph TD
+  AW["organism.widget.attachments"] --> WB["molecule.widget (WidgetBase)"]
+  AW --> Add["…​.add (IconButton)"]
+  WB --> File["…​.file-&lt;name&gt; (FileItem)"]
+  WB --> Drop["…​.drop (Dropzone)"]
+```

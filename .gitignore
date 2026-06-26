@@ -35,6 +35,12 @@ devd-result-*.md
 
 # Storybook build artifact (DD-470)
 storybook-static/
+**/storybook-index.db
+
+# Lokale Augenschein-Artefakte + Backups (nicht versionieren)
+*-1440x900.png
+apps/frontend/src.zip
+apps/frontend/archive/
 
 # Build-/Report-Artefakte (PO D08/I01 2026-06-16): jscpd u.a. generierte Reports
 report/

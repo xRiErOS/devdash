@@ -1,0 +1,9 @@
+[
+  { "id": 108, "key": "DD2#51", "name": "Connected-Wrapper + Daten-Layer", "status": "planning", "milestone_id": null, "position": 0, "issue_total": 4, "issue_done": 0, "issue_cancelled": 0, "issues": [
+    { "key": "DD2-250", "title": "src/lib-Fetch-Hooks", "status": "planning" },
+    { "key": "DD2-251", "title": "Route in _shell/routes biegen", "status": "planning" }
+  ] },
+  { "id": 109, "key": "DD2#53", "name": "Dependency-Graph-Widget", "status": "planning", "milestone_id": null, "position": 1, "issue_total": 2, "issue_done": 0, "issue_cancelled": 0, "issues": [
+    { "key": "DD2-260", "title": "Graph-Layout (dagre)", "status": "planning" }
+  ] }
+]

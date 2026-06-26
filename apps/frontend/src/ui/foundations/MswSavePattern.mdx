@@ -1,0 +1,57 @@
+{/* MSW-Save-Pattern — Narrativ-Quelle. Pflicht: VOR Arbeit lesen, NACH Änderung nachziehen.
+    Code-Fakten LIVE (<ArgTypes>/<Canvas of>), nie abtippen (0-Duplikat). */}
+import { Meta, Canvas, Controls, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './MswSavePattern.stories.jsx'
+
+<Meta of={Stories} />
+
+# MSW Save Pattern
+
+`status:review` · Testing-Pattern · Cluster `Testing Patterns`
+
+## Kurzbeschreibung
+
+Referenz-Template für Ebene-2-Behavioral-Tests: ein connected Demo-Container
+fährt einen echten `fetch`-POST, MSW fängt ihn ab, die `play`-Function assertet
+den Request-Payload UND die response-getriebene UI-Reaktion. Reale Features
+adoptieren das Muster über `parameters.msw.handlers` + `Interaction_Save`.
+
+## Zweck
+
+Lehr-/Kopiervorlage, kein Prod-Bauteil. Der `MemoSaver`-Container komponiert die
+Atome `Input` und `Button` und hält minimalen lokalen Draft-State (idle → saving →
+saved/error). Beweist die Abgrenzung: Ebene-1 (präsentational + `fn()`-Spy) testet
+nur den Callback-Vertrag; erst MSW (Ebene-2) beweist Methode/URL/Payload plus die
+UI-Orchestrierung auf Erfolg und Fehler.
+
+## Wann verwenden
+
+- **Ja:** Vorlage, wenn eine Feature-Story beweisen muss, WAS ein Speichern-Button
+  tatsächlich an den Server schickt (Payload-Capture) und wie die UI auf die
+  Antwort reagiert.
+- **Nein:** reiner Callback-Vertrag ohne Roundtrip → Ebene-1-Story mit `fn()`-Spy.
+  Echter Daten-Vertrag der Response-Shapes → `Backend Contract`.
+
+## Props
+
+<ArgTypes of={Stories} />
+
+## Zustände
+
+`Default` rendert den Idle-Stand ohne Roundtrip. `Interaction_Save` fängt den POST
+per MSW ab und assertet Payload plus Success-UI (Gespeichert). `Interaction_SaveError`
+erzwingt eine 500-Antwort und prüft die Fehler-Orchestrierung der UI.
+
+<Canvas of={Stories.Default} />
+<Canvas of={Stories.Interaction_Save} />
+<Canvas of={Stories.Interaction_SaveError} />
+
+## Barrierefreiheit
+
+### ARIA
+Das `Input` trägt ein `aria-label` (Notiz); Erfolgs-/Fehler-Text erscheint als
+eigener Absatz, sodass der Status nicht allein über Farbe transportiert wird.
+
+### Keyboard
+Tab erreicht Input und Button; der Speichern-Button ist während `saving` gesperrt
+(`disabled`) — kein Doppel-Submit per Enter.

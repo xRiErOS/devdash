@@ -1,0 +1,60 @@
+{/* CommandBar — Narrativ-Wahrheit. Norm: docs/doc-mdx-Norm.md. */}
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './CommandBar.stories.jsx'
+
+<Meta of={Stories} />
+
+# CommandBar
+
+`status:open` · Molecule · Cluster `03 MOLECULES/CommandBar`
+
+## Kurzbeschreibung
+
+Such-/Command-Anzeige (presentational, kein echtes Input): führende Lupe,
+Placeholder-Text und rechts ein Shortcut-Hint.
+
+## Zweck
+
+Reine Anzeige des Such-Einstiegs. Komponiert `Icon` (Lupe) und das Atom `Kbd`
+(Shortcut-Glyphen). Der echte Such-Flow lebt im Consumer/Organism — hier nur
+Optik. Props-driven.
+
+## Wann verwenden
+
+- **Ja:** Such-/Command-Einstieg in Topbar oder Palette-Trigger darstellen.
+- **Nein:** echtes Texteingabefeld → `Input`/`FormField`.
+
+## Props
+
+<ArgTypes of={Stories} />
+
+## Zustände
+
+Achse `shortcut` (mit/ohne Kbd-Hint):
+
+<Canvas of={Stories.Default} />
+<Canvas of={Stories.ShortcutAxis} />
+
+## Abhängigkeiten (Komposition)
+
+{/* AUTOGEN:composition START */}
+```mermaid
+graph TD
+  CommandBar --> Kbd
+  classDef screen fill:#cba6f7,stroke:#1e1e2e,color:#1e1e2e
+  classDef organism fill:#89b4fa,stroke:#1e1e2e,color:#1e1e2e
+  classDef molecule fill:#a6e3a1,stroke:#1e1e2e,color:#1e1e2e
+  classDef atom fill:#f2cdcd,stroke:#1e1e2e,color:#1e1e2e
+  class CommandBar molecule
+  class Kbd atom
+```
+{/* AUTOGEN:composition END */}
+
+## data-ui-Anker
+
+```mermaid
+graph TD
+  Root["molecule.commandBar (div)"] --> SearchIcon["Icon search (mono)"]
+  Root --> Placeholder["…​.placeholder"]
+  Root --> Shortcut["…​.shortcut (Kbd)"]
+```

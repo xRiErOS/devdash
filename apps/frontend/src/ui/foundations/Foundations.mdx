@@ -1,0 +1,15 @@
+import { Meta } from '@storybook/addon-docs/blocks'
+
+<Meta title="01 FOUNDATIONS/Overview" />
+
+# 01 FOUNDATIONS
+
+Designgrundlagen — die Tokens & Primitive, auf denen alles aufbaut. Token-Master ist `src/index.css` (D02).
+
+- **Design Tokens** — Catppuccin-Palette (Latte/Macchiato) + semantische `--accent-*`, Spacing-4px-Grid, Radius, Borders, Z-Index, Breakpoints, Line-Height, Elevation. _(`status:review` — Typography in herausgelöst, D04)_
+- **Typography** — Schriftart/Größe/Gewicht, Hinweis-Farben (DD-47), Überschriften, Text-Hierarchie-Anwendung. _(`status:review`, neu — D04)_
+- **Color Hierarchy** — Elevations-Leiter (crust→overlay), 6-Ebenen-Modell, Theme-Luminanz. Spezifikation der 01.10-Tokens, keine neuen Tokens. _(`status:review`)_
+- **Iconography** — kuratiertes Icon-Registry, Farbe an Semantik-Rolle (role→Token), Rolle pro Verwendung. ✓
+- **Motion** — Duration-/Easing-Tokens, Press + Focus-Ring, reduced-motion. ✓
+- **Backend Contract** — echte `server/api.js`-Response-Shapes (Living Doc / SSoT, DR3). ✓
+- **Testing Patterns** — MSW-Save-Pattern: Ebene-2-Behavioral-Referenz (Payload-Capture + response-getriebene UI). _(`status:review`, neu — D02)_

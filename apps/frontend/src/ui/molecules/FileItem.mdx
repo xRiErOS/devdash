@@ -1,0 +1,71 @@
+{/* FileItem — Narrativ-Wahrheit. Norm: docs/doc-mdx-Norm.md. */}
+import { Meta, Canvas, ArgTypes } from '@storybook/addon-docs/blocks'
+import * as Stories from './FileItem.stories.jsx'
+
+<Meta of={Stories} />
+
+# FileItem
+
+`status:open` · Molecule · Cluster `03 MOLECULES/FileItem`
+
+## Kurzbeschreibung
+
+Kompakte Anhang-/Datei-Zeile: führendes Datei-Icon, ellipsierter Name, optionale
+Meta-Angabe und rechts eine Icon-Aktion (Default: Download).
+
+## Zweck
+
+Eine Zeile des Anhang-Widgets. Komponiert `Icon` (führend) und das Atom
+`IconButton` (Aktion) — nie ein rohes `<button>`. Presentational, props-driven;
+der Klick wird über `onAction` hochgereicht.
+
+## Wann verwenden
+
+- **Ja:** Datei/Anhang mit Name, Meta und einer Aktion listen.
+- **Nein:** generische Listenzeile → `ListItem`. Hierarchie → `TreeRow`.
+
+## Props
+
+<ArgTypes of={Stories} />
+
+## Zustände
+
+Achsen `meta` (optional) und `actionIcon`/`actionLabel` (z.B. Download vs. Öffnen);
+der Name ellipsiert bei Überlänge:
+
+<Canvas of={Stories.Default} />
+<Canvas of={Stories.List} />
+
+## Barrierefreiheit
+
+### ARIA
+Die Aktion ist ein `IconButton` mit `aria-label` (`actionLabel`) — Icon-only ist
+bedeutungstragend.
+
+### Keyboard
+Der Aktions-Button ist fokussierbar; Enter/Space lösen `onAction` aus.
+
+## Abhängigkeiten (Komposition)
+
+{/* AUTOGEN:composition START */}
+```mermaid
+graph TD
+  FileItem --> IconButton
+  classDef screen fill:#cba6f7,stroke:#1e1e2e,color:#1e1e2e
+  classDef organism fill:#89b4fa,stroke:#1e1e2e,color:#1e1e2e
+  classDef molecule fill:#a6e3a1,stroke:#1e1e2e,color:#1e1e2e
+  classDef atom fill:#f2cdcd,stroke:#1e1e2e,color:#1e1e2e
+  class FileItem molecule
+  class IconButton atom
+```
+{/* AUTOGEN:composition END */}
+
+## data-ui-Anker
+
+```mermaid
+graph TD
+  Root["molecule.fileItem (div)"] --> FileIcon["Icon file (mono)"]
+  Root --> Name["…​.name (ellipsiert)"]
+  Root --> Meta["…​.meta (optional)"]
+  Root --> Action["…​.action (IconButton)"]
+```

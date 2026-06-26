@@ -1,0 +1,46 @@
+/* Typography-Story-Styling (D04 — herausgelöst aus design-tokens.css).
+   Liest ausschließlich var(--*) aus src/index.css (Token-Master, D02). Kein Raw-Hex,
+   kein inline-style. Größen/Gewichte/Body-Font sind NICHT als Token in index.css
+   definiert (PO 2026-06-15): die App nutzt Tailwind-v4-Utilities (text-xs…xl, font-*)
+   + var(--font-display) für Headings. Diese Story spiegelt die de-facto genutzte
+   Skala 1:1 — kein neuer Token. */
+
+.dt-type { display: flex; flex-direction: column; gap: var(--space-3); }
+.dt-type__row { display: flex; align-items: baseline; gap: var(--space-4); color: var(--text); border-bottom: 1px solid var(--surface1); padding-bottom: var(--space-2); }
+.dt-type__label { width: 140px; flex-shrink: 0; font-family: var(--font-display); font-size: 11px; color: var(--subtext0); }
+.dt-type__sample { flex: 1; color: var(--text); }
+.dt-type__spec { font-family: var(--font-display); font-size: 11px; color: var(--subtext0); white-space: nowrap; }
+
+.dt--font-display { font-family: var(--font-display); }
+.dt--font-body { font-family: var(--font-body); }
+
+.dt--text-xs { font-size: 0.75rem; }
+.dt--text-s { font-size: 0.875rem; }
+.dt--text-m { font-size: 1rem; }
+.dt--text-l { font-size: 1.125rem; }
+.dt--text-xl { font-size: 1.25rem; }
+
+.dt--weight-normal { font-weight: 400; }
+.dt--weight-medium { font-weight: 500; }
+.dt--weight-bold { font-weight: 700; }
+
+/* Hinweis-Texte: semantische Akzentfarben als Textfarbe (DD-47) */
+.dt--hint-primary { color: var(--accent-primary); }
+.dt--hint-danger { color: var(--accent-danger); }
+.dt--hint-success { color: var(--accent-success); }
+.dt--hint-info { color: var(--accent-info); }
+.dt--hint-warning { color: var(--accent-warning); }
+
+/* Überschriften: font-display + abgestufte Größen */
+.dt--h1 { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; }
+.dt--h2 { font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; }
+.dt--h3 { font-family: var(--font-display); font-size: 1.125rem; font-weight: 500; }
+
+/* Text-Hierarchie — ANWENDUNG (T3.1/D04). Kein neuer Scale-Token: die Tiers
+   recyceln die bestehenden rem-Sprossen (text-lg…xs) relational. Regel: Heading
+   nie kleiner als Body; rem-relational; // = Slot-Heading, /// = Inline-Label. */
+.dt--hier-tier-1 { font-size: 1.125rem; font-weight: 700; color: var(--text); }      /* text-lg · Section-Titel */
+.dt--hier-tier-2 { font-size: 1rem; font-weight: 600; color: var(--subtext0); }       /* text-base · // Slot-Heading */
+.dt--hier-tier-3 { font-size: 0.875rem; font-weight: 600; color: var(--subtext0); }   /* text-sm · /// Inline-Label */
+.dt--hier-body { font-size: 0.75rem; font-weight: 400; color: var(--text); }          /* text-xs · Body/Value */
+.dt-type__note { font-family: var(--font-display); font-size: 11px; color: var(--subtext0); margin-top: var(--space-2); }

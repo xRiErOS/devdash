@@ -1,0 +1,74 @@
+{/* DetailLayout — Narrativ-Wahrheit. Norm: docs/doc-mdx-Norm.md. */}
+import { Meta, Canvas } from '@storybook/addon-docs/blocks'
+import * as Stories from './DetailLayout.stories.jsx'
+
+<Meta of={Stories} />
+
+# DetailLayout
+
+`status:open` · Screen · Cluster `05 SCREENS/DetailLayout`
+
+## Kurzbeschreibung
+
+Die geteilte Content-Wahrheit der drei Detail-Screens: Lead-Panel (`PageTitle`)
+über einem 2-Spalten-Widget-Grid.
+
+## Zweck
+
+Domänenfrei. Nimmt `title` (PageTitle-Props) und beliebige Widget-Children und
+ordnet sie. Auf schmalen Viewports 1-spaltig, ab `md` 2-spaltig; volle Widgets
+(ChildWidget/ChecklistWidget) setzen selbst `md:col-span-2`. So füllen
+IssueDetails/SprintDetails/MilestoneDetails dieselbe Hülle mit unterschiedlichen
+Widget-Sets und Fixture-Daten.
+
+## Wann verwenden
+
+- **Ja:** als Content-Spalte jedes Entitäts-Detail-Screens.
+- **Nein:** App-Shell (Rail/Browser/Topbar) → Slice 5 Organismen.
+
+## Zustände
+
+Mit Beispiel-Widgets befüllt:
+
+<Canvas of={Stories.Default} />
+
+## Aktueller Stand
+
+### PageTitle (Lead-Panel)
+- Kopf des Screens; Key/Name/Status/Meta.
+- Wiring-Stand: verdrahtet (Props von der Screen-Ebene).
+
+### Widget-Grid
+- 2-spaltig, `items-stretch`; volle Widgets spannen beide Spalten.
+- Wiring-Stand: verdrahtet (children von der Screen-Ebene).
+
+## Abhängigkeiten (Komposition)
+
+{/* AUTOGEN:composition START */}
+```mermaid
+graph TD
+  DetailLayout --> PageTitle
+  PageTitle --> EntityId
+  PageTitle --> StatusDot
+  classDef screen fill:#cba6f7,stroke:#1e1e2e,color:#1e1e2e
+  classDef organism fill:#89b4fa,stroke:#1e1e2e,color:#1e1e2e
+  classDef molecule fill:#a6e3a1,stroke:#1e1e2e,color:#1e1e2e
+  classDef atom fill:#f2cdcd,stroke:#1e1e2e,color:#1e1e2e
+  class DetailLayout screen
+  class PageTitle organism
+  class EntityId,StatusDot atom
+```
+{/* AUTOGEN:composition END */}
+
+## data-ui-Anker
+
+```mermaid
+graph TD
+  Fixture["fixture (issue/sprint/milestone).json"] --> Screen["IssueDetails / SprintDetails / MilestoneDetails"]
+  Screen --> DL["screen.detailLayout"]
+  DL --> Title["…​.title (PageTitle)"]
+  DL --> Widgets["…​.widgets (Grid)"]
+  Widgets --> W1["TextWidget"]
+  Widgets --> W2["AttachmentWidget / ChildWidget"]
+  Widgets --> W3["ChecklistWidget"]
+```
