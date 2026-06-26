@@ -1,0 +1,54 @@
+package tui
+
+import (
+	"devd-cli/internal/api"
+	tea "github.com/charmbracelet/bubbletea"
+)
+
+// tea.Msg-Typen: async geladene Daten oder Aktions-Ergebnisse.
+type errMsg struct{ err error }
+type projectsMsg struct{ items []api.Project }
+type milestonesMsg struct{ items []api.Milestone }
+type sprintMsg struct{ sprint *api.Sprint }
+type backlogMsg struct{ items []api.Issue }
+type statusMsg struct{ text string }
+
+func loadProjects(c *api.Client) tea.Cmd {
+	return func() tea.Msg {
+		ps, err := c.ListProjects()
+		if err != nil {
+			return errMsg{err}
+		}
+		return projectsMsg{ps}
+	}
+}
+
+func loadMilestones(c *api.Client) tea.Cmd {
+	return func() tea.Msg {
+		ms, err := c.ListMilestones("all")
+		if err != nil {
+			return errMsg{err}
+		}
+		return milestonesMsg{ms}
+	}
+}
+
+func loadSprint(c *api.Client, id int) tea.Cmd {
+	return func() tea.Msg {
+		s, err := c.GetSprint(id)
+		if err != nil {
+			return errMsg{err}
+		}
+		return sprintMsg{s}
+	}
+}
+
+func loadBacklog(c *api.Client) tea.Cmd {
+	return func() tea.Msg {
+		is, err := c.ListIssues(api.IssueListOpts{})
+		if err != nil {
+			return errMsg{err}
+		}
+		return backlogMsg{is}
+	}
+}

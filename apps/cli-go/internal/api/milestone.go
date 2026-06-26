@@ -1,0 +1,32 @@
+package api
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/url"
+)
+
+// ListMilestones liefert die Meilensteine des aktiven Projekts (Sprints embedded).
+// status: open (default Backend) | planning | active | completed | cancelled | all.
+func (c *Client) ListMilestones(status string) ([]Milestone, error) {
+	path := "/api/milestones"
+	if status != "" {
+		path += "?status=" + url.QueryEscape(status)
+	}
+	data, err := c.Do("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+	var list []Milestone
+	return list, json.Unmarshal(data, &list)
+}
+
+// GetMilestone liefert einen Meilenstein inkl. Sprints.
+func (c *Client) GetMilestone(id int) (*Milestone, error) {
+	data, err := c.Do("GET", fmt.Sprintf("/api/milestones/%d", id), nil)
+	if err != nil {
+		return nil, err
+	}
+	var m Milestone
+	return &m, json.Unmarshal(data, &m)
+}
