@@ -25,6 +25,20 @@ func nonEmpty(s string) error {
 	return nil
 }
 
+// openMilestones liefert nur offene/aktive Meilensteine (planning|active) —
+// geschlossene/stornierte taugen nicht als Sprint-Ziel und verwässern nur das
+// Select bei der Sprint-Erstellung (DD2-27).
+func openMilestones(ms []api.Milestone) []api.Milestone {
+	out := make([]api.Milestone, 0, len(ms))
+	for _, x := range ms {
+		switch x.Status {
+		case "planning", "active":
+			out = append(out, x)
+		}
+	}
+	return out
+}
+
 // openForm baut das huh-Formular für kind und initialisiert es.
 func (m model) openForm(kind string) (tea.Model, tea.Cmd) {
 	m.formKind = kind
@@ -62,7 +76,7 @@ func buildForm(kind string, milestones []api.Milestone) *huh.Form {
 		)).WithWidth(58).WithShowHelp(true)
 	case "sprint":
 		opts := []huh.Option[string]{huh.NewOption("(kein Meilenstein)", "")}
-		for _, ms := range milestones {
+		for _, ms := range openMilestones(milestones) {
 			opts = append(opts, huh.NewOption(ms.Name, strconv.Itoa(ms.ID)))
 		}
 		return huh.NewForm(huh.NewGroup(
