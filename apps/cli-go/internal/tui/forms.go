@@ -66,9 +66,9 @@ func formInnerWidth(termW int) int {
 // kein aufgeblähtes Modal auf großen Terminals. termH==0 (unbekannt) ⇒ 20.
 func formInnerHeight(termH int) int {
 	if termH <= 0 {
-		return 20
+		return 16 // Höhe unbekannt (Init) → konservativ; formBox re-appliziert bei echtem Render
 	}
-	h := termH - 5 // Box-Chrome: Titel + Leerzeile + Rahmen
+	h := termH - 7 // Box-Chrome (Titel+Leerzeile+Rahmen ≈5) + 2 Zeilen Rand (nie randbündig)
 	if h > 20 {
 		h = 20
 	}
@@ -223,6 +223,12 @@ func (m model) formBox() string {
 		"sprint":    "Neuer Sprint",
 		"memory":    "Neue Memory",
 		"result":    "Ergebnisfeld setzen",
+	}
+	// DD2-25: Höhe/Breite bei JEDEM Render aus dem aktuellen Terminal neu anlegen —
+	// fängt „bei height=0 geöffnet" und Resize nach dem Öffnen ab (huh.WithHeight
+	// mutiert in place). So kann das Modal nie höher als das Terminal werden.
+	if m.form != nil {
+		m.form.WithWidth(formInnerWidth(m.width)).WithHeight(formInnerHeight(m.height))
 	}
 	inner := theme.Header.Render(titles[m.formKind]) + "\n\n" + m.form.View()
 	return lipgloss.NewStyle().

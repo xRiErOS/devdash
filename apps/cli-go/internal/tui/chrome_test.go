@@ -48,17 +48,30 @@ func TestDetailScrollsToBottom(t *testing.T) {
 
 // DD2-25: Form-Höhe folgt dem Terminal (kurz → kleiner, gecappt, nie unter 5).
 func TestFormInnerHeight(t *testing.T) {
-	if got := formInnerHeight(0); got != 20 {
-		t.Errorf("unbekannte Höhe: got %d, want 20", got)
+	if got := formInnerHeight(0); got != 16 {
+		t.Errorf("unbekannte Höhe: got %d, want 16 (konservativ)", got)
 	}
-	if got := formInnerHeight(12); got != 7 {
-		t.Errorf("kurzes Terminal (12): got %d, want 7 (12-5)", got)
+	if got := formInnerHeight(24); got != 17 {
+		t.Errorf("Terminal 24: got %d, want 17 (24-7)", got)
 	}
 	if got := formInnerHeight(60); got != 20 {
 		t.Errorf("großes Terminal: got %d, want 20 (Cap)", got)
 	}
-	if got := formInnerHeight(8); got != 5 {
-		t.Errorf("sehr kurz: got %d, want 5 (Untergrenze)", got)
+	if got := formInnerHeight(10); got != 5 {
+		t.Errorf("kurz: got %d, want 5 (Untergrenze, 10-7=3→5)", got)
+	}
+}
+
+// DD2-25: das Form-Modal darf nie höher als das Terminal werden (sonst unten
+// abgeschnitten). formBox re-appliziert die Höhe je Render — Guard über kurze
+// und große Terminals.
+func TestFormModalNeverOverflows(t *testing.T) {
+	for _, h := range []int{12, 14, 20, 24, 34, 50} {
+		m := model{width: 90, height: h}
+		mm, _ := m.openForm("issue")
+		if box := lipgloss.Height(mm.(model).formBox()); box > h {
+			t.Errorf("Form-Modal h=%d > Terminal h=%d (Overflow → abgeschnitten)", box, h)
+		}
 	}
 }
 
