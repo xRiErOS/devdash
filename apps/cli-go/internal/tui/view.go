@@ -113,6 +113,8 @@ func (m model) viewBase() string {
 		return m.viewReviewsList()
 	case viewMemory:
 		return m.viewMemory()
+	case viewTree:
+		return m.viewTree() // DD2-57: Tree+Detail-Prototyp
 	default:
 		return m.viewColumns() // rendert Filter-Modal inline, wenn m.filtering
 	}
@@ -174,7 +176,7 @@ func (m model) footer() string {
 	default:
 		act = "s:Issue-Status"
 	}
-	hint := "j/k:↑↓  l/→:rein  h/←:raus  enter:Detail  " + act + "  f:Filter  y:Yank  b:Backlog  R:Reviews  q:quit"
+	hint := "j/k:↑↓  l/→:rein  h/←:raus  enter:Detail  " + act + "  f:Filter  y:Yank  b:Backlog  R:Reviews  t:Tree  q:quit"
 	return theme.Dim.Render(hint)
 }
 

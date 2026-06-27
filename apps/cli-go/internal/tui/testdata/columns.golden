@@ -19,4 +19,4 @@ dd · devd2 (DD2)                ctrl+k:Cmd  [p]rojekt  [b]acklog  [f]ilter  [y]
 │                            ││                            ││                            │
 │                            ││                            ││                            │
 ╰────────────────────────────╯╰────────────────────────────╯╰────────────────────────────╯
-j/k:↑↓  l/→:rein  h/←:raus  enter:Detail  S:Meilenstein-Status  d:löschen  f:Filter  y:Yank  b:Backlog  R:Reviews  q:quit
+j/k:↑↓  l/→:rein  h/←:raus  enter:Detail  S:Meilenstein-Status  d:löschen  f:Filter  y:Yank  b:Backlog  R:Reviews  t:Tree  q:quit

@@ -24,6 +24,7 @@ const (
 	viewSprint
 	viewReviewsList
 	viewMemory
+	viewTree // DD2-57: Tree+Detail-Layout-Prototyp
 )
 
 // filterState hält pro Spalte, welche Werte ausgeblendet sind.
@@ -160,6 +161,13 @@ type model struct {
 	resultIssueID  int
 	resultIssueKey string
 	resultSprintID int
+
+	// Tree+Detail-Layout-Prototyp (DD2-57): t aus den Columns. Expansions-Sets +
+	// Lazy-Issue-Cache pro Sprint; treeCursor läuft über die geflachte Knotenliste.
+	treeExpMile   map[int]bool
+	treeExpSprint map[int]bool
+	treeIssues    map[int][]api.Issue
+	treeCursor    int
 }
 
 // issueStatusOptions sind die manuell wählbaren Lifecycle-Ziele. Bewusst OHNE
@@ -225,6 +233,9 @@ func allowedManualStatuses(from string) []string {
 func newModel(client *api.Client, project *api.Project, global *api.Client) model {
 	m := model{client: client, project: project, global: global}
 	m.reviewReturn = viewColumns // Default-Rückkehr aus dem Cockpit
+	m.treeExpMile = map[int]bool{}
+	m.treeExpSprint = map[int]bool{}
+	m.treeIssues = map[int][]api.Issue{}
 	m.fMile = filterState{hidden: map[string]bool{"completed": true, "cancelled": true, deferredKey: true}}
 	m.fSprint = filterState{hidden: map[string]bool{"completed": true, "cancelled": true}}
 	m.fIssue = filterState{hidden: map[string]bool{"cancelled": true}}
@@ -414,6 +425,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.syncSprint()
 	case sprintMsg:
 		m.curSprint = msg.sprint
+		if msg.sprint != nil { // DD2-57: Tree-Lazy-Cache mitfüllen (egal von wo geladen)
+			if m.treeIssues == nil {
+				m.treeIssues = map[int][]api.Issue{}
+			}
+			m.treeIssues[msg.sprint.ID] = msg.sprint.Items
+			m.status = ""
+		}
 		if s := m.selSprint(); s != nil && m.curSprint != nil && s.ID == m.curSprint.ID {
 			m.ilist.setLen(len(m.visIssues()))
 		}
@@ -552,6 +570,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Memory-Browser fängt voll (Suche tippt q/R/p als Text).
 	if m.view == viewMemory {
 		return m.keyMemory(msg)
+	}
+	// Tree+Detail-Prototyp (DD2-57) fängt voll (eigene Nav + t/esc zurück).
+	if m.view == viewTree {
+		return m.keyTree(msg)
 	}
 	k := msg.String()
 	// Globale Tasten
@@ -737,6 +759,11 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 	case "b":
 		m.view = viewBacklog
 		return m, loadBacklog(m.client)
+	case "t": // DD2-57: Tree+Detail-Layout-Prototyp (Vergleich zum Ranger)
+		m.view = viewTree
+		m.treeCursor = 0
+		m.status = ""
+		return m, nil
 	case "S": // T01: Meilenstein-Status (nur auf fokussiertem Meilenstein)
 		if m.depth == 0 {
 			return m.openMilestoneStatus()
