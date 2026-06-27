@@ -39,10 +39,37 @@ func openMilestones(ms []api.Milestone) []api.Milestone {
 	return out
 }
 
-// openForm baut das huh-Formular für kind und initialisiert es.
+// modalBoxWidth begrenzt die Modal-Boxbreite auf die Terminalbreite (DD2-25):
+// max 64, schrumpft auf schmalen Views, Untergrenze 24.
+func modalBoxWidth(termW int) int {
+	w := 64
+	if termW > 4 && termW-4 < w {
+		w = termW - 4
+	}
+	if w < 24 {
+		w = 24
+	}
+	return w
+}
+
+// formInnerWidth ist die huh-Formularbreite innerhalb der Box (Rahmen + Padding).
+func formInnerWidth(termW int) int {
+	w := modalBoxWidth(termW) - 6
+	if w < 18 {
+		w = 18
+	}
+	return w
+}
+
+// openForm baut das huh-Formular für kind und initialisiert es. Die Breite folgt
+// der Terminalbreite (DD2-25), damit Formulare auf schmalen Views nicht ausbrechen.
 func (m model) openForm(kind string) (tea.Model, tea.Cmd) {
 	m.formKind = kind
-	m.form = buildForm(kind, m.milestones)
+	f := buildForm(kind, m.milestones)
+	if f != nil {
+		f = f.WithWidth(formInnerWidth(m.width))
+	}
+	m.form = f
 	m.status = ""
 	return m, m.form.Init()
 }
@@ -182,7 +209,7 @@ func (m model) formBox() string {
 	}
 	inner := theme.Header.Render(titles[m.formKind]) + "\n\n" + m.form.View()
 	return lipgloss.NewStyle().
-		Width(64).
+		Width(modalBoxWidth(m.width)).
 		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
 		Background(theme.Base).Padding(0, 1).
 		Render(inner)
