@@ -37,6 +37,10 @@ main.go     Entry (dünn)
 
 Visuelle Wahrheit = **`DESIGN.md`** (Wireframe-Rollen → Catppuccin-Macchiato-Token, Layout-Hülle, Accordion-/Filter-Farben, offene Token-Arbeit). Token-Single-Source bleibt `internal/theme/theme.go` — bei Konflikt gewinnt Code. Vor Layout-/Farb-Arbeit `DESIGN.md` lesen.
 
+## Detail-Edit-Programm (PFLICHT-READ)
+
+Arbeit an der editierbaren Detail-Fläche (Fokus-Maschine, Feld-Edit, Meilenstein/Sprint/Issue, Sprints DD2#12/13/14) → **zuerst `tui-plan.md` lesen**. Das ist die Guardrail: Ziel/Spirit, verbindliche Decisions D01–D10, editierbares Feld-Set (Contract-Wahrheit), Sprint-Schnitt, Out-of-Scope. Abweichung nur mit PO-Freigabe.
+
 ## Bubble-Tea-Skill (installiert)
 
 `~/.claude/skills/bubbletea/` (GGPrompts/TFE, via skillfish) — bei Layout-/Render-/Maus-Arbeit konsultieren. Kern: die **4 Golden Rules** (`references/golden-rules.md`):

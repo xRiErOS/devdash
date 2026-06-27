@@ -71,6 +71,8 @@ Wichtige Projektdateien hier eintragen. Neue zentrale Doku-Dateien → Zeile erg
 | data-ui, Attribut, Storybook-Anker, Namensschema | `apps/frontend/src/storybook/CLAUDE.md` | `data-ui`-Konvention (Punkt-Schema, PO-Ansprechkanal) — Konvention, KEIN Gate (Clean-Cut D02) |
 | mdx, Story-Doku, Norm, Template, Sektionen, Status | `docs/doc-mdx-Norm.md` | Pflicht-Norm für `.mdx`-Dateien je Story: Pflicht-Sektionen, bedingte Sektionen, Screen-Erweiterung; Template: `docs/doc-mdx-Norm-Template.mdx` |
 | Storybook, Tailscale, Remote, ThinkPad, allowedHosts, 0.0.0.0, 6006 | `docs/storybook-tailscale.md` | Storybook vom Mac über Tailscale am ThinkPad ansehen: `npm run storybook:remote` (`-h 0.0.0.0`), allowedHosts-Hintergrund, Troubleshooting |
+| ToolHome, Projektauswahl, /home, ProjectCard, AddProjectCard, Lobby | `docs/ToolHome-Spec.md` | Screen-Spec: globaler Einstiegspunkt, Projektauswahl-Grid, Komponentenbaum, Stories, Entscheidungen D01–D08 |
+| TUI, Detail-Edit, Fokus, Feld-Edit, Accordion, Meilenstein/Sprint/Issue editieren, DD2#12-14, Guardrails | `apps/cli-go/tui-plan.md` | **PFLICHT-READ** für TUI-Detail-Edit (Sprints DD2#12/13/14): Ziel, Spirit, Decisions D01–D10, editierbares Feld-Set, Sprint-Schnitt, Out-of-Scope |
 
 ## Doku-Archiv
 
