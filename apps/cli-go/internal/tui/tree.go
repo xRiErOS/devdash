@@ -123,12 +123,17 @@ func (m model) viewTree() string {
 		left = append(left, "")
 	}
 
-	// Rechte Spalte: Detail des selektierten Knotens.
-	var sel treeNode
+	// Rechte Spalte: Detail des selektierten Knotens. Bei leerer Knotenliste
+	// (Daten noch nicht geladen, da viewTree Primat-Default ist) NICHT auf die
+	// Zero-treeNode{} fallen — die wäre kind=tkMile/mileIdx=0 und würde
+	// m.milestones[0] auf leerer Slice greifen (Panic). Platzhalter stattdessen.
+	var detailStr string
 	if len(nodes) > 0 {
-		sel = nodes[m.treeCursor]
+		detailStr = m.treeDetail(nodes[m.treeCursor], rw-2)
+	} else {
+		detailStr = theme.Dim.Render("(lädt … — l/→ klappt auf)")
 	}
-	detail := strings.Split(m.treeDetail(sel, rw-2), "\n")
+	detail := strings.Split(detailStr, "\n")
 	for i := range detail {
 		detail[i] = truncate(detail[i], rw-2)
 	}
@@ -196,8 +201,13 @@ func (m model) treeLeftLines(nodes []treeNode, w int) []string {
 // breit, der eigentliche Mehrwert des Layouts (Platz für Felder/Accordion).
 func (m model) treeDetail(n treeNode, w int) string {
 	var b strings.Builder
+	// Bounds-Guard (gleiche Fehlerklasse wie der leere-Knotenliste-Fall): Indizes
+	// auf stale/leere Slices nie blind dereferenzieren — sonst Panic im View.
 	switch n.kind {
 	case tkMile:
+		if n.mileIdx < 0 || n.mileIdx >= len(m.milestones) {
+			return theme.Dim.Render("(nichts gewählt)")
+		}
 		ms := m.milestones[n.mileIdx]
 		b.WriteString(theme.Header.Render(ms.Name) + "\n")
 		b.WriteString(theme.Dim.Render("Status: ") + statusText(ms.Status) + "   " +
@@ -210,6 +220,10 @@ func (m model) treeDetail(n treeNode, w int) string {
 		}
 		b.WriteString("\n" + theme.Dim.Render(fmt.Sprintf("Sprints (%d)", len(ms.Sprints))) + "\n")
 	case tkSprint:
+		if n.mileIdx < 0 || n.mileIdx >= len(m.milestones) ||
+			n.sprIdx < 0 || n.sprIdx >= len(m.milestones[n.mileIdx].Sprints) {
+			return theme.Dim.Render("(nichts gewählt)")
+		}
 		sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
 		b.WriteString(theme.Header.Render(sp.Key+" — "+sp.Name) + "\n")
 		b.WriteString(theme.Dim.Render("Status: ") + statusText(sp.Status) + "   " +
@@ -218,7 +232,11 @@ func (m model) treeDetail(n treeNode, w int) string {
 			b.WriteString("\n" + theme.Accent.Render("Goal:") + "\n" + g + "\n")
 		}
 	case tkIssue:
-		it := m.treeIssues[n.sprintID][n.issIdx]
+		items := m.treeIssues[n.sprintID]
+		if n.issIdx < 0 || n.issIdx >= len(items) {
+			return theme.Dim.Render("(nichts gewählt)")
+		}
+		it := items[n.issIdx]
 		b.WriteString(theme.Header.Render(it.Title) + "\n")
 		b.WriteString(theme.TypeIcon(it.Type) + " " + theme.TypeStyle(it.Type).Render(it.Type) +
 			" · " + theme.Priority(it.Priority) + " · " + statusText(it.Status) + "\n")

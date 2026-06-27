@@ -22,6 +22,17 @@ func TestNewModelDefaultsToTree(t *testing.T) {
 	}
 }
 
+// Regression: viewTree ist Primat-Default → erster Render passiert VOR dem
+// Milestone-Load (leere Knotenliste). Darf nicht paniken (Zero-treeNode{} würde
+// sonst m.milestones[0] auf leerer Slice greifen).
+func TestViewTreeEmptyNoPanic(t *testing.T) {
+	m := newModel(nil, &api.Project{Slug: "devd2", Prefix: "DD2"}, nil)
+	m.width, m.height = 90, 22
+	if out := m.View(); out == "" {
+		t.Fatal("leerer Tree-View sollte trotzdem Chrome rendern")
+	}
+}
+
 // D08: Cursor-Zeile = Balken ▌ + ganze Zeile einheitlich in Akzentfarbe. Test im
 // TrueColor-Profil (Ascii würde Farbe strippen) — die gerenderte Cursor-Zeile muss
 // exakt EIN Accent-Render über (Balken + reinem Text) sein, also keine Fremd-Farb-
