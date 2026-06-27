@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"devd-cli/internal/theme"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
@@ -40,9 +41,18 @@ type treeNode struct {
 	label    string // nur tkInfo
 }
 
+// treeMatch ist der case-insensitive Substring-Test der Tree-Suche (DD2-62).
+func treeMatch(s, q string) bool {
+	return strings.Contains(strings.ToLower(s), strings.ToLower(q))
+}
+
 // treeNodes flacht den Baum entsprechend der Expansions-Sets in eine sichtbare
-// Zeilenliste. Issues werden lazy aus treeIssues[sprintID] gezogen.
+// Zeilenliste. Issues werden lazy aus treeIssues[sprintID] gezogen. Bei aktiver
+// Suche (treeQuery) ersetzt die Filter-Flachung die Expansions-Logik.
 func (m *model) treeNodes() []treeNode {
+	if strings.TrimSpace(m.treeQuery) != "" {
+		return m.treeNodesFiltered(strings.TrimSpace(m.treeQuery))
+	}
 	var nodes []treeNode
 	for mi := range m.milestones {
 		ms := &m.milestones[mi]
@@ -81,6 +91,45 @@ func (m *model) treeNodes() []treeNode {
 // Header (Breadcrumb `> slug: Title` + globale Shortcuts), Zwei-Pane-Body auf
 // volle Resthöhe, Footer = lokale Shortcuts + Split-Status (Info blau | Fehler
 // rot). Höhen-Rechnung 1:1 wie chrome(), damit der Footer unten klebt.
+// treeNodesFiltered zeigt nur Pfade zu Treffern (DD2-62). Eine Ebene ist sichtbar,
+// wenn sie selbst matcht ODER ein sichtbarer Nachfahre matcht; matchende Issues
+// werden gelistet, ein Meilenstein-Treffer zeigt seine Sprints als Kontext. Lazy:
+// nur gecachte Sprint-Issues (treeIssues) sind durchsuchbar — open/expand spielt
+// keine Rolle, der gefilterte Baum ist immer „aufgeklappt".
+func (m *model) treeNodesFiltered(q string) []treeNode {
+	var nodes []treeNode
+	for mi := range m.milestones {
+		ms := &m.milestones[mi]
+		msMatch := treeMatch(ms.Name, q)
+		var subs []treeNode
+		for si := range ms.Sprints {
+			sp := &ms.Sprints[si]
+			spMatch := treeMatch(sp.Key+" "+sp.Name, q)
+			var iss []treeNode
+			if items, ok := m.treeIssues[sp.ID]; ok {
+				for ii := range items {
+					it := items[ii]
+					if treeMatch(it.Key+" "+it.Title, q) {
+						iss = append(iss, treeNode{kind: tkIssue, mileIdx: mi, sprIdx: si,
+							sprintID: sp.ID, issIdx: ii, depth: 2})
+					}
+				}
+			}
+			if spMatch || len(iss) > 0 || msMatch {
+				subs = append(subs, treeNode{kind: tkSprint, mileIdx: mi, sprIdx: si,
+					sprintID: sp.ID, depth: 1, expand: true, open: true})
+				subs = append(subs, iss...)
+			}
+		}
+		if msMatch || len(subs) > 0 {
+			nodes = append(nodes, treeNode{kind: tkMile, mileIdx: mi, depth: 0,
+				expand: len(ms.Sprints) > 0, open: true})
+			nodes = append(nodes, subs...)
+		}
+	}
+	return nodes
+}
+
 func (m model) viewTree() string {
 	nodes := m.treeNodes()
 	if m.treeCursor >= len(nodes) {
@@ -94,7 +143,13 @@ func (m model) viewTree() string {
 	head := m.breadcrumb("Projekt-Browser") // Zone 1: `> slug: Title` + globale Shortcuts
 	// Zone 3 = NUR view-spezifische Tasten; globale (b/R/p/q/Cmd) stehen bereits im
 	// Header rechts → nicht doppeln (verwirrt, PO-Befund Augenschein).
-	hint := "j/k:↑↓  l/→:auf  h/←:zu  enter:auf  t:Ranger"
+	hint := "j/k:↑↓  l/→:auf  h/←:zu  enter:auf  /:Suche  t:Ranger"
+	switch {
+	case m.treeSearching:
+		hint = "tippen: filtern   enter: übernehmen   esc: abbrechen"
+	case m.treeQuery != "":
+		hint = "j/k:↑↓  l/→:auf  /:Suche  esc: Filter löschen  t:Ranger"
+	}
 	localKeys := theme.Muted.Render(wrapText(hint, w)) // Zone 3: lokale Shortcuts
 	footH := lipgloss.Height(localKeys) + 1            // + 1 Status-Zeile (Split-Status)
 	avail := m.height - lipgloss.Height(head) - footH
@@ -118,9 +173,12 @@ func (m model) viewTree() string {
 		innerH = 3
 	}
 
-	// Linke Spalte: Baumzeilen, Fenster um den Cursor, auf Höhe auffüllen.
-	left := m.treeLeftLines(nodes, lw-2)
-	left = windowAround(left, innerH, m.treeCursor)
+	// Linke Spalte: Such-/Filterbox als Kopfzeile (DD2-62), darunter die Baumzeilen
+	// gefenstert um den Cursor. Die Kopfzeile kostet 1 Zeile der Innenhöhe.
+	searchLine := m.treeSearchLine(lw - 2)
+	treeLines := m.treeLeftLines(nodes, lw-2)
+	treeLines = windowAround(treeLines, innerH-1, m.treeCursor)
+	left := append([]string{searchLine}, treeLines...)
 	for len(left) < innerH {
 		left = append(left, "")
 	}
@@ -271,13 +329,33 @@ func windowAround(lines []string, height, cursor int) []string {
 	return lines[start : start+height]
 }
 
-// keyTree steuert den Tree+Detail-Prototyp.
+// keyTree steuert den Primat-View. Bei aktiver Suche (treeSearching) fließen alle
+// Tasten ins Suchfeld (live-Filter), bis enter (übernehmen) oder esc (abbrechen).
 func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.treeSearching {
+		return m.keyTreeSearch(msg)
+	}
 	nodes := m.treeNodes()
 	switch msg.String() {
 	case "ctrl+c", "q":
 		return m, tea.Quit
-	case "t", "esc":
+	case "/": // DD2-62: Suchfeld öffnen, mit aktuellem Filter vorbelegen
+		m.treeSearching = true
+		m.treeSearch.SetValue(m.treeQuery)
+		m.treeSearch.CursorEnd()
+		m.treeSearch.Focus()
+		return m, textinput.Blink
+	case "t":
+		m.view = viewColumns
+		m.status = ""
+		return m, nil
+	case "esc":
+		if m.treeQuery != "" { // erst den aktiven Filter löschen, dann Ranger
+			m.treeQuery = ""
+			m.treeSearch.SetValue("")
+			m.treeCursor = 0
+			return m, nil
+		}
 		m.view = viewColumns
 		m.status = ""
 		return m, nil
@@ -312,6 +390,45 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.treeExpand(nodes)
 	}
 	return m, nil
+}
+
+// keyTreeSearch behandelt die aktive Tree-Suche (DD2-62): tippen filtert live,
+// enter übernimmt den Filter (Feld blurt, Filter bleibt aktiv), esc bricht ab und
+// löscht den Filter. Cursor springt bei jeder Filteränderung auf 0.
+func (m model) keyTreeSearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.Type {
+	case tea.KeyEnter:
+		m.treeQuery = strings.TrimSpace(m.treeSearch.Value())
+		m.treeSearching = false
+		m.treeSearch.Blur()
+		m.treeCursor = 0
+		return m, nil
+	case tea.KeyEsc:
+		m.treeSearching = false
+		m.treeSearch.Blur()
+		m.treeSearch.SetValue("")
+		m.treeQuery = ""
+		m.treeCursor = 0
+		return m, nil
+	}
+	var cmd tea.Cmd
+	m.treeSearch, cmd = m.treeSearch.Update(msg)
+	m.treeQuery = strings.TrimSpace(m.treeSearch.Value()) // live-Filter
+	m.treeCursor = 0
+	return m, cmd
+}
+
+// treeSearchLine rendert den Tree-Kopf (DESIGN „Such-/Filterbox"): Shield + Status.
+// Inaktiv = Hint, Eingabe aktiv = Suchfeld, Filter gesetzt = Shield+Query rot.
+func (m model) treeSearchLine(w int) string {
+	const shield = "⛨"
+	if m.treeSearching {
+		return truncate(shield+" "+m.treeSearch.View(), w)
+	}
+	if m.treeQuery != "" {
+		return truncate(lipgloss.NewStyle().Foreground(theme.Red).Render(shield+" "+m.treeQuery), w)
+	}
+	return truncate(theme.Muted.Render(shield+" Suchen mit /"), w)
 }
 
 // treeExpand klappt den Knoten unter dem Cursor auf; bei Sprints werden die

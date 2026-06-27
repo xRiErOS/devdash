@@ -108,6 +108,115 @@ func treeModel() model {
 	}
 }
 
+// DD2-62: Tree-Suche filtert die Hierarchie. Match auf Meilenstein-Name,
+// Sprint-Key/Name und (gecachte) Issue-Key/Title; Vorfahren matchender Knoten
+// bleiben als Pfad sichtbar. Ungecachte Sprint-Issues sind nicht durchsuchbar.
+func treeFilterModel() model {
+	m := treeModel() // M1 → S1(DD2#1,id10) S2(DD2#2,id11)
+	m.treeIssues[10] = []api.Issue{
+		{Key: "DD2-1", Title: "Login bug", Type: "bug", Priority: 1, Status: "to_review"},
+		{Key: "DD2-2", Title: "Logout flow", Type: "feature", Priority: 2, Status: "planned"},
+	}
+	return m
+}
+
+func kinds(nodes []treeNode) []treeKind {
+	out := make([]treeKind, len(nodes))
+	for i, n := range nodes {
+		out[i] = n.kind
+	}
+	return out
+}
+
+func TestTreeFilterIssueMatchShowsPath(t *testing.T) {
+	m := treeFilterModel()
+	m.treeQuery = "login" // nur DD2-1 "Login bug" (DD2-2 "Logout" matcht nicht)
+	nodes := m.treeNodes()
+	if got := kinds(nodes); len(got) != 3 || got[0] != tkMile || got[1] != tkSprint || got[2] != tkIssue {
+		t.Fatalf("kinds=%v, want [mile sprint issue] (M1→S1→DD2-1)", got)
+	}
+	if nodes[2].issIdx != 0 {
+		t.Errorf("erwartet DD2-1 (issIdx 0), got issIdx %d", nodes[2].issIdx)
+	}
+}
+
+func TestTreeFilterSprintMatch(t *testing.T) {
+	m := treeFilterModel()
+	m.treeQuery = "DD2#2" // Sprint S2 matcht per Key, keine Issues
+	nodes := m.treeNodes()
+	if got := kinds(nodes); len(got) != 2 || got[0] != tkMile || got[1] != tkSprint {
+		t.Fatalf("kinds=%v, want [mile sprint] (M1→S2)", got)
+	}
+	if nodes[1].sprIdx != 1 {
+		t.Errorf("erwartet S2 (sprIdx 1), got %d", nodes[1].sprIdx)
+	}
+}
+
+func TestTreeFilterMilestoneMatchShowsAllSprints(t *testing.T) {
+	m := treeFilterModel()
+	m.treeQuery = "m1" // Meilenstein-Name → Kontext: alle Sprints, keine Nicht-Match-Issues
+	nodes := m.treeNodes()
+	if got := kinds(nodes); len(got) != 3 || got[0] != tkMile || got[1] != tkSprint || got[2] != tkSprint {
+		t.Fatalf("kinds=%v, want [mile sprint sprint] (M1→S1,S2)", got)
+	}
+}
+
+func TestTreeFilterNoMatchEmpty(t *testing.T) {
+	m := treeFilterModel()
+	m.treeQuery = "zzz-nichts"
+	if got := m.treeNodes(); len(got) != 0 {
+		t.Fatalf("kein Match → %d Knoten, want 0", len(got))
+	}
+}
+
+// DD2-62: / öffnet Suche, tippen filtert live, enter übernimmt, esc löscht.
+func TestTreeSearchFlow(t *testing.T) {
+	src := treeFilterModel()
+	m := newModel(nil, &api.Project{Slug: "devd2", Prefix: "DD2"}, nil)
+	m.milestones, m.treeIssues = src.milestones, src.treeIssues
+	m.view = viewTree
+	key := func(s string) tea.KeyMsg { return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)} }
+
+	mi, _ := m.keyTree(key("/"))
+	m = mi.(model)
+	if !m.treeSearching {
+		t.Fatal("/ sollte das Suchfeld öffnen")
+	}
+	for _, r := range "login" {
+		mi, _ = m.keyTree(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = mi.(model)
+	}
+	if m.treeQuery != "login" {
+		t.Errorf("live-Filter query=%q, want login", m.treeQuery)
+	}
+	mi, _ = m.keyTree(tea.KeyMsg{Type: tea.KeyEnter})
+	m = mi.(model)
+	if m.treeSearching || m.treeQuery != "login" {
+		t.Errorf("enter: searching=%v query=%q, want false/login", m.treeSearching, m.treeQuery)
+	}
+	mi, _ = m.keyTree(tea.KeyMsg{Type: tea.KeyEsc})
+	m = mi.(model)
+	if m.treeQuery != "" {
+		t.Errorf("esc sollte aktiven Filter löschen, query=%q", m.treeQuery)
+	}
+}
+
+// DD2-62: aktiver Filter = Shield + Query rot (DESIGN „Filter aktiv"); inaktiv = Hint.
+func TestTreeSearchLineActiveRed(t *testing.T) {
+	lipgloss.SetColorProfile(termenv.TrueColor)
+	defer lipgloss.SetColorProfile(termenv.Ascii)
+
+	m := newModel(nil, &api.Project{Slug: "devd2", Prefix: "DD2"}, nil)
+	m.treeQuery = "bug"
+	if got, want := m.treeSearchLine(40), truncate(lipgloss.NewStyle().Foreground(theme.Red).Render("⛨ bug"), 40); got != want {
+		t.Errorf("aktiver Filter nicht rot\n got: %q\nwant: %q", got, want)
+	}
+	m.treeQuery = ""
+	if got := ansi.Strip(m.treeSearchLine(40)); !strings.Contains(got, "Suchen mit /") {
+		t.Errorf("inaktiv sollte Hint zeigen, got %q", got)
+	}
+}
+
 func TestTreeNodesFlatten(t *testing.T) {
 	m := treeModel()
 

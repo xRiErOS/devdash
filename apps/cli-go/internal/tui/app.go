@@ -7,6 +7,7 @@ import (
 	"devd-cli/internal/api"
 	"devd-cli/internal/clip"
 	"devd-cli/internal/config"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
@@ -173,6 +174,12 @@ type model struct {
 	treeExpSprint map[int]bool
 	treeIssues    map[int][]api.Issue
 	treeCursor    int
+
+	// Tree-Suche (DD2-62): `/` öffnet das Suchfeld im Tree-Kopf, tippen filtert live.
+	// treeSearching = Eingabe fokussiert; treeQuery = aktiver Filter (auch nach enter).
+	treeSearch    textinput.Model
+	treeSearching bool
+	treeQuery     string
 }
 
 // issueStatusOptions sind die manuell wählbaren Lifecycle-Ziele. Bewusst OHNE
@@ -242,6 +249,11 @@ func newModel(client *api.Client, project *api.Project, global *api.Client) mode
 	m.treeExpMile = map[int]bool{}
 	m.treeExpSprint = map[int]bool{}
 	m.treeIssues = map[int][]api.Issue{}
+	ti := textinput.New() // DD2-62: Tree-Suchfeld
+	ti.Placeholder = "Suche nach Begriffen"
+	ti.Prompt = ""
+	ti.CharLimit = 60
+	m.treeSearch = ti
 	m.fMile = filterState{hidden: map[string]bool{"completed": true, "cancelled": true, deferredKey: true}}
 	m.fSprint = filterState{hidden: map[string]bool{"completed": true, "cancelled": true}}
 	m.fIssue = filterState{hidden: map[string]bool{"cancelled": true}}
