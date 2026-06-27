@@ -1,0 +1,22 @@
+dd · devd2 (DD2)                ctrl+k:Cmd  [p]rojekt  [b]acklog  [f]ilter  [y]ank  [q]uit
+╭────────────────────────────╮╭────────────────────────────╮╭────────────────────────────╮
+│Meilensteine                ││Sprints · Meilenstein Eins  ││Issues · DD2#9              │
+│──────────────              ││────────────────────────────││────────────────            │
+│▸ ● Meilenstein Eins  0/0   ││  DD2#9    review  0/0      ││  ◆ P1 DD2-99    Beispiel-I…│
+│                            ││                            ││                            │
+│                            ││                            ││                            │
+│                            ││                            ││                            │
+│                            ││                            ││                            │
+│                            ││                            ││                            │
+│                            ││                            ││                            │
+│                            ││                            ││                            │
+│                            ││                            ││                            │
+│                            ││                            ││                            │
+│                            ││                            ││                            │
+│                            ││                            ││                            │
+│                            ││                            ││                            │
+│                            ││                            ││                            │
+│                            ││                            ││                            │
+│                            ││                            ││                            │
+╰────────────────────────────╯╰────────────────────────────╯╰────────────────────────────╯
+j/k:↑↓  l/→:rein  h/←:raus  enter:Detail  S:Meilenstein-Status  d:löschen  f:Filter  y:Yank  b:Backlog  R:Reviews  q:quit

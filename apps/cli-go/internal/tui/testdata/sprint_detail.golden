@@ -1,0 +1,22 @@
+dd · devd2 (DD2)                ctrl+k:Cmd  [p]rojekt  [b]acklog  [f]ilter  [y]ank  [q]uit
+Sprint DD2#9
+ review                                                                                   
+ Sprint Neun                                                                              
+ Meilenstein: Meilenstein Eins                                                            
+ Fortschritt: 0/0                                                                         
+                                                                                          
+ Issues (1):                                                                              
+   Typ  Kennung   Titel                                    Status       Review-Verdikt    
+ Ergebnisse                                                                               
+   ◆ P1 DD2-99    Beispiel-Issue für den Snapshot          to_review    · kein Verdikt    
+ ●                                                                                        
+                                                                                          
+ Review-Runden: ✓ 0 passed  ✗ 0 not_passed  · 1 offen                                     
+                                                                                          
+
+
+
+
+
+
+R: Review-Cockpit   m: Meilenstein   y: kopieren   j/k: scrollen   esc/q: zurück

@@ -1,0 +1,22 @@
+dd · devd2 (DD2)                ctrl+k:Cmd  [p]rojekt  [b]acklog  [f]ilter  [y]ank  [q]uit
+Issue DD2-99
+ to_review  DD2-99  ◆ bug  P1                                                             
+ Beispiel-Issue für den Snapshot                                                          
+                                                                                          
+ Goal:                                                                                    
+ Detail soll scrollbar sein, damit umfangreicher Inhalt lesbar bleibt.                    
+                                                                                          
+ Background:                                                                              
+ Hintergrund mit Text, der über die Terminalbreite hinausläuft und sauber umgebrochen     
+ werden muss, damit die Zeilenzählung beim Scrollen stimmt.                               
+                                                                                          
+ User-Stories (2):                                                                        
+   [✓] US eins                                                                            
+   [ ] US zwei                                                                            
+                                                                                          
+
+
+
+
+
+s: Status   j/k: scrollen   g/G: Anfang/Ende   esc/q: zurück
