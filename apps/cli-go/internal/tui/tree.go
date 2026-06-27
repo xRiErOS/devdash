@@ -130,17 +130,12 @@ func (m *model) treeNodesFiltered(q string) []treeNode {
 	return nodes
 }
 
-func (m model) viewTree() string {
-	nodes := m.treeNodes()
-	if m.treeCursor >= len(nodes) {
-		m.treeCursor = len(nodes) - 1
-	}
-	if m.treeCursor < 0 {
-		m.treeCursor = 0
-	}
+// treeLayout liefert Header, lokale Shortcuts und die Pane-Geometrie des Primat-
+// Views (DD2-61). Single Source für Render (viewTree) UND Maus-Klick-Mapping
+// (handleMouse, DD2-51) — sonst driften Render-Zeilen und Klick-Y auseinander.
+func (m model) treeLayout() (head, localKeys string, lw, rw, innerH int) {
 	w := m.termWidth()
-
-	head := m.breadcrumb("Projekt-Browser") // Zone 1: `> slug: Title` + globale Shortcuts
+	head = m.breadcrumb("Projekt-Browser") // Zone 1: `> slug: Title` + globale Shortcuts
 	// Zone 3 = NUR view-spezifische Tasten; globale (b/R/p/q/Cmd) stehen bereits im
 	// Header rechts → nicht doppeln (verwirrt, PO-Befund Augenschein).
 	hint := "j/k:↑↓  l/→:auf  h/←:zu  enter:auf  /:Suche  t:Ranger"
@@ -150,28 +145,39 @@ func (m model) viewTree() string {
 	case m.treeQuery != "":
 		hint = "j/k:↑↓  l/→:auf  /:Suche  esc: Filter löschen  t:Ranger"
 	}
-	localKeys := theme.Muted.Render(wrapText(hint, w)) // Zone 3: lokale Shortcuts
-	footH := lipgloss.Height(localKeys) + 1            // + 1 Status-Zeile (Split-Status)
+	localKeys = theme.Muted.Render(wrapText(hint, w)) // Zone 3: lokale Shortcuts
+	footH := lipgloss.Height(localKeys) + 1           // + 1 Status-Zeile (Split-Status)
 	avail := m.height - lipgloss.Height(head) - footH
 	if avail < 4 {
 		avail = m.bodyHeight() // Höhe unbekannt (Init/Tests) → großzügiger Fallback
 	}
-
-	lw := 36 // schmale Baum-Spalte
+	lw = 36 // schmale Baum-Spalte
 	if cap := w * 2 / 5; lw > cap {
 		lw = cap
 	}
 	if lw < 24 {
 		lw = 24
 	}
-	rw := w - lw - 4 // je Pane 2 Border-Spalten
+	rw = w - lw - 4 // je Pane 2 Border-Spalten
 	if rw < 20 {
 		rw = 20
 	}
-	innerH := avail - 2 // Border oben/unten — NICHT via Height() (Golden Rule #1)
+	innerH = avail - 2 // Border oben/unten — NICHT via Height() (Golden Rule #1)
 	if innerH < 3 {
 		innerH = 3
 	}
+	return
+}
+
+func (m model) viewTree() string {
+	nodes := m.treeNodes()
+	if m.treeCursor >= len(nodes) {
+		m.treeCursor = len(nodes) - 1
+	}
+	if m.treeCursor < 0 {
+		m.treeCursor = 0
+	}
+	head, localKeys, lw, rw, innerH := m.treeLayout()
 
 	// Linke Spalte: Such-/Filterbox als Kopfzeile (DD2-62), darunter die Baumzeilen
 	// gefenstert um den Cursor. Die Kopfzeile kostet 1 Zeile der Innenhöhe.
@@ -314,18 +320,28 @@ func (m model) treeDetail(n treeNode, w int) string {
 	return b.String()
 }
 
-// windowAround fenstert lines auf height Zeilen so, dass cursor sichtbar bleibt.
-func windowAround(lines []string, height, cursor int) []string {
-	if len(lines) <= height {
-		return lines
+// windowStart berechnet den Fenster-Anfang so, dass cursor sichtbar bleibt —
+// geteilt von windowAround (Render) und handleMouse (Klick-Y→Zeilenindex, DD2-51).
+func windowStart(n, height, cursor int) int {
+	if n <= height {
+		return 0
 	}
 	start := cursor - height/2
 	if start < 0 {
 		start = 0
 	}
-	if start+height > len(lines) {
-		start = len(lines) - height
+	if start+height > n {
+		start = n - height
 	}
+	return start
+}
+
+// windowAround fenstert lines auf height Zeilen so, dass cursor sichtbar bleibt.
+func windowAround(lines []string, height, cursor int) []string {
+	if len(lines) <= height {
+		return lines
+	}
+	start := windowStart(len(lines), height, cursor)
 	return lines[start : start+height]
 }
 

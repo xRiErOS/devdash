@@ -272,7 +272,9 @@ func Run(client *api.Client, project *api.Project, global *api.Client) error {
 	// OSC-11-Abfrage eine helle Farbe → Forms rendern helles Theme (leuchtender BG).
 	// Detection hart auf dunkel zwingen → terminal-unabhängig, app ist durchweg dunkel.
 	lipgloss.SetHasDarkBackground(true)
-	_, err := tea.NewProgram(newModel(client, project, global), tea.WithAltScreen()).Run()
+	// DD2-51: Maus aktivieren (CellMotion = Klick + Wheel + Move-Tracking).
+	_, err := tea.NewProgram(newModel(client, project, global),
+		tea.WithAltScreen(), tea.WithMouseCellMotion()).Run()
 	return err
 }
 
@@ -504,10 +506,104 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.status = noticeText("Rework fertig → Issue ist to_review, jetzt a:pass")
 		return m, nil
+	case tea.MouseMsg:
+		return m.handleMouse(msg)
 	case tea.KeyMsg:
 		return m.handleKey(msg)
 	}
 	return m, nil
+}
+
+// handleMouse bindet die Maus an (DD2-51): Wheel scrollt (Tree-Cursor bzw.
+// m.scroll der Chrome-Detail-Views), Linksklick setzt Fokus/Cursor. Golden Rule
+// #3: Tree ist vertikal → msg.Y; Ranger-Columns sind horizontal → msg.X.
+func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+	// Modale/Picks sind tastaturgesteuert — Maus ignorieren (kein Fehlklick-Fokus).
+	if m.form != nil || m.paletteOpen || m.filtering || m.statusPick || m.sprintPick ||
+		m.msPick || m.smPick || m.maPick || m.delConfirm || m.mcConfirm || m.usOpen ||
+		m.treeSearching || m.inputting {
+		return m, nil
+	}
+	switch msg.Button {
+	case tea.MouseButtonWheelUp:
+		if m.view == viewTree {
+			if m.treeCursor > 0 {
+				m.treeCursor--
+			}
+		} else {
+			m.scroll -= 3
+			if m.scroll < 0 {
+				m.scroll = 0
+			}
+		}
+		return m, nil
+	case tea.MouseButtonWheelDown:
+		if m.view == viewTree {
+			if n := len(m.treeNodes()); m.treeCursor < n-1 {
+				m.treeCursor++
+			}
+		} else {
+			m.scroll += 3 // scrollView klemmt das Maximum
+		}
+		return m, nil
+	case tea.MouseButtonLeft:
+		if msg.Action != tea.MouseActionPress {
+			return m, nil
+		}
+		switch m.view {
+		case viewTree:
+			return m.mouseTreeClick(msg)
+		case viewColumns:
+			return m.mouseColumnFocus(msg)
+		}
+	}
+	return m, nil
+}
+
+// mouseTreeClick setzt den Tree-Cursor auf die geklickte Zeile (DD2-51, optionale
+// Stufe). Klick-Y → Zeilenindex über dieselbe Geometrie wie der Render (treeLayout
+// + windowStart), darum drift-frei. Nur Klicks in der linken Spalte zählen.
+func (m model) mouseTreeClick(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+	head, _, lw, _, innerH := m.treeLayout()
+	if msg.X >= lw {
+		return m, nil // rechte Detail-Spalte — kein Cursor-Ziel
+	}
+	// Erste Baumzeile = Header-Höhe + 1 (obere Box-Border) + 1 (Such-Kopfzeile).
+	firstRowY := lipgloss.Height(head) + 1 + 1
+	rel := msg.Y - firstRowY
+	if rel < 0 {
+		return m, nil
+	}
+	nodes := m.treeNodes()
+	start := windowStart(len(nodes), innerH-1, m.treeCursor) // innerH-1: Such-Kopfzeile
+	if idx := start + rel; idx >= 0 && idx < len(nodes) {
+		m.treeCursor = idx
+	}
+	return m, nil
+}
+
+// mouseColumnFocus setzt im Ranger-Columns-Layout den Pane-Fokus per X (DD2-51).
+// Sichtbare Panes beginnen bei m.depth; die geklickte Spalte wird zur Fokus-Ebene.
+func (m model) mouseColumnFocus(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+	w := m.termWidth()
+	n := 3 // Ranger zeigt max. 3 Spalten
+	colW := (w - n*2) / n
+	if colW < 1 {
+		return m, nil
+	}
+	pane := msg.X / (colW + 2)
+	if pane < 0 || pane > 2 {
+		return m, nil
+	}
+	target := m.depth + pane
+	if target > 2 {
+		target = 2
+	}
+	if target == m.depth {
+		return m, nil
+	}
+	m.depth = target
+	return m, m.syncSprint()
 }
 
 // updateForm leitet Messages ans laufende huh-Formular weiter und feuert nach
