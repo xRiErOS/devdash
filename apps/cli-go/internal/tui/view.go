@@ -14,6 +14,14 @@ func (m model) View() string {
 	if m.err != nil {
 		return fmt.Sprintf("\n  %s\n\n  q: quit\n", lipgloss.NewStyle().Foreground(theme.Red).Render("Fehler: "+m.err.Error()))
 	}
+	// DD2-24: opaker Base-Hintergrund unter den gesamten Frame → die TUI ist
+	// konsistent dunkel (Catppuccin Base), unabhängig vom Terminal-Theme. Ohne
+	// das bleedet ein helles Terminal-/WezTerm-Scheme rings um die Modals durch.
+	return paintBackground(m.composeFrame(), m.termWidth(), m.height)
+}
+
+// composeFrame baut die Sicht inkl. zentriert schwebender Overlays (ohne Hintergrund).
+func (m model) composeFrame() string {
 	base := m.viewBase()
 	// Command-Center (T16): Formular bzw. Palette schweben zentriert über dem Frame.
 	if m.form != nil {
@@ -757,6 +765,24 @@ func (m model) filterBox() string {
 }
 
 // --- Helfer ---
+
+// paintBackground legt einen opaken Base-Hintergrund unter den gesamten Frame
+// (jede Zeile auf w gepolstert, auf h Zeilen aufgefüllt). Catppuccin-Look bleibt
+// damit terminal-unabhängig erhalten; Modals heben sich klar ab (DD2-24/DD2-26).
+func paintBackground(frame string, w, h int) string {
+	if w < 1 {
+		w = 1
+	}
+	bg := lipgloss.NewStyle().Background(theme.Base).Width(w)
+	lines := strings.Split(frame, "\n")
+	for i, l := range lines {
+		lines[i] = bg.Render(l)
+	}
+	for len(lines) < h {
+		lines = append(lines, bg.Render(""))
+	}
+	return strings.Join(lines, "\n")
+}
 
 func boxed(s string, w int, border lipgloss.Color) string {
 	if w > 8 {
