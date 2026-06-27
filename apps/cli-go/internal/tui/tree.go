@@ -185,8 +185,8 @@ func (m model) treeLayout() (head, localKeys string, lw, rw, innerH int) {
 	switch {
 	case m.treeSearching:
 		hint = "tippen: filtern   enter: übernehmen   esc: abbrechen"
-	case m.detailFocus: // DD2-76: Detail-Pane fokussiert — Section/Feld-Navigation
-		hint = "j/k:Section/Feld  l/→:rein  h/←:zurück  1…n:Section  esc: Tree-Fokus"
+	case m.detailFocus: // DD2-76/86: Detail-Pane fokussiert — Section/Feld-Navigation
+		hint = "j/k:Section/Feld  l/→:rein  enter:rein/bearbeiten  h/←:zurück  1…n:Section  esc: Tree-Fokus"
 	case m.treeActive():
 		hint = "j/k:↑↓  l/→:auf  s:Status  /:Suche  f:Filter  esc: Filter+Suche löschen  t:Ranger"
 	}

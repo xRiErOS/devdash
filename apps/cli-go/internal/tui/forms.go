@@ -91,6 +91,29 @@ func (m model) openForm(kind string) (tea.Model, tea.Cmd) {
 	return m, m.form.Init()
 }
 
+// typeOptions / priorityOptions = Single Source der Issue-Type- bzw. Prioritäts-
+// Auswahl, geteilt von Create- und editField-Form (DD2-77). priority deckt den
+// vollen Contract-Bereich 1..5 ab (issueUpdateContract: min 1, max 5) — nicht nur
+// 1..4, sonst fehlen Prioritäten im Select (DD2-77 Review-Befund).
+func typeOptions() []huh.Option[string] {
+	return []huh.Option[string]{
+		huh.NewOption("Feature", "feature"),
+		huh.NewOption("Bug", "bug"),
+		huh.NewOption("Improvement", "improvement"),
+		huh.NewOption("Core", "core"),
+	}
+}
+
+func priorityOptions() []huh.Option[string] {
+	return []huh.Option[string]{
+		huh.NewOption("P1 — Kritisch", "1"),
+		huh.NewOption("P2 — Hoch", "2"),
+		huh.NewOption("P3 — Mittel", "3"),
+		huh.NewOption("P4 — Niedrig", "4"),
+		huh.NewOption("P5 — Backlog", "5"),
+	}
+}
+
 // buildForm konstruiert das keyed Formular je kind (issue|milestone|sprint).
 func buildForm(kind string, milestones []api.Milestone) *huh.Form {
 	switch kind {
@@ -98,18 +121,8 @@ func buildForm(kind string, milestones []api.Milestone) *huh.Form {
 		return huh.NewForm(huh.NewGroup(
 			huh.NewInput().Key("title").Title("Titel").
 				Placeholder("Kurze Beschreibung des Issues").Validate(nonEmpty),
-			huh.NewSelect[string]().Key("type").Title("Typ").Options(
-				huh.NewOption("Feature", "feature"),
-				huh.NewOption("Bug", "bug"),
-				huh.NewOption("Improvement", "improvement"),
-				huh.NewOption("Core", "core"),
-			),
-			huh.NewSelect[string]().Key("priority").Title("Priorität").Options(
-				huh.NewOption("P1 — Kritisch", "1"),
-				huh.NewOption("P2 — Hoch", "2"),
-				huh.NewOption("P3 — Mittel", "3"),
-				huh.NewOption("P4 — Niedrig", "4"),
-			),
+			huh.NewSelect[string]().Key("type").Title("Typ").Options(typeOptions()...),
+			huh.NewSelect[string]().Key("priority").Title("Priorität").Options(priorityOptions()...),
 			huh.NewText().Key("description").Title("Beschreibung (optional)"),
 		)).WithWidth(58).WithShowHelp(true)
 	case "milestone":
@@ -167,24 +180,16 @@ func buildEditFieldForm(f detailField, value string) *huh.Form {
 	var field huh.Field
 	switch f.editor {
 	case "select":
-		sel := huh.NewSelect[string]().Key("value").Title(f.label).Value(&v)
+		var opts []huh.Option[string]
 		switch f.key {
 		case "type":
-			sel = sel.Options(
-				huh.NewOption("Feature", "feature"),
-				huh.NewOption("Bug", "bug"),
-				huh.NewOption("Improvement", "improvement"),
-				huh.NewOption("Core", "core"),
-			)
+			opts = typeOptions()
 		case "priority":
-			sel = sel.Options(
-				huh.NewOption("P1 — Kritisch", "1"),
-				huh.NewOption("P2 — Hoch", "2"),
-				huh.NewOption("P3 — Mittel", "3"),
-				huh.NewOption("P4 — Niedrig", "4"),
-			)
+			opts = priorityOptions()
 		}
-		field = sel
+		// Options VOR Value: huh bindet den Preset gegen die bereits gesetzte
+		// Optionsliste (sonst greift die Vorbelegung nicht zuverlässig).
+		field = huh.NewSelect[string]().Key("value").Title(f.label).Options(opts...).Value(&v)
 	case "input":
 		in := huh.NewInput().Key("value").Title(f.label).Value(&v)
 		if f.key == "title" {
