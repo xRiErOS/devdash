@@ -743,6 +743,82 @@ const (
 	colVerdikt  = 16 // Review-Verdikt
 )
 
+// gridCell ist eine Spalte im Detail-Grid (DD2-38): ein Gewicht + bereits
+// gerenderter, ggf. mehrzeiliger Inhalt. Die Spaltenbreite ergibt sich
+// proportional aus den Gewichten aller Zellen (Golden Rule #4), nicht aus Pixeln.
+type gridCell struct {
+	weight  int
+	content string
+}
+
+// grid setzt mehrere gridCells nebeneinander (lipgloss.JoinHorizontal) auf
+// totalWidth Spalten, gap Spalten Abstand dazwischen. Wiederverwendbares
+// Zweispalten-/n-Spalten-Primitiv für Detail-Sektionen (DD2-50 Accordion,
+// DD2-63 Meta-Strip). Golden Rules: #4 Weights statt Pixel; #2 jede Zeile wird
+// auf die Spaltenbreite truncatet (kein Auto-Wrap, der die Höhe verfälscht);
+// #1 keine Height() auf bordered Style — Spalten werden auf gemeinsame Höhe
+// gefüllt, der Rahmen (falls einer drumherum liegt) wächst natürlich.
+func grid(totalWidth, gap int, cells ...gridCell) string {
+	if len(cells) == 0 {
+		return ""
+	}
+	if gap < 0 {
+		gap = 0
+	}
+	totalWeight := 0
+	for _, c := range cells {
+		totalWeight += maxInt(c.weight, 1)
+	}
+	avail := totalWidth - gap*(len(cells)-1)
+	if avail < len(cells) {
+		avail = len(cells) // mindestens 1 Spalte je Zelle
+	}
+	// Spaltenbreiten Weight-proportional; die letzte Spalte bekommt den Rest
+	// (Rundungsdifferenz), damit die Summe exakt avail ergibt.
+	widths := make([]int, len(cells))
+	used := 0
+	for i, c := range cells {
+		if i == len(cells)-1 {
+			widths[i] = avail - used
+		} else {
+			w := avail * maxInt(c.weight, 1) / totalWeight
+			if w < 1 {
+				w = 1
+			}
+			widths[i] = w
+			used += w
+		}
+	}
+	// Je Spalte: Zeilen truncaten (kein Auto-Wrap) und gemeinsame Höhe ermitteln.
+	colLines := make([][]string, len(cells))
+	maxH := 0
+	for i, c := range cells {
+		lines := strings.Split(c.content, "\n")
+		for j := range lines {
+			lines[j] = truncate(lines[j], widths[i])
+		}
+		colLines[i] = lines
+		if len(lines) > maxH {
+			maxH = len(lines)
+		}
+	}
+	// Feste Spaltenbreite (Width pad, kein Wrap da Zeilen ≤ widths[i]) + Auffüllen
+	// auf gemeinsame Höhe, damit JoinHorizontal die Spalten oben bündig ausrichtet.
+	blocks := make([]string, 0, len(cells)*2-1)
+	gapBlock := lipgloss.NewStyle().Width(gap).Render(strings.Repeat("\n", maxH-1))
+	for i := range cells {
+		lines := colLines[i]
+		for len(lines) < maxH {
+			lines = append(lines, "")
+		}
+		if i > 0 && gap > 0 {
+			blocks = append(blocks, gapBlock)
+		}
+		blocks = append(blocks, lipgloss.NewStyle().Width(widths[i]).Render(strings.Join(lines, "\n")))
+	}
+	return lipgloss.JoinHorizontal(lipgloss.Top, blocks...)
+}
+
 // col padded s auf w SICHTBARE Spalten — ANSI-bewusst via lipgloss.Width, anders
 // als fmt %-Ns (das die ANSI-Bytes als Breite zählt und gefärbte Zellen verkürzt).
 func col(s string, w int) string {
