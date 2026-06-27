@@ -104,6 +104,10 @@ type model struct {
 	reviewSprints []api.Sprint
 	rvlist        listState
 	reviewReturn  viewID // wohin Cockpit-q/esc zurückkehrt (Liste vs. Columns)
+	// topReturn = Heimat-View für Backlog/Reviews-Liste-q/esc. Da Tree jetzt Primat
+	// ist (DD2-61), merkt sich der Einstieg, ob aus Tree oder Columns gekommen — sonst
+	// landet man immer in den Columns. Wird beim Öffnen auf die Quell-View gesetzt.
+	topReturn viewID
 
 	// Meilenstein-Status-Menü (T01): S auf fokussiertem Meilenstein.
 	msPick     bool
@@ -234,6 +238,7 @@ func allowedManualStatuses(from string) []string {
 func newModel(client *api.Client, project *api.Project, global *api.Client) model {
 	m := model{client: client, project: project, global: global}
 	m.reviewReturn = viewColumns // Default-Rückkehr aus dem Cockpit
+	m.topReturn = viewTree       // Tree ist Primat-Heimat (DD2-61)
 	m.treeExpMile = map[int]bool{}
 	m.treeExpSprint = map[int]bool{}
 	m.treeIssues = map[int][]api.Issue{}
@@ -580,7 +585,11 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Globale Tasten
 	switch k {
 	case "ctrl+c", "q":
-		if m.view == viewDetail || m.view == viewBacklog || m.view == viewMilestone || m.view == viewSprint || m.view == viewReviewsList {
+		switch m.view {
+		case viewBacklog, viewReviewsList: // dual-entry → zur Quell-View (Tree/Columns)
+			m.view = m.topReturn
+			return m, nil
+		case viewDetail, viewMilestone, viewSprint: // nur aus Columns erreichbar
 			m.view = viewColumns
 			return m, nil
 		}
@@ -660,12 +669,26 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// openReviewsList öffnet die Liste offener Review-Sprints (T17).
+// openReviewsList öffnet die Liste offener Review-Sprints (T17). Merkt die
+// Quell-View (Tree/Columns), damit q/esc dorthin zurückkehrt (DD2-61 Primat).
 func (m model) openReviewsList() (tea.Model, tea.Cmd) {
+	if m.view == viewTree || m.view == viewColumns {
+		m.topReturn = m.view
+	}
 	m.view = viewReviewsList
 	m.rvlist = listState{}
 	m.status = ""
 	return m, loadReviewSprints(m.client)
+}
+
+// openBacklog öffnet die Backlog-Liste und merkt die Quell-View (Tree/Columns)
+// für die Rückkehr (DD2-61 Primat) — geteilt von keyTree und keyColumns.
+func (m model) openBacklog() (tea.Model, tea.Cmd) {
+	if m.view == viewTree || m.view == viewColumns {
+		m.topReturn = m.view
+	}
+	m.view = viewBacklog
+	return m, loadBacklog(m.client)
 }
 
 // keyReviewsList steuert die Review-Sprint-Liste: Auswahl öffnet das Cockpit.
@@ -680,7 +703,7 @@ func (m model) keyReviewsList(k string) (tea.Model, tea.Cmd) {
 	}
 	switch k {
 	case "esc", "R":
-		m.view = viewColumns
+		m.view = m.topReturn // zurück zur Quell-View (Tree/Columns, DD2-61)
 		return m, nil
 	case "enter":
 		if m.rvlist.cursor >= 0 && m.rvlist.cursor < len(m.reviewSprints) {
@@ -759,8 +782,7 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 	case "y":
 		return m.yankContext()
 	case "b":
-		m.view = viewBacklog
-		return m, loadBacklog(m.client)
+		return m.openBacklog()
 	case "t": // DD2-57: Tree+Detail-Layout-Prototyp (Vergleich zum Ranger)
 		m.view = viewTree
 		m.treeCursor = 0
@@ -1386,7 +1408,7 @@ func (m model) keyBacklog(k string) (tea.Model, tea.Cmd) {
 		m.blist.move(1)
 	}
 	if k == "b" || k == "esc" {
-		m.view = viewColumns
+		m.view = m.topReturn // zurück zur Quell-View (Tree/Columns, DD2-61)
 	}
 	return m, nil
 }

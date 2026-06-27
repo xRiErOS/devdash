@@ -8,10 +8,40 @@ import (
 
 	"devd-cli/internal/api"
 	"devd-cli/internal/theme"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/muesli/termenv"
 )
+
+// DD2-61: keyTree fängt vor dem globalen Key-Switch → p/R/b müssen im Tree explizit
+// gewiret sein, sonst öffnen sich Picker/Reviews/Backlog nicht (Bug-Report Augenschein).
+func TestTreeGlobalKeysReachable(t *testing.T) {
+	base := func() model {
+		m := treeModel()
+		m.view = viewTree
+		m.global = api.NewClient("")
+		m.client = api.NewClient("")
+		m.topReturn = viewTree
+		return m
+	}
+	key := func(s string) tea.KeyMsg { return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)} }
+
+	if mb, _ := base().keyTree(key("b")); mb.(model).view != viewBacklog {
+		t.Errorf("b → view=%d, want viewBacklog", mb.(model).view)
+	}
+	if mr, _ := base().keyTree(key("R")); mr.(model).view != viewReviewsList {
+		t.Errorf("R → view=%d, want viewReviewsList", mr.(model).view)
+	}
+	if mp, _ := base().keyTree(key("p")); mp.(model).view != viewPicker {
+		t.Errorf("p → view=%d, want viewPicker", mp.(model).view)
+	}
+	// Rückkehr aus Backlog landet wieder im Tree (topReturn), nicht in Columns.
+	mb, _ := base().keyTree(key("b"))
+	if back, _ := mb.(model).keyBacklog("esc"); back.(model).view != viewTree {
+		t.Errorf("Backlog esc → view=%d, want viewTree (topReturn)", back.(model).view)
+	}
+}
 
 // DD2-61: Tree+Detail ist Primat — newModel() startet bei vorhandenem Projekt
 // direkt im Tree-View (Ranger-Columns nur noch via t erreichbar).

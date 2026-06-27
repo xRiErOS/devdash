@@ -92,7 +92,9 @@ func (m model) viewTree() string {
 	w := m.termWidth()
 
 	head := m.breadcrumb("Projekt-Browser") // Zone 1: `> slug: Title` + globale Shortcuts
-	hint := "j/k:↑↓  l/→:auf  h/←:zu  enter:auf  t:Ranger  b:Backlog  R:Reviews  q:quit"
+	// Zone 3 = NUR view-spezifische Tasten; globale (b/R/p/q/Cmd) stehen bereits im
+	// Header rechts → nicht doppeln (verwirrt, PO-Befund Augenschein).
+	hint := "j/k:↑↓  l/→:auf  h/←:zu  enter:auf  t:Ranger"
 	localKeys := theme.Muted.Render(wrapText(hint, w)) // Zone 3: lokale Shortcuts
 	footH := lipgloss.Height(localKeys) + 1            // + 1 Status-Zeile (Split-Status)
 	avail := m.height - lipgloss.Height(head) - footH
@@ -279,6 +281,16 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.view = viewColumns
 		m.status = ""
 		return m, nil
+	case "p": // Projekt-Switch — keyTree fängt vor dem globalen Switch, drum hier wiren
+		if m.global != nil {
+			m.view = viewPicker
+			return m, loadProjects(m.global)
+		}
+		return m, nil
+	case "R": // Reviews-Liste — analog, sonst im Tree verschluckt
+		return m.openReviewsList()
+	case "b": // Backlog — analog
+		return m.openBacklog()
 	}
 	switch navKey(msg.String()) {
 	case "up":
