@@ -28,6 +28,9 @@ func (m model) View() string {
 	if m.sprintPick { // T05: view-übergreifend (Cockpit + Ranger-Columns)
 		return placeOverlay(base, m.sprintStatusMenu(), m.termWidth(), m.height)
 	}
+	if m.statusPick { // DD2-29: Issue-Status-Menü view-übergreifend (Cockpit + Columns/Detail)
+		return placeOverlay(base, m.statusMenu(), m.termWidth(), m.height)
+	}
 	if m.smPick { // T03 Flow A: Sprint→Meilenstein-Picker
 		return placeOverlay(base, m.sprintMilestoneMenu(), m.termWidth(), m.height)
 	}
@@ -522,10 +525,7 @@ func (m model) viewReview() string {
 		}
 	}
 	base := "\n" + boxed(b.String(), m.termWidth(), theme.Mauve)
-	if m.statusPick {
-		return placeOverlay(base, m.statusMenu(), m.termWidth(), m.height)
-	}
-	// sprintPick-Overlay liegt jetzt im View()-Wrapper (T05, view-übergreifend).
+	// statusPick/sprintPick-Overlays liegen im View()-Wrapper (view-übergreifend, DD2-29/T05).
 	if m.usOpen {
 		return placeOverlay(base, m.userStoryModal(), m.termWidth(), m.height)
 	}
@@ -695,10 +695,7 @@ func (m model) reviewHints() string {
 func (m model) statusMenu() string {
 	var b strings.Builder
 	b.WriteString(theme.Header.Render("Status setzen") + "\n")
-	cur := ""
-	if it := m.reviewItem(); it != nil {
-		cur = it.Status
-	}
+	cur := m.stIssueStatus
 	b.WriteString(theme.Dim.Render("aktuell: "+cur) + "\n\n")
 	for i, s := range m.sopts {
 		cursor := "  "

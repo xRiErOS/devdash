@@ -78,7 +78,10 @@ type model struct {
 	inputting       bool   // Reject-Kommentar-Eingabe aktiv
 	input           string // Kommentar-Puffer
 	confirmComplete bool   // Doppel-C-Bestätigung für Sprint-Abschluss
-	statusPick      bool   // s: Issue-Status-Menü aktiv
+	statusPick      bool   // s: Issue-Status-Menü aktiv (Cockpit + Columns/Detail, DD2-29)
+	stIssueID       int    // Ziel-Issue des Status-Menüs
+	stIssueStatus   string // aktueller Status des Ziel-Issues (Menü-Kopf)
+	stSprintID      int    // Sprint-Kontext für Refresh (0 = keiner)
 	smenu           listState
 	sopts           []string
 	sprintPick      bool // Sprint-Status-Menü aktiv (Cockpit S / Columns s, T05)
@@ -506,6 +509,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.sprintPick {
 		return m.keySprintPick(msg)
 	}
+	// Issue-Status-Menü (DD2-29) view-übergreifend (Cockpit s + Columns/Detail s).
+	if m.statusPick {
+		return m.keyStatusPick(msg)
+	}
 	// Sprint↔Meilenstein-Zuweisung (T03).
 	if m.smPick {
 		return m.keySprintMilestone(msg)
@@ -553,8 +560,17 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case viewColumns:
 		return m.keyColumns(k)
 	case viewDetail:
-		if k == "esc" {
+		switch k {
+		case "esc":
 			m.view = viewColumns
+		case "s": // DD2-29: Issue-Status auch im Detail mutieren
+			if it := m.selIssue(); it != nil {
+				sid := 0
+				if m.curSprint != nil {
+					sid = m.curSprint.ID
+				}
+				return m.openIssueStatus(it, sid)
+			}
 		}
 		return m, nil
 	case viewMilestone:
@@ -696,10 +712,18 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 		if m.depth == 0 {
 			return m.openMilestoneStatus()
 		}
-	case "s": // T05: Sprint-Status auf fokussiertem Sprint (Ranger-Column)
+	case "s": // T05: Sprint-Status (depth 1) / DD2-29: Issue-Status (depth 2)
 		if m.depth == 1 {
 			if sp := m.selSprint(); sp != nil {
 				return m.openSprintStatus(sp.ID, sp.Status)
+			}
+		} else if m.depth == 2 {
+			if it := m.selIssue(); it != nil {
+				sid := 0
+				if m.curSprint != nil {
+					sid = m.curSprint.ID
+				}
+				return m.openIssueStatus(it, sid)
 			}
 		}
 	case "d": // T02b: Cascade-Delete des fokussierten Meilensteins/Sprints
@@ -730,6 +754,29 @@ func (m model) openSprintStatus(id int, status string) (tea.Model, tea.Cmd) {
 	m.spmenu = listState{}
 	m.spopts = opts
 	m.spmenu.setLen(len(opts))
+	return m, nil
+}
+
+// openIssueStatus öffnet das Issue-Status-Menü für ein beliebiges Issue —
+// view-übergreifend (Review-Cockpit ODER Columns/Detail, DD2-29). sprintID ist
+// der Refresh-Kontext (0 wenn kein Sprint geladen).
+func (m model) openIssueStatus(it *api.Issue, sprintID int) (tea.Model, tea.Cmd) {
+	if it == nil {
+		m.status = "Kein Issue gewählt"
+		return m, nil
+	}
+	opts := allowedManualStatuses(it.Status)
+	if len(opts) == 0 {
+		m.status = noticeText("Keine manuellen Übergänge ab '" + it.Status + "' (passed/rejected via Review)")
+		return m, nil
+	}
+	m.statusPick = true
+	m.stIssueID = it.ID
+	m.stIssueStatus = it.Status
+	m.stSprintID = sprintID
+	m.smenu = listState{}
+	m.sopts = opts
+	m.smenu.setLen(len(opts))
 	return m, nil
 }
 
@@ -958,20 +1005,11 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.resultSprintID = m.curSprint.ID
 		return m.openForm("result")
 	case "s": // Status manuell mutieren — nur lifecycle-gültige Ziele
-		if it == nil {
-			m.status = "Kein Issue gewählt"
-			return m, nil
+		sid := 0
+		if m.curSprint != nil {
+			sid = m.curSprint.ID
 		}
-		opts := allowedManualStatuses(it.Status)
-		if len(opts) == 0 {
-			m.status = noticeText("Keine manuellen Übergänge ab '" + it.Status + "' (passed/rejected via a/x)")
-			return m, nil
-		}
-		m.statusPick = true
-		m.smenu = listState{}
-		m.sopts = opts
-		m.smenu.setLen(len(m.sopts))
-		return m, nil
+		return m.openIssueStatus(it, sid)
 	case "a": // Pass — Backend erlaubt Verdikt unabhängig vom Issue-Status
 		// (autoSetPassedOnReviewPass setzt to_review/rejected→passed). Edit-Lock
 		// (submitted Sprint + entschiedene Runde) kommt als Sapphire-Hinweis zurück.
@@ -1083,13 +1121,12 @@ func (m model) keyStatusPick(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "enter":
 		m.statusPick = false
-		it := m.reviewItem()
-		if it == nil || m.curSprint == nil || m.smenu.cursor >= len(m.sopts) {
+		if m.stIssueID == 0 || m.smenu.cursor < 0 || m.smenu.cursor >= len(m.sopts) {
 			return m, nil
 		}
 		target := m.sopts[m.smenu.cursor]
 		m.status = "Status → " + target + " …"
-		return m, doStatus(m.client, it.ID, target, m.curSprint.ID)
+		return m, doStatus(m.client, m.stIssueID, target, m.stSprintID)
 	}
 	return m, nil
 }
