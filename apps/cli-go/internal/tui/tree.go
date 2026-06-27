@@ -319,12 +319,12 @@ func (m model) treeDetail(n treeNode, w int) string {
 			return theme.Dim.Render("(nichts gewählt)")
 		}
 		ms := m.milestones[n.mileIdx]
-		b.WriteString(theme.Header.Render(ms.Name) + "\n")
-		b.WriteString(theme.Dim.Render("Status: ") + statusText(ms.Status) + "   " +
-			theme.Dim.Render("Fortschritt: ") + fmt.Sprintf("%d/%d", ms.Done, ms.Total) + "\n")
-		if d := deref(ms.TargetDate); d != "" {
-			b.WriteString(theme.Dim.Render("Ziel: ") + d + "\n")
-		}
+		// Meilenstein hat keinen Key → Titel ohne Key; Meta-Strip Fortschritt/Ziel.
+		b.WriteString(detailTitle("", ms.Name, w) + "\n")
+		b.WriteString(metaStrip([]metaPair{
+			{fmt.Sprintf("%d/%d", ms.Done, ms.Total), "Fortschritt"},
+			{deref(ms.TargetDate), "Ziel"},
+		}, statusText(ms.Status), w) + "\n")
 		if d := deref(ms.Description); d != "" {
 			b.WriteString("\n" + d + "\n")
 		}
@@ -334,10 +334,13 @@ func (m model) treeDetail(n treeNode, w int) string {
 			n.sprIdx < 0 || n.sprIdx >= len(m.milestones[n.mileIdx].Sprints) {
 			return theme.Dim.Render("(nichts gewählt)")
 		}
-		sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
-		b.WriteString(theme.Header.Render(sp.Key+" — "+sp.Name) + "\n")
-		b.WriteString(theme.Dim.Render("Status: ") + statusText(sp.Status) + "   " +
-			theme.Dim.Render("Fortschritt: ") + fmt.Sprintf("%d/%d", sp.DoneCount, sp.ItemCount) + "\n")
+		ms := m.milestones[n.mileIdx]
+		sp := ms.Sprints[n.sprIdx]
+		b.WriteString(detailTitle(sp.Key, sp.Name, w) + "\n")
+		b.WriteString(metaStrip([]metaPair{
+			{sprintMilestoneName(&sp, &ms), "Meilenstein"},
+			{fmt.Sprintf("%d/%d", sp.DoneCount, sp.ItemCount), "Fortschritt"},
+		}, statusText(sp.Status), w) + "\n")
 		if g := deref(sp.Goal); g != "" {
 			b.WriteString("\n" + theme.Accent.Render("Goal:") + "\n" + g + "\n")
 		}
@@ -346,9 +349,22 @@ func (m model) treeDetail(n treeNode, w int) string {
 			return theme.Dim.Render("(nichts gewählt)")
 		}
 		it := *n.issue
-		b.WriteString(theme.Header.Render(it.Title) + "\n")
-		b.WriteString(theme.TypeIcon(it.Type) + " " + theme.TypeStyle(it.Type).Render(it.Type) +
-			" · " + theme.Priority(it.Priority) + " · " + statusText(it.Status) + "\n")
+		b.WriteString(detailTitle(it.Key, it.Title, w) + "\n")
+		// Meta-Strip wie Wireframe: milestone/prio/type/tags + Status rechtsbündig (D01).
+		var tags string
+		if len(it.Tags) > 0 {
+			names := make([]string, len(it.Tags))
+			for i, t := range it.Tags {
+				names[i] = t.Name
+			}
+			tags = strings.Join(names, ",")
+		}
+		b.WriteString(metaStrip([]metaPair{
+			{deref(it.Milestone), "milestone"},
+			{theme.Priority(it.Priority), "prio"},
+			{theme.TypeIcon(it.Type) + " " + theme.TypeStyle(it.Type).Render(it.Type), "type"},
+			{tags, "tags"},
+		}, statusText(it.Status), w) + "\n")
 		field := func(label, val string) {
 			if strings.TrimSpace(val) != "" {
 				b.WriteString("\n" + theme.Accent.Render(label+":") + "\n" + val + "\n")

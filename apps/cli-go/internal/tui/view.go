@@ -336,6 +336,57 @@ func metaGrid(slots []hslot, width int) string {
 	return lipgloss.NewStyle().Width(width).Render(strings.Join(cells, "   "))
 }
 
+// metaPair ist ein Meta-Strip-Paar (DD2-63): value = echte Info (volle Farbe),
+// sub = beschreibendes Sub-Label (muted/Hint). Zwei-Klassen-Text-Regel D01.
+type metaPair struct{ value, sub string }
+
+// detailTitle baut die Detail-Kopfzeile (Wireframe „> Key Title"): Chevron Peach,
+// Key Sapphire (optional, z.B. Meilenstein hat keinen), Titel Mauve bold. ANSI-
+// sicher auf w truncatet (kein Auto-Wrap, Golden Rule #2).
+func detailTitle(key, title string, w int) string {
+	s := theme.Chevron.Render("> ")
+	if key != "" {
+		s += theme.Key.Render(key) + " "
+	}
+	s += theme.Header.Render(title)
+	return truncate(s, w)
+}
+
+// metaStrip rendert die Meta-Paare horizontal (value + muted Sub-Label, mit
+// mutedem Mittelpunkt getrennt) und setzt status rechtsbündig auf w Spalten
+// (Wireframe Detail-Header, DD2-63). Leere Werte fallen raus. Bei Engpass wird
+// links gekürzt, der (gefärbte) Status bleibt erhalten — gleiche Logik wie
+// breadcrumb()/statusBar(), damit der Strip nie überläuft.
+func metaStrip(pairs []metaPair, status string, w int) string {
+	cells := make([]string, 0, len(pairs))
+	for _, p := range pairs {
+		if strings.TrimSpace(ansi.Strip(p.value)) == "" {
+			continue
+		}
+		cell := p.value
+		if p.sub != "" {
+			cell += " " + theme.Muted.Render(p.sub)
+		}
+		cells = append(cells, cell)
+	}
+	left := strings.Join(cells, theme.Muted.Render("  ·  "))
+	if status == "" {
+		return truncate(left, w)
+	}
+	if lipgloss.Width(left)+lipgloss.Width(status)+1 > w {
+		max := w - lipgloss.Width(status) - 1
+		if max < 0 {
+			return truncate(status, w)
+		}
+		left = truncate(left, max)
+	}
+	gap := w - lipgloss.Width(left) - lipgloss.Width(status)
+	if gap < 1 {
+		gap = 1
+	}
+	return left + strings.Repeat(" ", gap) + status
+}
+
 // chrome ist die gemeinsame Screen-Passage (DD2-48): globaler Header (Projekt+Nav),
 // Titel mit Präfix, optionales Info-Grid, höhenfüllender Scroll-Body, Footer.
 func (m model) chrome(title string, slots []hslot, body, hint string) string {
