@@ -170,8 +170,9 @@ func (m model) yankMemories() (tea.Model, tea.Cmd) {
 		b.WriteString(fmt.Sprintf("- [%d] (%s) %s\n", mm.ID, mm.Category, mm.Summary))
 	}
 	if err := clip.Copy(b.String()); err != nil {
-		m.status = "Clipboard-Fehler: " + err.Error()
+		m.errNote = "Clipboard-Fehler: " + err.Error()
 	} else {
+		m.errNote = ""
 		m.status = noticeText(fmt.Sprintf("%d Memories kopiert (mit show-Hinweis für Agenten)", len(m.memList)))
 	}
 	return m, nil

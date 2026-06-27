@@ -146,13 +146,56 @@ func (m model) viewReviewsList() string {
 
 // --- Header / Footer ---
 
-func (m model) header() string {
-	name := "—"
-	if m.project != nil {
-		name = fmt.Sprintf("%s (%s)", m.project.Slug, m.project.Prefix)
+// globalKeys = auf JEDEM Screen identische Shortcuts (Wireframe-Zone „Globale
+// Shortcuts", rechts im Header). Muted (D01: Hinweis, nicht echte Info).
+func globalKeys() string {
+	return theme.Muted.Render("ctrl+k:Cmd  p:Projekt  b:Backlog  R:Reviews  q:Quit")
+}
+
+// breadcrumb = Header-Zone 1 (Wireframe): links `> slug: Title` (Chevron+slug
+// Peach, Title Mauve bold), rechts globale Shortcuts. title="" → nur `> slug`.
+func (m model) breadcrumb(title string) string {
+	slug := "dd"
+	if m.project != nil && m.project.Slug != "" {
+		slug = m.project.Slug
 	}
-	left := theme.Header.Render("dd · " + name)
-	right := theme.Dim.Render("ctrl+k:Cmd  [p]rojekt  [b]acklog  [f]ilter  [y]ank  [q]uit")
+	left := theme.Chevron.Render("> " + slug)
+	if title != "" {
+		left += theme.Chevron.Render(":") + " " + theme.Header.Render(title)
+	}
+	right := globalKeys()
+	w := m.termWidth()
+	gap := w - lipgloss.Width(left) - lipgloss.Width(right)
+	if gap < 1 {
+		gap = 1
+	}
+	return left + strings.Repeat(" ", gap) + right
+}
+
+// header = breadcrumb ohne Screen-Titel (Standalone-Aufrufer: Columns/Tree/Memory
+// setzen ihren Titel selbst). chrome() nutzt breadcrumb(title) direkt.
+func (m model) header() string {
+	return m.breadcrumb("")
+}
+
+// statusBar = Footer-Zone 4 (Wireframe): links Meldungen/Hinweise (Blue), rechts
+// Scroll-Indikator (Accent) + kritische Fehler (Red). Leer → leere Zeile.
+func (m model) statusBar(ind string) string {
+	left := m.status
+	if left != "" && ansi.Strip(left) == left { // nur ungefärbte Meldungen einfärben
+		left = lipgloss.NewStyle().Foreground(theme.Blue).Render(left)
+	}
+	var rparts []string
+	if ind != "" {
+		rparts = append(rparts, theme.Accent.Render(ind))
+	}
+	if m.errNote != "" {
+		rparts = append(rparts, lipgloss.NewStyle().Foreground(theme.Red).Render(m.errNote))
+	}
+	right := strings.Join(rparts, "  ")
+	if left == "" && right == "" {
+		return ""
+	}
 	w := m.termWidth()
 	gap := w - lipgloss.Width(left) - lipgloss.Width(right)
 	if gap < 1 {
@@ -275,28 +318,19 @@ func metaGrid(slots []hslot, width int) string {
 // chrome ist die gemeinsame Screen-Passage (DD2-48): globaler Header (Projekt+Nav),
 // Titel mit Präfix, optionales Info-Grid, höhenfüllender Scroll-Body, Footer.
 func (m model) chrome(title string, slots []hslot, body, hint string) string {
-	head := m.header()
-	if title != "" {
-		head += "\n" + theme.Header.Render(m.screenTitle(title))
-	}
+	head := m.breadcrumb(title) // Zone 1: `> slug: Title` + globale Shortcuts
 	if g := metaGrid(slots, m.termWidth()); g != "" {
 		head += "\n" + g
 	}
-	foot := hint
-	if m.status != "" {
-		foot = m.status
-	}
 	wrapped := lipgloss.NewStyle().Width(m.termWidth()).Padding(0, 1).Render(body)
-	avail := m.height - lipgloss.Height(head) - 1
+	avail := m.height - lipgloss.Height(head) - 2 // 2 Footer-Zeilen (Shortcuts + Status)
 	if avail < 4 {
 		avail = m.bodyHeight() // Höhe unbekannt (Init/Tests) → großzügiger Fallback
 	}
 	win, ind := scrollView(wrapped, avail, m.scroll)
-	footLine := theme.Dim.Render(foot)
-	if ind != "" {
-		footLine = theme.Accent.Render(ind) + "  " + theme.Dim.Render(foot)
-	}
-	return head + "\n" + win + "\n" + footLine
+	localKeys := theme.Muted.Render(hint) // Zone 3: lokale (view-spezifische) Shortcuts
+	status := m.statusBar(ind)            // Zone 4: Split-Status (Info blau | Fehler rot)
+	return head + "\n" + win + "\n" + localKeys + "\n" + status
 }
 
 // framed = chrome ohne Info-Grid (Backlog/Reviews/Picker).

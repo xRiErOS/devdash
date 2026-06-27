@@ -46,6 +46,11 @@ var (
 	Key    = lipgloss.NewStyle().Foreground(Sapphire) // IDs/Keys = Sapphire (D-Mapping Wireframe)
 	Accent = lipgloss.NewStyle().Foreground(Mauve)
 	Dim    = lipgloss.NewStyle().Foreground(Overlay)
+	// Muted = Hinweis/Erklärung (D01): Shortcuts, Sub-Label, Placeholder.
+	// Bewusst Hint #7c7c7c, nicht Overlay (= Feld-Border).
+	Muted = lipgloss.NewStyle().Foreground(Hint)
+	// Chevron = struktureller Marker `>`/`o` (D03), Peach.
+	Chevron = lipgloss.NewStyle().Foreground(Peach)
 )
 
 var statusColor = map[string]lipgloss.Color{

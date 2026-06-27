@@ -50,8 +50,9 @@ type model struct {
 	view          viewID
 	width, height int
 	err           error
-	status        string
-	scroll        int // Scroll-Offset für statische Detail-Views (DD2-25/30 Chrome)
+	status        string // Info/Meldungen (Footer-Zone 4 links, Blue)
+	errNote       string // transienter, nicht-fataler Fehler (Footer-Zone 4 rechts, Red) — DD2-60
+	scroll        int    // Scroll-Offset für statische Detail-Views (DD2-25/30 Chrome)
 
 	// Picker
 	projects []api.Project
@@ -1017,8 +1018,9 @@ func (m model) yankContext() (tea.Model, tea.Cmd) {
 	case 0:
 		if ms := m.selMilestone(); ms != nil {
 			if err := clip.Copy(milestoneClip(ms)); err != nil {
-				m.status = "Clipboard-Fehler: " + err.Error()
+				m.errNote = "Clipboard-Fehler: " + err.Error()
 			} else {
+				m.errNote = ""
 				m.status = "Meilenstein-Kontext kopiert (" + ms.Name + ")"
 			}
 		}
@@ -1029,8 +1031,9 @@ func (m model) yankContext() (tea.Model, tea.Cmd) {
 				src = m.curSprint
 			}
 			if err := clip.Copy(sprintClip(src)); err != nil {
-				m.status = "Clipboard-Fehler: " + err.Error()
+				m.errNote = "Clipboard-Fehler: " + err.Error()
 			} else {
+				m.errNote = ""
 				m.status = "Sprint-Kontext kopiert (" + s.Key + ")"
 			}
 		}

@@ -1,5 +1,4 @@
-dd · devd2 (DD2)                ctrl+k:Cmd  [p]rojekt  [b]acklog  [f]ilter  [y]ank  [q]uit
-dd2 — Issue DD2-99
+> devd2: Issue DD2-99                  ctrl+k:Cmd  p:Projekt  b:Backlog  R:Reviews  q:Quit
 Status: to_review   Typ: ◆ bug   Prio: P1                                                 
  Beispiel-Issue für den Snapshot                                                          
                                                                                           

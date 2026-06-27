@@ -75,6 +75,27 @@ func TestFormModalNeverOverflows(t *testing.T) {
 	}
 }
 
+// DD2-60: Breadcrumb-Header (`> slug: Title`) + globale Shortcuts; Split-Status
+// zeigt Meldung (links) und kritischen Fehler (rechts) gleichzeitig.
+func TestChromeBreadcrumbAndSplitStatus(t *testing.T) {
+	m := model{width: 90, height: 14, status: "Kontext kopiert", errNote: "Clipboard-Fehler: x"}
+	out := m.framed("Titel", "body", "esc: zurück")
+	for _, want := range []string{
+		"> dd: Titel",    // Breadcrumb mit Titel (Projekt nil → slug "dd")
+		"p:Projekt",      // globale Shortcuts rechts
+		"esc: zurück",    // lokale Shortcuts (Zone 3)
+		"Kontext kopiert", // Status-Meldung (Zone 4 links)
+		"Clipboard-Fehler: x", // kritischer Fehler (Zone 4 rechts)
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("Chrome-Ausgabe enthält %q nicht", want)
+		}
+	}
+	if h := lipgloss.Height(out); h != 14 {
+		t.Errorf("Chrome-Höhe=%d, want 14 (volle Terminalhöhe trotz 2 Footer-Zeilen)", h)
+	}
+}
+
 // DD2-29: Columns-Footer benennt die Status-Taste depth-abhängig.
 func TestColumnsFooterDepthAware(t *testing.T) {
 	m := reproColumnsModel(viewColumns, 2)
