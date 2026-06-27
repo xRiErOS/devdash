@@ -165,11 +165,24 @@ func (m model) breadcrumb(title string) string {
 	}
 	right := globalKeys()
 	w := m.termWidth()
+	if lipgloss.Width(left)+lipgloss.Width(right)+1 > w { // schmal: stapeln statt überlaufen
+		return ansi.Truncate(left, w, "…") + "\n" + ansi.Truncate(right, w, "…")
+	}
 	gap := w - lipgloss.Width(left) - lipgloss.Width(right)
 	if gap < 1 {
 		gap = 1
 	}
 	return left + strings.Repeat(" ", gap) + right
+}
+
+// wrapText bricht s ANSI-sicher auf w Zellen um: zuerst an Wortgrenzen
+// (Wordwrap), dann harte Umbrüche für überlange Tokens (URLs/Pfade), die sonst
+// überlaufen (DD2-60 Review-Befund). Erhält bestehende Zeilenumbrüche.
+func wrapText(s string, w int) string {
+	if w < 1 {
+		w = 1
+	}
+	return ansi.Hardwrap(ansi.Wordwrap(s, w, ""), w, true)
 }
 
 // header = breadcrumb ohne Screen-Titel (Standalone-Aufrufer: Columns/Tree/Memory
@@ -197,6 +210,15 @@ func (m model) statusBar(ind string) string {
 		return ""
 	}
 	w := m.termWidth()
+	// Schmal: Fehler/Indikator (rechts) haben Vorrang, Meldung (links) wird gekürzt —
+	// Footer bleibt 1 Zeile (chrome rechnet mit fixer Status-Höhe).
+	if lipgloss.Width(left)+lipgloss.Width(right)+1 > w {
+		max := w - lipgloss.Width(right) - 1
+		if max < 0 {
+			return ansi.Truncate(right, w, "…")
+		}
+		left = ansi.Truncate(left, max, "…")
+	}
 	gap := w - lipgloss.Width(left) - lipgloss.Width(right)
 	if gap < 1 {
 		gap = 1
@@ -322,14 +344,17 @@ func (m model) chrome(title string, slots []hslot, body, hint string) string {
 	if g := metaGrid(slots, m.termWidth()); g != "" {
 		head += "\n" + g
 	}
-	wrapped := lipgloss.NewStyle().Width(m.termWidth()).Padding(0, 1).Render(body)
-	avail := m.height - lipgloss.Height(head) - 2 // 2 Footer-Zeilen (Shortcuts + Status)
+	// Body auf Innenbreite umbrechen (inkl. langer Tokens) + 1 Spalte Rand links/rechts.
+	wrapped := lipgloss.NewStyle().Padding(0, 1).Render(wrapText(body, m.termWidth()-2))
+	// Zone 3: lokale Shortcuts — auf schmalen Screens umbrechen statt überlaufen.
+	localKeys := theme.Muted.Render(wrapText(hint, m.termWidth()))
+	footH := lipgloss.Height(localKeys) + 1 // + 1 Status-Zeile
+	avail := m.height - lipgloss.Height(head) - footH
 	if avail < 4 {
 		avail = m.bodyHeight() // Höhe unbekannt (Init/Tests) → großzügiger Fallback
 	}
 	win, ind := scrollView(wrapped, avail, m.scroll)
-	localKeys := theme.Muted.Render(hint) // Zone 3: lokale (view-spezifische) Shortcuts
-	status := m.statusBar(ind)            // Zone 4: Split-Status (Info blau | Fehler rot)
+	status := m.statusBar(ind) // Zone 4: Split-Status (Info blau | Fehler rot), 1 Zeile
 	return head + "\n" + win + "\n" + localKeys + "\n" + status
 }
 

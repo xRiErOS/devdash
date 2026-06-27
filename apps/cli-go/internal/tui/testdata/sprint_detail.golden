@@ -1,14 +1,14 @@
 > devd2: Sprint DD2#9                  ctrl+k:Cmd  p:Projekt  b:Backlog  R:Reviews  q:Quit
 Status: review   Meilenstein: Meilenstein Eins   Fortschritt: 0/0                         
- Sprint Neun                                                                              
-                                                                                          
- Issues (1):                                                                              
-   Typ  Kennung   Titel                                  Status       Review-Verdikt      
- Ergebnisse                                                                               
-   ◆ P1 DD2-99    Beispiel-Issue für den Snapshot        to_review    · kein Verdikt   ●  
-                                                                                          
- Review-Runden: ✓ 0 passed  ✗ 0 not_passed  · 1 offen                                     
-                                                                                          
+ Sprint Neun                                                                             
+                                                                                         
+ Issues (1):                                                                             
+   Typ  Kennung   Titel                                  Status       Review-Verdikt     
+ Ergebnisse                                                                              
+   ◆ P1 DD2-99    Beispiel-Issue für den Snapshot        to_review    · kein Verdikt   ● 
+                                                                                         
+ Review-Runden: ✓ 0 passed  ✗ 0 not_passed  · 1 offen                                    
+                                                                                         
 
 
 

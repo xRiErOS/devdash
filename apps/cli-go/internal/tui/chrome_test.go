@@ -96,6 +96,25 @@ func TestChromeBreadcrumbAndSplitStatus(t *testing.T) {
 	}
 }
 
+// DD2-60 Review-Fix: keine Zeile überläuft die Terminalbreite — Body (inkl.
+// langer Tokens), lokale Shortcuts und Breadcrumb brechen um/kürzen; Höhe stabil.
+func TestChromeNeverOverflowsWidth(t *testing.T) {
+	body := "Goal:\n" + strings.Repeat("x", 200) + "\nSatz mit vielen Wörtern zum Umbrechen hier."
+	hint := strings.Repeat("k:Aktion  ", 20)
+	for _, w := range []int{30, 40, 80} {
+		m := model{width: w, height: 24}
+		out := m.framed("Ein langer Screen-Titel", body, hint)
+		for i, ln := range strings.Split(out, "\n") {
+			if lw := lipgloss.Width(ln); lw > w {
+				t.Errorf("w=%d: Zeile %d überläuft (%d > %d)", w, i, lw, w)
+			}
+		}
+		if h := lipgloss.Height(out); h != 24 {
+			t.Errorf("w=%d: Höhe=%d, want 24", w, h)
+		}
+	}
+}
+
 // DD2-29: Columns-Footer benennt die Status-Taste depth-abhängig.
 func TestColumnsFooterDepthAware(t *testing.T) {
 	m := reproColumnsModel(viewColumns, 2)
