@@ -48,8 +48,9 @@ type Issue struct {
 	RelevantFiles  *string `json:"relevant_files"`
 	Result         *string `json:"result"`
 	CreatedAt      *string `json:"created_at"`
-	RefinedAt      *string `json:"refined_at"`
-	Tags           []Tag   `json:"tags,omitempty"`
+	RefinedAt      *string     `json:"refined_at"`
+	Tags           []Tag       `json:"tags,omitempty"`
+	UserStories    []UserStory `json:"user_stories,omitempty"`
 }
 
 type Tag struct {

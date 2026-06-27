@@ -380,8 +380,8 @@ func (m model) viewSprint() string {
 	if g := deref(s.Goal); g != "" {
 		b.WriteString("\n" + theme.Accent.Render("Goal:") + "\n" + g + "\n")
 	}
-	if s.MilestoneName != nil && *s.MilestoneName != "" {
-		b.WriteString(theme.Dim.Render("Meilenstein: "+*s.MilestoneName) + "\n")
+	if msn := sprintMilestoneName(s, m.selMilestone()); msn != "" {
+		b.WriteString(theme.Dim.Render("Meilenstein: "+msn) + "\n")
 	}
 	b.WriteString(theme.Dim.Render(fmt.Sprintf("Fortschritt: %d/%d", s.DoneCount, s.ItemCount)) + "\n")
 
@@ -449,6 +449,17 @@ func (m model) viewDetail() string {
 	field("Result", deref(it.Result))
 	if rs := deref(it.ReviewStatus); rs != "" {
 		field("Review", rs+"  "+deref(it.ReviewComment))
+	}
+
+	// DD2-30: User-Stories (Prüfgrundlage) inkl. Verdikt + QA im Detail anzeigen.
+	if len(it.UserStories) > 0 {
+		b.WriteString("\n" + theme.Accent.Render(fmt.Sprintf("User-Stories (%d):", len(it.UserStories))) + "\n")
+		for _, us := range it.UserStories {
+			b.WriteString("  " + usVerdictBox(us.Verdict) + " " + us.Title + "\n")
+			if qa := deref(us.QA); qa != "" {
+				b.WriteString(theme.Dim.Render("      QA: "+qa) + "\n")
+			}
+		}
 	}
 
 	stamp := []string{}
@@ -800,6 +811,19 @@ func (m model) ctxTitle(base string, ok bool, ctx string) string {
 		return base + " · " + ctx
 	}
 	return base
+}
+
+// sprintMilestoneName liefert den Meilenstein-Namen eines Sprints — bevorzugt das
+// vom Endpoint gelieferte milestone_name, fällt sonst auf den im Kontext gewählten
+// Eltern-Meilenstein zurück (GetSprint joint den Namen nicht mit, DD2-23).
+func sprintMilestoneName(s *api.Sprint, parent *api.Milestone) string {
+	if s != nil && s.MilestoneName != nil && *s.MilestoneName != "" {
+		return *s.MilestoneName
+	}
+	if parent != nil {
+		return parent.Name
+	}
+	return ""
 }
 
 func msName(ms *api.Milestone) string {
