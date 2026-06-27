@@ -472,11 +472,12 @@ func (m model) viewSprint() string {
 	b.WriteString(theme.Dim.Render(fmt.Sprintf("Fortschritt: %d/%d", s.DoneCount, s.ItemCount)) + "\n")
 
 	b.WriteString("\n" + theme.Dim.Render(fmt.Sprintf("Issues (%d):", len(items))) + "\n")
-	b.WriteString(issueColHeader(40) + "\n")
+	b.WriteString("  " + issueColHeader() + "\n")
 	for _, it := range items {
-		b.WriteString(fmt.Sprintf("  %s %s %-9s %-40s %-12s %-16s %s\n",
-			theme.TypeIcon(it.Type), theme.Priority(it.Priority), it.Key,
-			truncate(it.Title, 40), statusText(it.Status), reviewBadge(it), resultDot(it)))
+		typePrio := theme.TypeIcon(it.Type) + " " + theme.Priority(it.Priority)
+		b.WriteString("  " + cockpitRow(
+			typePrio, it.Key, truncate(it.Title, colTitle),
+			statusText(it.Status), reviewBadge(it), resultDot(it)) + "\n")
 	}
 	if len(items) > 0 {
 		old := m.curSprint
@@ -595,15 +596,19 @@ func (m model) viewReview() string {
 		b.WriteString(theme.Dim.Render("(lädt …)") + "\n")
 		return "\n" + boxed(b.String(), m.termWidth(), theme.Mauve)
 	}
-	b.WriteString(issueColHeader(38) + "\n")
+	b.WriteString("  " + issueColHeader() + "\n")
 	for i, it := range m.curSprint.Items {
 		cursor := "  "
 		if i == m.rlist.cursor {
 			cursor = theme.Accent.Render("▸ ")
 		}
-		b.WriteString(cursor + fmt.Sprintf("%s %s %-9s %-38s %-12s %-16s %s",
-			theme.TypeIcon(it.Type), theme.Priority(it.Priority), it.Key,
-			truncate(it.Title, 38), statusText(it.Status), reviewBadge(it), resultDot(it)) + "\n")
+		// DD2-B06: gefärbte Zellen ANSI-bewusst padden (col), sonst zählt fmt
+		// die ANSI-Bytes als Breite → rechte Spalten kollabieren, der Ergebnis-Dot
+		// landet nicht unter seiner Überschrift. Header + Zeile teilen cockpitCols.
+		typePrio := theme.TypeIcon(it.Type) + " " + theme.Priority(it.Priority)
+		b.WriteString(cursor + cockpitRow(
+			typePrio, it.Key, truncate(it.Title, colTitle),
+			statusText(it.Status), reviewBadge(it), resultDot(it)) + "\n")
 	}
 	// Review-Ergebnisse (Runden-Übersicht) unten.
 	b.WriteString("\n" + m.reviewSummary() + "\n")
@@ -635,12 +640,38 @@ func (m model) viewReview() string {
 	return base
 }
 
-// issueColHeader liefert die Spalten-Überschrift (macht Status vs. Review-Verdikt
-// klar unterscheidbar). titleW = Breite der Titel-Spalte. Letzte Spalte
-// "Ergebnisse" = result-Indikator (I01, Gate für Sprint-Abschluss).
-func issueColHeader(titleW int) string {
-	return theme.Dim.Render(fmt.Sprintf("  %-5s%-10s%-*s %-12s %-16s %s",
-		"Typ", "Kennung", titleW, "Titel", "Status", "Review-Verdikt", "Ergebnisse"))
+// Cockpit-Spaltenbreiten (sichtbare Breite). Header UND Datenzeile bauen aus
+// derselben Quelle (cockpitRow), damit die Spalten deckungsgleich sind — sonst
+// rutscht der Ergebnis-Dot aus seiner Spalte (DD2-B06).
+const (
+	colTypePrio = 4  // TypeIcon + " " + Priority (z.B. "◆ P1")
+	colKey      = 9  // Issue-Kennung
+	colTitle    = 38 // Titel (truncate)
+	colStatus   = 12 // Lifecycle-Status
+	colVerdikt  = 16 // Review-Verdikt
+)
+
+// col padded s auf w SICHTBARE Spalten — ANSI-bewusst via lipgloss.Width, anders
+// als fmt %-Ns (das die ANSI-Bytes als Breite zählt und gefärbte Zellen verkürzt).
+func col(s string, w int) string {
+	if pad := w - lipgloss.Width(s); pad > 0 {
+		return s + strings.Repeat(" ", pad)
+	}
+	return s
+}
+
+// cockpitRow setzt eine Cockpit-Zeile aus den Zellen typprio|key|title|status|
+// verdikt|rest; alle bis auf die letzte werden auf ihre Spaltenbreite gepadded.
+func cockpitRow(typePrio, key, title, status, verdikt, rest string) string {
+	return col(typePrio, colTypePrio) + " " + col(key, colKey) + " " +
+		col(title, colTitle) + " " + col(status, colStatus) + " " +
+		col(verdikt, colVerdikt) + " " + rest
+}
+
+// issueColHeader liefert die Spalten-Überschrift, deckungsgleich mit cockpitRow.
+// Letzte Spalte "Ergebnisse" = result-Indikator (I01, Gate für Sprint-Abschluss).
+func issueColHeader() string {
+	return theme.Dim.Render(cockpitRow("Typ", "Kennung", "Titel", "Status", "Review-Verdikt", "Ergebnisse"))
 }
 
 // resultDot zeigt, ob das result-Feld gepflegt ist (grün) oder fehlt (rot).
