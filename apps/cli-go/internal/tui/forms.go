@@ -61,13 +61,30 @@ func formInnerWidth(termW int) int {
 	return w
 }
 
+// formInnerHeight begrenzt die huh-Formularhöhe auf die Terminalhöhe (DD2-25):
+// auf kurzen Terminals scrollt huh intern statt unten abzuschneiden. Cap 20 ⇒
+// kein aufgeblähtes Modal auf großen Terminals. termH==0 (unbekannt) ⇒ 20.
+func formInnerHeight(termH int) int {
+	if termH <= 0 {
+		return 20
+	}
+	h := termH - 5 // Box-Chrome: Titel + Leerzeile + Rahmen
+	if h > 20 {
+		h = 20
+	}
+	if h < 5 {
+		h = 5
+	}
+	return h
+}
+
 // openForm baut das huh-Formular für kind und initialisiert es. Die Breite folgt
 // der Terminalbreite (DD2-25), damit Formulare auf schmalen Views nicht ausbrechen.
 func (m model) openForm(kind string) (tea.Model, tea.Cmd) {
 	m.formKind = kind
 	f := buildForm(kind, m.milestones)
 	if f != nil {
-		f = f.WithWidth(formInnerWidth(m.width))
+		f = f.WithWidth(formInnerWidth(m.width)).WithHeight(formInnerHeight(m.height))
 	}
 	m.form = f
 	m.status = ""

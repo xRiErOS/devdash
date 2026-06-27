@@ -50,6 +50,7 @@ type model struct {
 	width, height int
 	err           error
 	status        string
+	scroll        int // Scroll-Offset für statische Detail-Views (DD2-25/30 Chrome)
 
 	// Picker
 	projects []api.Project
@@ -576,6 +577,9 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case viewColumns:
 		return m.keyColumns(k)
 	case viewDetail:
+		if m.keyScroll(k) { // DD2-30: scrollbarer Detail-Body
+			return m, nil
+		}
 		switch k {
 		case "esc":
 			m.view = viewColumns
@@ -590,6 +594,9 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	case viewMilestone:
+		if m.keyScroll(k) {
+			return m, nil
+		}
 		switch k {
 		case "esc":
 			m.view = viewColumns
@@ -604,6 +611,9 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	case viewSprint:
+		if m.keyScroll(k) {
+			return m, nil
+		}
 		switch k {
 		case "esc":
 			m.view = viewColumns
@@ -711,11 +721,14 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 	case "enter":
 		if m.depth == 0 && m.selMilestone() != nil {
 			m.view = viewMilestone
+			m.scroll = 0
 		} else if m.depth == 1 && m.selSprint() != nil {
 			m.view = viewSprint
+			m.scroll = 0
 			return m, m.syncSprint()
 		} else if m.depth == 2 && m.selIssue() != nil {
 			m.view = viewDetail
+			m.scroll = 0
 		}
 	case "f":
 		return m.openFilter()
@@ -1306,6 +1319,32 @@ func (m *model) onFocusMove() tea.Cmd {
 		return m.syncSprint()
 	}
 	return nil
+}
+
+// keyScroll behandelt Scroll-Tasten in den statischen Detail-Views (DD2-25/30):
+// j/k/↑↓ zeilenweise, ctrl+d/u + pgdn/pgup seitenweise, g/G an den Anfang/Ende.
+// ok=true wenn die Taste als Scroll konsumiert wurde. scrollView klemmt das Maximum.
+func (m *model) keyScroll(k string) bool {
+	switch k {
+	case "up", "k":
+		m.scroll--
+	case "down", "j":
+		m.scroll++
+	case "ctrl+d", "pgdown":
+		m.scroll += 10
+	case "ctrl+u", "pgup":
+		m.scroll -= 10
+	case "g", "home":
+		m.scroll = 0
+	case "G", "end":
+		m.scroll = 1 << 20 // wird in scrollView auf max geklemmt
+	default:
+		return false
+	}
+	if m.scroll < 0 {
+		m.scroll = 0
+	}
+	return true
 }
 
 func (m model) keyBacklog(k string) (tea.Model, tea.Cmd) {

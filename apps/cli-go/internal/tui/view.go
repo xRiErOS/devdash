@@ -122,8 +122,7 @@ func (m model) viewBase() string {
 
 func (m model) viewReviewsList() string {
 	var b strings.Builder
-	b.WriteString(theme.Header.Render("Offene Reviews") +
-		theme.Dim.Render("   (Sprints im Status review)") + "\n\n")
+	b.WriteString(theme.Dim.Render("(Sprints im Status review)") + "\n\n")
 	if len(m.reviewSprints) == 0 {
 		b.WriteString(theme.Dim.Render("(keine Sprints im Review — S im Cockpit setzt active→review)") + "\n")
 	}
@@ -140,8 +139,7 @@ func (m model) viewReviewsList() string {
 			s.Key, truncate(s.Name, 30), statusText(s.Status),
 			theme.Dim.Render(fmt.Sprintf("  %d/%d", s.DoneCount, s.ItemCount))) + ms + "\n")
 	}
-	b.WriteString("\n" + theme.Dim.Render("j/k:↑↓  enter:Cockpit  esc/q:zurück") + "\n")
-	return "\n" + boxed(b.String(), m.termWidth(), theme.Mauve)
+	return m.framed("Offene Reviews", b.String(), "j/k:↑↓  enter:Cockpit  esc/q:zurück")
 }
 
 // --- Header / Footer ---
@@ -162,10 +160,21 @@ func (m model) header() string {
 }
 
 func (m model) footer() string {
-	hint := "j/k:↑↓  l/→/tab:rein  h/←:raus  enter:Detail  S:M-Status  s:S-Status  d:löschen  f:Filter  y:Yank  b:Backlog  R:Reviews  q:quit"
 	if m.status != "" {
-		hint = m.status
+		return theme.Dim.Render(m.status)
 	}
+	// DD2-29: Status-Taste depth-abhängig benennen — s wirkt je Ebene auf Sprint
+	// (depth 1) bzw. Issue (depth 2), S auf den Meilenstein (depth 0).
+	var act string
+	switch m.depth {
+	case 0:
+		act = "S:Meilenstein-Status  d:löschen"
+	case 1:
+		act = "s:Sprint-Status  d:löschen"
+	default:
+		act = "s:Issue-Status"
+	}
+	hint := "j/k:↑↓  l/→:rein  h/←:raus  enter:Detail  " + act + "  f:Filter  y:Yank  b:Backlog  R:Reviews  q:quit"
 	return theme.Dim.Render(hint)
 }
 
@@ -184,11 +193,78 @@ func (m model) bodyHeight() int {
 	return h
 }
 
+// scrollView fenstert content auf height Zeilen ab offset (geklemmt) und füllt mit
+// Leerzeilen auf height auf, damit der Footer unten klebt. Liefert zusätzlich einen
+// Scroll-Indikator (leer, wenn alles passt). DD2-25/30 Chrome.
+func scrollView(content string, height, offset int) (string, string) {
+	if height < 1 {
+		height = 1
+	}
+	lines := strings.Split(content, "\n")
+	total := len(lines)
+	maxOff := total - height
+	if maxOff < 0 {
+		maxOff = 0
+	}
+	if offset > maxOff {
+		offset = maxOff
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	end := offset + height
+	if end > total {
+		end = total
+	}
+	win := append([]string{}, lines[offset:end]...)
+	for len(win) < height {
+		win = append(win, "")
+	}
+	ind := ""
+	if total > height {
+		ind = fmt.Sprintf("Z %d–%d/%d", offset+1, end, total)
+		switch {
+		case offset == 0:
+			ind += " ↓"
+		case end >= total:
+			ind = "↑ " + ind
+		default:
+			ind = "↑ " + ind + " ↓"
+		}
+	}
+	return strings.Join(win, "\n"), ind
+}
+
+// framed umrahmt einen Screen mit globalem Header, höhenfüllendem Scroll-Body und
+// globalem Footer (DD2-25 „100% Höhe, globaler Header/Footer"). crumb = Screen-Titel,
+// hint = Screen-Tasten (von m.status überschrieben). Lange Zeilen werden auf die
+// Terminalbreite umgebrochen (sauberes Scroll-Zeilenzählen).
+func (m model) framed(crumb, body, hint string) string {
+	head := m.header()
+	if crumb != "" {
+		head += "\n" + theme.Header.Render(crumb)
+	}
+	foot := hint
+	if m.status != "" {
+		foot = m.status
+	}
+	wrapped := lipgloss.NewStyle().Width(m.termWidth()).Padding(0, 1).Render(body)
+	avail := m.height - lipgloss.Height(head) - 1
+	if avail < 4 {
+		avail = m.bodyHeight() // Höhe unbekannt (Init/Tests) → großzügiger Fallback
+	}
+	win, ind := scrollView(wrapped, avail, m.scroll)
+	footLine := theme.Dim.Render(foot)
+	if ind != "" {
+		footLine = theme.Accent.Render(ind) + "  " + theme.Dim.Render(foot)
+	}
+	return head + "\n" + win + "\n" + footLine
+}
+
 // --- Picker ---
 
 func (m model) viewPicker() string {
 	var b strings.Builder
-	b.WriteString(theme.Header.Render("Projekt wählen") + "\n\n")
 	for i, p := range m.projects {
 		cursor := "  "
 		line := fmt.Sprintf("%-10s %-26s %d Sprints · %d Backlog", p.Prefix, p.Name, p.SprintCount, p.BacklogCount)
@@ -198,8 +274,7 @@ func (m model) viewPicker() string {
 		}
 		b.WriteString(cursor + line + "\n")
 	}
-	b.WriteString("\n" + theme.Dim.Render("j/k:↑↓  enter:wählen  q:quit"))
-	return "\n" + boxed(b.String(), m.termWidth(), theme.Mauve)
+	return m.framed("Projekt wählen", b.String(), "j/k:↑↓  enter:wählen  q:quit")
 }
 
 // --- Miller-Columns ---
@@ -349,7 +424,6 @@ func (m model) viewMilestone() string {
 		return "\n  (kein Meilenstein)\n"
 	}
 	var b strings.Builder
-	b.WriteString(theme.Header.Render("Meilenstein") + "\n\n")
 	b.WriteString(theme.Header.Render(ms.Name) + "\n")
 	meta := fmt.Sprintf("Status: %s   Fortschritt: %d/%d", statusText(ms.Status), ms.Done, ms.Total)
 	if d := deref(ms.TargetDate); d != "" {
@@ -370,8 +444,8 @@ func (m model) viewMilestone() string {
 		}
 		b.WriteString(fmt.Sprintf("  %-8s %s  %s%s\n", s.Key, statusText(s.Status), truncate(s.Name, 30), goal))
 	}
-	b.WriteString("\n" + theme.Dim.Render("S: Status   a: Sprints zuweisen   y: kopieren   esc/q: zurück") + "\n")
-	return boxed(b.String(), m.termWidth(), theme.Mauve)
+	return m.framed("Meilenstein", b.String(),
+		"S: Status   a: Sprints zuweisen   y: kopieren   j/k: scrollen   esc/q: zurück")
 }
 
 // --- Sprint-Detail ---
@@ -387,7 +461,7 @@ func (m model) viewSprint() string {
 		items = m.curSprint.Items
 	}
 	var b strings.Builder
-	b.WriteString(theme.Header.Render("Sprint "+s.Key) + "  " + statusText(s.Status) + "\n")
+	b.WriteString(statusText(s.Status) + "\n")
 	b.WriteString(theme.Header.Render(s.Name) + "\n")
 	if g := deref(s.Goal); g != "" {
 		b.WriteString("\n" + theme.Accent.Render("Goal:") + "\n" + g + "\n")
@@ -410,8 +484,8 @@ func (m model) viewSprint() string {
 		b.WriteString("\n" + m.reviewSummary() + "\n")
 		m.curSprint = old
 	}
-	b.WriteString("\n" + theme.Dim.Render("R: Review-Cockpit   m: Meilenstein   y: Issues kopieren   esc/q: zurück"))
-	return "\n" + boxed(b.String(), m.termWidth(), theme.Mauve)
+	return m.framed("Sprint "+s.Key, b.String(),
+		"R: Review-Cockpit   m: Meilenstein   y: kopieren   j/k: scrollen   esc/q: zurück")
 }
 
 // --- Issue-Detail (#5 Rahmen, #6 alle Felder, #9 Titel) ---
@@ -422,7 +496,6 @@ func (m model) viewDetail() string {
 		return "\n  (kein Issue)\n"
 	}
 	var b strings.Builder
-	b.WriteString(theme.Header.Render("Issue Details") + "\n\n")
 	b.WriteString(theme.StatusStyle(it.Status).Render(it.Status) + "  " +
 		theme.Key.Render(it.Key) + "  " + theme.TypeIcon(it.Type) + " " +
 		theme.TypeStyle(it.Type).Render(it.Type) + "  " + theme.Priority(it.Priority) + "\n")
@@ -484,15 +557,15 @@ func (m model) viewDetail() string {
 	if len(stamp) > 0 {
 		b.WriteString("\n" + theme.Dim.Render(strings.Join(stamp, " · ")) + "\n")
 	}
-	b.WriteString("\n" + theme.Dim.Render("esc/q: zurück") + "\n")
-	return boxed(b.String(), m.termWidth(), theme.Mauve)
+	return m.framed("Issue "+it.Key, b.String(),
+		"s: Status   j/k: scrollen   g/G: Anfang/Ende   esc/q: zurück")
 }
 
 // --- Backlog (#2 Rahmen) ---
 
 func (m model) viewBacklog() string {
 	var b strings.Builder
-	b.WriteString(theme.Header.Render("Backlog") + theme.Dim.Render("   (neu + geplant ohne Sprint)") + "\n\n")
+	b.WriteString(theme.Dim.Render("(neu + geplant ohne Sprint)") + "\n\n")
 	if len(m.backlog) == 0 {
 		b.WriteString(theme.Dim.Render("(leer)") + "\n")
 	}
@@ -505,8 +578,7 @@ func (m model) viewBacklog() string {
 			theme.TypeIcon(it.Type), theme.Priority(it.Priority), it.Key,
 			truncate(it.Title, 46), statusText(it.Status)) + "\n")
 	}
-	b.WriteString("\n" + theme.Dim.Render("j/k:↑↓  b/esc:zurück  q:quit") + "\n")
-	return boxed(b.String(), m.termWidth(), theme.Mauve)
+	return m.framed("Backlog", b.String(), "j/k:↑↓  b/esc:zurück  q:quit")
 }
 
 // --- Review-Cockpit ---

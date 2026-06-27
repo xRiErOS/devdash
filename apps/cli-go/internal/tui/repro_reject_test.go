@@ -16,7 +16,7 @@ func reproColumnsModel(view viewID, depth int) model {
 	iss := api.Issue{ID: 5, Key: "DD2-99", Title: "Repro", Status: "to_review", Type: "bug", Priority: 2}
 	sp := api.Sprint{ID: 3, Key: "DD2#9", Name: "Sprint", Status: "review", Items: []api.Issue{iss}}
 	ms := api.Milestone{ID: 1, Name: "Meilenstein-Eins", Status: "active", Sprints: []api.Sprint{sp}}
-	m := model{view: view, depth: depth}
+	m := model{view: view, depth: depth, width: 120, height: 40}
 	m.milestones = []api.Milestone{ms}
 	m.mlist.setLen(1)
 	m.slist.setLen(1)

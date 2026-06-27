@@ -1,0 +1,75 @@
+package tui
+
+// Chrome-Refactor (DD2-25/30): globaler Header/Footer, 100% Höhe, scrollbarer Body.
+
+import (
+	"strings"
+	"testing"
+
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+)
+
+// framed füllt exakt die Terminalhöhe, hält den Footer und zeigt bei Overflow
+// einen Scroll-Indikator — kein Abschneiden des Footers mehr (DD2-25).
+func TestFramedFillsHeightKeepsFooter(t *testing.T) {
+	long := strings.Repeat("Inhaltszeile\n", 100)
+	m := model{width: 80, height: 12}
+	out := m.framed("Titel", long, "s: Status   esc: zurück")
+	if h := lipgloss.Height(out); h != 12 {
+		t.Errorf("framed-Höhe=%d, want 12 (volle Terminalhöhe)", h)
+	}
+	if !strings.Contains(out, "s: Status") {
+		t.Error("Footer-Hinweis fehlt (abgeschnitten?)")
+	}
+	if !strings.Contains(out, "↓") {
+		t.Error("Scroll-Indikator (mehr unten) fehlt trotz Overflow")
+	}
+}
+
+// DD2-30: G scrollt den Detail-Body ans Ende → unterer Inhalt wird sichtbar.
+func TestDetailScrollsToBottom(t *testing.T) {
+	m := reproColumnsModel(viewDetail, 2)
+	m.height = 10 // kleines Terminal erzwingt Overflow
+	mi, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("G")})
+	m = mi.(model)
+	if m.scroll == 0 {
+		t.Fatal("G hat den Scroll-Offset nicht erhöht")
+	}
+	if !strings.Contains(m.View(), "esc/q: zurück") {
+		t.Error("Footer nach Scroll nicht sichtbar")
+	}
+	// g zurück an den Anfang
+	mi, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("g")})
+	if mi.(model).scroll != 0 {
+		t.Error("g setzt den Scroll-Offset nicht auf 0 zurück")
+	}
+}
+
+// DD2-25: Form-Höhe folgt dem Terminal (kurz → kleiner, gecappt, nie unter 5).
+func TestFormInnerHeight(t *testing.T) {
+	if got := formInnerHeight(0); got != 20 {
+		t.Errorf("unbekannte Höhe: got %d, want 20", got)
+	}
+	if got := formInnerHeight(12); got != 7 {
+		t.Errorf("kurzes Terminal (12): got %d, want 7 (12-5)", got)
+	}
+	if got := formInnerHeight(60); got != 20 {
+		t.Errorf("großes Terminal: got %d, want 20 (Cap)", got)
+	}
+	if got := formInnerHeight(8); got != 5 {
+		t.Errorf("sehr kurz: got %d, want 5 (Untergrenze)", got)
+	}
+}
+
+// DD2-29: Columns-Footer benennt die Status-Taste depth-abhängig.
+func TestColumnsFooterDepthAware(t *testing.T) {
+	m := reproColumnsModel(viewColumns, 2)
+	if !strings.Contains(m.footer(), "s:Issue-Status") {
+		t.Errorf("depth 2 Footer nennt nicht s:Issue-Status: %q", m.footer())
+	}
+	m.depth = 1
+	if !strings.Contains(m.footer(), "s:Sprint-Status") {
+		t.Errorf("depth 1 Footer nennt nicht s:Sprint-Status: %q", m.footer())
+	}
+}
