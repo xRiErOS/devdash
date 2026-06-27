@@ -110,11 +110,16 @@ type model struct {
 	// landet man immer in den Columns. Wird beim Öffnen auf die Quell-View gesetzt.
 	topReturn viewID
 
-	// Meilenstein-Status-Menü (T01): S auf fokussiertem Meilenstein.
-	msPick     bool
-	msmenu     listState
-	msopts     []string
-	msTargetID int
+	// Meilenstein-Status-Menü (T01): S auf fokussiertem Meilenstein. Ziel-Daten
+	// werden beim Öffnen kopiert (nicht aus selMilestone re-gelesen), damit das Menü
+	// auch aus dem Tree-View funktioniert, wo der Columns-Cursor woanders steht.
+	msPick             bool
+	msmenu             listState
+	msopts             []string
+	msTargetID         int
+	msTargetName       string
+	msTargetStatus     string
+	msTargetOpenSprint int
 
 	// Sprint→Meilenstein-Picker (T03 Flow A): m in Sprint-Details (single-select).
 	smPick     bool
@@ -968,9 +973,16 @@ func (m model) openIssueStatus(it *api.Issue, sprintID int) (tea.Model, tea.Cmd)
 	return m, nil
 }
 
-// openMilestoneStatus öffnet das Meilenstein-Status-Menü (T01).
+// openMilestoneStatus öffnet das Meilenstein-Status-Menü (T01) für den in den
+// Columns selektierten Meilenstein.
 func (m model) openMilestoneStatus() (tea.Model, tea.Cmd) {
-	ms := m.selMilestone()
+	return m.openMilestoneStatusFor(m.selMilestone())
+}
+
+// openMilestoneStatusFor öffnet das Menü für einen beliebigen Meilenstein (Tree:
+// Knoten unter dem Cursor; Columns: Selektion). Ziel-Daten werden kopiert, damit
+// der Confirm/Render nicht auf selMilestone angewiesen ist (view-übergreifend).
+func (m model) openMilestoneStatusFor(ms *api.Milestone) (tea.Model, tea.Cmd) {
 	if ms == nil {
 		return m, nil
 	}
@@ -981,6 +993,9 @@ func (m model) openMilestoneStatus() (tea.Model, tea.Cmd) {
 	}
 	m.msPick = true
 	m.msTargetID = ms.ID
+	m.msTargetName = ms.Name
+	m.msTargetStatus = ms.Status
+	m.msTargetOpenSprint = openSprintCount(ms.Sprints)
 	m.msmenu = listState{}
 	m.msopts = opts
 	m.msmenu.setLen(len(opts))
@@ -1008,19 +1023,15 @@ func (m model) keyMilestoneStatus(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		target := m.msopts[m.msmenu.cursor]
-		// DD2-28: completed mit offenen Sprints → Cascade-Confirm statt 422.
-		if target == "completed" {
-			if ms := m.selMilestone(); ms != nil {
-				open := openSprintCount(ms.Sprints)
-				if open > 0 {
-					m.mcConfirm = true
-					m.mcID = ms.ID
-					m.mcName = ms.Name
-					m.mcSprints = open
-					m.status = ""
-					return m, nil
-				}
-			}
+		// DD2-28: completed mit offenen Sprints → Cascade-Confirm statt 422. Ziel-Daten
+		// aus dem beim Öffnen kopierten State (view-übergreifend, auch Tree).
+		if target == "completed" && m.msTargetOpenSprint > 0 {
+			m.mcConfirm = true
+			m.mcID = m.msTargetID
+			m.mcName = m.msTargetName
+			m.mcSprints = m.msTargetOpenSprint
+			m.status = ""
+			return m, nil
 		}
 		m.status = "Meilenstein → " + target + " …"
 		return m, doMilestoneStatus(m.client, m.msTargetID, target)

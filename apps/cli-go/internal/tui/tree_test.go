@@ -43,6 +43,49 @@ func TestTreeGlobalKeysReachable(t *testing.T) {
 	}
 }
 
+// PO-Befund: Status-Mutation muss im Tree gehen (sonst kein Sprint→review → kein
+// Review). S/s/d/y 1:1 aus dem Ranger portiert, am Knoten unter dem Cursor.
+func TestTreeStatusShortcuts(t *testing.T) {
+	key := func(s string) tea.KeyMsg { return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)} }
+	mk := func(cursor int) model {
+		m := treeModel() // M1 active → S1 active(id10), S2 planning(id11)
+		m.treeExpMile[1] = true
+		m.treeIssues[10] = []api.Issue{{Key: "DD2-1", Title: "A", Type: "bug", Priority: 1, Status: "in_progress"}}
+		m.treeExpSprint[10] = true
+		m.view = viewTree
+		m.treeCursor = cursor
+		return m
+	}
+
+	// Cursor 0 = Meilenstein → S öffnet Meilenstein-Status-Menü (aktueller Status mit).
+	if mi, _ := mk(0).keyTree(key("S")); !mi.(model).msPick || mi.(model).msTargetStatus != "active" {
+		t.Errorf("S auf Meilenstein: msPick=%v status=%q", mi.(model).msPick, mi.(model).msTargetStatus)
+	}
+	// Cursor 1 = Sprint S1 (active) → s öffnet Sprint-Menü mit review-Transition.
+	sp, _ := mk(1).keyTree(key("s"))
+	mm := sp.(model)
+	if !mm.sprintPick {
+		t.Fatalf("s auf Sprint sollte sprintPick öffnen")
+	}
+	hasReview := false
+	for _, o := range mm.spopts {
+		if o == "review" {
+			hasReview = true
+		}
+	}
+	if !hasReview {
+		t.Errorf("Sprint-active-Menü ohne review: %v", mm.spopts)
+	}
+	// Cursor 2 = Issue → s öffnet Issue-Status-Menü.
+	if mi, _ := mk(2).keyTree(key("s")); !mi.(model).statusPick {
+		t.Errorf("s auf Issue sollte statusPick öffnen")
+	}
+	// S auf Sprint-Knoten = no-op (nur Meilenstein).
+	if mi, _ := mk(1).keyTree(key("S")); mi.(model).msPick {
+		t.Errorf("S auf Sprint sollte kein Meilenstein-Menü öffnen")
+	}
+}
+
 // DD2-61: Tree+Detail ist Primat — newModel() startet bei vorhandenem Projekt
 // direkt im Tree-View (Ranger-Columns nur noch via t erreichbar).
 func TestNewModelDefaultsToTree(t *testing.T) {

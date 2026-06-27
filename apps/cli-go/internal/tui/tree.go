@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"strings"
 
+	"devd-cli/internal/clip"
 	"devd-cli/internal/theme"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -138,12 +139,12 @@ func (m model) treeLayout() (head, localKeys string, lw, rw, innerH int) {
 	head = m.breadcrumb("Projekt-Browser") // Zone 1: `> slug: Title` + globale Shortcuts
 	// Zone 3 = NUR view-spezifische Tasten; globale (b/R/p/q/Cmd) stehen bereits im
 	// Header rechts → nicht doppeln (verwirrt, PO-Befund Augenschein).
-	hint := "j/k:↑↓  l/→:auf  h/←:zu  enter:auf  /:Suche  t:Ranger"
+	hint := "j/k:↑↓  l/→:auf  h/←:zu  s:Status  S:Meilenstein  d:löschen  y:yank  /:Suche  t:Ranger"
 	switch {
 	case m.treeSearching:
 		hint = "tippen: filtern   enter: übernehmen   esc: abbrechen"
 	case m.treeQuery != "":
-		hint = "j/k:↑↓  l/→:auf  /:Suche  esc: Filter löschen  t:Ranger"
+		hint = "j/k:↑↓  l/→:auf  s:Status  d:löschen  /:Suche  esc: Filter löschen  t:Ranger"
 	}
 	localKeys = theme.Muted.Render(wrapText(hint, w)) // Zone 3: lokale Shortcuts
 	footH := lipgloss.Height(localKeys) + 1           // + 1 Status-Zeile (Split-Status)
@@ -385,6 +386,41 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.openReviewsList()
 	case "b": // Backlog — analog
 		return m.openBacklog()
+	case "S": // Meilenstein-Status (1:1 Ranger) — nur auf Meilenstein-Knoten
+		if m.treeCursor < len(nodes) {
+			if n := nodes[m.treeCursor]; n.kind == tkMile {
+				return m.openMilestoneStatusFor(&m.milestones[n.mileIdx])
+			}
+		}
+		return m, nil
+	case "s": // Sprint-Status (Sprint-Knoten) / Issue-Status (Issue-Knoten), 1:1 Ranger
+		if m.treeCursor < len(nodes) {
+			n := nodes[m.treeCursor]
+			switch n.kind {
+			case tkSprint:
+				sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
+				return m.openSprintStatus(sp.ID, sp.Status)
+			case tkIssue:
+				it := m.treeIssues[n.sprintID][n.issIdx]
+				return m.openIssueStatus(&it, n.sprintID)
+			}
+		}
+		return m, nil
+	case "d": // Cascade-Delete (1:1 Ranger) — Meilenstein/Sprint
+		if m.treeCursor < len(nodes) {
+			n := nodes[m.treeCursor]
+			switch n.kind {
+			case tkMile:
+				ms := m.milestones[n.mileIdx]
+				return m.openDelete("milestone", ms.ID, ms.Name)
+			case tkSprint:
+				sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
+				return m.openDelete("sprint", sp.ID, sp.Name)
+			}
+		}
+		return m, nil
+	case "y": // Kontext yanken (1:1 Ranger) — Meilenstein/Sprint
+		return m.treeYank(nodes)
 	}
 	switch navKey(msg.String()) {
 	case "up":
@@ -404,6 +440,40 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 	if msg.String() == "enter" {
 		return m.treeExpand(nodes)
+	}
+	return m, nil
+}
+
+// treeYank kopiert den Kontext des selektierten Knotens (1:1 Ranger-yankContext):
+// Meilenstein → Sprints-Übersicht, Sprint → Issues-Übersicht.
+func (m model) treeYank(nodes []treeNode) (tea.Model, tea.Cmd) {
+	if m.treeCursor < 0 || m.treeCursor >= len(nodes) {
+		return m, nil
+	}
+	n := nodes[m.treeCursor]
+	switch n.kind {
+	case tkMile:
+		ms := m.milestones[n.mileIdx]
+		if err := clip.Copy(milestoneClip(&ms)); err != nil {
+			m.errNote = "Clipboard-Fehler: " + err.Error()
+		} else {
+			m.errNote = ""
+			m.status = "Meilenstein-Kontext kopiert (" + ms.Name + ")"
+		}
+	case tkSprint:
+		sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
+		src := &sp
+		if m.curSprint != nil && m.curSprint.ID == sp.ID {
+			src = m.curSprint
+		}
+		if err := clip.Copy(sprintClip(src)); err != nil {
+			m.errNote = "Clipboard-Fehler: " + err.Error()
+		} else {
+			m.errNote = ""
+			m.status = "Sprint-Kontext kopiert (" + sp.Key + ")"
+		}
+	default:
+		m.status = "Yank: auf Meilenstein oder Sprint"
 	}
 	return m, nil
 }

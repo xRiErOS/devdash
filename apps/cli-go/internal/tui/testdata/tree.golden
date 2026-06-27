@@ -18,4 +18,4 @@
 │                                    ││                                                  │
 │                                    ││                                                  │
 ╰────────────────────────────────────╯╰──────────────────────────────────────────────────╯
-j/k:↑↓  l/→:auf  h/←:zu  enter:auf  /:Suche  t:Ranger
+j/k:↑↓  l/→:auf  h/←:zu  s:Status  S:Meilenstein  d:löschen  y:yank  /:Suche  t:Ranger

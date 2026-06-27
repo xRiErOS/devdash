@@ -67,11 +67,7 @@ func (m model) milestoneCascadeBox() string {
 func (m model) milestoneStatusMenu() string {
 	var b strings.Builder
 	b.WriteString(theme.Header.Render("Meilenstein-Status setzen") + "\n")
-	cur := ""
-	if ms := m.selMilestone(); ms != nil {
-		cur = ms.Status
-	}
-	b.WriteString(theme.Dim.Render("aktuell: "+cur) + "\n\n")
+	b.WriteString(theme.Dim.Render("aktuell: "+m.msTargetStatus) + "\n\n")
 	for i, s := range m.msopts {
 		cursor := "  "
 		label := statusText(s)
