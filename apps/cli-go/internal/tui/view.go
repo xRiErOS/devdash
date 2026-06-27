@@ -31,6 +31,9 @@ func (m model) View() string {
 	if m.statusPick { // DD2-29: Issue-Status-Menü view-übergreifend (Cockpit + Columns/Detail)
 		return placeOverlay(base, m.statusMenu(), m.termWidth(), m.height)
 	}
+	if m.treeFilterOpen { // DD2-62 Rework: Tree-Filter-Facetten-Menü
+		return placeOverlay(base, m.treeFilterBox(), m.termWidth(), m.height)
+	}
 	if m.smPick { // T03 Flow A: Sprint→Meilenstein-Picker
 		return placeOverlay(base, m.sprintMilestoneMenu(), m.termWidth(), m.height)
 	}

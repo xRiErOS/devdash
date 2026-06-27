@@ -1,6 +1,6 @@
 > devd2: Projekt-Browser               ctrl+k:Cmd  p:Projekt  b:Backlog  R:Reviews  q:Quit
 ╭────────────────────────────────────╮╭──────────────────────────────────────────────────╮
-│⛨ Suchen mit /                      ││DD2#9 — Sprint Neun                               │
+│⛨ Suchen mit /  ·  Filter f         ││DD2#9 — Sprint Neun                               │
 │ ▾ ● Meilenstein Eins               ││Status: review   Fortschritt: 0/0                 │
 │▌  ▾ DD2#9 review                   ││                                                  │
 │       ◆ DD2-99                     ││                                                  │
@@ -16,6 +16,6 @@
 │                                    ││                                                  │
 │                                    ││                                                  │
 │                                    ││                                                  │
-│                                    ││                                                  │
 ╰────────────────────────────────────╯╰──────────────────────────────────────────────────╯
-j/k:↑↓  l/→:auf  h/←:zu  s:Status  S:Meilenstein  d:löschen  y:yank  /:Suche  t:Ranger
+j/k:↑↓  l/→:auf  h/←:zu  s:Status  S:Meilenstein  d:löschen  y:yank  /:Suche  f:Filter
+t:Ranger                                                                              

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"strings"
 
+	"devd-cli/internal/api"
 	"devd-cli/internal/clip"
 	"devd-cli/internal/theme"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -39,20 +40,46 @@ type treeNode struct {
 	depth    int
 	expand   bool // ist auf-/zuklappbar?
 	open     bool
-	label    string // nur tkInfo
+	label    string     // nur tkInfo
+	issue    *api.Issue // tkIssue: aufgelöstes Issue (Lazy-Cache ODER Filter-Quelle)
 }
 
-// treeMatch ist der case-insensitive Substring-Test der Tree-Suche (DD2-62).
-func treeMatch(s, q string) bool {
-	return strings.Contains(strings.ToLower(s), strings.ToLower(q))
+// ffItem ist eine Zeile im Tree-Filter-Menü (DD2-62 Rework): eine toggle-bare
+// Facetten-Option. facet ∈ {art,type,status}; value der Maschinen-Schlüssel.
+type ffItem struct {
+	facet string
+	value string
+	label string
+}
+
+// kindOf übersetzt einen Art-Facetten-Wert in das treeKind.
+func kindOf(v string) treeKind {
+	switch v {
+	case "sprint":
+		return tkSprint
+	case "issue":
+		return tkIssue
+	default:
+		return tkMile
+	}
+}
+
+// treeFilterActive = mindestens eine Filter-Facette gesetzt (Art/Type/Status).
+func (m *model) treeFilterActive() bool {
+	return len(m.fArt)+len(m.fType)+len(m.fStatus) > 0
+}
+
+// treeActive = Filter ODER Textsuche aktiv → gefilterte Flachung statt Expansions-Baum.
+func (m *model) treeActive() bool {
+	return m.treeFilterActive() || strings.TrimSpace(m.treeQuery) != ""
 }
 
 // treeNodes flacht den Baum entsprechend der Expansions-Sets in eine sichtbare
-// Zeilenliste. Issues werden lazy aus treeIssues[sprintID] gezogen. Bei aktiver
-// Suche (treeQuery) ersetzt die Filter-Flachung die Expansions-Logik.
+// Zeilenliste. Issues werden lazy aus treeIssues[sprintID] gezogen. Bei aktivem
+// Filter/Suche (treeActive) ersetzt die Filter-Flachung die Expansions-Logik.
 func (m *model) treeNodes() []treeNode {
-	if strings.TrimSpace(m.treeQuery) != "" {
-		return m.treeNodesFiltered(strings.TrimSpace(m.treeQuery))
+	if m.treeActive() {
+		return m.treeNodesFiltered()
 	}
 	var nodes []treeNode
 	for mi := range m.milestones {
@@ -80,49 +107,64 @@ func (m *model) treeNodes() []treeNode {
 			}
 			for ii := range items {
 				nodes = append(nodes, treeNode{kind: tkIssue, mileIdx: mi, sprIdx: si,
-					sprintID: sp.ID, issIdx: ii, depth: 2})
+					sprintID: sp.ID, issIdx: ii, depth: 2, issue: &items[ii]})
 			}
 		}
 	}
 	return nodes
 }
 
-// viewTree rendert den Primat-View (DD2-61): schmale Baum-Spalte links, breite
-// Detail-Fläche rechts. Teilt sich Chrome mit den anderen Screens — globaler
-// Header (Breadcrumb `> slug: Title` + globale Shortcuts), Zwei-Pane-Body auf
-// volle Resthöhe, Footer = lokale Shortcuts + Split-Status (Info blau | Fehler
-// rot). Höhen-Rechnung 1:1 wie chrome(), damit der Footer unten klebt.
-// treeNodesFiltered zeigt nur Pfade zu Treffern (DD2-62). Eine Ebene ist sichtbar,
-// wenn sie selbst matcht ODER ein sichtbarer Nachfahre matcht; matchende Issues
-// werden gelistet, ein Meilenstein-Treffer zeigt seine Sprints als Kontext. Lazy:
-// nur gecachte Sprint-Issues (treeIssues) sind durchsuchbar — open/expand spielt
-// keine Rolle, der gefilterte Baum ist immer „aufgeklappt".
-func (m *model) treeNodesFiltered(q string) []treeNode {
+// treeNodesFiltered zeigt nur Pfade zu Treffern (DD2-62). Treffer = Knoten, dessen
+// Art (fArt) erlaubt ist UND Status (fStatus) UND — bei Issues — Issue-Type (fType)
+// UND Textsuche (treeQuery) passen. Vorfahren von Treffern bleiben als Kontext
+// sichtbar (Pfad), unabhängig von der Art-Facette. Issue-Quelle ist projektweit
+// (treeFilterIssues, einmal geladen), sonst der Lazy-Cache (treeIssues).
+func (m *model) treeNodesFiltered() []treeNode {
+	q := strings.ToLower(strings.TrimSpace(m.treeQuery))
+	artAll := len(m.fArt) == 0
+	showKind := func(k treeKind) bool { return artAll || m.fArt[k] }
+	typeOK := func(t string) bool { return len(m.fType) == 0 || m.fType[t] }
+	statusOK := func(s string) bool { return len(m.fStatus) == 0 || m.fStatus[s] }
+	matchText := func(s string) bool { return q == "" || strings.Contains(strings.ToLower(s), q) }
+
+	// Gruppierung nach Sprint-ID; stabile Slices, damit &items[ii]-Pointer halten.
+	bySprint := map[int][]api.Issue{}
+	if m.treeIssuesLoaded {
+		for _, it := range m.treeFilterIssues {
+			if it.AssignedSprint != nil {
+				bySprint[*it.AssignedSprint] = append(bySprint[*it.AssignedSprint], it)
+			}
+		}
+	} else {
+		for sid, items := range m.treeIssues {
+			bySprint[sid] = items
+		}
+	}
+
 	var nodes []treeNode
 	for mi := range m.milestones {
 		ms := &m.milestones[mi]
-		msMatch := treeMatch(ms.Name, q)
+		mileHit := showKind(tkMile) && statusOK(ms.Status) && matchText(ms.Name)
 		var subs []treeNode
 		for si := range ms.Sprints {
 			sp := &ms.Sprints[si]
-			spMatch := treeMatch(sp.Key+" "+sp.Name, q)
+			spHit := showKind(tkSprint) && statusOK(sp.Status) && matchText(sp.Key+" "+sp.Name)
+			items := bySprint[sp.ID]
 			var iss []treeNode
-			if items, ok := m.treeIssues[sp.ID]; ok {
-				for ii := range items {
-					it := items[ii]
-					if treeMatch(it.Key+" "+it.Title, q) {
-						iss = append(iss, treeNode{kind: tkIssue, mileIdx: mi, sprIdx: si,
-							sprintID: sp.ID, issIdx: ii, depth: 2})
-					}
+			for ii := range items {
+				it := &items[ii]
+				if showKind(tkIssue) && typeOK(it.Type) && statusOK(it.Status) && matchText(it.Key+" "+it.Title) {
+					iss = append(iss, treeNode{kind: tkIssue, mileIdx: mi, sprIdx: si,
+						sprintID: sp.ID, issIdx: ii, depth: 2, issue: it})
 				}
 			}
-			if spMatch || len(iss) > 0 || msMatch {
+			if spHit || len(iss) > 0 { // Sprint als Treffer ODER als Pfad-Vorfahr
 				subs = append(subs, treeNode{kind: tkSprint, mileIdx: mi, sprIdx: si,
 					sprintID: sp.ID, depth: 1, expand: true, open: true})
 				subs = append(subs, iss...)
 			}
 		}
-		if msMatch || len(subs) > 0 {
+		if mileHit || len(subs) > 0 {
 			nodes = append(nodes, treeNode{kind: tkMile, mileIdx: mi, depth: 0,
 				expand: len(ms.Sprints) > 0, open: true})
 			nodes = append(nodes, subs...)
@@ -139,12 +181,12 @@ func (m model) treeLayout() (head, localKeys string, lw, rw, innerH int) {
 	head = m.breadcrumb("Projekt-Browser") // Zone 1: `> slug: Title` + globale Shortcuts
 	// Zone 3 = NUR view-spezifische Tasten; globale (b/R/p/q/Cmd) stehen bereits im
 	// Header rechts → nicht doppeln (verwirrt, PO-Befund Augenschein).
-	hint := "j/k:↑↓  l/→:auf  h/←:zu  s:Status  S:Meilenstein  d:löschen  y:yank  /:Suche  t:Ranger"
+	hint := "j/k:↑↓  l/→:auf  h/←:zu  s:Status  S:Meilenstein  d:löschen  y:yank  /:Suche  f:Filter  t:Ranger"
 	switch {
 	case m.treeSearching:
 		hint = "tippen: filtern   enter: übernehmen   esc: abbrechen"
-	case m.treeQuery != "":
-		hint = "j/k:↑↓  l/→:auf  s:Status  d:löschen  /:Suche  esc: Filter löschen  t:Ranger"
+	case m.treeActive():
+		hint = "j/k:↑↓  l/→:auf  s:Status  /:Suche  f:Filter  esc: Filter+Suche löschen  t:Ranger"
 	}
 	localKeys = theme.Muted.Render(wrapText(hint, w)) // Zone 3: lokale Shortcuts
 	footH := lipgloss.Height(localKeys) + 1           // + 1 Status-Zeile (Split-Status)
@@ -245,8 +287,9 @@ func (m model) treeLeftLines(nodes []treeNode, w int) []string {
 			sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
 			label = sp.Key + " " + statusText(sp.Status)
 		case tkIssue:
-			it := m.treeIssues[n.sprintID][n.issIdx]
-			label = theme.TypeIcon(it.Type) + " " + theme.Key.Render(it.Key)
+			if n.issue != nil { // aufgelöst (Lazy-Cache ODER Filter-Quelle)
+				label = theme.TypeIcon(n.issue.Type) + " " + theme.Key.Render(n.issue.Key)
+			}
 		case tkInfo:
 			label = theme.Dim.Render(n.label)
 		}
@@ -299,11 +342,10 @@ func (m model) treeDetail(n treeNode, w int) string {
 			b.WriteString("\n" + theme.Accent.Render("Goal:") + "\n" + g + "\n")
 		}
 	case tkIssue:
-		items := m.treeIssues[n.sprintID]
-		if n.issIdx < 0 || n.issIdx >= len(items) {
+		if n.issue == nil {
 			return theme.Dim.Render("(nichts gewählt)")
 		}
-		it := items[n.issIdx]
+		it := *n.issue
 		b.WriteString(theme.Header.Render(it.Title) + "\n")
 		b.WriteString(theme.TypeIcon(it.Type) + " " + theme.TypeStyle(it.Type).Render(it.Type) +
 			" · " + theme.Priority(it.Priority) + " · " + statusText(it.Status) + "\n")
@@ -361,15 +403,25 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.treeSearch.SetValue(m.treeQuery)
 		m.treeSearch.CursorEnd()
 		m.treeSearch.Focus()
-		return m, textinput.Blink
+		// Suche wird projektweit: alle Issues einmal laden (sonst nur Lazy-Cache).
+		var cmd tea.Cmd
+		if !m.treeIssuesLoaded {
+			cmd = loadAllIssues(m.client)
+		}
+		return m, tea.Batch(textinput.Blink, cmd)
+	case "f": // DD2-62 Rework: Filter-Facetten-Menü (Art/Issue-Type/Status)
+		return m.openTreeFilter()
 	case "t":
 		m.view = viewColumns
 		m.status = ""
 		return m, nil
 	case "esc":
-		if m.treeQuery != "" { // erst den aktiven Filter löschen, dann Ranger
+		if m.treeActive() { // erst Filter + Suche löschen, dann Ranger
 			m.treeQuery = ""
 			m.treeSearch.SetValue("")
+			m.fArt = map[treeKind]bool{}
+			m.fType = map[string]bool{}
+			m.fStatus = map[string]bool{}
 			m.treeCursor = 0
 			return m, nil
 		}
@@ -401,8 +453,9 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
 				return m.openSprintStatus(sp.ID, sp.Status)
 			case tkIssue:
-				it := m.treeIssues[n.sprintID][n.issIdx]
-				return m.openIssueStatus(&it, n.sprintID)
+				if n.issue != nil {
+					return m.openIssueStatus(n.issue, n.sprintID)
+				}
 			}
 		}
 		return m, nil
@@ -478,6 +531,190 @@ func (m model) treeYank(nodes []treeNode) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// openTreeFilter öffnet das Facetten-Menü und lädt projektweit alle Issues nach
+// (damit Type/Status-Facetten greifen, nicht nur die Lazy-gecachten).
+func (m model) openTreeFilter() (tea.Model, tea.Cmd) {
+	m.ffItems = m.buildFilterItems()
+	m.ffMenu = listState{}
+	m.ffMenu.setLen(len(m.ffItems))
+	m.treeFilterOpen = true
+	if !m.treeIssuesLoaded {
+		return m, loadAllIssues(m.client)
+	}
+	return m, nil
+}
+
+// buildFilterItems baut die Menü-Zeilen: feste Art-/Type-Facetten + dynamische
+// Status-Werte (aus den geladenen Meilensteinen/Sprints/Issues).
+func (m model) buildFilterItems() []ffItem {
+	items := []ffItem{
+		{"art", "mile", "Meilenstein"},
+		{"art", "sprint", "Sprint"},
+		{"art", "issue", "Issue"},
+		{"type", "bug", "Bug"},
+		{"type", "feature", "Feature"},
+		{"type", "improvement", "Improvement"},
+		{"type", "core", "Core"},
+	}
+	for _, s := range m.filterStatusOptions() {
+		items = append(items, ffItem{"status", s, s})
+	}
+	return items
+}
+
+// filterStatusOptions sammelt distinkte Status-Werte (Meilenstein/Sprint/Issue),
+// in stabiler Reihenfolge (Datenreihenfolge), für die Status-Facette.
+func (m model) filterStatusOptions() []string {
+	seen := map[string]bool{}
+	var out []string
+	add := func(s string) {
+		if s != "" && !seen[s] {
+			seen[s] = true
+			out = append(out, s)
+		}
+	}
+	for _, ms := range m.milestones {
+		add(ms.Status)
+		for _, sp := range ms.Sprints {
+			add(sp.Status)
+		}
+	}
+	for _, it := range m.treeFilterIssues {
+		add(it.Status)
+	}
+	return out
+}
+
+// keyTreeFilter steuert das Filter-Menü: space toggelt die Facette, c leert alles,
+// enter/esc schließt (und lädt bei aktivem Filter projektweit frisch nach).
+func (m model) keyTreeFilter(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch navKey(msg.String()) {
+	case "up":
+		m.ffMenu.move(-1)
+		return m, nil
+	case "down":
+		m.ffMenu.move(1)
+		return m, nil
+	}
+	switch msg.String() {
+	case "esc", "q", "f", "enter":
+		m.treeFilterOpen = false
+		m.treeCursor = 0
+		if m.treeFilterActive() {
+			return m, loadAllIssues(m.client) // frische projektweite Daten
+		}
+		return m, nil
+	case "c": // alle Facetten leeren
+		m.fArt = map[treeKind]bool{}
+		m.fType = map[string]bool{}
+		m.fStatus = map[string]bool{}
+		return m, nil
+	case " ", "x":
+		if m.ffMenu.cursor < 0 || m.ffMenu.cursor >= len(m.ffItems) {
+			return m, nil
+		}
+		it := m.ffItems[m.ffMenu.cursor]
+		switch it.facet {
+		case "art":
+			k := kindOf(it.value)
+			if m.fArt[k] {
+				delete(m.fArt, k)
+			} else {
+				m.fArt[k] = true
+			}
+		case "type":
+			if m.fType[it.value] {
+				delete(m.fType, it.value)
+			} else {
+				m.fType[it.value] = true
+			}
+		case "status":
+			if m.fStatus[it.value] {
+				delete(m.fStatus, it.value)
+			} else {
+				m.fStatus[it.value] = true
+			}
+		}
+		return m, nil
+	}
+	return m, nil
+}
+
+// treeFilterBox rendert das schwebende Filter-Menü (Checkboxen je Facette).
+func (m model) treeFilterBox() string {
+	var b strings.Builder
+	b.WriteString(theme.Header.Render("Tree-Filter") + "\n")
+	b.WriteString(theme.Muted.Render("space:an/aus  c:leeren  enter/esc:fertig") + "\n")
+	lastFacet := ""
+	facetHead := map[string]string{"art": "Art", "type": "Issue-Type", "status": "Status"}
+	for i, it := range m.ffItems {
+		if it.facet != lastFacet {
+			b.WriteString("\n" + theme.Dim.Render(facetHead[it.facet]) + "\n")
+			lastFacet = it.facet
+		}
+		on := false
+		switch it.facet {
+		case "art":
+			on = m.fArt[kindOf(it.value)]
+		case "type":
+			on = m.fType[it.value]
+		case "status":
+			on = m.fStatus[it.value]
+		}
+		box := theme.Dim.Render("[ ]")
+		if on {
+			box = theme.Accent.Render("[x]")
+		}
+		cursor := "  "
+		label := it.label
+		if i == m.ffMenu.cursor {
+			cursor = theme.Accent.Render("▸ ")
+			label = theme.Header.Render(label)
+		}
+		b.WriteString(cursor + box + " " + label + "\n")
+	}
+	return lipgloss.NewStyle().
+		Width(40).
+		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
+		Background(theme.Base).Padding(0, 1).
+		Render(b.String())
+}
+
+// filterSummary fasst die aktiven Facetten kurz zusammen (Such-/Filterbox-Kopf).
+func (m model) filterSummary() string {
+	var p []string
+	if len(m.fArt) > 0 {
+		var a []string
+		for _, it := range []struct {
+			k treeKind
+			s string
+		}{{tkMile, "M"}, {tkSprint, "S"}, {tkIssue, "Issue"}} {
+			if m.fArt[it.k] {
+				a = append(a, it.s)
+			}
+		}
+		p = append(p, "Art:"+strings.Join(a, ","))
+	}
+	if len(m.fType) > 0 {
+		p = append(p, "Typ:"+joinFilterKeys(m.fType))
+	}
+	if len(m.fStatus) > 0 {
+		p = append(p, "St:"+joinFilterKeys(m.fStatus))
+	}
+	return strings.Join(p, " ")
+}
+
+// joinFilterKeys liefert die gesetzten Map-Keys kommasepariert (Anzeige).
+func joinFilterKeys(mp map[string]bool) string {
+	var out []string
+	for k, v := range mp {
+		if v {
+			out = append(out, k)
+		}
+	}
+	return strings.Join(out, ",")
+}
+
 // keyTreeSearch behandelt die aktive Tree-Suche (DD2-62): tippen filtert live,
 // enter übernimmt den Filter (Feld blurt, Filter bleibt aktiv), esc bricht ab und
 // löscht den Filter. Cursor springt bei jeder Filteränderung auf 0.
@@ -511,10 +748,17 @@ func (m model) treeSearchLine(w int) string {
 	if m.treeSearching {
 		return truncate(shield+" "+m.treeSearch.View(), w)
 	}
-	if m.treeQuery != "" {
-		return truncate(lipgloss.NewStyle().Foreground(theme.Red).Render(shield+" "+m.treeQuery), w)
+	var parts []string
+	if m.treeFilterActive() {
+		parts = append(parts, m.filterSummary())
 	}
-	return truncate(theme.Muted.Render(shield+" Suchen mit /"), w)
+	if m.treeQuery != "" {
+		parts = append(parts, m.treeQuery)
+	}
+	if len(parts) > 0 { // aktiver Filter/Suche = rot (DESIGN „Filter aktiv")
+		return truncate(lipgloss.NewStyle().Foreground(theme.Red).Render(shield+" "+strings.Join(parts, " ")), w)
+	}
+	return truncate(theme.Muted.Render(shield+" Suchen mit /  ·  Filter f"), w)
 }
 
 // treeExpand klappt den Knoten unter dem Cursor auf; bei Sprints werden die

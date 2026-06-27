@@ -14,6 +14,7 @@ type projectsMsg struct{ items []api.Project }
 type milestonesMsg struct{ items []api.Milestone }
 type sprintMsg struct{ sprint *api.Sprint }
 type backlogMsg struct{ items []api.Issue }
+type allIssuesMsg struct{ items []api.Issue } // DD2-62: projektweite Issues für den Tree-Filter
 type reviewSprintsMsg struct{ items []api.Sprint }   // T17: offene Review-Sprints
 type memoriesMsg struct{ items []api.ProjectMemory } // T18: Memory-Liste
 type memDetailMsg struct{ mem *api.ProjectMemory }   // T18: Memory-Detail (content)
@@ -40,6 +41,18 @@ func loadMilestones(c *api.Client) tea.Cmd {
 			return errMsg{err}
 		}
 		return milestonesMsg{ms}
+	}
+}
+
+// loadAllIssues holt ALLE Issues des Projekts (DD2-62 Tree-Filter, projektweit) —
+// /api/backlog ohne Filter liefert sämtliche Issues inkl. sprint-zugewiesener.
+func loadAllIssues(c *api.Client) tea.Cmd {
+	return func() tea.Msg {
+		items, err := c.ListIssues(api.IssueListOpts{})
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return allIssuesMsg{items}
 	}
 }
 

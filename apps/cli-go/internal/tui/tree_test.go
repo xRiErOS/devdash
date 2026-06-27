@@ -195,12 +195,35 @@ func TestTreeFilterSprintMatch(t *testing.T) {
 	}
 }
 
-func TestTreeFilterMilestoneMatchShowsAllSprints(t *testing.T) {
+func TestTreeFilterMilestoneMatchShowsMilestone(t *testing.T) {
 	m := treeFilterModel()
-	m.treeQuery = "m1" // Meilenstein-Name → Kontext: alle Sprints, keine Nicht-Match-Issues
+	m.treeQuery = "m1" // Meilenstein-Name = Treffer; Sprints ohne eigenen Match nicht
 	nodes := m.treeNodes()
-	if got := kinds(nodes); len(got) != 3 || got[0] != tkMile || got[1] != tkSprint || got[2] != tkSprint {
-		t.Fatalf("kinds=%v, want [mile sprint sprint] (M1→S1,S2)", got)
+	if got := kinds(nodes); len(got) != 1 || got[0] != tkMile {
+		t.Fatalf("kinds=%v, want [mile] (nur M1 als Treffer)", got)
+	}
+}
+
+// DD2-62 Rework: Issue-Type-Facette filtert projektweit (treeFilterIssues), kombi-
+// niert mit Textsuche. PO-User-Story: Type=Bug + Suche 'login'.
+func TestTreeFilterTypeFacet(t *testing.T) {
+	m := treeFilterModel()
+	// projektweite Quelle simulieren (wie nach loadAllIssues)
+	sid := 10
+	m.treeFilterIssues = []api.Issue{
+		{Key: "DD2-1", Title: "Login bug", Type: "bug", Status: "to_review", AssignedSprint: &sid},
+		{Key: "DD2-2", Title: "Login feature", Type: "feature", Status: "planned", AssignedSprint: &sid},
+	}
+	m.treeIssuesLoaded = true
+	m.fType = map[string]bool{"bug": true}
+	m.treeQuery = "login"
+	nodes := m.treeNodes()
+	// Erwartet: M1 → S1 → nur DD2-1 (Bug), die Feature fällt raus.
+	if got := kinds(nodes); len(got) != 3 || got[2] != tkIssue {
+		t.Fatalf("kinds=%v, want [mile sprint issue]", got)
+	}
+	if nodes[2].issue == nil || nodes[2].issue.Key != "DD2-1" {
+		t.Errorf("erwartet DD2-1 (Bug), got %+v", nodes[2].issue)
 	}
 }
 
@@ -241,6 +264,45 @@ func TestTreeSearchFlow(t *testing.T) {
 	m = mi.(model)
 	if m.treeQuery != "" {
 		t.Errorf("esc sollte aktiven Filter löschen, query=%q", m.treeQuery)
+	}
+}
+
+// DD2-62 Rework: f öffnet das Filter-Menü, space toggelt eine Facette, enter
+// schließt (Filter aktiv), tree-esc löscht Filter+Suche.
+func TestTreeFilterMenuFlow(t *testing.T) {
+	key := func(s string) tea.KeyMsg { return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)} }
+	m := newModel(nil, &api.Project{Slug: "devd2", Prefix: "DD2"}, nil)
+	m.view = viewTree
+
+	mi, _ := m.keyTree(key("f"))
+	m = mi.(model)
+	if !m.treeFilterOpen {
+		t.Fatal("f sollte das Filter-Menü öffnen")
+	}
+	idx := -1
+	for i, it := range m.ffItems {
+		if it.facet == "type" && it.value == "bug" {
+			idx = i
+		}
+	}
+	if idx < 0 {
+		t.Fatal("Type:Bug-Eintrag fehlt im Menü")
+	}
+	m.ffMenu.cursor = idx
+	mi, _ = m.keyTreeFilter(key(" "))
+	m = mi.(model)
+	if !m.fType["bug"] || !m.treeFilterActive() {
+		t.Errorf("space sollte Type:Bug aktivieren (fType=%v)", m.fType)
+	}
+	mi, _ = m.keyTreeFilter(tea.KeyMsg{Type: tea.KeyEnter})
+	m = mi.(model)
+	if m.treeFilterOpen {
+		t.Error("enter sollte Menü schließen")
+	}
+	mi, _ = m.keyTree(tea.KeyMsg{Type: tea.KeyEsc})
+	m = mi.(model)
+	if m.treeFilterActive() {
+		t.Errorf("tree-esc sollte Filter löschen, fType=%v", m.fType)
 	}
 }
 

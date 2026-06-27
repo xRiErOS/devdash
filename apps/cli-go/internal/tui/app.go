@@ -185,6 +185,18 @@ type model struct {
 	treeSearch    textinput.Model
 	treeSearching bool
 	treeQuery     string
+
+	// Tree-Filter (DD2-62 Rework): `f` öffnet ein Facetten-Menü (Art/Issue-Type/
+	// Status), kombinierbar mit der Textsuche. Bei aktivem Filter wird projektweit
+	// gefiltert → alle Issues werden einmal nach treeFilterIssues geladen.
+	treeFilterOpen  bool
+	fArt            map[treeKind]bool
+	fType           map[string]bool
+	fStatus         map[string]bool
+	ffMenu          listState
+	ffItems         []ffItem
+	treeFilterIssues []api.Issue
+	treeIssuesLoaded bool
 }
 
 // issueStatusOptions sind die manuell wählbaren Lifecycle-Ziele. Bewusst OHNE
@@ -259,6 +271,9 @@ func newModel(client *api.Client, project *api.Project, global *api.Client) mode
 	ti.Prompt = ""
 	ti.CharLimit = 60
 	m.treeSearch = ti
+	m.fArt = map[treeKind]bool{}
+	m.fType = map[string]bool{}
+	m.fStatus = map[string]bool{}
 	m.fMile = filterState{hidden: map[string]bool{"completed": true, "cancelled": true, deferredKey: true}}
 	m.fSprint = filterState{hidden: map[string]bool{"completed": true, "cancelled": true}}
 	m.fIssue = filterState{hidden: map[string]bool{"cancelled": true}}
@@ -468,6 +483,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case backlogMsg:
 		m.backlog = msg.items
 		m.blist.setLen(len(m.backlog))
+		return m, nil
+	case allIssuesMsg: // DD2-62: projektweite Issues für den Tree-Filter
+		m.treeFilterIssues = msg.items
+		m.treeIssuesLoaded = true
+		m.treeCursor = 0
 		return m, nil
 	case reviewSprintsMsg:
 		m.reviewSprints = msg.items
@@ -681,6 +701,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Filter-Modal fängt zuerst.
 	if m.filtering {
 		return m.keyFilter(msg)
+	}
+	// Tree-Filter-Menü (DD2-62) fängt vor den View-Tasten.
+	if m.treeFilterOpen {
+		return m.keyTreeFilter(msg)
 	}
 	// Review-Cockpit hat eigenen Eingabemodus.
 	if m.view == viewReview {
