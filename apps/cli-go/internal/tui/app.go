@@ -9,6 +9,7 @@ import (
 	"devd-cli/internal/config"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type viewID int
@@ -236,6 +237,11 @@ func newModel(client *api.Client, project *api.Project, global *api.Client) mode
 
 // Run startet die TUI. project==nil → Picker zuerst.
 func Run(client *api.Client, project *api.Project, global *api.Client) error {
+	// DD2-24: huh-Forms (ThemeCharm) nutzen lipgloss-AdaptiveColor und lösen gegen
+	// die Background-Detection des Default-Renderers auf. Über ssh+tmux liefert die
+	// OSC-11-Abfrage eine helle Farbe → Forms rendern helles Theme (leuchtender BG).
+	// Detection hart auf dunkel zwingen → terminal-unabhängig, app ist durchweg dunkel.
+	lipgloss.SetHasDarkBackground(true)
 	_, err := tea.NewProgram(newModel(client, project, global), tea.WithAltScreen()).Run()
 	return err
 }
