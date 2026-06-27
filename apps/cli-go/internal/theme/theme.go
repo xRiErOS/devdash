@@ -28,14 +28,22 @@ var (
 
 	Text    = lipgloss.Color("#cad3f5")
 	Subtext = lipgloss.Color("#a5adcb")
-	Overlay = lipgloss.Color("#8087a2")
+	Overlay = lipgloss.Color("#8087a2") // Input-/Feld-Border
 	Surface = lipgloss.Color("#494d64")
-	Base    = lipgloss.Color("#24273a") // App-Hintergrund (opakes Modal)
-	Mantle  = lipgloss.Color("#1e2030")
-	Crust   = lipgloss.Color("#181926")
+	Base    = lipgloss.Color("#24273a") // App-/Body-Hintergrund
+	Mantle  = lipgloss.Color("#1e2030") // Header-/Accordion-Header-BG
+	Crust   = lipgloss.Color("#181926") // Form-Rahmen-BG (Modal-Backdrop)
+
+	// Hint = Hinweis/Erklärung (Labels, Sub-Label, Shortcuts, Placeholder,
+	// inaktive Tabs). Zwei-Klassen-Text-Regel (D01): muted ggü. echter Info.
+	// Bewusst ≠ Overlay (#8087a2 = Feld-Border).
+	Hint = lipgloss.Color("#7c7c7c")
+	// Select = Interaktions-/Auswahl-Signal (aktiver huh.Select-Button), laut
+	// (Latte-Peach). Bewusst ≠ Peach #f5a97f (struktureller Akzent), D02.
+	Select = lipgloss.Color("#fe640b")
 
 	Header = lipgloss.NewStyle().Bold(true).Foreground(Mauve)
-	Key    = lipgloss.NewStyle().Foreground(Lavender)
+	Key    = lipgloss.NewStyle().Foreground(Sapphire) // IDs/Keys = Sapphire (D-Mapping Wireframe)
 	Accent = lipgloss.NewStyle().Foreground(Mauve)
 	Dim    = lipgloss.NewStyle().Foreground(Overlay)
 )
@@ -105,18 +113,17 @@ func TypeStyle(t string) lipgloss.Style {
 
 // --- Priorität: P1 (kritisch) … P5 (niedrig), farblich abgestuft ---
 
+// priorityColor: Ampel-Schema cli-go-weit (D04). Rot=dringend, weiß=neutral,
+// grün=entspannt. Bewusste Divergenz vom React-Frontend (danger/warning/info/
+// neutral) — anderes Surface.
 func priorityColor(p int) lipgloss.Color {
 	switch p {
-	case 1:
+	case 1, 2: // kritisch/hoch
 		return Red
-	case 2:
-		return Peach
-	case 3:
-		return Yellow
-	case 4:
-		return Subtext
-	default:
-		return Overlay
+	case 3: // mittel
+		return Text
+	default: // P4 niedrig (und tiefer)
+		return Green
 	}
 }
 

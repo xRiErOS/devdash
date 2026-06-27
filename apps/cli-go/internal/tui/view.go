@@ -960,17 +960,20 @@ func spKey(s *api.Sprint) string {
 	return s.Key
 }
 
+// statusDot codiert Status doppelt über Form + Farbe (D09): hohl ○ = geplant/
+// nicht-gestartet, ✗ = abgebrochen/abgelehnt, sonst gefüllt ● = aktive/laufende
+// Zustände. Farbe immer aus statusColor.
 func statusDot(status string) string {
+	var glyph string
 	switch status {
-	case "active":
-		return theme.StatusStyle(status).Render("●")
-	case "completed", "closed":
-		return theme.StatusStyle(status).Render("○")
-	case "cancelled":
-		return theme.StatusStyle(status).Render("✗")
+	case "planning", "planned", "new":
+		glyph = "○" // noch nicht gestartet
+	case "cancelled", "rejected":
+		glyph = "✗" // abgebrochen
 	default:
-		return theme.StatusStyle(status).Render("◌")
+		glyph = "●" // aktiv/laufend/terminal-done
 	}
+	return theme.StatusStyle(status).Render(glyph)
 }
 
 func statusText(status string) string {

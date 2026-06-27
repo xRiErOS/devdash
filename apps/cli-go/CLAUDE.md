@@ -33,6 +33,10 @@ main.go     Entry (dünn)
 - Ein File, eine Verantwortung. `app.go` (Modell+Update) und `view.go` (Render) sind die großen; neue Screens als eigenes File (`memory.go`, `assign.go`, `delete.go` …).
 - huh-Forms laufen **innerhalb** der Loop als Sub-Modell (kein eigenes `form.Run()`); Werte nach `StateCompleted` per keyed `GetString` lesen, nicht per Pointer-Binding (bricht am Value-Copy). Siehe `forms.go`.
 
+## Design / Farben
+
+Visuelle Wahrheit = **`DESIGN.md`** (Wireframe-Rollen → Catppuccin-Macchiato-Token, Layout-Hülle, Accordion-/Filter-Farben, offene Token-Arbeit). Token-Single-Source bleibt `internal/theme/theme.go` — bei Konflikt gewinnt Code. Vor Layout-/Farb-Arbeit `DESIGN.md` lesen.
+
 ## Bubble-Tea-Skill (installiert)
 
 `~/.claude/skills/bubbletea/` (GGPrompts/TFE, via skillfish) — bei Layout-/Render-/Maus-Arbeit konsultieren. Kern: die **4 Golden Rules** (`references/golden-rules.md`):
