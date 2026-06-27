@@ -185,6 +185,8 @@ func (m model) treeLayout() (head, localKeys string, lw, rw, innerH int) {
 	switch {
 	case m.treeSearching:
 		hint = "tippen: filtern   enter: übernehmen   esc: abbrechen"
+	case m.detailFocus: // DD2-76: Detail-Pane fokussiert — Section/Feld-Navigation
+		hint = "j/k:Section/Feld  l/→:rein  h/←:zurück  1…n:Section  esc: Tree-Fokus"
 	case m.treeActive():
 		hint = "j/k:↑↓  l/→:auf  s:Status  /:Suche  f:Filter  esc: Filter+Suche löschen  t:Ranger"
 	}
@@ -225,7 +227,7 @@ func (m model) viewTree() string {
 	// Linke Spalte: Such-/Filterbox als Kopfzeile (DD2-62), darunter die Baumzeilen
 	// gefenstert um den Cursor. Die Kopfzeile kostet 1 Zeile der Innenhöhe.
 	searchLine := m.treeSearchLine(lw - 2)
-	treeLines := m.treeLeftLines(nodes, lw-2)
+	treeLines := m.treeLeftLines(nodes, lw-2, !m.detailFocus) // Cursor friert bei Detail-Fokus (D03)
 	treeLines = windowAround(treeLines, innerH-1, m.treeCursor)
 	left := append([]string{searchLine}, treeLines...)
 	for len(left) < innerH {
@@ -253,11 +255,14 @@ func (m model) viewTree() string {
 		detail = append(detail, "")
 	}
 
+	// D03: Pane-Border-Tausch — der fokussierte Pane ist Mauve (aktiv), der andere
+	// Overlay (inaktiv). Tree-Fokus = links Mauve, Detail-Fokus = rechts Mauve.
+	leftCol, rightCol := paneBorderColors(m.detailFocus)
 	leftBox := lipgloss.NewStyle().Width(lw).
-		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
+		Border(lipgloss.RoundedBorder()).BorderForeground(leftCol).
 		Render(strings.Join(left, "\n"))
 	rightBox := lipgloss.NewStyle().Width(rw).
-		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Overlay).
+		Border(lipgloss.RoundedBorder()).BorderForeground(rightCol).
 		Render(strings.Join(detail, "\n"))
 	body := lipgloss.JoinHorizontal(lipgloss.Top, leftBox, rightBox)
 
@@ -267,7 +272,7 @@ func (m model) viewTree() string {
 
 // treeLeftLines rendert die Baumzeilen (mit Expand-Marker, Einrückung, Cursor).
 // Der Cursor wird per absolutem Index gesetzt, bevor windowAround fenstert.
-func (m model) treeLeftLines(nodes []treeNode, w int) []string {
+func (m model) treeLeftLines(nodes []treeNode, w int, active bool) []string {
 	lines := make([]string, 0, len(nodes))
 	for i, n := range nodes {
 		marker := "  "
@@ -297,9 +302,15 @@ func (m model) treeLeftLines(nodes []treeNode, w int) []string {
 		if i == m.treeCursor {
 			// D08: Cursor = Balken ▌ + ganze Zeile in Akzentfarbe getönt. Eigen-Farben
 			// der Zelle (Status-Dot, Key, Typ-Icon) werden gestrippt und einheitlich
-			// in Akzent umgefärbt — die Selektion ist als Ganzes erkennbar.
+			// in Akzent umgefärbt — die Selektion ist als Ganzes erkennbar. Bei Detail-
+			// Fokus friert der Tree-Cursor (D03): Balken bleibt, aber muted/Overlay statt
+			// Accent — nur der fokussierte Pane zeigt seinen aktiven Cursor.
 			plain := truncate(ansi.Strip(row), w-1)
-			lines = append(lines, theme.Accent.Render("▌"+plain))
+			if active {
+				lines = append(lines, theme.Accent.Render("▌"+plain))
+			} else {
+				lines = append(lines, theme.Dim.Render("▌"+plain))
+			}
 		} else {
 			lines = append(lines, " "+truncate(row, w-1))
 		}
@@ -368,7 +379,9 @@ func (m model) treeDetail(n treeNode, w int) string {
 		// DD2-50: Felder als ziffern-aktiviertes Accordion (löst DD2-43). bodyW = w-2,
 		// da die Body-Box ihre Border außen anlegt (renderAccordion).
 		b.WriteString(theme.Muted.Render("Sections: Ziffer [1..n] öffnet") + "\n")
-		b.WriteString(renderAccordion(m.issueSections(it, w-2), m.accOpen, w))
+		// DD2-76: Fokus-Zustand in den Renderer (D08-Balken nur bei Detail-Fokus).
+		focus := detailFocusView{active: m.detailFocus, level: m.detailLevel, sec: m.secCursor, field: m.fieldCursor}
+		b.WriteString(renderAccordion(m.issueSections(it, w-2), m.accOpen, w, focus))
 	default:
 		b.WriteString(theme.Dim.Render("(nichts gewählt — l/→ klappt auf)"))
 	}
@@ -405,6 +418,11 @@ func windowAround(lines []string, height, cursor int) []string {
 func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.treeSearching {
 		return m.keyTreeSearch(msg)
+	}
+	// DD2-76: liegt der Fokus in der Detail-Pane, übernimmt die Fokus-Maschine
+	// (Section/Feld-Nav) — vor der Tree-Navigation.
+	if m.detailFocus {
+		return m.keyDetailFocus(msg)
 	}
 	nodes := m.treeNodes()
 	switch msg.String() {
@@ -800,6 +818,12 @@ func (m model) treeExpand(nodes []treeNode) (tea.Model, tea.Cmd) {
 		if _, ok := m.treeIssues[sp.ID]; !ok {
 			m.status = "lädt Issues …"
 			return m, loadSprint(m.client, sp.ID)
+		}
+	case tkIssue:
+		// DD2-76: ein Issue ist ein Blatt — „rein" verlagert den Fokus in die
+		// Detail-Pane statt aufzuklappen (D01).
+		if n.issue != nil {
+			return m.enterDetailFocus()
 		}
 	}
 	return m, nil

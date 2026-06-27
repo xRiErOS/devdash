@@ -64,11 +64,11 @@ func TestIssueSectionsPresentOnly(t *testing.T) {
 // Exklusiv: nur der Body der offenen Section erscheint; alle Header sind da.
 func TestRenderAccordionExclusiveOpen(t *testing.T) {
 	secs := []accordionSection{
-		{"Eins", "BODY-EINS"},
-		{"Zwei", "BODY-ZWEI"},
-		{"Drei", "BODY-DREI"},
+		{title: "Eins", body: "BODY-EINS"},
+		{title: "Zwei", body: "BODY-ZWEI"},
+		{title: "Drei", body: "BODY-DREI"},
 	}
-	out := ansi.Strip(renderAccordion(secs, 2, 60))
+	out := ansi.Strip(renderAccordion(secs, 2, 60, detailFocusView{}))
 	if !strings.Contains(out, "[1]") || !strings.Contains(out, "[2]") || !strings.Contains(out, "[3]") {
 		t.Errorf("nicht alle Section-Header da: %q", out)
 	}

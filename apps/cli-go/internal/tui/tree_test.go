@@ -119,7 +119,7 @@ func TestTreeCursorRowTintedAccent(t *testing.T) {
 	nodes := m.treeNodes()
 	m.treeCursor = 0 // Meilenstein-Zeile (trägt gefärbten Status-Dot)
 
-	lines := m.treeLeftLines(nodes, 32)
+	lines := m.treeLeftLines(nodes, 32, true)
 	cur := lines[0]
 
 	if !strings.HasPrefix(ansi.Strip(cur), "▌") {
@@ -130,7 +130,7 @@ func TestTreeCursorRowTintedAccent(t *testing.T) {
 	}
 	// Gegenprobe: eine Nicht-Cursor-Zeile behält ihre Eigen-Farben (≠ uniform Accent).
 	m.treeCursor = 1
-	other := m.treeLeftLines(nodes, 32)[0]
+	other := m.treeLeftLines(nodes, 32, true)[0]
 	if other == theme.Accent.Render(ansi.Strip(other)) {
 		t.Errorf("Nicht-Cursor-Zeile fälschlich akzentgetönt: %q", other)
 	}

@@ -183,6 +183,16 @@ type model struct {
 	// 0 = keine offen. Exklusiv (max. eine offen); Ziffer toggelt. Default 1.
 	accOpen int
 
+	// Detail-Fokus-Maschine (DD2-76): enter/l auf einem Issue-Knoten verlagert den
+	// Fokus aus dem Tree in die Detail-Pane (detailFocus). Dort wird zwei-stufig
+	// navigiert: detailLevel 0 = Section-Ebene (secCursor wählt die Accordion-
+	// Section), 1 = Feld-Ebene (fieldCursor wählt das editierbare Feld der offenen
+	// Section). Read-only — der Schreibpfad folgt in DD2-77. Klemmen wie treeCursor.
+	detailFocus bool
+	detailLevel int // 0 = Section, 1 = Feld
+	secCursor   int // index in issueSections (0-basiert)
+	fieldCursor int // index in der aktiven Section.fields
+
 	// Tree-Suche (DD2-62): `/` öffnet das Suchfeld im Tree-Kopf, tippen filtert live.
 	// treeSearching = Eingabe fokussiert; treeQuery = aktiver Filter (auch nach enter).
 	treeSearch    textinput.Model

@@ -84,3 +84,18 @@ func goldenTreeIssueModel() model {
 }
 
 func TestGoldenTreeIssue(t *testing.T) { assertGolden(t, "tree_issue", goldenTreeIssueModel().View()) }
+
+// goldenTreeFocusModel hält den Detail-Fokus auf dem Issue (DD2-76): rechter Pane
+// Mauve (aktiv), linker Tree-Cursor eingefroren, aktive Section mit D08-Balken.
+func goldenTreeFocusModel() model {
+	m := goldenTreeIssueModel()
+	m.detailFocus = true
+	m.detailLevel = 0
+	m.secCursor = 0
+	m.accOpen = 1
+	return m
+}
+
+func TestGoldenTreeDetailFocus(t *testing.T) {
+	assertGolden(t, "tree_detail_focus", goldenTreeFocusModel().View())
+}
