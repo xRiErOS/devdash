@@ -102,3 +102,70 @@ export function patchMilestoneStatus(db, milestoneId, newStatus, opts = {}) {
 
   return db.prepare('SELECT * FROM milestones WHERE id = ?').get(milestoneId)
 }
+
+/**
+ * milestoneCompletePreview — read-only: wie viele offene Sprints + offene Issues
+ * eine Cascade-Complete terminal setzen würde (Grundlage für den TUI-Confirm, DD2-28).
+ */
+export function milestoneCompletePreview(db, milestoneId) {
+  const sprints = db.prepare('SELECT id, status FROM sprints WHERE milestone_id = ?').all(milestoneId)
+  const openSprintIds = sprints.filter(s => !DONE_SPRINT_STATUSES.has(s.status)).map(s => s.id)
+  let issues = 0
+  for (const sid of openSprintIds) {
+    issues += db.prepare(
+      "SELECT COUNT(*) AS c FROM backlog WHERE assigned_sprint = ? AND status NOT IN ('done','cancelled')"
+    ).get(sid).c
+  }
+  return { openSprints: openSprintIds.length, issues, openSprintIds }
+}
+
+/**
+ * cascadeCompleteMilestone — PO-getriggerter Komplett-Abschluss (DD2-28). Statt am
+ * SPRINTS_NOT_DONE-Gate (422) zu scheitern, setzt der PO bewusst die ganze Kette
+ * terminal: offene Sprints → completed, ihre offenen Issues → done, dann der
+ * Meilenstein → completed. Nur aus 'active' (die normale gated Transition).
+ * Transaktional + Audit. Spiegelt cascadeDeleteSprints, nur mit Ziel-Status statt Delete.
+ *
+ * Bewusste, eng begrenzte Ausnahme zu DD-186 (done sonst nur via sprint-complete):
+ * Hier ist der PO der handelnde Akteur über die TUI — kein Automatik-Verdikt.
+ */
+export function cascadeCompleteMilestone(db, milestoneId, opts = {}) {
+  const { agentId = 'ui', auditLog = null } = opts
+  const milestone = db.prepare('SELECT * FROM milestones WHERE id = ?').get(milestoneId)
+  if (!milestone) {
+    throw new MilestoneLifecycleError('Milestone not found', { statusCode: 404, code: 'NOT_FOUND' })
+  }
+  if (milestone.status === 'completed') return milestone // idempotent
+  if (milestone.status !== 'active') {
+    throw new MilestoneLifecycleError(
+      `Cascade-Complete nur aus 'active' möglich (Meilenstein ist: ${milestone.status})`,
+      { statusCode: 400, code: 'TRANSITION_INVALID', field: 'status' }
+    )
+  }
+  const tx = db.transaction(() => {
+    const sprints = db.prepare('SELECT id, status FROM sprints WHERE milestone_id = ?').all(milestoneId)
+    for (const s of sprints) {
+      if (DONE_SPRINT_STATUSES.has(s.status)) continue
+      const issues = db.prepare(
+        "SELECT id, status FROM backlog WHERE assigned_sprint = ? AND status NOT IN ('done','cancelled')"
+      ).all(s.id)
+      for (const it of issues) {
+        db.prepare("UPDATE backlog SET status = 'done', completed_at = CURRENT_TIMESTAMP WHERE id = ?").run(it.id)
+        if (typeof auditLog === 'function') {
+          auditLog('backlog', it.id, 'milestone_cascade_done', { status: it.status }, { status: 'done' }, agentId)
+        }
+      }
+      db.prepare("UPDATE sprints SET status = 'completed' WHERE id = ?").run(s.id)
+      if (typeof auditLog === 'function') {
+        auditLog('sprints', s.id, 'milestone_cascade_complete', { status: s.status }, { status: 'completed' }, agentId)
+      }
+    }
+    db.prepare("UPDATE milestones SET status = 'completed' WHERE id = ?").run(milestoneId)
+    if (typeof auditLog === 'function') {
+      auditLog('milestones', milestoneId, 'milestone_status_change',
+        { status: milestone.status }, { status: 'completed', cascade: true }, agentId)
+    }
+  })
+  tx()
+  return db.prepare('SELECT * FROM milestones WHERE id = ?').get(milestoneId)
+}

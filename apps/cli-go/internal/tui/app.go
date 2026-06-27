@@ -130,6 +130,12 @@ type model struct {
 	delIssues  int
 	delDocs    int
 
+	// Meilenstein-Cascade-Complete-Confirm (DD2-28): completed mit offenen Sprints.
+	mcConfirm bool
+	mcID      int
+	mcName    string
+	mcSprints int
+
 	// Memory-Browser (T18): Master-Detail über project_memories.
 	memList      []api.ProjectMemory
 	memlist      listState
@@ -524,6 +530,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.delConfirm {
 		return m.keyDelete(msg)
 	}
+	// Meilenstein-Cascade-Complete-Confirm (DD2-28).
+	if m.mcConfirm {
+		return m.keyMilestoneCascade(msg)
+	}
 	// Filter-Modal fängt zuerst.
 	if m.filtering {
 		return m.keyFilter(msg)
@@ -820,8 +830,50 @@ func (m model) keyMilestoneStatus(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		target := m.msopts[m.msmenu.cursor]
+		// DD2-28: completed mit offenen Sprints → Cascade-Confirm statt 422.
+		if target == "completed" {
+			if ms := m.selMilestone(); ms != nil {
+				open := openSprintCount(ms.Sprints)
+				if open > 0 {
+					m.mcConfirm = true
+					m.mcID = ms.ID
+					m.mcName = ms.Name
+					m.mcSprints = open
+					m.status = ""
+					return m, nil
+				}
+			}
+		}
 		m.status = "Meilenstein → " + target + " …"
 		return m, doMilestoneStatus(m.client, m.msTargetID, target)
+	}
+	return m, nil
+}
+
+// openSprintCount zählt nicht-terminale Sprints (DD2-28 Cascade-Confirm).
+func openSprintCount(sprints []api.Sprint) int {
+	n := 0
+	for _, s := range sprints {
+		switch s.Status {
+		case "completed", "closed", "cancelled":
+		default:
+			n++
+		}
+	}
+	return n
+}
+
+// keyMilestoneCascade behandelt den Cascade-Complete-Confirm (DD2-28).
+func (m model) keyMilestoneCascade(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "y", "Y", "enter":
+		m.mcConfirm = false
+		m.status = "Meilenstein wird kaskadierend abgeschlossen …"
+		return m, doMilestoneCascadeComplete(m.client, m.mcID)
+	case "n", "N", "esc", "q":
+		m.mcConfirm = false
+		m.status = noticeText("Abgebrochen")
+		return m, nil
 	}
 	return m, nil
 }

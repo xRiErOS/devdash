@@ -42,6 +42,17 @@ func (c *Client) SetMilestoneStatus(id int, status string) (*Milestone, error) {
 	return &ms, json.Unmarshal(data, &ms)
 }
 
+// CompleteMilestoneCascade schließt einen Meilenstein kaskadierend ab (DD2-28):
+// offene Sprints → completed, ihre offenen Issues → done. PUT mit cascade:true.
+func (c *Client) CompleteMilestoneCascade(id int) (*Milestone, error) {
+	data, err := c.Do("PUT", fmt.Sprintf("/api/milestones/%d", id), map[string]any{"status": "completed", "cascade": true})
+	if err != nil {
+		return nil, err
+	}
+	var ms Milestone
+	return &ms, json.Unmarshal(data, &ms)
+}
+
 // GetMilestone liefert einen Meilenstein inkl. Sprints.
 func (c *Client) GetMilestone(id int) (*Milestone, error) {
 	data, err := c.Do("GET", fmt.Sprintf("/api/milestones/%d", id), nil)

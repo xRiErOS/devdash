@@ -28,7 +28,7 @@ import { insertDependency, getDependenciesForMilestone } from './lib/milestoneDe
 import { insertDependency as insertSprintDependency, getDependenciesForSprint } from './lib/sprintDependencies.js'
 import { computeSprintCompleteness } from './lib/sprintCompleteness.js'
 import { insertDodItem, patchDodItem, deleteDodItem, listDodItems, reorderDodItems } from './lib/milestoneDodItems.js'
-import { patchMilestoneStatus } from './lib/milestoneLifecycle.js'
+import { patchMilestoneStatus, cascadeCompleteMilestone } from './lib/milestoneLifecycle.js'
 import { getProjectWithCounts, listProjectsWithCounts } from './lib/projectCounts.js'
 import { priorityFilter } from './lib/backlogFilters.js'
 import {
@@ -1973,11 +1973,16 @@ app.put('/api/milestones/:id', (req, res) => {
   // wird die Transition explizit validiert und Audit-Log geschrieben.
   if (Object.prototype.hasOwnProperty.call(req.body, 'status')) {
     try {
-      const updated = patchMilestoneStatus(db, id, String(req.body.status), {
-        cancellationNotes: req.body.cancellation_notes || req.body.cancellationNotes || null,
-        agentId: req.body.agent_id || 'ui',
-        auditLog,
-      })
+      // DD2-28: PO-getriggerte Cascade-Complete — statt am 422 SPRINTS_NOT_DONE zu
+      // scheitern, setzt cascade:true offene Sprints + Issues terminal (nur status=completed).
+      const wantCascade = req.body.cascade === true || req.body.cascade === 'true'
+      const updated = (String(req.body.status) === 'completed' && wantCascade)
+        ? cascadeCompleteMilestone(db, id, { agentId: req.body.agent_id || 'ui', auditLog })
+        : patchMilestoneStatus(db, id, String(req.body.status), {
+            cancellationNotes: req.body.cancellation_notes || req.body.cancellationNotes || null,
+            agentId: req.body.agent_id || 'ui',
+            auditLog,
+          })
       // status-Update separat — andere Felder (name/description/target_date) im Loop unten,
       // wenn body sie ebenfalls enthält. Status ist schon persistiert.
       // Update milestone-Variable für UNIQUE-Check unten + Response.

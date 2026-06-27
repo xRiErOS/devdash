@@ -95,6 +95,21 @@ func doMilestoneStatus(c *api.Client, id int, status string) tea.Cmd {
 	}
 }
 
+// doMilestoneCascadeComplete schließt einen Meilenstein kaskadierend ab (DD2-28):
+// offene Sprints → completed, ihre offenen Issues → done. Lädt danach die Columns neu.
+func doMilestoneCascadeComplete(c *api.Client, id int) tea.Cmd {
+	return func() tea.Msg {
+		if _, err := c.CompleteMilestoneCascade(id); err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		ms, err := c.ListMilestones("all")
+		if err != nil {
+			return errMsg{err}
+		}
+		return milestonesMsg{ms}
+	}
+}
+
 // doSetSprintMilestone weist einen Sprint einem Meilenstein zu (nil → lösen, T03)
 // und lädt die Columns neu.
 func doSetSprintMilestone(c *api.Client, sprintID int, milestoneID *int) tea.Cmd {
