@@ -73,3 +73,14 @@ func goldenTreeModel() model {
 }
 
 func TestGoldenTree(t *testing.T) { assertGolden(t, "tree", goldenTreeModel().View()) }
+
+// goldenTreeIssueModel setzt den Cursor auf die Issue-Zeile (DD2-99) mit offener
+// Section 1 → lockt das Accordion-Detail-Layout (DD2-50).
+func goldenTreeIssueModel() model {
+	m := goldenTreeModel()
+	m.treeCursor = 2 // [mile, sprint, issue] → Issue selektiert
+	m.accOpen = 1    // erste Section offen
+	return m
+}
+
+func TestGoldenTreeIssue(t *testing.T) { assertGolden(t, "tree_issue", goldenTreeIssueModel().View()) }

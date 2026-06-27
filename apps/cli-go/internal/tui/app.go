@@ -179,6 +179,9 @@ type model struct {
 	treeExpSprint map[int]bool
 	treeIssues    map[int][]api.Issue
 	treeCursor    int
+	// accOpen = aktuell offene Accordion-Section im Issue-Detail (DD2-50), 1-basiert,
+	// 0 = keine offen. Exklusiv (max. eine offen); Ziffer toggelt. Default 1.
+	accOpen int
 
 	// Tree-Suche (DD2-62): `/` öffnet das Suchfeld im Tree-Kopf, tippen filtert live.
 	// treeSearching = Eingabe fokussiert; treeQuery = aktiver Filter (auch nach enter).
@@ -266,6 +269,7 @@ func newModel(client *api.Client, project *api.Project, global *api.Client) mode
 	m.treeExpMile = map[int]bool{}
 	m.treeExpSprint = map[int]bool{}
 	m.treeIssues = map[int][]api.Issue{}
+	m.accOpen = 1 // DD2-50: erste Accordion-Section default offen
 	ti := textinput.New() // DD2-62: Tree-Suchfeld
 	ti.Placeholder = "Suche nach Begriffen"
 	ti.Prompt = ""

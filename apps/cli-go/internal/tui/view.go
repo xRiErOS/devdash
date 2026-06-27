@@ -802,6 +802,43 @@ type gridCell struct {
 	content string
 }
 
+// gridColWidths berechnet die Weight-proportionalen Spaltenbreiten (Golden Rule
+// #4): avail = totalWidth minus gap*(n-1); jede Spalte bekommt ihren Weight-Anteil,
+// die letzte den Rundungsrest, sodass die Summe exakt avail ergibt. Single Source
+// der Breitenmathematik für grid() UND vorab-umbrechende Aufrufer (DD2-50 Accordion).
+func gridColWidths(totalWidth, gap int, weights []int) []int {
+	n := len(weights)
+	if n == 0 {
+		return nil
+	}
+	if gap < 0 {
+		gap = 0
+	}
+	totalWeight := 0
+	for _, wt := range weights {
+		totalWeight += maxInt(wt, 1)
+	}
+	avail := totalWidth - gap*(n-1)
+	if avail < n {
+		avail = n // mindestens 1 Spalte je Zelle
+	}
+	widths := make([]int, n)
+	used := 0
+	for i := 0; i < n; i++ {
+		if i == n-1 {
+			widths[i] = avail - used
+		} else {
+			w := avail * maxInt(weights[i], 1) / totalWeight
+			if w < 1 {
+				w = 1
+			}
+			widths[i] = w
+			used += w
+		}
+	}
+	return widths
+}
+
 // grid setzt mehrere gridCells nebeneinander (lipgloss.JoinHorizontal) auf
 // totalWidth Spalten, gap Spalten Abstand dazwischen. Wiederverwendbares
 // Zweispalten-/n-Spalten-Primitiv für Detail-Sektionen (DD2-50 Accordion,
@@ -816,30 +853,11 @@ func grid(totalWidth, gap int, cells ...gridCell) string {
 	if gap < 0 {
 		gap = 0
 	}
-	totalWeight := 0
-	for _, c := range cells {
-		totalWeight += maxInt(c.weight, 1)
-	}
-	avail := totalWidth - gap*(len(cells)-1)
-	if avail < len(cells) {
-		avail = len(cells) // mindestens 1 Spalte je Zelle
-	}
-	// Spaltenbreiten Weight-proportional; die letzte Spalte bekommt den Rest
-	// (Rundungsdifferenz), damit die Summe exakt avail ergibt.
-	widths := make([]int, len(cells))
-	used := 0
+	weights := make([]int, len(cells))
 	for i, c := range cells {
-		if i == len(cells)-1 {
-			widths[i] = avail - used
-		} else {
-			w := avail * maxInt(c.weight, 1) / totalWeight
-			if w < 1 {
-				w = 1
-			}
-			widths[i] = w
-			used += w
-		}
+		weights[i] = c.weight
 	}
+	widths := gridColWidths(totalWidth, gap, weights)
 	// Je Spalte: Zeilen truncaten (kein Auto-Wrap) und gemeinsame Höhe ermitteln.
 	colLines := make([][]string, len(cells))
 	maxH := 0

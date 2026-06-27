@@ -181,7 +181,7 @@ func (m model) treeLayout() (head, localKeys string, lw, rw, innerH int) {
 	head = m.breadcrumb("Projekt-Browser") // Zone 1: `> slug: Title` + globale Shortcuts
 	// Zone 3 = NUR view-spezifische Tasten; globale (b/R/p/q/Cmd) stehen bereits im
 	// Header rechts → nicht doppeln (verwirrt, PO-Befund Augenschein).
-	hint := "j/k:↑↓  l/→:auf  h/←:zu  s:Status  S:Meilenstein  d:löschen  y:yank  /:Suche  f:Filter  t:Ranger"
+	hint := "j/k:↑↓  l/→:auf  h/←:zu  1…n:Section  s:Status  S:Meilenstein  d:löschen  y:yank  /:Suche  f:Filter  t:Ranger"
 	switch {
 	case m.treeSearching:
 		hint = "tippen: filtern   enter: übernehmen   esc: abbrechen"
@@ -364,15 +364,11 @@ func (m model) treeDetail(n treeNode, w int) string {
 			{theme.Priority(it.Priority), "prio"},
 			{theme.TypeIcon(it.Type) + " " + theme.TypeStyle(it.Type).Render(it.Type), "type"},
 			{tags, "tags"},
-		}, statusText(it.Status), w) + "\n")
-		field := func(label, val string) {
-			if strings.TrimSpace(val) != "" {
-				b.WriteString("\n" + theme.Accent.Render(label+":") + "\n" + val + "\n")
-			}
-		}
-		field("Goal", deref(it.Goal))
-		field("Background", deref(it.Background))
-		field("Beschreibung", deref(it.Description))
+		}, statusText(it.Status), w) + "\n\n")
+		// DD2-50: Felder als ziffern-aktiviertes Accordion (löst DD2-43). bodyW = w-2,
+		// da die Body-Box ihre Border außen anlegt (renderAccordion).
+		b.WriteString(theme.Muted.Render("Sections: Ziffer [1..n] öffnet") + "\n")
+		b.WriteString(renderAccordion(m.issueSections(it, w-2), m.accOpen, w))
 	default:
 		b.WriteString(theme.Dim.Render("(nichts gewählt — l/→ klappt auf)"))
 	}
@@ -427,6 +423,17 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(textinput.Blink, cmd)
 	case "f": // DD2-62 Rework: Filter-Facetten-Menü (Art/Issue-Type/Status)
 		return m.openTreeFilter()
+	case "1", "2", "3", "4", "5", "6", "7", "8", "9":
+		// DD2-50: Ziffer toggelt die Accordion-Section im Issue-Detail (exklusiv —
+		// gleiche Ziffer schließt, andere wechselt). Nur sinnvoll auf Issue-Knoten,
+		// schadet aber sonst nicht (Meilenstein/Sprint rendern kein Accordion).
+		d := int(msg.String()[0] - '0')
+		if m.accOpen == d {
+			m.accOpen = 0
+		} else {
+			m.accOpen = d
+		}
+		return m, nil
 	case "t":
 		m.view = viewColumns
 		m.status = ""
