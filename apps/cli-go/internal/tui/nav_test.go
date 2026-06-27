@@ -13,8 +13,8 @@ func keyMsg(s string) tea.KeyMsg {
 
 func columnsModel() model {
 	ms := []api.Milestone{
-		{ID: 1, Name: "M1", Sprints: []api.Sprint{{ID: 10, Key: "SPF#1"}, {ID: 11, Key: "SPF#2"}}},
-		{ID: 2, Name: "M2", Sprints: []api.Sprint{{ID: 20, Key: "SPF#3"}}},
+		{ID: 1, Name: "M1", Status: "active", Sprints: []api.Sprint{{ID: 10, Key: "SPF#1"}, {ID: 11, Key: "SPF#2"}}},
+		{ID: 2, Name: "M2", Status: "planning", Sprints: []api.Sprint{{ID: 20, Key: "SPF#3"}}},
 	}
 	m := newModel(api.NewClient("9"), &api.Project{ID: 9, Slug: "sprout", Prefix: "SPF"}, nil)
 	m.view = viewColumns

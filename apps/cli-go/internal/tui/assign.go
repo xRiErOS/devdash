@@ -24,8 +24,9 @@ type smOpt struct {
 
 func (m *model) milestonePickOpts() []smOpt {
 	opts := []smOpt{{nil, "(kein Meilenstein — lösen)"}}
-	for i := range m.milestones {
-		ms := m.milestones[i]
+	// DD2-27: nur offene/aktive Meilensteine als Zuweisungsziel — geschlossene/
+	// stornierte taugen nicht und verwässern den Picker (analog Sprint-Create-Form).
+	for _, ms := range openMilestones(m.milestones) {
 		id := ms.ID
 		opts = append(opts, smOpt{&id, ms.Name + theme.Dim.Render(" ("+ms.Status+")")})
 	}

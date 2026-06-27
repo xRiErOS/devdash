@@ -45,6 +45,25 @@ func TestSprintMilestonePickerEnterDispatches(t *testing.T) {
 	}
 }
 
+// DD2-27: geschlossene/stornierte Meilensteine erscheinen NICHT im Zuweisungs-Picker.
+func TestMilestonePickerFiltersClosed(t *testing.T) {
+	m := columnsModel()
+	m.milestones = append(m.milestones,
+		api.Milestone{ID: 3, Name: "M-Done", Status: "completed"},
+		api.Milestone{ID: 4, Name: "M-Cancel", Status: "cancelled"},
+	)
+	opts := m.milestonePickOpts()
+	// (kein) + M1(active) + M2(planning) = 3; completed/cancelled raus.
+	if len(opts) != 3 {
+		t.Fatalf("smOpts=%d, want 3 (kein + 2 offene) — geschlossene nicht gefiltert", len(opts))
+	}
+	for _, o := range opts {
+		if o.id != nil && (*o.id == 3 || *o.id == 4) {
+			t.Errorf("geschlossener Meilenstein id=%d im Picker", *o.id)
+		}
+	}
+}
+
 // --- Flow B: Meilenstein → Sprints ---
 
 func TestMilestoneAssignChecklistFlow(t *testing.T) {
