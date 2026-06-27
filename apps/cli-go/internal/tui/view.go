@@ -239,10 +239,46 @@ func scrollView(content string, height, offset int) (string, string) {
 // globalem Footer (DD2-25 „100% Höhe, globaler Header/Footer"). crumb = Screen-Titel,
 // hint = Screen-Tasten (von m.status überschrieben). Lange Zeilen werden auf die
 // Terminalbreite umgebrochen (sauberes Scroll-Zeilenzählen).
-func (m model) framed(crumb, body, hint string) string {
+// hslot ist ein Header-Infofeld (Label/Wert) für das gemeinsame Screen-Grid.
+type hslot struct{ label, value string }
+
+// screenTitle stellt jedem View-Titel das Projekt-Präfix voran (DD2-48):
+// konsistente Orientierung über alle Screens, z.B. "dd2 — Issue DD2-99".
+func (m model) screenTitle(name string) string {
+	p := "dd"
+	if m.project != nil && m.project.Prefix != "" {
+		p = strings.ToLower(m.project.Prefix)
+	}
+	return p + " — " + name
+}
+
+// metaGrid rendert die Header-Slots in FESTER Reihenfolge als eine umbrechende
+// Zeile — gleiche Info an gleicher Stelle über alle Detail-Views (DD2-23, „welche
+// Information an welcher Stelle"). Leere Werte fallen raus. Rein informativ:
+// Mutation läuft nie über den Header (Meilenstein nicht mutierbar).
+func metaGrid(slots []hslot, width int) string {
+	cells := make([]string, 0, len(slots))
+	for _, s := range slots {
+		if strings.TrimSpace(ansi.Strip(s.value)) == "" {
+			continue
+		}
+		cells = append(cells, theme.Dim.Render(s.label+": ")+s.value)
+	}
+	if len(cells) == 0 {
+		return ""
+	}
+	return lipgloss.NewStyle().Width(width).Render(strings.Join(cells, "   "))
+}
+
+// chrome ist die gemeinsame Screen-Passage (DD2-48): globaler Header (Projekt+Nav),
+// Titel mit Präfix, optionales Info-Grid, höhenfüllender Scroll-Body, Footer.
+func (m model) chrome(title string, slots []hslot, body, hint string) string {
 	head := m.header()
-	if crumb != "" {
-		head += "\n" + theme.Header.Render(crumb)
+	if title != "" {
+		head += "\n" + theme.Header.Render(m.screenTitle(title))
+	}
+	if g := metaGrid(slots, m.termWidth()); g != "" {
+		head += "\n" + g
 	}
 	foot := hint
 	if m.status != "" {
@@ -259,6 +295,11 @@ func (m model) framed(crumb, body, hint string) string {
 		footLine = theme.Accent.Render(ind) + "  " + theme.Dim.Render(foot)
 	}
 	return head + "\n" + win + "\n" + footLine
+}
+
+// framed = chrome ohne Info-Grid (Backlog/Reviews/Picker).
+func (m model) framed(title, body, hint string) string {
+	return m.chrome(title, nil, body, hint)
 }
 
 // --- Picker ---
@@ -425,14 +466,15 @@ func (m model) viewMilestone() string {
 	}
 	var b strings.Builder
 	b.WriteString(theme.Header.Render(ms.Name) + "\n")
-	meta := fmt.Sprintf("Status: %s   Fortschritt: %d/%d", statusText(ms.Status), ms.Done, ms.Total)
-	if d := deref(ms.TargetDate); d != "" {
-		meta += "   Ziel: " + d
-	}
+	status := statusText(ms.Status)
 	if ms.Deferred == 1 {
-		meta += "   " + theme.Dim.Render("⏸ zurückgestellt")
+		status += " " + theme.Dim.Render("⏸ zurückgestellt")
 	}
-	b.WriteString(meta + "\n")
+	slots := []hslot{
+		{"Status", status},
+		{"Fortschritt", fmt.Sprintf("%d/%d", ms.Done, ms.Total)},
+		{"Ziel", deref(ms.TargetDate)},
+	}
 	if d := deref(ms.Description); d != "" {
 		b.WriteString("\n" + theme.Dim.Render("Beschreibung:") + "\n" + d + "\n")
 	}
@@ -444,7 +486,7 @@ func (m model) viewMilestone() string {
 		}
 		b.WriteString(fmt.Sprintf("  %-8s %s  %s%s\n", s.Key, statusText(s.Status), truncate(s.Name, 30), goal))
 	}
-	return m.framed("Meilenstein", b.String(),
+	return m.chrome("Meilenstein", slots, b.String(),
 		"S: Status   a: Sprints zuweisen   y: kopieren   j/k: scrollen   esc/q: zurück")
 }
 
@@ -460,16 +502,16 @@ func (m model) viewSprint() string {
 	if m.curSprint != nil && m.curSprint.ID == s.ID {
 		items = m.curSprint.Items
 	}
+	slots := []hslot{
+		{"Status", statusText(s.Status)},
+		{"Meilenstein", sprintMilestoneName(s, m.selMilestone())},
+		{"Fortschritt", fmt.Sprintf("%d/%d", s.DoneCount, s.ItemCount)},
+	}
 	var b strings.Builder
-	b.WriteString(statusText(s.Status) + "\n")
 	b.WriteString(theme.Header.Render(s.Name) + "\n")
 	if g := deref(s.Goal); g != "" {
 		b.WriteString("\n" + theme.Accent.Render("Goal:") + "\n" + g + "\n")
 	}
-	if msn := sprintMilestoneName(s, m.selMilestone()); msn != "" {
-		b.WriteString(theme.Dim.Render("Meilenstein: "+msn) + "\n")
-	}
-	b.WriteString(theme.Dim.Render(fmt.Sprintf("Fortschritt: %d/%d", s.DoneCount, s.ItemCount)) + "\n")
 
 	b.WriteString("\n" + theme.Dim.Render(fmt.Sprintf("Issues (%d):", len(items))) + "\n")
 	b.WriteString("  " + issueColHeader() + "\n")
@@ -485,7 +527,7 @@ func (m model) viewSprint() string {
 		b.WriteString("\n" + m.reviewSummary() + "\n")
 		m.curSprint = old
 	}
-	return m.framed("Sprint "+s.Key, b.String(),
+	return m.chrome("Sprint "+s.Key, slots, b.String(),
 		"R: Review-Cockpit   m: Meilenstein   y: kopieren   j/k: scrollen   esc/q: zurück")
 }
 
@@ -496,29 +538,24 @@ func (m model) viewDetail() string {
 	if it == nil {
 		return "\n  (kein Issue)\n"
 	}
-	var b strings.Builder
-	b.WriteString(theme.StatusStyle(it.Status).Render(it.Status) + "  " +
-		theme.Key.Render(it.Key) + "  " + theme.TypeIcon(it.Type) + " " +
-		theme.TypeStyle(it.Type).Render(it.Type) + "  " + theme.Priority(it.Priority) + "\n")
-	b.WriteString(theme.Header.Render(it.Title) + "\n")
-
-	meta := []string{}
-	if s := deref(it.Milestone); s != "" {
-		meta = append(meta, "Meilenstein: "+s)
-	}
-	if s := deref(it.SprintKey); s != "" {
-		meta = append(meta, "Sprint: "+s)
-	}
+	tags := ""
 	if len(it.Tags) > 0 {
 		names := make([]string, len(it.Tags))
 		for i, t := range it.Tags {
 			names[i] = t.Name
 		}
-		meta = append(meta, "Tags: "+strings.Join(names, ", "))
+		tags = strings.Join(names, ", ")
 	}
-	if len(meta) > 0 {
-		b.WriteString(theme.Dim.Render(strings.Join(meta, "   ")) + "\n")
+	slots := []hslot{
+		{"Status", statusText(it.Status)},
+		{"Typ", theme.TypeIcon(it.Type) + " " + theme.TypeStyle(it.Type).Render(it.Type)},
+		{"Prio", theme.Priority(it.Priority)},
+		{"Meilenstein", deref(it.Milestone)},
+		{"Sprint", deref(it.SprintKey)},
+		{"Tags", tags},
 	}
+	var b strings.Builder
+	b.WriteString(theme.Header.Render(it.Title) + "\n")
 
 	field := func(label, val string) {
 		if strings.TrimSpace(val) == "" {
@@ -558,7 +595,7 @@ func (m model) viewDetail() string {
 	if len(stamp) > 0 {
 		b.WriteString("\n" + theme.Dim.Render(strings.Join(stamp, " · ")) + "\n")
 	}
-	return m.framed("Issue "+it.Key, b.String(),
+	return m.chrome("Issue "+it.Key, slots, b.String(),
 		"s: Status   j/k: scrollen   g/G: Anfang/Ende   esc/q: zurück")
 }
 
@@ -585,19 +622,19 @@ func (m model) viewBacklog() string {
 // --- Review-Cockpit ---
 
 func (m model) viewReview() string {
-	var b strings.Builder
-	title := "Review"
-	if m.curSprint != nil {
-		title = "Review " + m.curSprint.Key + " — " + m.curSprint.Name +
-			"  " + statusText(m.curSprint.Status)
-	}
-	b.WriteString(theme.Header.Render(title) + "\n\n")
 	if m.curSprint == nil {
-		b.WriteString(theme.Dim.Render("(lädt …)") + "\n")
-		return "\n" + boxed(b.String(), m.termWidth(), theme.Mauve)
+		return m.framed("Review", theme.Dim.Render("(lädt …)"), "esc/q: zurück")
 	}
+	s := m.curSprint
+	slots := []hslot{
+		{"Status", statusText(s.Status)},
+		{"Meilenstein", sprintMilestoneName(s, m.selMilestone())},
+		{"Fortschritt", fmt.Sprintf("%d/%d", s.DoneCount, s.ItemCount)},
+	}
+	var b strings.Builder
+	b.WriteString(theme.Header.Render(s.Name) + "\n\n")
 	b.WriteString("  " + issueColHeader() + "\n")
-	for i, it := range m.curSprint.Items {
+	for i, it := range s.Items {
 		cursor := "  "
 		if i == m.rlist.cursor {
 			cursor = theme.Accent.Render("▸ ")
@@ -622,18 +659,13 @@ func (m model) viewReview() string {
 			b.WriteString(theme.Dim.Render("Review: "+truncate(c, maxInt(20, m.termWidth()-16))) + "\n")
 		}
 	}
-	b.WriteString("\n")
 	if m.inputting {
-		b.WriteString(theme.Key.Render(m.status) + m.input + "▏\n")
-	} else {
-		// Shortcuts IMMER sichtbar (Anfänger), Hinweis separat darunter.
-		b.WriteString(theme.Dim.Render(m.reviewHints()) + "\n")
-		if m.status != "" {
-			b.WriteString(m.status + "\n") // bereits gefärbt (Sapphire)
-		}
+		b.WriteString("\n" + theme.Key.Render(m.status) + m.input + "▏\n")
 	}
-	base := "\n" + boxed(b.String(), m.termWidth(), theme.Mauve)
-	// statusPick/sprintPick-Overlays liegen im View()-Wrapper (view-übergreifend, DD2-29/T05).
+	// Chrome liefert globalen Header (Projekt-Präfix), volle Höhe + Footer
+	// (reviewHints, von m.status transient überschrieben — wie alle Views, DD2-48).
+	// statusPick/sprintPick-Overlays liegen im View()-Wrapper (DD2-29/T05).
+	base := m.chrome("Review "+s.Key, slots, b.String(), m.reviewHints())
 	if m.usOpen {
 		return placeOverlay(base, m.userStoryModal(), m.termWidth(), m.height)
 	}
@@ -891,17 +923,6 @@ func (m model) filterBox() string {
 }
 
 // --- Helfer ---
-
-func boxed(s string, w int, border lipgloss.Color) string {
-	if w > 8 {
-		w = w - 2
-	}
-	return lipgloss.NewStyle().
-		Width(w).
-		Border(lipgloss.RoundedBorder()).BorderForeground(border).
-		Padding(0, 1).
-		Render(s)
-}
 
 func (m model) ctxTitle(base string, ok bool, ctx string) string {
 	if ok && ctx != "" {

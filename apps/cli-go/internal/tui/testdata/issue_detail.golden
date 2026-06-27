@@ -1,6 +1,6 @@
 dd · devd2 (DD2)                ctrl+k:Cmd  [p]rojekt  [b]acklog  [f]ilter  [y]ank  [q]uit
-Issue DD2-99
- to_review  DD2-99  ◆ bug  P1                                                             
+dd2 — Issue DD2-99
+Status: to_review   Typ: ◆ bug   Prio: P1                                                 
  Beispiel-Issue für den Snapshot                                                          
                                                                                           
  Goal:                                                                                    

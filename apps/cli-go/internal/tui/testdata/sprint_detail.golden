@@ -1,9 +1,7 @@
 dd · devd2 (DD2)                ctrl+k:Cmd  [p]rojekt  [b]acklog  [f]ilter  [y]ank  [q]uit
-Sprint DD2#9
- review                                                                                   
+dd2 — Sprint DD2#9
+Status: review   Meilenstein: Meilenstein Eins   Fortschritt: 0/0                         
  Sprint Neun                                                                              
- Meilenstein: Meilenstein Eins                                                            
- Fortschritt: 0/0                                                                         
                                                                                           
  Issues (1):                                                                              
    Typ  Kennung   Titel                                  Status       Review-Verdikt      
@@ -12,6 +10,8 @@ Sprint DD2#9
                                                                                           
  Review-Runden: ✓ 0 passed  ✗ 0 not_passed  · 1 offen                                     
                                                                                           
+
+
 
 
 
