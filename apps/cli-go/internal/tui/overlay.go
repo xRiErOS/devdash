@@ -3,8 +3,15 @@ package tui
 import (
 	"strings"
 
+	"devd-cli/internal/theme"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 )
+
+// overlayPad = Hintergrund-Füllung für schmale Modal-Zeilen. Alle Modal-Boxen
+// nutzen theme.Base als Hintergrund → die Auffüllung trägt dieselbe Farbe, damit
+// kein Terminal-Default-Streifen entsteht (sonst wirkt der Form-Footer löchrig).
+var overlayPad = lipgloss.NewStyle().Background(theme.Base)
 
 // placeOverlay legt fg zentriert über bg (Painter's Algorithm, ANSI-sicher).
 // bg bleibt rundherum sichtbar — nur die vom Modal belegten Zellen werden
@@ -44,7 +51,14 @@ func placeOverlay(bg, fg string, tw, th int) string {
 		if row < 0 || row >= len(bgLines) {
 			continue
 		}
-		bgLines[row] = spliceLine(bgLines[row], fl, x, ansi.StringWidth(fl))
+		// Jede fg-Zeile auf die einheitliche Modal-Breite fgW auffüllen, sonst
+		// verdecken schmalere Zeilen (huh-Form-Hilfszeile/Leerzeilen) den
+		// Hintergrund nicht und der Text dahinter blutet durch (PO-Befund: trans-
+		// parenter Form-Footer). Das Modal muss ein lückenloses Rechteck sein.
+		if pad := fgW - ansi.StringWidth(fl); pad > 0 {
+			fl += overlayPad.Render(strings.Repeat(" ", pad))
+		}
+		bgLines[row] = spliceLine(bgLines[row], fl, x, fgW)
 	}
 	return strings.Join(bgLines, "\n")
 }
