@@ -60,3 +60,16 @@ func goldenModel(view viewID, depth int) model {
 func TestGoldenIssueDetail(t *testing.T)  { assertGolden(t, "issue_detail", goldenModel(viewDetail, 2).View()) }
 func TestGoldenSprintDetail(t *testing.T) { assertGolden(t, "sprint_detail", goldenModel(viewSprint, 1).View()) }
 func TestGoldenColumns(t *testing.T)      { assertGolden(t, "columns", goldenModel(viewColumns, 0).View()) }
+
+// goldenTreeModel expandiert Meilenstein+Sprint und cached die Issues, damit der
+// Tree-Primat-View (DD2-61) die volle Hierarchie + Detail-Pane rendert.
+func goldenTreeModel() model {
+	m := goldenModel(viewTree, 0)
+	m.treeExpMile = map[int]bool{1: true}
+	m.treeExpSprint = map[int]bool{3: true}
+	m.treeIssues = map[int][]api.Issue{3: m.curSprint.Items}
+	m.treeCursor = 1 // Sprint-Zeile selektiert (Cursor-Balken sichtbar)
+	return m
+}
+
+func TestGoldenTree(t *testing.T) { assertGolden(t, "tree", goldenTreeModel().View()) }

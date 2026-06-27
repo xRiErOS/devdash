@@ -3,10 +3,54 @@ package tui
 // DD2-57: Tree+Detail-Prototyp — Flatten/Expand/Collapse-Logik.
 
 import (
+	"strings"
 	"testing"
 
 	"devd-cli/internal/api"
+	"devd-cli/internal/theme"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
+	"github.com/muesli/termenv"
 )
+
+// DD2-61: Tree+Detail ist Primat — newModel() startet bei vorhandenem Projekt
+// direkt im Tree-View (Ranger-Columns nur noch via t erreichbar).
+func TestNewModelDefaultsToTree(t *testing.T) {
+	m := newModel(nil, &api.Project{Slug: "devd2", Prefix: "DD2"}, nil)
+	if m.view != viewTree {
+		t.Errorf("Default-View = %d, want viewTree (%d)", m.view, viewTree)
+	}
+}
+
+// D08: Cursor-Zeile = Balken ▌ + ganze Zeile einheitlich in Akzentfarbe. Test im
+// TrueColor-Profil (Ascii würde Farbe strippen) — die gerenderte Cursor-Zeile muss
+// exakt EIN Accent-Render über (Balken + reinem Text) sein, also keine Fremd-Farb-
+// codes der Zelle (Status-Dot/Key/Typ) mehr enthalten.
+func TestTreeCursorRowTintedAccent(t *testing.T) {
+	lipgloss.SetColorProfile(termenv.TrueColor)
+	defer lipgloss.SetColorProfile(termenv.Ascii) // Golden-Tests erwarten Ascii
+
+	m := treeModel()
+	m.treeExpMile[1] = true
+	nodes := m.treeNodes()
+	m.treeCursor = 0 // Meilenstein-Zeile (trägt gefärbten Status-Dot)
+
+	lines := m.treeLeftLines(nodes, 32)
+	cur := lines[0]
+
+	if !strings.HasPrefix(ansi.Strip(cur), "▌") {
+		t.Fatalf("Cursor-Zeile ohne Balken: %q", ansi.Strip(cur))
+	}
+	if want := theme.Accent.Render(ansi.Strip(cur)); cur != want {
+		t.Errorf("Cursor-Zeile nicht einheitlich akzentgetönt (D08)\n got: %q\nwant: %q", cur, want)
+	}
+	// Gegenprobe: eine Nicht-Cursor-Zeile behält ihre Eigen-Farben (≠ uniform Accent).
+	m.treeCursor = 1
+	other := m.treeLeftLines(nodes, 32)[0]
+	if other == theme.Accent.Render(ansi.Strip(other)) {
+		t.Errorf("Nicht-Cursor-Zeile fälschlich akzentgetönt: %q", other)
+	}
+}
 
 func treeModel() model {
 	return model{

@@ -243,7 +243,7 @@ func newModel(client *api.Client, project *api.Project, global *api.Client) mode
 	if project == nil {
 		m.view = viewPicker
 	} else {
-		m.view = viewColumns
+		m.view = viewTree // DD2-61: Tree+Detail ist Primat-View (Ranger via t sekundär)
 	}
 	return m
 }
@@ -708,7 +708,8 @@ func (m model) keyPicker(k string) (tea.Model, tea.Cmd) {
 			m.project = &p
 			m.client = api.NewClient(fmt.Sprintf("%d", p.ID))
 			_ = config.Save(config.State{LastProject: p.Slug})
-			m.view = viewColumns
+			m.view = viewTree // DD2-61: nach Projektwahl direkt in den Primat-View
+			m.treeCursor = 0
 			m.milestones = nil
 			m.depth = 0
 			m.mlist = listState{}

@@ -14,6 +14,7 @@ import (
 	"devd-cli/internal/theme"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 )
 
 type treeKind int
@@ -75,6 +76,11 @@ func (m *model) treeNodes() []treeNode {
 	return nodes
 }
 
+// viewTree rendert den Primat-View (DD2-61): schmale Baum-Spalte links, breite
+// Detail-Fläche rechts. Teilt sich Chrome mit den anderen Screens — globaler
+// Header (Breadcrumb `> slug: Title` + globale Shortcuts), Zwei-Pane-Body auf
+// volle Resthöhe, Footer = lokale Shortcuts + Split-Status (Info blau | Fehler
+// rot). Höhen-Rechnung 1:1 wie chrome(), damit der Footer unten klebt.
 func (m model) viewTree() string {
 	nodes := m.treeNodes()
 	if m.treeCursor >= len(nodes) {
@@ -84,7 +90,15 @@ func (m model) viewTree() string {
 		m.treeCursor = 0
 	}
 	w := m.termWidth()
-	h := m.bodyHeight()
+
+	head := m.breadcrumb("Projekt-Browser") // Zone 1: `> slug: Title` + globale Shortcuts
+	hint := "j/k:↑↓  l/→:auf  h/←:zu  enter:auf  t:Ranger  b:Backlog  R:Reviews  q:quit"
+	localKeys := theme.Muted.Render(wrapText(hint, w)) // Zone 3: lokale Shortcuts
+	footH := lipgloss.Height(localKeys) + 1            // + 1 Status-Zeile (Split-Status)
+	avail := m.height - lipgloss.Height(head) - footH
+	if avail < 4 {
+		avail = m.bodyHeight() // Höhe unbekannt (Init/Tests) → großzügiger Fallback
+	}
 
 	lw := 36 // schmale Baum-Spalte
 	if cap := w * 2 / 5; lw > cap {
@@ -97,7 +111,7 @@ func (m model) viewTree() string {
 	if rw < 20 {
 		rw = 20
 	}
-	innerH := h - 2 // Border oben/unten — NICHT via Height() (Golden Rule #1)
+	innerH := avail - 2 // Border oben/unten — NICHT via Height() (Golden Rule #1)
 	if innerH < 3 {
 		innerH = 3
 	}
@@ -133,12 +147,8 @@ func (m model) viewTree() string {
 		Render(strings.Join(detail, "\n"))
 	body := lipgloss.JoinHorizontal(lipgloss.Top, leftBox, rightBox)
 
-	hint := "j/k:↑↓  l/→:auf  h/←:zu  t/esc:Ranger  q:quit"
-	if m.status != "" {
-		hint = m.status
-	}
-	title := theme.Header.Render(m.screenTitle("Tree+Detail (Prototyp)"))
-	return m.header() + "\n" + title + "\n" + body + "\n" + theme.Dim.Render(hint)
+	status := m.statusBar("") // Zone 4: Split-Status (Info blau | Fehler rot)
+	return head + "\n" + body + "\n" + localKeys + "\n" + status
 }
 
 // treeLeftLines rendert die Baumzeilen (mit Expand-Marker, Einrückung, Cursor).
@@ -170,7 +180,11 @@ func (m model) treeLeftLines(nodes []treeNode, w int) []string {
 		}
 		row := strings.Repeat("  ", n.depth) + marker + label
 		if i == m.treeCursor {
-			lines = append(lines, theme.Accent.Render("▌")+truncate(row, w-1))
+			// D08: Cursor = Balken ▌ + ganze Zeile in Akzentfarbe getönt. Eigen-Farben
+			// der Zelle (Status-Dot, Key, Typ-Icon) werden gestrippt und einheitlich
+			// in Akzent umgefärbt — die Selektion ist als Ganzes erkennbar.
+			plain := truncate(ansi.Strip(row), w-1)
+			lines = append(lines, theme.Accent.Render("▌"+plain))
 		} else {
 			lines = append(lines, " "+truncate(row, w-1))
 		}

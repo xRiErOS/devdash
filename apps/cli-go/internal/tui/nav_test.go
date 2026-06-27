@@ -101,8 +101,8 @@ func TestPickerSelectSwitchesView(t *testing.T) {
 	m = mi.(model)
 	mi, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = mi.(model)
-	if m.view != viewColumns {
-		t.Errorf("nach Auswahl view=%d, want viewColumns", m.view)
+	if m.view != viewTree { // DD2-61: Picker führt in den Primat-View (Tree)
+		t.Errorf("nach Auswahl view=%d, want viewTree", m.view)
 	}
 	if m.project == nil || m.project.ID != 9 {
 		t.Errorf("Projekt nicht gesetzt: %+v", m.project)
