@@ -190,8 +190,19 @@ type model struct {
 	// Section). Read-only — der Schreibpfad folgt in DD2-77. Klemmen wie treeCursor.
 	detailFocus bool
 	detailLevel int // 0 = Section, 1 = Feld
-	secCursor   int // index in issueSections (0-basiert)
+	secCursor   int // index in focusSections (0 = Übersicht/Kopf, 1.. = Accordion)
 	fieldCursor int // index in der aktiven Section.fields
+
+	// Issue-Feld-Edit (DD2-77): enter auf einem fokussierten Feld öffnet die
+	// editField-huh-Form; Submit schreibt EIN Feld via UpdateIssue, die Response
+	// merged die Kern-Spalten in-place in den Cache (D04/D05). Meilenstein/Sprint
+	// folgen in DD2#13.
+	editEntity string // "issue"
+	editID     int
+	editField  string // Contract-Feldname (issueUpdateContract)
+	editLabel  string
+	editEditor string // input | text | select
+	editValue  string // aktueller Wert (Form-Preset)
 
 	// Tree-Suche (DD2-62): `/` öffnet das Suchfeld im Tree-Kopf, tippen filtert live.
 	// treeSearching = Eingabe fokussiert; treeQuery = aktiver Filter (auch nach enter).
@@ -497,6 +508,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case backlogMsg:
 		m.backlog = msg.items
 		m.blist.setLen(len(m.backlog))
+		return m, nil
+	case issueUpdatedMsg: // DD2-77: Feld-Edit-Response → Cache in-place mergen (D05)
+		if msg.err != "" {
+			m.errNote = msg.err // Aktions-Fehler rot (D05)
+			return m, nil
+		}
+		if msg.issue != nil {
+			m.errNote = ""
+			m.mergeIssueIntoCache(msg.issue)
+			m.status = noticeText("Gespeichert: " + msg.issue.Key)
+		}
 		return m, nil
 	case allIssuesMsg: // DD2-62: projektweite Issues für den Tree-Filter
 		m.treeFilterIssues = msg.items

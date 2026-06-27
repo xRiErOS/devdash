@@ -360,7 +360,15 @@ func (m model) treeDetail(n treeNode, w int) string {
 			return theme.Dim.Render("(nichts gewählt)")
 		}
 		it := *n.issue
-		b.WriteString(detailTitle(it.Key, it.Title, w) + "\n")
+		// DD2-77: die Übersicht (Kopf, Fokus-Index 0) trägt title/type/priority. Bei
+		// Detail-Fokus auf der Übersicht bekommt der Titel den D08-Balken; auf Feld-
+		// Ebene zeigt ein Feld-Streifen, welches Header-Feld editiert würde.
+		kopfActive := m.detailFocus && m.secCursor == 0
+		title := detailTitle(it.Key, it.Title, w)
+		if kopfActive {
+			title = theme.Accent.Render("▌" + truncate(ansi.Strip(title), w-1))
+		}
+		b.WriteString(title + "\n")
 		// Meta-Strip wie Wireframe: milestone/prio/type/tags + Status rechtsbündig (D01).
 		var tags string
 		if len(it.Tags) > 0 {
@@ -375,12 +383,18 @@ func (m model) treeDetail(n treeNode, w int) string {
 			{theme.Priority(it.Priority), "prio"},
 			{theme.TypeIcon(it.Type) + " " + theme.TypeStyle(it.Type).Render(it.Type), "type"},
 			{tags, "tags"},
-		}, statusText(it.Status), w) + "\n\n")
+		}, statusText(it.Status), w))
+		if kopfActive && m.detailLevel == 1 {
+			b.WriteString("\n" + fieldStrip(kopfFields(), m.fieldCursor, w))
+		}
+		b.WriteString("\n\n")
 		// DD2-50: Felder als ziffern-aktiviertes Accordion (löst DD2-43). bodyW = w-2,
 		// da die Body-Box ihre Border außen anlegt (renderAccordion).
 		b.WriteString(theme.Muted.Render("Sections: Ziffer [1..n] öffnet") + "\n")
-		// DD2-76: Fokus-Zustand in den Renderer (D08-Balken nur bei Detail-Fokus).
-		focus := detailFocusView{active: m.detailFocus, level: m.detailLevel, sec: m.secCursor, field: m.fieldCursor}
+		// DD2-76/77: Accordion-Fokus nur, wenn der Cursor auf einer Content-Section
+		// steht (secCursor ≥ 1); sec = secCursor-1 (Übersicht ist Index 0).
+		focus := detailFocusView{active: m.detailFocus && m.secCursor >= 1,
+			level: m.detailLevel, sec: m.secCursor - 1, field: m.fieldCursor}
 		b.WriteString(renderAccordion(m.issueSections(it, w-2), m.accOpen, w, focus))
 	default:
 		b.WriteString(theme.Dim.Render("(nichts gewählt — l/→ klappt auf)"))

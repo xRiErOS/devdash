@@ -45,10 +45,10 @@ func TestEnterDetailFocusFromIssue(t *testing.T) {
 		t.Fatal("enter auf Issue sollte detailFocus setzen")
 	}
 	if mm.detailLevel != 0 || mm.secCursor != 0 {
-		t.Errorf("level=%d secCursor=%d, want 0/0", mm.detailLevel, mm.secCursor)
+		t.Errorf("level=%d secCursor=%d, want 0/0 (Übersicht)", mm.detailLevel, mm.secCursor)
 	}
-	if mm.accOpen != 1 {
-		t.Errorf("accOpen=%d, want 1 (erste Section offen)", mm.accOpen)
+	if mm.accOpen != 0 {
+		t.Errorf("accOpen=%d, want 0 (Fokus auf Übersicht, Accordion zu)", mm.accOpen)
 	}
 	// l/→ macht dasselbe (Drill-in-Muskelmemory).
 	ml, _ := detailFocusModel().keyTree(key("l"))
@@ -68,28 +68,34 @@ func TestDetailFocusOnlyOnIssue(t *testing.T) {
 	}
 }
 
-// D02: j/k bewegt auf Section-Ebene den secCursor (geklemmt); die offene Section
-// folgt dem Cursor (accOpen = secCursor+1).
+// D02: j/k bewegt auf Section-Ebene den secCursor (geklemmt); die offene Accordion-
+// Section folgt dem Cursor (accOpen = secCursor; 0 = Übersicht, Accordion zu).
 func TestDetailFocusSectionNav(t *testing.T) {
+	// focusSections = [Übersicht, Content1, Content2] → secCursor 0..2.
 	m := detailFocusModel()
 	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter})
 	m = mi.(model)
 
 	mi, _ = m.keyTree(key("j"))
 	m = mi.(model)
-	if m.secCursor != 1 || m.accOpen != 2 {
-		t.Errorf("j → secCursor=%d accOpen=%d, want 1/2", m.secCursor, m.accOpen)
+	if m.secCursor != 1 || m.accOpen != 1 {
+		t.Errorf("j → secCursor=%d accOpen=%d, want 1/1", m.secCursor, m.accOpen)
 	}
-	// Am Ende geklemmt (nur 2 Sektionen).
 	mi, _ = m.keyTree(key("j"))
 	m = mi.(model)
-	if m.secCursor != 1 {
-		t.Errorf("j am Ende → secCursor=%d, want 1 (geklemmt)", m.secCursor)
+	if m.secCursor != 2 || m.accOpen != 2 {
+		t.Errorf("j → secCursor=%d accOpen=%d, want 2/2", m.secCursor, m.accOpen)
+	}
+	// Am Ende geklemmt (3 Sektionen, Index max 2).
+	mi, _ = m.keyTree(key("j"))
+	m = mi.(model)
+	if m.secCursor != 2 {
+		t.Errorf("j am Ende → secCursor=%d, want 2 (geklemmt)", m.secCursor)
 	}
 	mi, _ = m.keyTree(key("k"))
 	m = mi.(model)
-	if m.secCursor != 0 || m.accOpen != 1 {
-		t.Errorf("k → secCursor=%d accOpen=%d, want 0/1", m.secCursor, m.accOpen)
+	if m.secCursor != 1 || m.accOpen != 1 {
+		t.Errorf("k → secCursor=%d accOpen=%d, want 1/1", m.secCursor, m.accOpen)
 	}
 }
 
@@ -161,10 +167,10 @@ func TestDetailFocusDigitJump(t *testing.T) {
 	m := detailFocusModel()
 	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter})
 	mi, _ = mi.(model).keyTree(key("l")) // erst in Feld-Ebene
-	mi, _ = mi.(model).keyTree(key("2")) // Sprung auf Section 2
+	mi, _ = mi.(model).keyTree(key("2")) // Sprung auf Content-Section 2 (focusSections-Index 2)
 	m = mi.(model)
-	if m.secCursor != 1 || m.accOpen != 2 {
-		t.Errorf("Ziffer 2 → secCursor=%d accOpen=%d, want 1/2", m.secCursor, m.accOpen)
+	if m.secCursor != 2 || m.accOpen != 2 {
+		t.Errorf("Ziffer 2 → secCursor=%d accOpen=%d, want 2/2", m.secCursor, m.accOpen)
 	}
 	if m.detailLevel != 0 {
 		t.Errorf("Ziffer-Sprung → level=%d, want 0 (Section-Ebene)", m.detailLevel)
@@ -182,7 +188,10 @@ func TestDetailFocusReadOnlySectionNoFieldEntry(t *testing.T) {
 	m.treeExpSprint[10] = true
 	m.view = viewTree
 	m.treeCursor = 2
+	// focusSections = [Übersicht(editierbar), User-Stories(read-only)]. enter landet
+	// auf der Übersicht → erst j auf die read-only Section, dann l/→ = no-op.
 	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter})
+	mi, _ = mi.(model).keyTree(key("j")) // → read-only User-Stories-Section
 	mi, _ = mi.(model).keyTree(key("l"))
 	if mi.(model).detailLevel != 0 {
 		t.Errorf("l/→ in feldlose Section → level=%d, want 0 (no-op)", mi.(model).detailLevel)

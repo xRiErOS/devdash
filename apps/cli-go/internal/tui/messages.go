@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"strconv"
 	"strings"
 
 	"devd-cli/internal/api"
@@ -278,6 +279,37 @@ func doSetResult(c *api.Client, issueID int, result string, sprintID int) tea.Cm
 			return noticeMsg{cleanAPIErr(err)}
 		}
 		return refreshSprint(c, sprintID)
+	}
+}
+
+// issueUpdatedMsg trägt die Antwort eines Feld-Edits (DD2-77). issue gesetzt =
+// Erfolg (Cache-Merge); err gesetzt = Aktions-Fehler (→ errNote rot, D05).
+type issueUpdatedMsg struct {
+	issue *api.Issue
+	err   string
+}
+
+// doUpdateIssueField schreibt EIN editiertes Feld via UpdateIssue (D04/D05). Bei
+// Erfolg trägt die Response (rohe Backlog-Zeile) die neuen Kern-Spalten zurück;
+// der Update-Handler merged sie in-place (kein Refetch). priority wird als Zahl
+// gesendet (Select liefert Zahl-String).
+func doUpdateIssueField(c *api.Client, id int, field, value string) tea.Cmd {
+	return func() tea.Msg {
+		fields := map[string]any{}
+		if field == "priority" {
+			if p, err := strconv.Atoi(value); err == nil {
+				fields[field] = p
+			} else {
+				fields[field] = value
+			}
+		} else {
+			fields[field] = value
+		}
+		it, err := c.UpdateIssue(id, fields)
+		if err != nil {
+			return issueUpdatedMsg{err: cleanAPIErr(err)}
+		}
+		return issueUpdatedMsg{issue: it}
 	}
 }
 

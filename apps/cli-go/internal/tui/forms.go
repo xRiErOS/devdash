@@ -159,11 +159,51 @@ func buildForm(kind string, milestones []api.Milestone) *huh.Form {
 	return nil
 }
 
+// buildEditFieldForm baut die Single-Field-editForm (DD2-77) je Feldtyp: Input
+// (kurz) · Text (lang) · Select (type/priority). Mit dem aktuellen Wert vorbelegt
+// (Value-Binding für den Initialwert; gelesen wird nach Abschluss per GetString).
+func buildEditFieldForm(f detailField, value string) *huh.Form {
+	v := value
+	var field huh.Field
+	switch f.editor {
+	case "select":
+		sel := huh.NewSelect[string]().Key("value").Title(f.label).Value(&v)
+		switch f.key {
+		case "type":
+			sel = sel.Options(
+				huh.NewOption("Feature", "feature"),
+				huh.NewOption("Bug", "bug"),
+				huh.NewOption("Improvement", "improvement"),
+				huh.NewOption("Core", "core"),
+			)
+		case "priority":
+			sel = sel.Options(
+				huh.NewOption("P1 — Kritisch", "1"),
+				huh.NewOption("P2 — Hoch", "2"),
+				huh.NewOption("P3 — Mittel", "3"),
+				huh.NewOption("P4 — Niedrig", "4"),
+			)
+		}
+		field = sel
+	case "input":
+		in := huh.NewInput().Key("value").Title(f.label).Value(&v)
+		if f.key == "title" {
+			in = in.Validate(nonEmpty)
+		}
+		field = in
+	default: // text (lange Freitextfelder)
+		field = huh.NewText().Key("value").Title(f.label).Value(&v)
+	}
+	return huh.NewForm(huh.NewGroup(field)).WithShowHelp(true)
+}
+
 // formCreateCmd liest die abgeschlossenen Formularwerte und liefert den
-// passenden Create-Cmd. Wird vor dem Nullen von m.form aufgerufen.
+// passenden Create-/Update-Cmd. Wird vor dem Nullen von m.form aufgerufen.
 func (m *model) formCreateCmd() tea.Cmd {
 	get := func(k string) string { return strings.TrimSpace(m.form.GetString(k)) }
 	switch m.formKind {
+	case "editField": // DD2-77: ein editiertes Issue-Feld zurückschreiben
+		return doUpdateIssueField(m.client, m.editID, m.editField, get("value"))
 	case "issue":
 		body := api.IssueCreateBody{Title: get("title"), Type: m.form.GetString("type"), Priority: 2}
 		if p, err := strconv.Atoi(m.form.GetString("priority")); err == nil {
@@ -223,6 +263,7 @@ func (m model) formBox() string {
 		"sprint":    "Neuer Sprint",
 		"memory":    "Neue Memory",
 		"result":    "Ergebnisfeld setzen",
+		"editField": "Bearbeiten: " + m.editLabel, // DD2-77: dynamischer Feld-Titel
 	}
 	// DD2-25: Höhe/Breite bei JEDEM Render aus dem aktuellen Terminal neu anlegen —
 	// fängt „bei height=0 geöffnet" und Resize nach dem Öffnen ab (huh.WithHeight
