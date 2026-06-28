@@ -1,4 +1,4 @@
-> devd2                                ctrl+k:Cmd  p:Projekt  b:Backlog  R:Reviews  q:Quit
+> devd2                       ctrl+k:Cmd  p:Projekt  b:Backlog  R:Reviews  ?:Hilfe  q:Quit
 ╭────────────────────────────╮╭────────────────────────────╮╭────────────────────────────╮
 │Meilensteine                ││Sprints ∙ Meilenstein Eins  ││Issues ∙ DD2#9              │
 │──────────────              ││────────────────────────────││────────────────            │

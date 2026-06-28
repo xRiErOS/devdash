@@ -12,6 +12,11 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.confirmQuit {
 		return m.keyConfirmQuit(msg)
 	}
+	// In-App-Hilfe (DD2-31): jede Taste schließt das offene Overlay wieder.
+	if m.helpOpen {
+		m.helpOpen = false
+		return m, nil
+	}
 	// Command-Center (T16) ist das globalste Modal — fängt vor allem anderen.
 	if m.paletteOpen {
 		return m.keyPalette(msg)
@@ -56,6 +61,13 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Tree-Filter-Menü (DD2-62) fängt vor den View-Tasten.
 	if m.treeFilterOpen {
 		return m.keyTreeFilter(msg)
+	}
+	// In-App-Hilfe (DD2-31): ? öffnet die Shortcut-Übersicht — view-übergreifend,
+	// aber nicht während einer Texteingabe (Tree-/Memory-Suche, Reject-Kommentar),
+	// wo ? als Zeichen getippt werden muss.
+	if bindHas(keys.Help, msg.String()) && !m.treeSearching && !m.memSearching && !m.inputting {
+		m.helpOpen = true
+		return m, nil
 	}
 	// Review-Cockpit hat eigenen Eingabemodus.
 	if m.view == viewReview {

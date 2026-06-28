@@ -18,6 +18,9 @@ func (m model) View() string {
 	if m.confirmQuit { // DD2-49: Beenden-Confirm liegt top-most über allem
 		return placeOverlay(base, m.quitBox(), m.termWidth(), m.height)
 	}
+	if m.helpOpen { // DD2-31: Shortcut-Übersicht
+		return placeOverlay(base, m.helpBox(), m.termWidth(), m.height)
+	}
 	// Command-Center (T16): Formular bzw. Palette schweben zentriert über dem Frame.
 	if m.form != nil {
 		return placeOverlay(base, m.formBox(), m.termWidth(), m.height)
@@ -151,7 +154,7 @@ func (m model) viewReviewsList() string {
 // globalKeys = auf JEDEM Screen identische Shortcuts (Wireframe-Zone „Globale
 // Shortcuts", rechts im Header). Muted (D01: Hinweis, nicht echte Info).
 func globalKeys() string {
-	return theme.Muted.Render("ctrl+k:Cmd  p:Projekt  b:Backlog  R:Reviews  q:Quit")
+	return theme.Muted.Render("ctrl+k:Cmd  p:Projekt  b:Backlog  R:Reviews  ?:Hilfe  q:Quit")
 }
 
 // breadcrumb = Header-Zone 1 (Wireframe): links `> slug: Title` (Chevron+slug

@@ -1,4 +1,4 @@
-> devd2: Projekt-Browser               ctrl+k:Cmd  p:Projekt  b:Backlog  R:Reviews  q:Quit
+> devd2: Projekt-Browser      ctrl+k:Cmd  p:Projekt  b:Backlog  R:Reviews  ?:Hilfe  q:Quit
 ╭────────────────────────────────────╮╭──────────────────────────────────────────────────╮
 │⌕ Suchen mit /  ∙  Filter f         ││▌> DD2-99 Beispiel-Issue für den Snapshot         │
 │ ▾ ◉ Meilenstein Eins               ││P1 prio  ∙  ⯁ bug type                 to_review  │

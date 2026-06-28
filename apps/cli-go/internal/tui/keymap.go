@@ -81,6 +81,23 @@ func newKeyMap() keyMap {
 // mutieren — die jkli-Wahl (DD2-34) lebt komplett in newKeyMap.
 var keys = newKeyMap()
 
+// helpGroup ist ein benannter Block der Shortcut-Übersicht (DD2-31/DD2-5).
+type helpGroup struct {
+	title    string
+	bindings []keybind.Binding
+}
+
+// helpGroups liefert die Keymap gruppiert für die In-App-Hilfe (DD2-31) und die
+// externe Doku (DD2-5). Damit sind Anzeige und Doku aus derselben Quelle
+// generiert — kein händisches Nachpflegen von Hint-Strings mehr.
+func (k keyMap) helpGroups() []helpGroup {
+	return []helpGroup{
+		{"Navigation", []keybind.Binding{k.Up, k.Down, k.Left, k.Right, k.Enter, k.Back, k.Section}},
+		{"Views & Global", []keybind.Binding{k.Ranger, k.Backlog, k.Reviews, k.Picker, k.Search, k.Filter, k.Palette, k.Help, k.Quit}},
+		{"Aktionen", []keybind.Binding{k.Status, k.MileStatus, k.AssignMile, k.AssignSprint, k.Delete, k.Yank, k.Toggle}},
+	}
+}
+
 // bindHas meldet, ob die Taste k Teil der Bindung b ist (ANSI-/case-genau).
 func bindHas(b keybind.Binding, k string) bool {
 	for _, v := range b.Keys() {

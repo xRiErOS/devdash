@@ -133,6 +133,9 @@ type model struct {
 	// Quit-Bestätigung (DD2-49): q/ctrl+c auf einem Top-Level-View.
 	confirmQuit bool
 
+	// In-App-Hilfe (DD2-31): ? öffnet die Shortcut-Übersicht (Overlay).
+	helpOpen bool
+
 	// Cascade-Delete-Confirm (T02b): d auf Meilenstein/Sprint.
 	delConfirm bool
 	delKind    string // milestone | sprint
