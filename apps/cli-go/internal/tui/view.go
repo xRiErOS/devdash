@@ -71,11 +71,11 @@ func (m model) View() string {
 // schließt den Meilenstein und setzt offene Sprints/Issues terminal.
 func (m model) milestoneCascadeBox() string {
 	body := "\n" + m.mcName + "\n\n"
-	body += theme.Dim.Render(fmt.Sprintf("%d offene Sprint(s) → completed, ihre offenen Issues → done.", m.mcSprints)) + "\n"
-	body += theme.Dim.Render("PO-Aktion (DD-186) — nicht umkehrbar.") + "\n\n"
-	body += lipgloss.NewStyle().Foreground(theme.Red).Render("y") + theme.Dim.Render(": kaskadierend abschließen   ") +
-		theme.Accent.Render("n/esc") + theme.Dim.Render(": abbrechen")
-	return modalPanel("Meilenstein abschließen", body, "", modalBoxWidth(m.width), theme.Red)
+	body += theme.Dim.Render(fmt.Sprintf("%d open sprint(s) → completed, their open issues → done.", m.mcSprints)) + "\n"
+	body += theme.Dim.Render("PO action (DD-186) — not reversible.") + "\n\n"
+	body += lipgloss.NewStyle().Foreground(theme.Red).Render("y") + theme.Dim.Render(": close cascading   ") +
+		theme.Accent.Render("n/esc") + theme.Dim.Render(": cancel")
+	return modalPanel("Complete milestone", body, "", modalBoxWidth(m.width), theme.Red)
 }
 
 // milestoneStatusMenu: schwebendes Meilenstein-Status-Menü (Taste S, T01).
@@ -85,17 +85,17 @@ func (m model) milestoneStatusMenu() string {
 		s := m.msopts[i]
 		label := statusText(s)
 		if s == "completed" {
-			label = statusText(s) + theme.Dim.Render(" (alle Sprints müssen terminal sein)")
+			label = statusText(s) + theme.Dim.Render(" (all sprints must be terminal)")
 		}
 		if sel {
 			label = theme.Header.Render(s)
 			if s == "completed" {
-				label = theme.Header.Render(s) + theme.Dim.Render(" (alle Sprints müssen terminal sein)")
+				label = theme.Header.Render(s) + theme.Dim.Render(" (all sprints must be terminal)")
 			}
 		}
 		return label
 	})
-	return modalPanel("Meilenstein-Status setzen", body, "enter: setzen   esc: abbrechen", clampModalWidth(46, m.width), theme.Mauve)
+	return modalPanel("Set milestone status", body, "enter: set   esc: cancel", clampModalWidth(46, m.width), theme.Mauve)
 }
 
 func (m model) viewBase() string {
@@ -129,9 +129,9 @@ func (m model) viewBase() string {
 
 func (m model) viewReviewsList() string {
 	var b strings.Builder
-	b.WriteString(theme.Dim.Render("(Sprints im Status review)") + "\n\n")
+	b.WriteString(theme.Dim.Render("(sprints in status review)") + "\n\n")
 	if len(m.reviewSprints) == 0 {
-		b.WriteString(theme.Dim.Render("(keine Sprints im Review — S im Cockpit setzt active→review)") + "\n")
+		b.WriteString(theme.Dim.Render("(no sprints in review — S in cockpit sets active→review)") + "\n")
 	}
 	for i, s := range m.reviewSprints {
 		cursor := "  "
@@ -146,7 +146,7 @@ func (m model) viewReviewsList() string {
 			s.Key, truncate(s.Name, 30), statusText(s.Status),
 			theme.Dim.Render(fmt.Sprintf("  %d/%d", s.DoneCount, s.ItemCount))) + ms + "\n")
 	}
-	return m.framed("Offene Reviews", b.String(), "i/k:↑↓  enter:Cockpit  esc/q:zurück")
+	return m.framed("Offene Reviews", b.String(), "i/k:↑↓  enter:cockpit  esc/q:back")
 }
 
 // --- Header / Footer ---
@@ -154,7 +154,7 @@ func (m model) viewReviewsList() string {
 // globalKeys = auf JEDEM Screen identische Shortcuts (Wireframe-Zone „Globale
 // Shortcuts", rechts im Header). Muted (D01: Hinweis, nicht echte Info).
 func globalKeys() string {
-	return theme.Muted.Render("ctrl+k:Cmd  p:Projekt  b:Backlog  R:Reviews  ?:Hilfe  q:Quit")
+	return theme.Muted.Render("ctrl+k:cmd  p:project  b:backlog  R:reviews  ?:help  q:quit")
 }
 
 // breadcrumb = Header-Zone 1 (Wireframe): links `> slug: Title` (Chevron+slug
@@ -247,13 +247,13 @@ func (m model) footer() string {
 	var act string
 	switch m.depth {
 	case 0:
-		act = "S:Meilenstein-Status  d:löschen"
+		act = "S:milestone-status  d:delete"
 	case 1:
-		act = "s:Sprint-Status  d:löschen"
+		act = "s:sprint-status  d:delete"
 	default:
-		act = "s:Issue-Status"
+		act = "s:issue-status"
 	}
-	hint := "i/k:↑↓  l/→:rein  j/←:raus  enter:Detail  " + act + "  f:Filter  y:Yank  t:Tags  ctrl+r:neu laden  b:Backlog  R:Reviews  q:quit"
+	hint := "i/k:↑↓  l/→:in  j/←:out  enter:detail  " + act + "  f:filter  y:yank  t:tags  ctrl+r:reload  b:backlog  R:reviews  q:quit"
 	// DD2-73: auf schmalen Terminals umbrechen statt in die Pane-Spalten überlaufen
 	// (analog chrome()). viewColumns rechnet die Footer-Höhe in die Body-Höhe ein.
 	return theme.Dim.Render(wrapText(hint, m.termWidth()))

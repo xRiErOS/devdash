@@ -173,7 +173,7 @@ func (m model) yankMemories() (tea.Model, tea.Cmd) {
 		m.errNote = "Clipboard-Fehler: " + err.Error()
 	} else {
 		m.errNote = ""
-		m.status = noticeText(fmt.Sprintf("%d Memories kopiert (mit show-Hinweis für Agenten)", len(m.memList)))
+		m.status = noticeText(fmt.Sprintf("%d memories copied (with show hint for agents)", len(m.memList)))
 	}
 	return m, nil
 }
@@ -201,9 +201,9 @@ func (m model) viewMemory() string {
 	// DD2-48: globaler Header (Projekt-Nav) + Präfix-Titel "dd2 — Memory-Browser",
 	// konsistent zu den übrigen Screens (Zwei-Pane-Body bleibt eigenständig).
 	head := m.header() + "\n" + theme.Header.Render(m.screenTitle("Memory-Browser"))
-	footer := theme.Dim.Render("i/k:↑↓  /:Suche  c:Kategorie  y:kopieren  esc/q:zurück")
+	footer := theme.Dim.Render("i/k:↑↓  /:search  c:category  y:copy  esc/q:back")
 	if m.memSearching {
-		footer = theme.Key.Render("Suche: ") + m.memQuery + "▏"
+		footer = theme.Key.Render("Search: ") + m.memQuery + "▏"
 	} else if m.status != "" {
 		footer = m.status
 	}
@@ -220,7 +220,7 @@ func (m model) memListTitle() string {
 
 func (m model) memRows() []string {
 	if len(m.memList) == 0 {
-		return []string{theme.Dim.Render("(keine — / Suche, c Kategorie)")}
+		return []string{theme.Dim.Render("(none — / search, c category)")}
 	}
 	rows := make([]string, len(m.memList))
 	for i, mm := range m.memList {
@@ -232,7 +232,7 @@ func (m model) memRows() []string {
 func (m model) memDetailRows() []string {
 	cur := m.selMemory()
 	if cur == nil {
-		return []string{theme.Dim.Render("(Memory wählen →)")}
+		return []string{theme.Dim.Render("(select memory →)")}
 	}
 	rows := []string{
 		theme.Key.Render(fmt.Sprintf("#%d", cur.ID)) + "  " + theme.Dim.Render(cur.Category),
@@ -242,7 +242,7 @@ func (m model) memDetailRows() []string {
 	}
 	if m.memDetail != nil && m.memDetailID == cur.ID {
 		if c := deref(m.memDetail.Content); c != "" {
-			rows = append(rows, theme.Dim.Render("Inhalt:"))
+			rows = append(rows, theme.Dim.Render("Content:"))
 			rows = append(rows, strings.Split(c, "\n")...)
 		}
 		if a := deref(m.memDetail.Anchor); a != "" {
@@ -252,7 +252,7 @@ func (m model) memDetailRows() []string {
 			rows = append(rows, theme.Dim.Render("aktualisiert "+u))
 		}
 	} else {
-		rows = append(rows, theme.Dim.Render("(lädt Inhalt …)"))
+		rows = append(rows, theme.Dim.Render("(loading content …)"))
 	}
 	return rows
 }

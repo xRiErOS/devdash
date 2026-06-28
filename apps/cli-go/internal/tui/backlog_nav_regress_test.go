@@ -12,7 +12,7 @@ import (
 )
 
 func TestBacklogDetailNavWithMilestonesLoaded(t *testing.T) {
-	g, po := "Ziel", "PO-Text"
+	g, po := "Target", "PO-Text"
 	m := model{
 		view:       viewBacklog,
 		milestones: []api.Milestone{{ID: 1, Name: "M1", Status: "active"}}, // triggert focusedNode-Bug

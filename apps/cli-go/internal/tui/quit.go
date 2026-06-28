@@ -32,8 +32,8 @@ func (m model) keyConfirmQuit(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 // quitBox rendert den schwebenden Beenden-Confirm.
 func (m model) quitBox() string {
-	body := "\n" + theme.Dim.Render("DevD-Cockpit wirklich schließen.") + "\n\n"
-	body += theme.Accent.Render("y") + theme.Dim.Render(": beenden   ") +
-		theme.Accent.Render("n/esc") + theme.Dim.Render(": abbrechen")
-	return modalPanel("Beenden?", body, "", clampModalWidth(40, m.width), theme.Mauve)
+	body := "\n" + theme.Dim.Render("Really close the DevD cockpit.") + "\n\n"
+	body += theme.Accent.Render("y") + theme.Dim.Render(": quit   ") +
+		theme.Accent.Render("n/esc") + theme.Dim.Render(": cancel")
+	return modalPanel("Quit?", body, "", clampModalWidth(40, m.width), theme.Mauve)
 }

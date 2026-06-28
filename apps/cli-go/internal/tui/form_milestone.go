@@ -12,8 +12,8 @@ func buildMilestoneForm(milestones []api.Milestone, tags []api.Tag) *huh.Form {
 	_ = milestones // Meilenstein-Form braucht keine Meilenstein-Liste (Signatur-Parität)
 	fields := []huh.Field{
 		huh.NewInput().Key("name").Title("Name").Validate(nonEmpty),
-		huh.NewText().Key("description").Title("Beschreibung (optional)"),
-		huh.NewInput().Key("target_date").Title("Zieldatum (optional, YYYY-MM-DD)"),
+		huh.NewText().Key("description").Title("Description (optional)"),
+		huh.NewInput().Key("target_date").Title("Target date (optional, YYYY-MM-DD)"),
 	}
 	if len(tags) > 0 {
 		fields = append(fields, tagMultiSelect(tags))

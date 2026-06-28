@@ -2,7 +2,7 @@ package tui
 
 // DD2-B06: Das Cockpit padded gefärbte Spalten mit fmt %-Ns — das zählt ANSI-Bytes
 // als Breite, sodass die rechten Spalten unter echter Farbe nach links kollabieren
-// und der Ergebnis-Dot NICHT mehr unter seiner Überschrift "Ergebnisse" steht.
+// und der Ergebnis-Dot NICHT mehr unter seiner Überschrift "Results" steht.
 // Golden-Tests laufen im Ascii-Profil (ANSI gestrippt) und verfehlen genau diesen
 // Fall — darum zwingt dieser Test TrueColor und prüft die sichtbare Spaltenlage.
 
@@ -29,12 +29,12 @@ func TestCockpitDotAlignsUnderColor(t *testing.T) {
 
 	row := cockpitRow(typePrio, it.Key, truncate(it.Title, colTitle),
 		statusText(it.Status), reviewBadge(it), resultDot(it))
-	hdr := cockpitRow("Typ", "Kennung", "Titel", "Status", "Review-Verdikt", "Ergebnisse")
+	hdr := cockpitRow("Type", "Key", "Title", "Status", "Review verdict", "Results")
 
 	rowV, hdrV := ansi.Strip(row), ansi.Strip(hdr)
 
 	dotByte := strings.IndexRune(rowV, '◉')
-	ergByte := strings.Index(hdrV, "Ergebnisse")
+	ergByte := strings.Index(hdrV, "Results")
 	if dotByte < 0 || ergByte < 0 {
 		t.Fatalf("Marker fehlt: dot=%d erg=%d\nROW:[%s]\nHDR:[%s]", dotByte, ergByte, rowV, hdrV)
 	}

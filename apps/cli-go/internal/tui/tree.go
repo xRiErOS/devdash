@@ -98,11 +98,11 @@ func (m *model) treeNodes() []treeNode {
 			}
 			items, ok := m.treeIssues[sp.ID]
 			if !ok {
-				nodes = append(nodes, treeNode{kind: tkInfo, depth: 2, label: "(lädt …)"})
+				nodes = append(nodes, treeNode{kind: tkInfo, depth: 2, label: "(loading …)"})
 				continue
 			}
 			if len(items) == 0 {
-				nodes = append(nodes, treeNode{kind: tkInfo, depth: 2, label: "(keine Issues)"})
+				nodes = append(nodes, treeNode{kind: tkInfo, depth: 2, label: "(no issues)"})
 				continue
 			}
 			for ii := range items {
@@ -178,17 +178,17 @@ func (m *model) treeNodesFiltered() []treeNode {
 // (handleMouse, DD2-51) — sonst driften Render-Zeilen und Klick-Y auseinander.
 func (m model) treeLayout() (head, localKeys string, lw, rw, innerH int) {
 	w := m.termWidth()
-	head = m.breadcrumb("Projekt-Browser") // Zone 1: `> slug: Title` + globale Shortcuts
+	head = m.breadcrumb("Project browser") // Zone 1: `> slug: Title` + globale Shortcuts
 	// Zone 3 = NUR view-spezifische Tasten; globale (b/R/p/q/Cmd) stehen bereits im
 	// Header rechts → nicht doppeln (verwirrt, PO-Befund Augenschein).
-	hint := "i/k:↑↓  l/→:auf  j/←:zu  1…n:Section  s:Status  S:Meilenstein  d:löschen  y:yank  /:Suche  f:Filter  t:Tags  ctrl+r:neu laden"
+	hint := "i/k:↑↓  l/→:expand  j/←:collapse  1…n:section  s:status  S:milestone  d:delete  y:yank  /:search  f:filter  t:tags  ctrl+r:reload"
 	switch {
 	case m.treeSearching:
-		hint = "tippen: filtern   enter: übernehmen   esc: abbrechen"
+		hint = "type: filter   enter: apply   esc: cancel"
 	case m.detailFocus: // DD2-76/86: Detail-Pane fokussiert — Section/Feld-Navigation
-		hint = "i/k:Section/Feld  l/→:rein  enter:rein/bearbeiten  j/←:zurück  1…n:Section  esc: Tree-Fokus"
+		hint = "i/k:section/field  l/→:in  enter:in/edit  j/←:back  1…n:section  esc: tree focus"
 	case m.treeActive():
-		hint = "i/k:↑↓  l/→:auf  s:Status  /:Suche  f:Filter  esc: Filter+Suche löschen  t:Tags  ctrl+r:neu laden"
+		hint = "i/k:↑↓  l/→:expand  s:status  /:search  f:filter  esc: clear filter+search  t:tags  ctrl+r:reload"
 	}
 	localKeys = theme.Muted.Render(wrapText(hint, w)) // Zone 3: lokale Shortcuts
 	footH := lipgloss.Height(localKeys) + 1           // + 1 Status-Zeile (Split-Status)
@@ -245,7 +245,7 @@ func (m model) viewTree() string {
 	if len(nodes) > 0 {
 		detailStr = m.treeDetail(nodes[m.treeCursor], rw-2)
 	} else {
-		detailStr = theme.Dim.Render("(lädt … — l/→ klappt auf)")
+		detailStr = theme.Dim.Render("(loading … — l/→ expands)")
 	}
 	detail := strings.Split(detailStr, "\n")
 	for i := range detail {
@@ -330,13 +330,13 @@ func (m model) treeDetail(n treeNode, w int) string {
 	switch n.kind {
 	case tkMile:
 		if n.mileIdx < 0 || n.mileIdx >= len(m.milestones) {
-			return theme.Dim.Render("(nichts gewählt)")
+			return theme.Dim.Render("(nothing selected)")
 		}
 		ms := m.milestones[n.mileIdx]
 		// Meilenstein hat keinen Key → Titel ohne Key; Meta-Strip Fortschritt/Status.
 		b.WriteString(detailTitle("", ms.Name, w) + "\n")
 		b.WriteString(metaStrip([]metaPair{
-			{fmt.Sprintf("%d/%d", ms.Done, ms.Total), "Fortschritt"},
+			{fmt.Sprintf("%d/%d", ms.Done, ms.Total), "Progress"},
 		}, statusText(ms.Status), w) + "\n\n")
 		// DD2-78: editierbare Felder als flache, fokussierbare Liste (kein Accordion,
 		// D09). Bei Detail-Fokus auf diesem Knoten trägt das aktive Feld den D08-Balken.
@@ -346,21 +346,21 @@ func (m model) treeDetail(n treeNode, w int) string {
 	case tkSprint:
 		if n.mileIdx < 0 || n.mileIdx >= len(m.milestones) ||
 			n.sprIdx < 0 || n.sprIdx >= len(m.milestones[n.mileIdx].Sprints) {
-			return theme.Dim.Render("(nichts gewählt)")
+			return theme.Dim.Render("(nothing selected)")
 		}
 		ms := m.milestones[n.mileIdx]
 		sp := ms.Sprints[n.sprIdx]
 		b.WriteString(detailTitle(sp.Key, sp.Name, w) + "\n")
 		b.WriteString(metaStrip([]metaPair{
-			{sprintMilestoneName(&sp, &ms), "Meilenstein"},
-			{fmt.Sprintf("%d/%d", sp.DoneCount, sp.ItemCount), "Fortschritt"},
+			{sprintMilestoneName(&sp, &ms), "Milestone"},
+			{fmt.Sprintf("%d/%d", sp.DoneCount, sp.ItemCount), "Progress"},
 		}, statusText(sp.Status), w) + "\n\n")
 		// DD2-78: name/goal als flache, fokussierbare Feldliste (D09, kein Accordion).
 		fields := sprintFields()
 		b.WriteString(renderFlatFields(fields, sprintFieldValues(sp, fields), m.fieldCursor, m.detailFocus, w))
 	case tkIssue:
 		if n.issue == nil {
-			return theme.Dim.Render("(nichts gewählt)")
+			return theme.Dim.Render("(nothing selected)")
 		}
 		it := *n.issue
 		// DD2-77: die Übersicht (Kopf, Fokus-Index 0) trägt title/type/priority. Bei
@@ -393,14 +393,14 @@ func (m model) treeDetail(n treeNode, w int) string {
 		b.WriteString("\n\n")
 		// DD2-50: Felder als ziffern-aktiviertes Accordion (löst DD2-43). bodyW = w-2,
 		// da die Body-Box ihre Border außen anlegt (renderAccordion).
-		b.WriteString(theme.Muted.Render("Sections: Ziffer [1..n] öffnet") + "\n")
+		b.WriteString(theme.Muted.Render("Sections: digit [1..n] opens") + "\n")
 		// DD2-76/77: Accordion-Fokus nur, wenn der Cursor auf einer Content-Section
 		// steht (secCursor ≥ 1); sec = secCursor-1 (Übersicht ist Index 0).
 		focus := detailFocusView{active: m.detailFocus && m.secCursor >= 1,
 			level: m.detailLevel, sec: m.secCursor - 1, field: m.fieldCursor}
 		b.WriteString(renderAccordion(m.issueSections(it, w-2), m.accOpen, w, focus))
 	default:
-		b.WriteString(theme.Dim.Render("(nichts gewählt — l/→ klappt auf)"))
+		b.WriteString(theme.Dim.Render("(nothing selected — l/→ expands)"))
 	}
 	return b.String()
 }
@@ -609,7 +609,7 @@ func (m model) treeYank(nodes []treeNode) (tea.Model, tea.Cmd) {
 			m.errNote = "Clipboard-Fehler: " + err.Error()
 		} else {
 			m.errNote = ""
-			m.status = "Meilenstein-Kontext kopiert (" + ms.Name + ")"
+			m.status = "Milestone context copied (" + ms.Name + ")"
 		}
 	case tkSprint:
 		sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
@@ -621,10 +621,10 @@ func (m model) treeYank(nodes []treeNode) (tea.Model, tea.Cmd) {
 			m.errNote = "Clipboard-Fehler: " + err.Error()
 		} else {
 			m.errNote = ""
-			m.status = "Sprint-Kontext kopiert (" + sp.Key + ")"
+			m.status = "Sprint context copied (" + sp.Key + ")"
 		}
 	default:
-		m.status = "Yank: auf Meilenstein oder Sprint"
+		m.status = "Yank: on milestone or sprint"
 	}
 	return m, nil
 }
@@ -646,7 +646,7 @@ func (m model) openTreeFilter() (tea.Model, tea.Cmd) {
 // Status-Werte (aus den geladenen Meilensteinen/Sprints/Issues).
 func (m model) buildFilterItems() []ffItem {
 	items := []ffItem{
-		{"art", "mile", "Meilenstein"},
+		{"art", "mile", "Milestone"},
 		{"art", "sprint", "Sprint"},
 		{"art", "issue", "Issue"},
 		{"type", "bug", "Bug"},
@@ -741,7 +741,7 @@ func (m model) keyTreeFilter(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // treeFilterBox rendert das schwebende Filter-Menü (Checkboxen je Facette).
 func (m model) treeFilterBox() string {
 	var b strings.Builder
-	b.WriteString(theme.Muted.Render("space:an/aus  c:leeren  enter/esc:fertig") + "\n")
+	b.WriteString(theme.Muted.Render("space:toggle  c:clear  enter/esc:done") + "\n")
 	lastFacet := ""
 	facetHead := map[string]string{"art": "Art", "type": "Issue-Type", "status": "Status"}
 	for i, it := range m.ffItems {
@@ -789,7 +789,7 @@ func (m model) filterSummary() string {
 		p = append(p, "Art:"+strings.Join(a, ","))
 	}
 	if len(m.fType) > 0 {
-		p = append(p, "Typ:"+joinFilterKeys(m.fType))
+		p = append(p, "Type:"+joinFilterKeys(m.fType))
 	}
 	if len(m.fStatus) > 0 {
 		p = append(p, "St:"+joinFilterKeys(m.fStatus))
@@ -851,7 +851,7 @@ func (m model) treeSearchLine(w int) string {
 	if len(parts) > 0 { // aktiver Filter/Suche = rot (DESIGN „Filter aktiv")
 		return truncate(lipgloss.NewStyle().Foreground(theme.Red).Render(shield+" "+strings.Join(parts, " ")), w)
 	}
-	return truncate(theme.Muted.Render(shield+" Suchen mit /  ∙  Filter f"), w)
+	return truncate(theme.Muted.Render(shield+" search with /  ∙  filter f"), w)
 }
 
 // treeExpand klappt den Knoten unter dem Cursor auf; bei Sprints werden die
@@ -868,7 +868,7 @@ func (m model) treeExpand(nodes []treeNode) (tea.Model, tea.Cmd) {
 		sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
 		m.treeExpSprint[sp.ID] = true
 		if _, ok := m.treeIssues[sp.ID]; !ok {
-			m.status = "lädt Issues …"
+			m.status = "loading issues …"
 			return m, loadSprint(m.client, sp.ID)
 		}
 	case tkIssue:

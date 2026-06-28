@@ -18,7 +18,7 @@ import (
 // backlogMDModel: Backlog-View mit zwei Issues. Issue 1 hat Goal+Background → zwei
 // Detail-Sektionen; Issue 2 ist feldarm (nur Kopf-Meta).
 func backlogMDModel() model {
-	g, bg := "Ziel", "Hintergrund"
+	g, bg := "Target", "Hintergrund"
 	return model{
 		view: viewBacklog,
 		backlog: []api.Issue{
@@ -139,7 +139,7 @@ func TestBacklogViewRendersDetail(t *testing.T) {
 	if !strings.Contains(out, "DD2-1") {
 		t.Errorf("Detail-Pane zeigt das selektierte Issue nicht: %q", out)
 	}
-	if !strings.Contains(out, "Ziel") {
+	if !strings.Contains(out, "Target") {
 		t.Errorf("offene Section (Goal) fehlt im Detail: %q", out)
 	}
 

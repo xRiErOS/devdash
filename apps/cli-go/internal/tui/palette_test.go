@@ -15,9 +15,9 @@ func TestFuzzyMatch(t *testing.T) {
 		{"", "Neues Issue anlegen", true},           // leer matcht alles
 		{"issue", "Neues Issue anlegen", true},      // direkter Teilstring
 		{"nia", "Neues Issue anlegen", true},        // Subsequenz N..I..A
-		{"sprint", "Neuen Sprint anlegen", true},    // case-insensitiv
+		{"sprint", "Create new sprint", true},    // case-insensitiv
 		{"zzz", "Neues Issue anlegen", false},       // kein Match
-		{"meil", "Neuen Meilenstein anlegen", true}, // Umlaut-frei, Substring
+		{"mile", "Create new milestone", true}, // Umlaut-frei, Substring
 	}
 	for _, c := range cases {
 		if got := fuzzyMatch(c.query, c.target); got != c.want {
@@ -95,7 +95,7 @@ func TestPaletteEnterDispatchesSelected(t *testing.T) {
 	mi, _ := m.Update(tea.KeyMsg{Type: tea.KeyCtrlK})
 	m = mi.(model)
 	// Filter auf milestone, dann enter → Formular milestone
-	mi, _ = m.Update(keyMsg("meilenstein"))
+	mi, _ = m.Update(keyMsg("milestone"))
 	m = mi.(model)
 	mi, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = mi.(model)

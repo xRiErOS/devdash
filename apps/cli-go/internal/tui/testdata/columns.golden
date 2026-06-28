@@ -1,7 +1,7 @@
-> devd2                       ctrl+k:Cmd  p:Projekt  b:Backlog  R:Reviews  ?:Hilfe  q:Quit
+> devd2                        ctrl+k:cmd  p:project  b:backlog  R:reviews  ?:help  q:quit
 ╭────────────────────────────╮╭────────────────────────────╮╭────────────────────────────╮
-│Meilensteine                ││Sprints ∙ Meilenstein Eins  ││Issues ∙ DD2#9              │
-│──────────────              ││────────────────────────────││────────────────            │
+│Milestones                  ││Sprints ∙ Meilenstein Eins  ││Issues ∙ DD2#9              │
+│────────────                ││────────────────────────────││────────────────            │
 │▸ ◉ Meilenstein Eins  0/0   ││  DD2#9    review  0/0      ││  ⯁ P1 DD2-99    Beispiel-I…│
 │                            ││                            ││                            │
 │                            ││                            ││                            │
@@ -18,5 +18,5 @@
 │                            ││                            ││                            │
 │                            ││                            ││                            │
 ╰────────────────────────────╯╰────────────────────────────╯╰────────────────────────────╯
-i/k:↑↓  l/→:rein  j/←:raus  enter:Detail  S:Meilenstein-Status  d:löschen  f:Filter
-y:Yank  t:Tags  ctrl+r:neu laden  b:Backlog  R:Reviews  q:quit                     
+i/k:↑↓  l/→:in  j/←:out  enter:detail  S:milestone-status  d:delete  f:filter  y:yank
+t:tags  ctrl+r:reload  b:backlog  R:reviews  q:quit                                  

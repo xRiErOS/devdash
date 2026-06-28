@@ -34,9 +34,9 @@ func (m model) viewPicker() string {
 		b.WriteString(cursor + name + "  " + hint + "\n")
 	}
 	if len(filtered) == 0 && len(m.projects) > 0 {
-		b.WriteString(lipgloss.NewStyle().Foreground(theme.Hint).Render("  (keine Treffer)") + "\n")
+		b.WriteString(lipgloss.NewStyle().Foreground(theme.Hint).Render("  (no matches)") + "\n")
 	}
-	return m.framed("[switch] Project", b.String(), "↑↓:navigieren  enter:wählen  esc:schließen  tippen:filtern")
+	return m.framed("[switch] Project", b.String(), "↑↓:navigate  enter:select  esc:close  type:filter")
 }
 
 // --- Miller-Columns ---
@@ -50,7 +50,7 @@ type pane struct {
 
 func (m model) viewColumns() string {
 	all := []pane{
-		{title: "Meilensteine", rows: m.msRows(), cursor: m.mlist.cursor, isList: true},
+		{title: "Milestones", rows: m.msRows(), cursor: m.mlist.cursor, isList: true},
 		{title: m.ctxTitle("Sprints", m.selMilestone() != nil, msName(m.selMilestone())), rows: m.spRows(), cursor: m.slist.cursor, isList: true},
 		{title: m.ctxTitle("Issues", m.selSprint() != nil, spKey(m.selSprint())), rows: m.isRows(), cursor: m.ilist.cursor, isList: true},
 		{title: "Vorschau", rows: m.detailRows(), isList: false},
@@ -139,7 +139,7 @@ func (m model) msRows() []string {
 			theme.Dim.Render(fmt.Sprintf("%d/%d", x.Done, x.Total)), def)
 	}
 	if len(rows) == 0 {
-		return []string{theme.Dim.Render("(keine — f für Filter)")}
+		return []string{theme.Dim.Render("(none — f for filter)")}
 	}
 	return rows
 }
@@ -152,14 +152,14 @@ func (m model) spRows() []string {
 			theme.Dim.Render(fmt.Sprintf("%d/%d", s.DoneCount, s.ItemCount)))
 	}
 	if len(rows) == 0 && m.selMilestone() != nil {
-		return []string{theme.Dim.Render("(keine Sprints)")}
+		return []string{theme.Dim.Render("(no sprints)")}
 	}
 	return rows
 }
 
 func (m model) isRows() []string {
 	if m.selSprint() != nil && m.curSprint == nil {
-		return []string{theme.Dim.Render("(lädt …)")}
+		return []string{theme.Dim.Render("(loading …)")}
 	}
 	is := m.visIssues()
 	rows := make([]string, len(is))
@@ -167,7 +167,7 @@ func (m model) isRows() []string {
 		rows[i] = fmt.Sprintf("%s %s %-9s %s", theme.TypeIcon(it.Type), theme.Priority(it.Priority), it.Key, it.Title)
 	}
 	if len(rows) == 0 && m.selSprint() != nil {
-		return []string{theme.Dim.Render("(keine Issues)")}
+		return []string{theme.Dim.Render("(no issues)")}
 	}
 	return rows
 }
@@ -176,7 +176,7 @@ func (m model) isRows() []string {
 func (m model) detailRows() []string {
 	it := m.selIssue()
 	if it == nil {
-		return []string{theme.Dim.Render("(Issue wählen →)")}
+		return []string{theme.Dim.Render("(select issue →)")}
 	}
 	rows := []string{
 		theme.Key.Render(it.Key),
@@ -196,21 +196,21 @@ func (m model) detailRows() []string {
 func (m model) viewMilestone() string {
 	ms := m.selMilestone()
 	if ms == nil {
-		return "\n  (kein Meilenstein)\n"
+		return "\n  (no milestone)\n"
 	}
 	var b strings.Builder
 	b.WriteString(theme.Header.Render(ms.Name) + "\n")
 	status := statusText(ms.Status)
 	if ms.Deferred == 1 {
-		status += " " + theme.Dim.Render("⏸ zurückgestellt")
+		status += " " + theme.Dim.Render("⏸ deferred")
 	}
 	slots := []hslot{
 		{"Status", status},
-		{"Fortschritt", fmt.Sprintf("%d/%d", ms.Done, ms.Total)},
-		{"Ziel", deref(ms.TargetDate)},
+		{"Progress", fmt.Sprintf("%d/%d", ms.Done, ms.Total)},
+		{"Target", deref(ms.TargetDate)},
 	}
 	if d := deref(ms.Description); d != "" {
-		b.WriteString("\n" + theme.Dim.Render("Beschreibung:") + "\n" + d + "\n")
+		b.WriteString("\n" + theme.Dim.Render("Description:") + "\n" + d + "\n")
 	}
 	b.WriteString("\n" + theme.Dim.Render(fmt.Sprintf("Sprints (%d):", len(ms.Sprints))) + "\n")
 	for _, s := range ms.Sprints {
@@ -220,8 +220,8 @@ func (m model) viewMilestone() string {
 		}
 		b.WriteString(fmt.Sprintf("  %-8s %s  %s%s\n", s.Key, statusText(s.Status), truncate(s.Name, 30), goal))
 	}
-	return m.chrome("Meilenstein", slots, b.String(),
-		"S: Status   a: Sprints zuweisen   y: kopieren   i/k: scrollen   esc/q: zurück")
+	return m.chrome("Milestone", slots, b.String(),
+		"S: status   a: assign sprints   y: copy   i/k: scroll   esc/q: back")
 }
 
 // --- Sprint-Detail ---
@@ -229,7 +229,7 @@ func (m model) viewMilestone() string {
 func (m model) viewSprint() string {
 	s := m.selSprint()
 	if s == nil {
-		return "\n  (kein Sprint)\n"
+		return "\n  (no sprint)\n"
 	}
 	// Items aus curSprint (geladen), sonst Embedded.
 	items := s.Items
@@ -238,8 +238,8 @@ func (m model) viewSprint() string {
 	}
 	slots := []hslot{
 		{"Status", statusText(s.Status)},
-		{"Meilenstein", sprintMilestoneName(s, m.selMilestone())},
-		{"Fortschritt", fmt.Sprintf("%d/%d", s.DoneCount, s.ItemCount)},
+		{"Milestone", sprintMilestoneName(s, m.selMilestone())},
+		{"Progress", fmt.Sprintf("%d/%d", s.DoneCount, s.ItemCount)},
 	}
 	var b strings.Builder
 	b.WriteString(theme.Header.Render(s.Name) + "\n")
@@ -262,7 +262,7 @@ func (m model) viewSprint() string {
 		m.curSprint = old
 	}
 	return m.chrome("Sprint "+s.Key, slots, b.String(),
-		"R: Review-Cockpit   m: Meilenstein   y: kopieren   i/k: scrollen   esc/q: zurück")
+		"R: review cockpit   m: milestone   y: copy   i/k: scroll   esc/q: back")
 }
 
 // --- Issue-Detail (#5 Rahmen, #6 alle Felder, #9 Titel) ---
@@ -281,7 +281,7 @@ func issueFields(it *api.Issue) string {
 	}
 	field("Goal", deref(it.Goal))
 	field("Background", deref(it.Background))
-	field("Beschreibung", deref(it.Description))
+	field("Description", deref(it.Description))
 	field("Context Notes", deref(it.ContextNotes))
 	field("Relevant Files", deref(it.RelevantFiles))
 	field("PO Notes", deref(it.PoNotes))
@@ -306,7 +306,7 @@ func issueFields(it *api.Issue) string {
 func (m model) viewDetail() string {
 	it := m.selIssue()
 	if it == nil {
-		return "\n  (kein Issue)\n"
+		return "\n  (no issue)\n"
 	}
 	tags := ""
 	if len(it.Tags) > 0 {
@@ -318,9 +318,9 @@ func (m model) viewDetail() string {
 	}
 	slots := []hslot{
 		{"Status", statusText(it.Status)},
-		{"Typ", theme.TypeIcon(it.Type) + " " + theme.TypeStyle(it.Type).Render(it.Type)},
+		{"Type", theme.TypeIcon(it.Type) + " " + theme.TypeStyle(it.Type).Render(it.Type)},
 		{"Prio", theme.Priority(it.Priority)},
-		{"Meilenstein", deref(it.Milestone)},
+		{"Milestone", deref(it.Milestone)},
 		{"Sprint", deref(it.SprintKey)},
 		{"Tags", tags},
 	}
@@ -339,7 +339,7 @@ func (m model) viewDetail() string {
 		b.WriteString("\n" + theme.Dim.Render(strings.Join(stamp, " ∙ ")) + "\n")
 	}
 	return m.chrome("Issue "+it.Key, slots, b.String(),
-		"s: Status   i/k: scrollen   g/G: Anfang/Ende   esc/q: zurück")
+		"s: status   i/k: scroll   g/G: start/end   esc/q: back")
 }
 
 // --- Backlog (Master-Detail) → backlog.go (DD2-32) ---
@@ -353,7 +353,7 @@ func (m model) viewDetail() string {
 // (★ DD2-70 Abschluss-Bereitschaft); Footer: reviewHints + Status.
 func (m model) viewReview() string {
 	if m.curSprint == nil {
-		return m.framed("Review", theme.Dim.Render("(lädt …)"), "esc/q: zurück")
+		return m.framed("Review", theme.Dim.Render("(loading …)"), "esc/q: back")
 	}
 	s := m.curSprint
 	w := m.termWidth()
@@ -430,13 +430,13 @@ func (m model) reviewMasterPane(w, h int) string {
 // via m.scroll fensterbar.
 func (m model) reviewDetailPane(it *api.Issue, w, h int) string {
 	if it == nil {
-		return borderedPane([]string{theme.Dim.Render("(kein Issue gewählt)")}, w, h, theme.Overlay)
+		return borderedPane([]string{theme.Dim.Render("(no issue selected)")}, w, h, theme.Overlay)
 	}
 	header := []string{
 		truncate(theme.Header.Render(it.Key+" — "+it.Title), w),
 		truncate(theme.StatusStyle(it.Status).Render(it.Status)+"  "+
 			theme.TypeIcon(it.Type)+" "+it.Type+"  "+theme.Priority(it.Priority)+"  "+reviewBadge(*it), w),
-		truncate(theme.Dim.Render("Ergebnis ")+resultDot(*it)+theme.Dim.Render("   User-Stories ")+usSummaryDot(*it), w),
+		truncate(theme.Dim.Render("Result ")+resultDot(*it)+theme.Dim.Render("   User-Stories ")+usSummaryDot(*it), w),
 		theme.Dim.Render(strings.Repeat("─", min(w, 24))),
 	}
 	acc := renderAccordion(m.issueSections(*it, w-2), m.accOpen, w, detailFocusView{})

@@ -15,7 +15,7 @@ import (
 func TestFramedFillsHeightKeepsFooter(t *testing.T) {
 	long := strings.Repeat("Inhaltszeile\n", 100)
 	m := model{width: 80, height: 12}
-	out := m.framed("Titel", long, "s: Status   esc: zurück")
+	out := m.framed("Title", long, "s: Status   esc: zurück")
 	if h := lipgloss.Height(out); h != 12 {
 		t.Errorf("framed-Höhe=%d, want 12 (volle Terminalhöhe)", h)
 	}
@@ -36,7 +36,7 @@ func TestDetailScrollsToBottom(t *testing.T) {
 	if m.scroll == 0 {
 		t.Fatal("G hat den Scroll-Offset nicht erhöht")
 	}
-	if !strings.Contains(m.View(), "esc/q: zurück") {
+	if !strings.Contains(m.View(), "esc/q: back") {
 		t.Error("Footer nach Scroll nicht sichtbar")
 	}
 	// g zurück an den Anfang
@@ -79,10 +79,10 @@ func TestFormModalNeverOverflows(t *testing.T) {
 // zeigt Meldung (links) und kritischen Fehler (rechts) gleichzeitig.
 func TestChromeBreadcrumbAndSplitStatus(t *testing.T) {
 	m := model{width: 90, height: 14, status: "Kontext kopiert", errNote: "Clipboard-Fehler: x"}
-	out := m.framed("Titel", "body", "esc: zurück")
+	out := m.framed("Title", "body", "esc: zurück")
 	for _, want := range []string{
-		"> dd: Titel",         // Breadcrumb mit Titel (Projekt nil → slug "dd")
-		"p:Projekt",           // globale Shortcuts rechts
+		"> dd: Title",         // Breadcrumb mit Titel (Projekt nil → slug "dd")
+		"p:project",           // globale Shortcuts rechts
 		"esc: zurück",         // lokale Shortcuts (Zone 3)
 		"Kontext kopiert",     // Status-Meldung (Zone 4 links)
 		"Clipboard-Fehler: x", // kritischer Fehler (Zone 4 rechts)
@@ -118,11 +118,11 @@ func TestChromeNeverOverflowsWidth(t *testing.T) {
 // DD2-29: Columns-Footer benennt die Status-Taste depth-abhängig.
 func TestColumnsFooterDepthAware(t *testing.T) {
 	m := reproColumnsModel(viewColumns, 2)
-	if !strings.Contains(m.footer(), "s:Issue-Status") {
+	if !strings.Contains(m.footer(), "s:issue-status") {
 		t.Errorf("depth 2 Footer nennt nicht s:Issue-Status: %q", m.footer())
 	}
 	m.depth = 1
-	if !strings.Contains(m.footer(), "s:Sprint-Status") {
+	if !strings.Contains(m.footer(), "s:sprint-status") {
 		t.Errorf("depth 1 Footer nennt nicht s:Sprint-Status: %q", m.footer())
 	}
 }

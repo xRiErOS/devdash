@@ -16,27 +16,27 @@ import (
 // Sync-Test hält docs/shortcuts.md gegen diese Ausgabe (TestShortcutDoc).
 func shortcutMarkdown() string {
 	var b strings.Builder
-	b.WriteString("# DevD Cockpit — Tastatur-Shortcuts\n\n")
-	b.WriteString("> Generiert aus der zentralen Keymap (`internal/tui/keymap.go`, DD2-47).\n")
-	b.WriteString("> Nicht von Hand editieren — neu erzeugen mit:\n")
+	b.WriteString("# DevD Cockpit — Keyboard Shortcuts\n\n")
+	b.WriteString("> Generated from the central keymap (`internal/tui/keymap.go`, DD2-47).\n")
+	b.WriteString("> Do not edit by hand — regenerate with:\n")
 	b.WriteString("> `go test ./internal/tui/ -run TestShortcutDoc -update-golden`\n\n")
-	b.WriteString("Richtungskreuz: **jkli** — `i`=hoch, `j`=links/zurück, `k`=runter, ")
-	b.WriteString("`l`=rechts/rein (DD2-34). Pfeiltasten ↑↓←→ sind überall gleichwertig.\n")
+	b.WriteString("Direction cross: **jkli** — `i`=up, `j`=left/back, `k`=down, ")
+	b.WriteString("`l`=right/in (DD2-34). Arrow keys ↑↓←→ are equivalent everywhere.\n")
 	for _, g := range keys.helpGroups() {
 		b.WriteString("\n## " + g.title + "\n\n")
-		b.WriteString("| Taste | Aktion |\n|-------|--------|\n")
+		b.WriteString("| Key | Action |\n|-------|--------|\n")
 		for _, bind := range g.bindings {
 			h := bind.Help()
 			b.WriteString("| `" + h.Key + "` | " + h.Desc + " |\n")
 		}
 	}
-	b.WriteString("\n## Kontext-Hinweise\n\n")
-	b.WriteString("- `s` / `S` / `d` / `m` / `a` wirken auf den **fokussierten Knoten** ")
-	b.WriteString("(Meilenstein / Sprint / Issue) — je nach Tiefe bzw. Tree-Selektion.\n")
-	b.WriteString("- `q` / `ctrl+c` öffnen auf Top-Level den Beenden-Confirm (DD2-49); ")
-	b.WriteString("in Sub-Formularen/Modals brechen sie direkt ab.\n")
-	b.WriteString("- In Suchfeldern (Tree `/`, Memory `/`) und im Command-Center tippen ")
-	b.WriteString("Buchstaben als Text — die Navigations-Bindings greifen dort nicht.\n")
+	b.WriteString("\n## Context notes\n\n")
+	b.WriteString("- `s` / `S` / `d` / `m` / `a` act on the **focused node** ")
+	b.WriteString("(milestone / sprint / issue) — depending on depth or tree selection.\n")
+	b.WriteString("- `q` / `ctrl+c` open the quit confirm at top level (DD2-49); ")
+	b.WriteString("in sub-forms/modals they cancel directly.\n")
+	b.WriteString("- In search fields (tree `/`, memory `/`) and the command center, typing ")
+	b.WriteString("letters as text — the navigation bindings do not apply there.\n")
 	return b.String()
 }
 
@@ -64,5 +64,5 @@ func (m model) helpBox() string {
 		}
 	}
 
-	return modalPanel("Tastatur-Shortcuts", b.String(), "esc/?/q: schließen", clampModalWidth(54, m.width), theme.Mauve)
+	return modalPanel("Keyboard shortcuts", b.String(), "esc/?/q: close", clampModalWidth(54, m.width), theme.Mauve)
 }

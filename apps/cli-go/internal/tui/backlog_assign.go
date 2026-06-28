@@ -104,17 +104,17 @@ func (m model) assignSprintMenu() string {
 	if cw < 24 {
 		cw = 24
 	}
-	body := theme.Dim.Render("i/k: wählen   enter: zuweisen   esc: abbrechen") + "\n\n"
+	body := theme.Dim.Render("i/k: select   enter: assign   esc: cancel") + "\n\n"
 	if len(m.asSprints) == 0 {
-		body += theme.Dim.Render("(keine offenen Sprints — oder lädt …)")
-		return modalPanel("Issue einem Sprint zuweisen", body, "", mw, theme.Mauve)
+		body += theme.Dim.Render("(no open sprints — or loading …)")
+		return modalPanel("Assign issue to a sprint", body, "", mw, theme.Mauve)
 	}
 	blocks := make([]string, len(m.asSprints))
 	for i, s := range m.asSprints {
 		blocks[i] = m.assignSprintBlock(s, cw, i == m.asMenu.cursor)
 	}
 	body += strings.Join(blocks, "\n")
-	return modalPanel("Issue einem Sprint zuweisen", body, "", mw, theme.Mauve)
+	return modalPanel("Assign issue to a sprint", body, "", mw, theme.Mauve)
 }
 
 // assignSprintBlock rendert einen Sprint als Block: Zeile 1 'Key - Titel … N Issues'
@@ -148,13 +148,13 @@ func (m model) assignSprintBlock(s api.Sprint, w int, sel bool) string {
 		lines = append(lines, indent+tl)
 	}
 	// Meilenstein-Zeile (ID führt), Key-eingerückt, umbrechend.
-	ms := "(kein Meilenstein)"
+	ms := "(no milestone)"
 	if s.MilestoneName != nil && *s.MilestoneName != "" {
 		mid := ""
 		if s.MilestoneID != nil {
 			mid = fmt.Sprintf("%d - ", *s.MilestoneID)
 		}
-		ms = "Meilenstein: " + mid + *s.MilestoneName
+		ms = "Milestone: " + mid + *s.MilestoneName
 	}
 	for _, ml := range strings.Split(wrapText(ms, w-lipgloss.Width(indent)), "\n") {
 		lines = append(lines, indent+theme.Dim.Render(ml))

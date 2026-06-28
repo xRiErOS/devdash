@@ -50,7 +50,7 @@ func TestReproDetailSOpensIssueStatus(t *testing.T) {
 func TestReproSprintDetailShowsMilestone(t *testing.T) {
 	m := reproColumnsModel(viewSprint, 1)
 	out := m.View()
-	if !strings.Contains(out, "Meilenstein") || !strings.Contains(out, "Meilenstein-Eins") {
+	if !strings.Contains(out, "Milestone") || !strings.Contains(out, "Meilenstein-Eins") {
 		t.Errorf("Sprint-Detail zeigt den Meilenstein-Namen NICHT.\n--- View ---\n%s", out)
 	}
 }

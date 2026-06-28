@@ -1,53 +1,53 @@
-# DevD Cockpit — Tastatur-Shortcuts
+# DevD Cockpit — Keyboard Shortcuts
 
-> Generiert aus der zentralen Keymap (`internal/tui/keymap.go`, DD2-47).
-> Nicht von Hand editieren — neu erzeugen mit:
+> Generated from the central keymap (`internal/tui/keymap.go`, DD2-47).
+> Do not edit by hand — regenerate with:
 > `go test ./internal/tui/ -run TestShortcutDoc -update-golden`
 
-Richtungskreuz: **jkli** — `i`=hoch, `j`=links/zurück, `k`=runter, `l`=rechts/rein (DD2-34). Pfeiltasten ↑↓←→ sind überall gleichwertig.
+Direction cross: **jkli** — `i`=up, `j`=left/back, `k`=down, `l`=right/in (DD2-34). Arrow keys ↑↓←→ are equivalent everywhere.
 
 ## Navigation
 
-| Taste | Aktion |
+| Key | Action |
 |-------|--------|
-| `↑/i` | hoch |
-| `↓/k` | runter |
-| `←/j` | zurück/raus |
-| `→/l` | rein/auf |
-| `enter` | öffnen/bestätigen |
-| `esc` | zurück |
+| `↑/i` | up |
+| `↓/k` | down |
+| `←/j` | back/out |
+| `→/l` | in/expand |
+| `enter` | open/confirm |
+| `esc` | back |
 | `1…9` | Section |
 
 ## Views & Global
 
-| Taste | Aktion |
+| Key | Action |
 |-------|--------|
 | `b` | Backlog |
 | `R` | Review-Cockpit |
-| `p` | Projekt wählen |
+| `p` | Select project |
 | `T` | Tag-Manager |
-| `/` | Suche |
+| `/` | Search |
 | `f` | Filter |
-| `ctrl+r` | Daten neu laden |
+| `ctrl+r` | Reload data |
 | `ctrl+k` | Command-Center |
-| `?` | Hilfe |
-| `q` | beenden |
+| `?` | help |
+| `q` | quit |
 
-## Aktionen
+## Actions
 
-| Taste | Aktion |
+| Key | Action |
 |-------|--------|
 | `s` | Status (Issue/Sprint) |
-| `S` | Meilenstein-Status |
-| `m` | Sprint → Meilenstein |
-| `a` | Sprints zuweisen |
-| `t` | Tags zuweisen |
-| `d` | löschen (Cascade) |
-| `y` | Kontext kopieren |
-| `space/x` | Facette an/aus |
+| `S` | Milestone status |
+| `m` | Sprint → milestone |
+| `a` | Assign sprints |
+| `t` | Assign tags |
+| `d` | delete (cascade) |
+| `y` | Copy context |
+| `space/x` | Toggle facet |
 
-## Kontext-Hinweise
+## Context notes
 
-- `s` / `S` / `d` / `m` / `a` wirken auf den **fokussierten Knoten** (Meilenstein / Sprint / Issue) — je nach Tiefe bzw. Tree-Selektion.
-- `q` / `ctrl+c` öffnen auf Top-Level den Beenden-Confirm (DD2-49); in Sub-Formularen/Modals brechen sie direkt ab.
-- In Suchfeldern (Tree `/`, Memory `/`) und im Command-Center tippen Buchstaben als Text — die Navigations-Bindings greifen dort nicht.
+- `s` / `S` / `d` / `m` / `a` act on the **focused node** (milestone / sprint / issue) — depending on depth or tree selection.
+- `q` / `ctrl+c` open the quit confirm at top level (DD2-49); in sub-forms/modals they cancel directly.
+- In search fields (tree `/`, memory `/`) and the command center, typing letters as text — the navigation bindings do not apply there.

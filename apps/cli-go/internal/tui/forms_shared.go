@@ -25,7 +25,7 @@ import (
 
 func nonEmpty(s string) error {
 	if strings.TrimSpace(s) == "" {
-		return fmt.Errorf("darf nicht leer sein")
+		return fmt.Errorf("must not be empty")
 	}
 	return nil
 }
@@ -209,19 +209,19 @@ func (m model) formTitle() string {
 	case "issue":
 		return "Neues Issue"
 	case "milestone":
-		return "Neuer Meilenstein"
+		return "New milestone"
 	case "sprint":
-		return "Neuer Sprint"
+		return "New sprint"
 	case "memory":
-		return "Neue Memory"
+		return "New memory"
 	case "result":
-		return "Ergebnisfeld setzen"
+		return "Set result field"
 	case "editField":
-		return "Bearbeiten: " + m.editLabel
+		return "Edit: " + m.editLabel
 	case "tagCreate":
-		return "Neuer Tag"
+		return "New tag"
 	case "tagEdit":
-		return "Tag bearbeiten"
+		return "Edit tag"
 	}
 	return ""
 }
@@ -230,11 +230,11 @@ func (m model) formTitle() string {
 func formFooterHint(kind string) string {
 	switch kind {
 	case "testform":
-		return "↑↓ wählen · enter weiter · ctrl+e Editor · esc zu"
+		return "↑↓ select · enter next · ctrl+e editor · esc close"
 	case "editField", "tagCreate", "tagEdit":
-		return "enter speichern · esc abbrechen"
+		return "enter save · esc cancel"
 	default:
-		return "alt+enter speichern · tab Feld · esc abbrechen"
+		return "alt+enter save · tab field · esc cancel"
 	}
 }
 
@@ -262,10 +262,10 @@ func typeOptions() []huh.Option[string] {
 
 func priorityOptions() []huh.Option[string] {
 	return []huh.Option[string]{
-		huh.NewOption("P1 — Kritisch", "1"),
-		huh.NewOption("P2 — Hoch", "2"),
-		huh.NewOption("P3 — Mittel", "3"),
-		huh.NewOption("P4 — Niedrig", "4"),
+		huh.NewOption("P1 — Critical", "1"),
+		huh.NewOption("P2 — High", "2"),
+		huh.NewOption("P3 — Medium", "3"),
+		huh.NewOption("P4 — Low", "4"),
 		huh.NewOption("P5 — Backlog", "5"),
 	}
 }

@@ -99,7 +99,7 @@ func TestMilestoneClipTable(t *testing.T) {
 	ms := &api.Milestone{ID: 7, Name: "Beta", Status: "active", Done: 2, Total: 5,
 		Sprints: []api.Sprint{{ID: 10, Key: "SPF#1", Name: "S1", Goal: &g}}}
 	out := milestoneClip(ms)
-	if !strings.Contains(out, "| ID | Sprint | Titel | Goal |") {
+	if !strings.Contains(out, "| ID | Sprint | Title | Goal |") {
 		t.Error("Sprint-Tabellenkopf fehlt")
 	}
 	if !strings.Contains(out, "SPF#1") || !strings.Contains(out, g) {
@@ -108,11 +108,11 @@ func TestMilestoneClipTable(t *testing.T) {
 }
 
 func TestSprintClipTable(t *testing.T) {
-	g, bg := "Ziel", "Hintergrund\nmehrzeilig"
+	g, bg := "Target", "Hintergrund\nmehrzeilig"
 	s := &api.Sprint{ID: 10, Key: "SPF#1", Name: "S1", Status: "active", ItemCount: 1, DoneCount: 0,
 		Items: []api.Issue{{ID: 100, Key: "SPF-1", Title: "Issue A", Goal: &g, Background: &bg}}}
 	out := sprintClip(s)
-	if !strings.Contains(out, "| ID | Kennung | Titel | Goal | Background |") {
+	if !strings.Contains(out, "| ID | Key | Title | Goal | Background |") {
 		t.Error("Issue-Tabellenkopf fehlt")
 	}
 	if strings.Contains(out, "mehrzeilig\n") {

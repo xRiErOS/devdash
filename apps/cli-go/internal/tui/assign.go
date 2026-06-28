@@ -21,7 +21,7 @@ type smOpt struct {
 // --- Flow A: Sprint → Meilenstein (Single-Select) ---
 
 func (m *model) milestonePickOpts() []smOpt {
-	opts := []smOpt{{nil, "(kein Meilenstein — lösen)"}}
+	opts := []smOpt{{nil, "(no milestone — unset)"}}
 	// DD2-27: nur offene/aktive Meilensteine als Zuweisungsziel — geschlossene/
 	// stornierte taugen nicht und verwässern den Picker (analog Sprint-Create-Form).
 	for _, ms := range openMilestones(m.milestones) {
@@ -62,14 +62,14 @@ func (m model) keySprintMilestone(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		opt := m.smOpts[m.smMenu.cursor]
-		m.status = "Sprint → Meilenstein …"
+		m.status = "Sprint → milestone …"
 		return m, doSetSprintMilestone(m.client, m.smSprintID, opt.id)
 	}
 	return m, nil
 }
 
 func (m model) sprintMilestoneMenu() string {
-	body := theme.Dim.Render("enter: setzen   esc: abbrechen") + "\n\n"
+	body := theme.Dim.Render("enter: set   esc: cancel") + "\n\n"
 	body += menuList(len(m.smOpts), m.smMenu.cursor, func(i int, sel bool) string {
 		o := m.smOpts[i]
 		label := o.label
@@ -78,7 +78,7 @@ func (m model) sprintMilestoneMenu() string {
 		}
 		return label
 	})
-	return modalPanel("Sprint einem Meilenstein zuweisen", body, "", clampModalWidth(48, m.width), theme.Mauve)
+	return modalPanel("Assign sprint to a milestone", body, "", clampModalWidth(48, m.width), theme.Mauve)
 }
 
 // --- Flow B: Meilenstein → Sprints (Multi-Select-Checkliste) ---
@@ -128,10 +128,10 @@ func (m model) keyMilestoneAssign(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.maPick = false
 		if len(ids) == 0 {
-			m.status = noticeText("Keine Sprints angekreuzt")
+			m.status = noticeText("No sprints checked")
 			return m, nil
 		}
-		m.status = fmt.Sprintf("%d Sprint(s) → Meilenstein …", len(ids))
+		m.status = fmt.Sprintf("%d sprint(s) → milestone …", len(ids))
 		return m, doAssignSprintsToMilestone(m.client, ids, m.maMilestoneID)
 	}
 	return m, nil
@@ -142,9 +142,9 @@ func (m model) milestoneAssignMenu() string {
 	if ms := m.selMilestone(); ms != nil {
 		name = ms.Name
 	}
-	body := theme.Dim.Render("space: an/aus   enter: zuweisen   esc: abbrechen") + "\n\n"
+	body := theme.Dim.Render("space: toggle   enter: assign   esc: cancel") + "\n\n"
 	if len(m.maSprints) == 0 {
-		body += theme.Dim.Render("(keine Sprints ohne Meilenstein — oder lädt …)") + "\n"
+		body += theme.Dim.Render("(no sprints without milestone — or loading …)") + "\n"
 	}
 	body += menuList(len(m.maSprints), m.maMenu.cursor, func(i int, sel bool) string {
 		s := m.maSprints[i]
@@ -158,5 +158,5 @@ func (m model) milestoneAssignMenu() string {
 		}
 		return box + " " + label
 	})
-	return modalPanel("Sprints zuweisen → "+truncate(name, 28), body, "", clampModalWidth(50, m.width), theme.Mauve)
+	return modalPanel("Assign sprints → "+truncate(name, 28), body, "", clampModalWidth(50, m.width), theme.Mauve)
 }

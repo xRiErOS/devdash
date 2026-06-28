@@ -23,7 +23,7 @@ func TestBuildResultYAML(t *testing.T) {
 		"- abc fix x",
 		"related_issues:",
 		"- DD2-3",
-		"## Vorgehen",
+		"## Approach",
 		"so gemacht",
 	} {
 		if !strings.Contains(out, want) {

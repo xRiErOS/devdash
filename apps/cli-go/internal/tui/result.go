@@ -33,7 +33,7 @@ func buildResultYAML(summary, outcomeType string, commits []string, vorgehen, is
 	}
 	b.WriteString("---\n")
 	if v := strings.TrimSpace(vorgehen); v != "" {
-		fmt.Fprintf(&b, "\n## Vorgehen\n\n%s\n", v)
+		fmt.Fprintf(&b, "\n## Approach\n\n%s\n", v)
 	}
 	return b.String()
 }

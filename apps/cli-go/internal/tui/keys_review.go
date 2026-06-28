@@ -15,7 +15,7 @@ func (m model) yankContext() (tea.Model, tea.Cmd) {
 				m.errNote = "Clipboard-Fehler: " + err.Error()
 			} else {
 				m.errNote = ""
-				m.status = "Meilenstein-Kontext kopiert (" + ms.Name + ")"
+				m.status = "Milestone context copied (" + ms.Name + ")"
 			}
 		}
 	case 1:
@@ -28,11 +28,11 @@ func (m model) yankContext() (tea.Model, tea.Cmd) {
 				m.errNote = "Clipboard-Fehler: " + err.Error()
 			} else {
 				m.errNote = ""
-				m.status = "Sprint-Kontext kopiert (" + s.Key + ")"
+				m.status = "Sprint context copied (" + s.Key + ")"
 			}
 		}
 	default:
-		m.status = "Yank: auf Meilenstein (Sprints) oder Sprint (Issues) — h zurück"
+		m.status = "Yank: on milestone (sprints) or sprint (issues) — h back"
 	}
 	return m, nil
 }
@@ -142,7 +142,7 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.inputting = true
 		m.input = ""
-		m.status = "Reject-Kommentar (enter=senden, esc=abbrechen): "
+		m.status = "Reject comment (enter=send, esc=cancel): "
 	case "o": // Reopen — direkt aus to_review/passed/rejected (DD2-7). Löst den
 		// Deadlock (passed + letztes Verdikt not_passed) ohne den w:Rework-
 		// Mehrschritt; das Backend öffnet eine frische pending-Runde + Marker-Reset.
@@ -150,7 +150,7 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		if !reviewReopenable(it.Status) {
-			m.status = noticeText("Reopen nur aus to_review/passed/rejected — sonst w (Rework)")
+			m.status = noticeText("Reopen only from to_review/passed/rejected — otherwise w (rework)")
 			return m, nil
 		}
 		m.status = "Reopen gesendet …"
@@ -172,7 +172,7 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.curSprint == nil {
 			return m, nil
 		}
-		m.status = "Review-Pass wird markiert …"
+		m.status = "Marking review pass …"
 		return m, doReviewSubmit(m.client, m.curSprint.ID)
 	case "S": // Sprint-Status-Menü: zeigt gültige Sprint-Transitions
 		if m.curSprint == nil {
@@ -184,16 +184,16 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		if m.curSprint.Status != "review" {
-			m.status = noticeText("Abschluss nur aus review (Sprint ist: " + m.curSprint.Status + ") — erst S")
+			m.status = noticeText("Completion only from review (sprint is: " + m.curSprint.Status + ") — first S")
 			return m, nil
 		}
 		if !m.confirmComplete {
 			m.confirmComplete = true
-			m.status = noticeText("Sprint abschließen? Nochmal C zum Bestätigen (PO/DD-186)")
+			m.status = noticeText("Complete sprint? Press C again to confirm (PO/DD-186)")
 			return m, nil
 		}
 		m.confirmComplete = false
-		m.status = "Sprint wird abgeschlossen …"
+		m.status = "Completing sprint …"
 		// DD2-45: nach dem Complete automatisch den Ergebnis-Handover (rev-results)
 		// in die Zwischenablage yanken — kein manueller Wechsel zur rev-results-Seite.
 		return m, doSprintComplete(m.client, m.curSprint.ID)
@@ -208,7 +208,7 @@ func (m model) keyReviewInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.inputting = false
 		m.input = ""
 		if comment == "" {
-			m.status = noticeText("Reject abgebrochen — Kommentar war leer")
+			m.status = noticeText("Reject cancelled — comment was empty")
 			return m, nil
 		}
 		it := m.reviewItem()

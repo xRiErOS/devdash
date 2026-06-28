@@ -63,7 +63,7 @@ func tagMultiSelect(tags []api.Tag) *huh.MultiSelect[string] {
 	}
 	return huh.NewMultiSelect[string]().Key("tags").
 		Title("Tags (optional)").
-		Description("x: an/aus · enter: weiter — leer lassen = kein Tag").
+		Description("x: toggle · enter: next — leave empty = no tag").
 		Options(opts...)
 }
 
@@ -152,7 +152,7 @@ func (m model) keyTagDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "y", "Y", "enter":
 		m.tagDelConfNo = false
-		m.status = "Tag wird gelöscht …"
+		m.status = "Deleting tag …"
 		return m, doDeleteTag(m.client, m.tagDelID, m.tagDelName)
 	case "n", "N", "esc", "q":
 		m.tagDelConfNo = false
@@ -165,9 +165,9 @@ func (m model) keyTagDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // viewTags rendert die Tag-Verwaltungs-Liste (DD2-75).
 func (m model) viewTags() string {
 	var b strings.Builder
-	b.WriteString(theme.Dim.Render("projektweite Tags — n:neu  e:edit  d:löschen") + "\n\n")
+	b.WriteString(theme.Dim.Render("project-wide tags — n:new  e:edit  d:delete") + "\n\n")
 	if len(m.tags) == 0 {
-		b.WriteString(theme.Dim.Render("(noch keine Tags — n legt den ersten an)") + "\n")
+		b.WriteString(theme.Dim.Render("(no tags yet — n creates the first)") + "\n")
 	}
 	for i, t := range m.tags {
 		cursor := "  "
@@ -181,13 +181,13 @@ func (m model) viewTags() string {
 	body := b.String()
 	if m.tagDelConfNo { // Confirm inline unter der Liste
 		red := lipgloss.NewStyle().Foreground(theme.Red)
-		body += "\n" + red.Render(fmt.Sprintf("Tag „%s\" löschen?", m.tagDelName))
+		body += "\n" + red.Render(fmt.Sprintf("Delete tag „%s\"?", m.tagDelName))
 		if m.tagDelUsage > 0 {
 			body += theme.Dim.Render(fmt.Sprintf(" (entfernt %d Zuweisung[en])", m.tagDelUsage))
 		}
-		body += "  " + red.Render("y") + theme.Dim.Render(":löschen  ") + theme.Accent.Render("n/esc") + theme.Dim.Render(":abbrechen")
+		body += "  " + red.Render("y") + theme.Dim.Render(":delete  ") + theme.Accent.Render("n/esc") + theme.Dim.Render(":cancel")
 	}
-	return m.framed("Tag-Manager", body, "n:neu  e:edit  d:löschen  esc:zurück  q:quit")
+	return m.framed("Tag-Manager", body, "n:new  e:edit  d:delete  esc:back  q:quit")
 }
 
 // --- DD2-33: Tag-Zuweisungs-Picker ---
@@ -246,12 +246,12 @@ func (m model) keyTagPicker(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 // tagPickerMenu rendert das schwebende Checkbox-Overlay (DD2-33).
 func (m model) tagPickerMenu() string {
-	body := theme.Dim.Render("space: an/aus   enter: setzen   esc: abbrechen") + "\n\n"
+	body := theme.Dim.Render("space: toggle   enter: set   esc: cancel") + "\n\n"
 	switch {
 	case !m.tagPickLoaded:
-		body += theme.Dim.Render("(lädt …)") + "\n"
+		body += theme.Dim.Render("(loading …)") + "\n"
 	case len(m.tagPickAll) == 0:
-		body += theme.Dim.Render("(keine Tags — erst T: Tag-Manager)") + "\n"
+		body += theme.Dim.Render("(no tags — first T: tag manager)") + "\n"
 	}
 	body += menuList(len(m.tagPickAll), m.tagPickMenu.cursor, func(i int, sel bool) string {
 		t := m.tagPickAll[i]
@@ -328,7 +328,7 @@ func doCreateTag(c *api.Client, name, color string) tea.Cmd {
 		if err != nil {
 			return noticeMsg{cleanAPIErr(err)}
 		}
-		return tagMutatedMsg{"Tag angelegt: " + t.Name}
+		return tagMutatedMsg{"Tag created: " + t.Name}
 	}
 }
 
@@ -347,7 +347,7 @@ func doDeleteTag(c *api.Client, id int, name string) tea.Cmd {
 		if err := c.DeleteTag(id); err != nil {
 			return noticeMsg{cleanAPIErr(err)}
 		}
-		return tagMutatedMsg{"Tag gelöscht: " + name}
+		return tagMutatedMsg{"Tag deleted: " + name}
 	}
 }
 

@@ -36,7 +36,7 @@ func TestHelpNotOpenedDuringSearch(t *testing.T) {
 // stammen aus key.Binding.Help() (Single-Source, DD2-47).
 func TestHelpBoxRendersKeymap(t *testing.T) {
 	box := columnsModel().helpBox()
-	for _, want := range []string{"Tastatur-Shortcuts", "Navigation", "Views & Global", "Aktionen", "↑/i", "?", "Hilfe"} {
+	for _, want := range []string{"Keyboard shortcuts", "Navigation", "Views & Global", "Actions", "↑/i", "?", "help"} {
 		if !strings.Contains(box, want) {
 			t.Errorf("helpBox enthält %q nicht", want)
 		}

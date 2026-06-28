@@ -1,11 +1,11 @@
-> devd2: Projekt-Browser      ctrl+k:Cmd  p:Projekt  b:Backlog  R:Reviews  ?:Hilfe  q:Quit
+> devd2: Project browser       ctrl+k:cmd  p:project  b:backlog  R:reviews  ?:help  q:quit
 ╭────────────────────────────────────╮╭──────────────────────────────────────────────────╮
-│⌕ Suchen mit /  ∙  Filter f         ││▌> DD2-99 Beispiel-Issue für den Snapshot         │
+│⌕ search with /  ∙  filter f        ││▌> DD2-99 Beispiel-Issue für den Snapshot         │
 │ ▾ ◉ Meilenstein Eins               ││P1 prio  ∙  ⯁ bug type                 to_review  │
-│   ▾ DD2#9 review                   ││Felder: ▌Titel  Typ  Priorität                    │
+│   ▾ DD2#9 review                   ││Fields: ▌Title  Type  Priority                    │
 │▌      ⯁ DD2-99                     ││                                                  │
-│                                    ││Sections: Ziffer [1..n] öffnet                    │
-│                                    ││> [1] Goal / Beschreibung ∙ PO-Notes  ▸           │
+│                                    ││Sections: digit [1..n] opens                      │
+│                                    ││> [1] Goal / Description ∙ PO notes  ▸            │
 │                                    ││> [2] Background / Context  ▸                     │
 │                                    ││> [3] User-Stories (2)  ▸                         │
 │                                    ││                                                  │
@@ -16,6 +16,6 @@
 │                                    ││                                                  │
 │                                    ││                                                  │
 │                                    ││                                                  │
+│                                    ││                                                  │
 ╰────────────────────────────────────╯╰──────────────────────────────────────────────────╯
-i/k:Section/Feld  l/→:rein  enter:rein/bearbeiten  j/←:zurück  1…n:Section  esc: Tree-
-Fokus                                                                                 
+i/k:section/field  l/→:in  enter:in/edit  j/←:back  1…n:section  esc: tree focus

@@ -26,16 +26,16 @@ func oneline(s string) string {
 // milestoneClip baut den Markdown-Kontext eines Meilensteins: Kopf + Sprint-Tabelle.
 func milestoneClip(ms *api.Milestone) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "# Meilenstein M%d — %s\n\n", ms.ID, ms.Name)
+	fmt.Fprintf(&b, "# Milestone M%d — %s\n\n", ms.ID, ms.Name)
 	fmt.Fprintf(&b, "- Status: %s\n", ms.Status)
 	if d := deref(ms.TargetDate); d != "" {
-		fmt.Fprintf(&b, "- Ziel-Datum: %s\n", d)
+		fmt.Fprintf(&b, "- Target date: %s\n", d)
 	}
-	fmt.Fprintf(&b, "- Fortschritt: %d/%d\n", ms.Done, ms.Total)
+	fmt.Fprintf(&b, "- Progress: %d/%d\n", ms.Done, ms.Total)
 	if d := deref(ms.Description); d != "" {
 		fmt.Fprintf(&b, "\n%s\n", d)
 	}
-	b.WriteString("\n| ID | Sprint | Titel | Goal |\n|---|---|---|---|\n")
+	b.WriteString("\n| ID | Sprint | Title | Goal |\n|---|---|---|---|\n")
 	for _, s := range ms.Sprints {
 		fmt.Fprintf(&b, "| %d | %s | %s | %s |\n", s.ID, s.Key, oneline(s.Name), oneline(deref(s.Goal)))
 	}
@@ -50,8 +50,8 @@ func sprintClip(s *api.Sprint) string {
 	if g := deref(s.Goal); g != "" {
 		fmt.Fprintf(&b, "- Goal: %s\n", g)
 	}
-	fmt.Fprintf(&b, "- Fortschritt: %d/%d\n", s.DoneCount, s.ItemCount)
-	b.WriteString("\n| ID | Kennung | Titel | Goal | Background | Ergebnisse |\n|---|---|---|---|---|---|\n")
+	fmt.Fprintf(&b, "- Progress: %d/%d\n", s.DoneCount, s.ItemCount)
+	b.WriteString("\n| ID | Key | Title | Goal | Background | Results |\n|---|---|---|---|---|---|\n")
 	for _, it := range s.Items {
 		fmt.Fprintf(&b, "| %d | %s | %s | %s | %s | %s |\n",
 			it.ID, it.Key, oneline(it.Title), oneline(deref(it.Goal)), oneline(deref(it.Background)), resultMark(it))
