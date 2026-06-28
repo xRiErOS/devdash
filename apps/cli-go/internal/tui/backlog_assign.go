@@ -8,10 +8,12 @@ package tui
 
 import (
 	"fmt"
+	"strings"
 
 	"devd-cli/internal/api"
 	"devd-cli/internal/theme"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 // assignableSprintsMsg / issueAssignedMsg tragen Lade- bzw. Zuweisungs-Ergebnis.
@@ -93,19 +95,73 @@ func (m model) keyAssignSprint(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// assignSprintMenu rendert den Picker (nur nicht-finale Sprints).
+// assignSprintMenu rendert den Picker als großzügige Block-Liste (DD2-140): je Sprint
+// ein mehrzeiliger Block — Key führt, Titel umbricht (Key-eingerückt), Issue-Count
+// rechtsbündig, darunter die Meilenstein-Zeile. Cursor markiert den ganzen Block.
 func (m model) assignSprintMenu() string {
-	body := theme.Dim.Render("enter: zuweisen   esc: abbrechen") + "\n\n"
-	if len(m.asSprints) == 0 {
-		body += theme.Dim.Render("(keine offenen Sprints — oder lädt …)") + "\n"
+	mw := clampModalWidth(72, m.width)
+	cw := mw - 5 // Innenbreite minus Border/Padding (1 Spalte bleibt für den Cursor)
+	if cw < 24 {
+		cw = 24
 	}
-	body += menuList(len(m.asSprints), m.asMenu.cursor, func(i int, sel bool) string {
-		s := m.asSprints[i]
-		head := fmt.Sprintf("%-9s %s", s.Key, truncate(s.Name, 28))
-		if sel {
-			head = theme.Header.Render(head)
+	body := theme.Dim.Render("i/k: wählen   enter: zuweisen   esc: abbrechen") + "\n\n"
+	if len(m.asSprints) == 0 {
+		body += theme.Dim.Render("(keine offenen Sprints — oder lädt …)")
+		return modalPanel("Issue einem Sprint zuweisen", body, "", mw, theme.Mauve)
+	}
+	blocks := make([]string, len(m.asSprints))
+	for i, s := range m.asSprints {
+		blocks[i] = m.assignSprintBlock(s, cw, i == m.asMenu.cursor)
+	}
+	body += strings.Join(blocks, "\n")
+	return modalPanel("Issue einem Sprint zuweisen", body, "", mw, theme.Mauve)
+}
+
+// assignSprintBlock rendert einen Sprint als Block: Zeile 1 'Key - Titel … N Issues'
+// (Count rechtsbündig), Titel-Fortsetzung Key-eingerückt, dann 'Meilenstein: ID - Name'.
+func (m model) assignSprintBlock(s api.Sprint, w int, sel bool) string {
+	prefix := s.Key + " - "
+	indent := strings.Repeat(" ", lipgloss.Width(prefix))
+	count := fmt.Sprintf("%d Issues", s.ItemCount)
+
+	titleW := w - lipgloss.Width(prefix)
+	if titleW < 8 {
+		titleW = 8
+	}
+	tlines := strings.Split(wrapText(s.Name, titleW), "\n")
+
+	var lines []string
+	// Zeile 1: Key (Header) + " - " + Titel-Anfang, Count rechtsbündig.
+	leftW := lipgloss.Width(prefix + tlines[0])
+	gap := w - leftW - lipgloss.Width(count)
+	if gap < 1 {
+		gap = 1
+	}
+	lines = append(lines, theme.Header.Render(s.Key)+theme.Dim.Render(" - ")+tlines[0]+
+		strings.Repeat(" ", gap)+theme.Accent.Render(count))
+	for _, tl := range tlines[1:] {
+		lines = append(lines, indent+tl)
+	}
+	// Meilenstein-Zeile (ID führt), Key-eingerückt, umbrechend.
+	ms := "(kein Meilenstein)"
+	if s.MilestoneName != nil && *s.MilestoneName != "" {
+		mid := ""
+		if s.MilestoneID != nil {
+			mid = fmt.Sprintf("%d - ", *s.MilestoneID)
 		}
-		return head + theme.Dim.Render(" ("+s.Status+")")
-	})
-	return modalPanel("Issue einem Sprint zuweisen", body, "", clampModalWidth(52, m.width), theme.Mauve)
+		ms = "Meilenstein: " + mid + *s.MilestoneName
+	}
+	for _, ml := range strings.Split(wrapText(ms, w-lipgloss.Width(indent)), "\n") {
+		lines = append(lines, indent+theme.Dim.Render(ml))
+	}
+
+	// Cursor-Markierung: Balken auf jeder Block-Zeile (selektiert) bzw. 1 Leerspalte.
+	for j := range lines {
+		if sel {
+			lines[j] = theme.Accent.Render("▌") + lines[j]
+		} else {
+			lines[j] = " " + lines[j]
+		}
+	}
+	return strings.Join(lines, "\n")
 }
