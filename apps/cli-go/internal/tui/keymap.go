@@ -1,0 +1,109 @@
+package tui
+
+import keybind "github.com/charmbracelet/bubbles/key"
+
+// keyMap ist die zentrale, typisierte Single-Source aller TUI-Keybindings (DD2-47).
+// Vorher lagen die Tasten als Roh-String-Literale über app.go/tree.go/detail.go/…
+// verstreut, dazu eine separate navKey()-Normalisierung. Jetzt gilt:
+//
+//   - navKey() leitet die Richtungs-Normalisierung aus Up/Down/Left/Right ab,
+//   - die In-App-Hilfe (DD2-31) und die externe Doku (DD2-5) generieren aus Help(),
+//   - die jkli-Umstellung (DD2-34) ändert nur noch die Keys() hier an einer Stelle.
+//
+// Help.Key dient als Anzeige-Label (z.B. "i/k/j/l"), Help.Desc als Beschreibung.
+type keyMap struct {
+	// Richtungskreuz (von navKey ausgewertet — hier liegt die hjkl-/jkli-Wahrheit).
+	Up    keybind.Binding
+	Down  keybind.Binding
+	Left  keybind.Binding
+	Right keybind.Binding
+
+	// Aktivierung / Rückkehr / global.
+	Enter   keybind.Binding
+	Back    keybind.Binding // esc
+	Quit    keybind.Binding // q / ctrl+c
+	Help    keybind.Binding // ? (DD2-31)
+	Palette keybind.Binding // ctrl+k / K
+	Picker  keybind.Binding // p
+	Reviews keybind.Binding // R
+	Backlog keybind.Binding // b
+	Ranger  keybind.Binding // t (Tree↔Columns-Wechsel)
+	Search  keybind.Binding // /
+	Filter  keybind.Binding // f
+	Yank    keybind.Binding // y
+	Section keybind.Binding // 1…9 (Accordion-Section)
+
+	// Kontext-Aktionen (Status/Zuweisung/Löschen/Toggle).
+	Status       keybind.Binding // s (Issue-/Sprint-Status)
+	MileStatus   keybind.Binding // S (Meilenstein-Status)
+	AssignMile   keybind.Binding // m (Sprint → Meilenstein)
+	AssignSprint keybind.Binding // a (Sprints → Meilenstein)
+	Delete       keybind.Binding // d (Cascade-Delete)
+	Toggle       keybind.Binding // space / x (Facette an/aus)
+}
+
+// newKeyMap liefert die aktuell aktive Tastenbelegung. Das Richtungskreuz nutzt
+// (Stand DD2-47) noch die klassische hjkl-vi-Belegung; DD2-34 stellt hier auf jkli
+// um. Die Pfeiltasten bleiben in jeder Variante zweite Bindung (DD2-71).
+func newKeyMap() keyMap {
+	return keyMap{
+		Up:    keybind.NewBinding(keybind.WithKeys("up", "k"), keybind.WithHelp("↑/k", "hoch")),
+		Down:  keybind.NewBinding(keybind.WithKeys("down", "j"), keybind.WithHelp("↓/j", "runter")),
+		Left:  keybind.NewBinding(keybind.WithKeys("left", "h"), keybind.WithHelp("←/h", "zurück/raus")),
+		Right: keybind.NewBinding(keybind.WithKeys("right", "l", "tab"), keybind.WithHelp("→/l", "rein/auf")),
+
+		Enter:   keybind.NewBinding(keybind.WithKeys("enter"), keybind.WithHelp("enter", "öffnen/bestätigen")),
+		Back:    keybind.NewBinding(keybind.WithKeys("esc"), keybind.WithHelp("esc", "zurück")),
+		Quit:    keybind.NewBinding(keybind.WithKeys("q", "ctrl+c"), keybind.WithHelp("q", "beenden")),
+		Help:    keybind.NewBinding(keybind.WithKeys("?"), keybind.WithHelp("?", "Hilfe")),
+		Palette: keybind.NewBinding(keybind.WithKeys("ctrl+k", "K"), keybind.WithHelp("ctrl+k", "Command-Center")),
+		Picker:  keybind.NewBinding(keybind.WithKeys("p"), keybind.WithHelp("p", "Projekt wählen")),
+		Reviews: keybind.NewBinding(keybind.WithKeys("R"), keybind.WithHelp("R", "Review-Cockpit")),
+		Backlog: keybind.NewBinding(keybind.WithKeys("b"), keybind.WithHelp("b", "Backlog")),
+		Ranger:  keybind.NewBinding(keybind.WithKeys("t"), keybind.WithHelp("t", "Tree↔Columns")),
+		Search:  keybind.NewBinding(keybind.WithKeys("/"), keybind.WithHelp("/", "Suche")),
+		Filter:  keybind.NewBinding(keybind.WithKeys("f"), keybind.WithHelp("f", "Filter")),
+		Yank:    keybind.NewBinding(keybind.WithKeys("y"), keybind.WithHelp("y", "Kontext kopieren")),
+		Section: keybind.NewBinding(keybind.WithKeys("1", "2", "3", "4", "5", "6", "7", "8", "9"), keybind.WithHelp("1…9", "Section")),
+
+		Status:       keybind.NewBinding(keybind.WithKeys("s"), keybind.WithHelp("s", "Status (Issue/Sprint)")),
+		MileStatus:   keybind.NewBinding(keybind.WithKeys("S"), keybind.WithHelp("S", "Meilenstein-Status")),
+		AssignMile:   keybind.NewBinding(keybind.WithKeys("m"), keybind.WithHelp("m", "Sprint → Meilenstein")),
+		AssignSprint: keybind.NewBinding(keybind.WithKeys("a"), keybind.WithHelp("a", "Sprints zuweisen")),
+		Delete:       keybind.NewBinding(keybind.WithKeys("d"), keybind.WithHelp("d", "löschen (Cascade)")),
+		Toggle:       keybind.NewBinding(keybind.WithKeys(" ", "x"), keybind.WithHelp("space/x", "Facette an/aus")),
+	}
+}
+
+// keys ist die prozessweit aktive Keymap (Single-Source). Tests können sie nicht
+// mutieren — die jkli-Wahl (DD2-34) lebt komplett in newKeyMap.
+var keys = newKeyMap()
+
+// bindHas meldet, ob die Taste k Teil der Bindung b ist (ANSI-/case-genau).
+func bindHas(b keybind.Binding, k string) bool {
+	for _, v := range b.Keys() {
+		if v == k {
+			return true
+		}
+	}
+	return false
+}
+
+// navKey normalisiert eine Roh-Taste auf eine kanonische Richtung
+// ("up"/"down"/"left"/"right") anhand der zentralen Keymap. Tasten ohne
+// Richtungsbezug werden unverändert durchgereicht. Damit unterstützt jeder
+// Handler, der über navKey routet, automatisch Pfeiltasten UND die vi-Tasten
+// gleichermaßen (DD2-71) — und folgt jeder jkli-Umstellung (DD2-34) ohne Edit.
+func navKey(k string) string {
+	switch {
+	case bindHas(keys.Up, k):
+		return "up"
+	case bindHas(keys.Down, k):
+		return "down"
+	case bindHas(keys.Left, k):
+		return "left"
+	case bindHas(keys.Right, k):
+		return "right"
+	}
+	return k
+}

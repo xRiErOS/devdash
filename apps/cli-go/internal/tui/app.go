@@ -160,16 +160,4 @@ func (m *model) syncSprint() tea.Cmd {
 	return loadSprint(m.client, s.ID)
 }
 
-func navKey(k string) string {
-	switch k {
-	case "up", "k":
-		return "up"
-	case "down", "j":
-		return "down"
-	case "left", "h":
-		return "left"
-	case "right", "l", "tab":
-		return "right"
-	}
-	return k
-}
+// navKey lebt jetzt in keymap.go (DD2-47): keymap-getriebene Richtungs-Normalisierung.
