@@ -271,6 +271,10 @@ type model struct {
 	treeFilterIssues []api.Issue
 	treeIssuesLoaded bool
 
+	// DD2-89: Lazy-Cache der Milestone-/Sprint-Abhängigkeiten (Vorgänger/Nachfolger),
+	// read-only im Detail angezeigt. Schlüssel "m:<id>"/"s:<id>" (depCacheKey).
+	depsCache map[string]*api.Dependencies
+
 	// Tag-Manager (DD2-75): T öffnet viewTags — projektweite Tag-CRUD-Liste.
 	// n=neu, e=edit, d=löschen (Confirm), esc/q zurück zur Quell-View (tagReturn).
 	tags         []api.Tag

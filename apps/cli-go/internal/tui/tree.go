@@ -345,6 +345,61 @@ func (m model) treeLeftLines(nodes []treeNode, w int, active bool) []string {
 	return lines
 }
 
+// syncDeps lädt die Abhängigkeiten des fokussierten Milestone-/Sprint-Knotens
+// lazy nach (DD2-89), falls noch nicht im Cache. nil, wenn nichts zu laden ist
+// (Issue/Info-Knoten, bereits gecacht oder Out-of-bounds). Analog syncMemDetail.
+func (m model) syncDeps(nodes []treeNode) tea.Cmd {
+	if m.treeCursor < 0 || m.treeCursor >= len(nodes) {
+		return nil
+	}
+	n := nodes[m.treeCursor]
+	switch n.kind {
+	case tkMile:
+		if n.mileIdx < 0 || n.mileIdx >= len(m.milestones) {
+			return nil
+		}
+		id := m.milestones[n.mileIdx].ID
+		if _, ok := m.depsCache[depCacheKey("m", id)]; !ok {
+			return loadMilestoneDeps(m.client, id)
+		}
+	case tkSprint:
+		if n.sprintID != 0 {
+			if _, ok := m.depsCache[depCacheKey("s", n.sprintID)]; !ok {
+				return loadSprintDeps(m.client, n.sprintID)
+			}
+		}
+	}
+	return nil
+}
+
+// renderTreeDeps rendert Vorgänger/Nachfolger eines Milestone-/Sprint-Knotens aus
+// dem Lazy-Cache (DD2-89, read-only). Nicht gecacht → Lade-Hinweis; keine → "none".
+func (m model) renderTreeDeps(key string, w int) string {
+	d, ok := m.depsCache[key]
+	if !ok {
+		return theme.Dim.Render("Dependencies: (loading …)")
+	}
+	if len(d.Predecessors) == 0 && len(d.Successors) == 0 {
+		return theme.Dim.Render("Dependencies: none")
+	}
+	names := func(es []api.DepEntry) string {
+		out := make([]string, len(es))
+		for i, e := range es {
+			out[i] = e.Name
+		}
+		return strings.Join(out, ", ")
+	}
+	var b strings.Builder
+	b.WriteString(theme.Dim.Render("Dependencies"))
+	if len(d.Predecessors) > 0 {
+		b.WriteString("\n" + wrapText(theme.Dim.Render("Predecessors: ")+names(d.Predecessors), w))
+	}
+	if len(d.Successors) > 0 {
+		b.WriteString("\n" + wrapText(theme.Dim.Render("Successors: ")+names(d.Successors), w))
+	}
+	return b.String()
+}
+
 // treeDetail rendert die rechte Detail-Fläche für den selektierten Knoten —
 // breit, der eigentliche Mehrwert des Layouts (Platz für Felder/Accordion).
 func (m model) treeDetail(n treeNode, w int) string {
@@ -366,6 +421,7 @@ func (m model) treeDetail(n treeNode, w int) string {
 		// D09). Bei Detail-Fokus auf diesem Knoten trägt das aktive Feld den D08-Balken.
 		fields := milestoneFields()
 		b.WriteString(renderFlatFields(fields, milestoneFieldValues(ms, fields), m.fieldCursor, m.detailFocus, w))
+		b.WriteString("\n\n" + m.renderTreeDeps(depCacheKey("m", ms.ID), w)) // DD2-89
 		b.WriteString("\n\n" + theme.Dim.Render(fmt.Sprintf("Sprints (%d)", len(ms.Sprints))) + "\n")
 	case tkSprint:
 		if n.mileIdx < 0 || n.mileIdx >= len(m.milestones) ||
@@ -382,6 +438,7 @@ func (m model) treeDetail(n treeNode, w int) string {
 		// DD2-78: name/goal als flache, fokussierbare Feldliste (D09, kein Accordion).
 		fields := sprintFields()
 		b.WriteString(renderFlatFields(fields, sprintFieldValues(sp, fields), m.fieldCursor, m.detailFocus, w))
+		b.WriteString("\n\n" + m.renderTreeDeps(depCacheKey("s", sp.ID), w)) // DD2-89
 	case tkIssue:
 		if n.issue == nil {
 			return theme.Dim.Render("(nothing selected)")
@@ -593,12 +650,12 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.treeCursor > 0 {
 			m.treeCursor--
 		}
-		return m, nil
+		return m, m.syncDeps(nodes) // DD2-89: Deps des neu fokussierten Knotens lazy nachladen
 	case "down":
 		if m.treeCursor < len(nodes)-1 {
 			m.treeCursor++
 		}
-		return m, nil
+		return m, m.syncDeps(nodes)
 	case "right":
 		return m.treeExpand(nodes)
 	case "left":

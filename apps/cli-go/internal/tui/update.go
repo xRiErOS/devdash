@@ -128,6 +128,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.backlog = msg.items
 		m.blist.setLen(len(m.backlog))
 		return m, nil
+	case depsMsg: // DD2-89: Milestone-/Sprint-Abhängigkeiten in den Lazy-Cache
+		if m.depsCache == nil {
+			m.depsCache = map[string]*api.Dependencies{}
+		}
+		m.depsCache[msg.key] = msg.deps
+		return m, nil
 	case issueUpdatedMsg: // DD2-77: Feld-Edit-Response → Cache in-place mergen (D05)
 		if msg.err != "" {
 			m.errNote = msg.err // Aktions-Fehler rot (D05)

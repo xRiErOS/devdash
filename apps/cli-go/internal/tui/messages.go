@@ -555,6 +555,40 @@ func loadMemDetail(c *api.Client, id int) tea.Cmd {
 	}
 }
 
+// depsMsg trägt die geladenen Abhängigkeiten (DD2-89). key = "m:<id>"/"s:<id>"
+// (cache-Schlüssel), damit Milestone- und Sprint-Deps denselben Cache teilen.
+type depsMsg struct {
+	key  string
+	deps *api.Dependencies
+}
+
+// loadMilestoneDeps / loadSprintDeps holen Vorgänger/Nachfolger read-only und
+// füllen den depsCache (Lazy, beim Fokussieren des Knotens — analog loadMemDetail).
+func loadMilestoneDeps(c *api.Client, id int) tea.Cmd {
+	return func() tea.Msg {
+		d, err := c.GetMilestoneDependencies(id)
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return depsMsg{key: depCacheKey("m", id), deps: d}
+	}
+}
+
+func loadSprintDeps(c *api.Client, id int) tea.Cmd {
+	return func() tea.Msg {
+		d, err := c.GetSprintDependencies(id)
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return depsMsg{key: depCacheKey("s", id), deps: d}
+	}
+}
+
+// depCacheKey baut den depsCache-Schlüssel (Entitätstyp + ID).
+func depCacheKey(kind string, id int) string {
+	return kind + ":" + strconv.Itoa(id)
+}
+
 // refreshedMsg trägt das Ergebnis des manuellen Daten-Reloads (DD2-72): frische
 // Meilensteine + die neu geholten Sprints (key = sprint-ID). Eigener Pfad statt
 // loadMilestones/loadSprint zu batchen, weil der sprintMsg-Handler m.status leert
