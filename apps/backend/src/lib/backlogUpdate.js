@@ -14,7 +14,6 @@ export class BacklogUpdateError extends Error {
 
 // Felder, die explizit auf null gesetzt werden duerfen (R03 — null-clearing).
 const NULLABLE_FIELDS = [
-  'description',
   'milestone',
   'plugin_key',
   'goal',

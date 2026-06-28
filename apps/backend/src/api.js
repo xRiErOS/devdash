@@ -68,7 +68,6 @@ import { resolveCaptureClientIp, captureCapRejection, PUBLIC_CAPTURE_MAX_FILE_BY
 import { createApiKeyAuth } from './middleware/apiKeyAuth.js'
 import { createDevdTokenAuth } from './middleware/devdToken.js'
 import { isTrustedSource } from './lib/trustedSource.js'
-import { sanitizeDeprecatedDescription, sanitizeDeprecatedDescriptions } from './lib/issueDescription.js'
 import { listSprintIssuesMissingResult } from './lib/sprintCompleteGuards.js'
 import { applyBacklogUpdate, BacklogUpdateError } from './lib/backlogUpdate.js'
 // DD-560: backlog/issue-Payloads via geteiltem Zod-Contract (Single Source, CONTRACT-GATEWAY-PATTERN #303).
@@ -1350,7 +1349,6 @@ app.get('/api/sprints/:id', (req, res) => {
     }
   }
 
-  items = sanitizeDeprecatedDescriptions(items)
   const tagMap = tagsForBacklog(items.map(i => i.id))
   for (const i of items) {
     i.tags = tagMap.get(i.id) || []
@@ -1592,9 +1590,9 @@ app.get('/api/backlog', (req, res) => {
 
   if (search.length > 0) {
     // E01.2/D09: acceptance_criteria abgeloest (user_stories[].qa); aus Suche entfernt.
-    conditions.push('(b.title LIKE ? OR b.description LIKE ? OR b.context_notes LIKE ? OR b.goal LIKE ? OR b.background LIKE ?)')
+    conditions.push('(b.title LIKE ? OR b.context_notes LIKE ? OR b.goal LIKE ? OR b.background LIKE ?)')
     const like = `%${search}%`
-    params.push(like, like, like, like, like)
+    params.push(like, like, like, like)
   }
 
   if (statusFilter) {
@@ -1646,7 +1644,6 @@ app.get('/api/backlog', (req, res) => {
     WHERE ${conditions.join(' AND ')}
     ORDER BY b.priority, b.id
   `).all(...params)
-  items = sanitizeDeprecatedDescriptions(items)
   const tagMap = tagsForBacklog(items.map(i => i.id))
   for (const i of items) {
     i.tags = tagMap.get(i.id) || []
@@ -2425,8 +2422,6 @@ function loadEnrichedBacklogItem(backlogId) {
   `).get(backlogId)
   if (!item) return null
 
-  item = sanitizeDeprecatedDescription(item)
-
   // DD-381: Der Core-Issue (oben) ist geladen — 404 bleibt das einzige
   // harte Fehlerverhalten. Jede optionale Anreicherung (Sub-Resource) wird
   // einzeln gekapselt: wirft eine Sub-Query (z.B. fehlende Tabelle), wird das
@@ -2664,7 +2659,7 @@ app.patch('/api/backlog/:id', (req, res) => {
   if (value !== undefined) {
     db.prepare('UPDATE backlog SET po_notes = ? WHERE id = ?').run(value, req.params.id)
   }
-  const updated = sanitizeDeprecatedDescription(db.prepare('SELECT * FROM backlog WHERE id = ?').get(req.params.id))
+  const updated = db.prepare('SELECT * FROM backlog WHERE id = ?').get(req.params.id)
   res.json(updated)
 })
 
@@ -2846,6 +2841,10 @@ app.post(
     // DD-456 fix: das Catcher-„Details"-Feld kommt als `description` rein und
     // landet in po_notes (= „PO-Notizen" im Issue-Detail). Vorher validiert,
     // aber nie persistiert → stiller Datenverlust (SPF-59/62/64/67).
+    // DD2-131: `description` ist projektweit abgelöst (po_notes ist der einzige
+    // Issue-Freitext); hier bleibt es BEWUSST als reiner Capture-Wire-Alias der
+    // PWA stehen — es wird nicht in die (gedroppte) backlog.description-Spalte
+    // geschrieben, sondern ausschließlich nach po_notes gemappt.
     const poNotes = (typeof req.body.description === 'string' && req.body.description.trim())
       ? req.body.description.trim()
       : null
@@ -3016,11 +3015,11 @@ app.post('/api/backlog', (req, res) => {
     syncBacklogMilestoneForItem(newId)
   }
 
-  const item = sanitizeDeprecatedDescription(db.prepare(`
+  const item = db.prepare(`
     SELECT b.*, p.prefix as project_prefix
     FROM backlog b LEFT JOIN projects p ON p.id = b.project_id
     WHERE b.id = ?
-  `).get(newId))
+  `).get(newId)
   item.tags = tagsForBacklog([newId]).get(newId) || []
   item.files = db.prepare('SELECT id, path, position FROM issue_files WHERE issue_id = ? ORDER BY position, id').all(newId)
   if (item.project_prefix && item.project_number != null) {
@@ -3043,7 +3042,7 @@ app.put('/api/backlog/:id', (req, res) => {
   }
   // DD-129: files-Array (issue_files) komplett ersetzen, nur wenn explizit übergeben.
   if (Array.isArray(body.files)) syncIssueFiles(Number(req.params.id), body.files)
-  const updated = sanitizeDeprecatedDescription(db.prepare('SELECT * FROM backlog WHERE id = ?').get(req.params.id))
+  const updated = db.prepare('SELECT * FROM backlog WHERE id = ?').get(req.params.id)
   updated.files = db.prepare('SELECT id, path, position FROM issue_files WHERE issue_id = ? ORDER BY position, id').all(req.params.id)
   res.json(updated)
 })
@@ -3687,8 +3686,8 @@ function backlogRowsForExport(projectId, { search, status, tags } = {}) {
   const filters = ['b.project_id = ?']
   const args = [projectId]
   if (search) {
-    filters.push('(b.title LIKE ? OR b.description LIKE ? OR b.context_notes LIKE ?)')
-    const q = `%${search}%`; args.push(q, q, q)
+    filters.push('(b.title LIKE ? OR b.context_notes LIKE ?)')
+    const q = `%${search}%`; args.push(q, q)
   }
   if (status) {
     filters.push('b.status = ?'); args.push(status)

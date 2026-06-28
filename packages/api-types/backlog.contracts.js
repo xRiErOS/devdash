@@ -36,7 +36,6 @@ export const issueCreateContract = z.object({
   context_notes: z.string().nullish(),
   relevant_files: z.string().nullish(),
   po_notes: z.string().nullish(),
-  description: z.string().nullish(),
   files: z.array(z.string()).optional(),
   tag_ids: z.array(z.coerce.number().int().positive()).optional(),
   assigned_sprint: z.coerce.number().int().positive().nullish(),
@@ -56,7 +55,6 @@ export const issueUpdateContract = z.object({
   relevant_files: z.string().nullish(),
   po_notes: z.string().nullish(),
   result: z.string().nullish(),
-  description: z.string().nullish(),
   files: z.array(z.string()).optional(),
 })
 

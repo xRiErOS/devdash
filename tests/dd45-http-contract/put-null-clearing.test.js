@@ -5,18 +5,19 @@ import { describe, test, expect, beforeEach } from 'vitest'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
 import { applyBacklogUpdate, BacklogUpdateError } from '../../apps/backend/src/lib/backlogUpdate.js'
 
-// E01.2/D09: acceptance_criteria + test_instruction sind gedroppt (mig 059) — der Test
-// laeuft gegen das reale post-drop-Schema (upToVersion auf den Drop). Die frueheren
-// AC-Clearing-Faelle entfallen (Feld existiert nicht mehr).
+// E01.2/D09: acceptance_criteria + test_instruction sind gedroppt (mig 059).
+// DD2-131: description ist gedroppt (mig 064) — der Test laeuft gegen das reale
+// post-drop-Schema (upToVersion auf den description-Drop). Die frueheren
+// AC-/description-Clearing-Faelle entfallen (Felder existieren nicht mehr).
 function setupDb() {
-  const db = createTestDb({ upToVersion: '059_v3_drop_acceptance_test_instruction.sql' })
+  const db = createTestDb({ upToVersion: '064_v3_dd2_131_drop_backlog_description.sql' })
   const project = db.prepare("INSERT INTO projects (slug, name, prefix) VALUES ('dd45', 'DD-45', 'DD')").run()
   const backlog = db.prepare(`
     INSERT INTO backlog (project_id, project_number, title, type, status,
                          goal, background, context_notes,
-                         relevant_files, po_notes, result, description)
+                         relevant_files, po_notes, result)
     VALUES (?, 1, 'Issue', 'feature', 'planned',
-            'g', 'bg', 'ctx', 'rf', 'po', 'res', 'desc')
+            'g', 'bg', 'ctx', 'rf', 'po', 'res')
   `).run(project.lastInsertRowid)
   return { db, id: Number(backlog.lastInsertRowid) }
 }
@@ -41,11 +42,6 @@ describe('DD-45 R03 — PUT /api/backlog/:id null-clearing semantics', () => {
   test('empty string == null (UI sendet "" beim Leeren)', () => {
     const updated = applyBacklogUpdate(db, id, { po_notes: '' })
     expect(updated.po_notes).toBeNull()
-  })
-
-  test('description (soft-deprecated) bleibt leerbar und befuellbar (D30)', () => {
-    expect(applyBacklogUpdate(db, id, { description: null }).description).toBeNull()
-    expect(applyBacklogUpdate(db, id, { description: 'wieder befuellt' }).description).toBe('wieder befuellt')
   })
 
   test('type-Validation lehnt ungueltige Werte ab', () => {
