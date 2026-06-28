@@ -10,6 +10,7 @@
 //
 // Deferred (Folge-Tasks): CommandPalette-Wiring, ProjectQuickSwitcher,
 // ShortcutsHelp, AuthExpiredOverlay, Debug-Panels (NotesPanel/DebugOverlay).
+import { useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import NavigationRail from '../../ui/organisms/complex/NavigationRail.jsx'
 import Topbar from '../../ui/organisms/complex/Topbar.jsx'
@@ -18,9 +19,10 @@ import { RAIL_ITEMS, RAIL_FOOT_ITEMS } from './navItems.js'
 import { useProjectNav } from '../../lib/useProjectNav.js'
 
 // Globale Top-Level-Segmente (kein Projekt-Slug davor).
-const GLOBAL_FIRST = new Set(['projects', 'settings', 'memories'])
+const GLOBAL_FIRST = new Set(['home', 'settings', 'memories'])
 
-export function AppShellFrame() {
+export function AppShellFrame({ sidePanel }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const navigate = useProjectNav()
   const { pathname } = useLocation()
   const segs = pathname.split('/').filter(Boolean)
@@ -32,12 +34,15 @@ export function AppShellFrame() {
 
   // RAIL_ITEMS (navItems.js = eine Quelle) → NavigationRail-Items. `key` = Icon-
   // Registry-Key (NavigationRail nutzt it.key als iconName + React-Key).
-  const railItems = RAIL_ITEMS.map((r) => ({
-    key: r.icon,
-    label: r.label,
-    active: r.segment === activeSegment,
-    onClick: () => navigate(`/${r.segment}`),
-  }))
+  // Globale Routen (slug=null, z.B. /home) zeigen keine projekt-spezifischen Items.
+  const railItems = slug
+    ? RAIL_ITEMS.map((r) => ({
+        key: r.icon,
+        label: r.label,
+        active: r.segment === activeSegment,
+        onClick: () => navigate(`/${r.segment}`),
+      }))
+    : []
   const footItems = RAIL_FOOT_ITEMS.map((r) => ({
     key: r.icon,
     label: r.label,
@@ -45,7 +50,8 @@ export function AppShellFrame() {
   }))
 
   // Route-abgeleiteter Breadcrumb: [Slug | DevDash] › [View-Label].
-  const viewLabel = RAIL_ITEMS.find((r) => r.segment === activeSegment)?.label
+  // Globale Routen (slug=null) tragen kein View-Label (Breadcrumb = nur "DevDash").
+  const viewLabel = slug ? RAIL_ITEMS.find((r) => r.segment === activeSegment)?.label : null
   const breadcrumb = [
     { label: slug || 'DevDash', last: !viewLabel },
     ...(viewLabel ? [{ label: viewLabel, last: true }] : []),
@@ -53,7 +59,12 @@ export function AppShellFrame() {
 
   return (
     <div data-ui="app-shell.frame" className="flex h-screen w-full bg-[var(--base)] text-[var(--text)] overflow-hidden">
-      <NavigationRail items={railItems} footItems={footItems} dataUiScope="app-shell.rail" />
+      <NavigationRail items={railItems} footItems={footItems} sidebarOpen={sidebarOpen} onToggle={() => setSidebarOpen((v) => !v)} dataUiScope="app-shell.rail" />
+      {sidebarOpen && sidePanel && (
+        <div data-ui="app-shell.side-panel" className="w-[360px] flex-shrink-0 border-r border-[var(--border)] overflow-hidden">
+          {sidePanel}
+        </div>
+      )}
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar breadcrumb={breadcrumb} dataUiScope="app-shell.topbar" />
         <main data-ui="app-shell.content" className="flex-1 overflow-auto p-[var(--space-4)]">

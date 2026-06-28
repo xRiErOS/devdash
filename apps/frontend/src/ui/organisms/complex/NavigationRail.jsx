@@ -43,6 +43,8 @@ export default function NavigationRail({
   items = [],
   footItems = [],
   wide = false,
+  onToggle,
+  sidebarOpen = false,
   dataUiScope = 'organism.nav',
 }) {
   if (wide) {
@@ -58,7 +60,7 @@ export default function NavigationRail({
           <span className="[font-family:var(--font-display)] text-[12px] font-bold text-[var(--text)]">
             Navigation
           </span>
-          <IconButton iconName="chevron-left" label="Einklappen" dataUiScope={`${dataUiScope}.toggle`} />
+          <IconButton iconName="chevron-left" label="Einklappen" onClick={onToggle} dataUiScope={`${dataUiScope}.toggle`} />
         </div>
         <div data-ui={`${dataUiScope}.body`} className="flex-1 flex flex-col items-stretch gap-[var(--space-2)] p-[var(--space-2)]">
           {items.map((it) => (
@@ -81,7 +83,12 @@ export default function NavigationRail({
         data-ui={`${dataUiScope}.head`}
         className="flex items-center justify-center px-[var(--space-3)] py-[var(--space-2)] border-b border-[var(--border)]"
       >
-        <IconButton iconName="chevron-right" label="Erweitern" dataUiScope={`${dataUiScope}.toggle`} />
+        <IconButton
+          iconName={sidebarOpen ? 'chevron-left' : 'chevron-right'}
+          label={sidebarOpen ? 'Einklappen' : 'Erweitern'}
+          onClick={onToggle}
+          dataUiScope={`${dataUiScope}.toggle`}
+        />
       </div>
       <div data-ui={`${dataUiScope}.body`} className="flex-1 flex flex-col items-center gap-[var(--space-2)] py-[var(--space-3)]">
         {items.map((it) => (

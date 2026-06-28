@@ -19,7 +19,7 @@ import { getActiveSlug } from './projectStore.js'
 // Top-Level-Routen ohne Projekt-Slug. Wird ein Pfad mit einem dieser Segmente
 // begonnen, prefixt useProjectNav NICHT.
 const GLOBAL_FIRST_SEGMENTS = new Set([
-  'projects',
+  'projects', // Legacy-Alias → redirect zu /home
   'settings',
   'memories', // /memories/global
 ])

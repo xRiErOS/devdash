@@ -45,10 +45,10 @@ describe('AppShellView — Frame rendert mit Rail + Topbar', () => {
     expect(slice).toContain('aria-pressed="true"')
   })
 
-  test('globale Route /projects rendert im Frame (kein ProjectScope-Gate)', () => {
-    const html = render({ initialPath: '/projects' })
+  test('globale Route /home rendert ToolHome im Frame (kein ProjectScope-Gate)', () => {
+    const html = render({ initialPath: '/home' })
     expect(html).toContain('data-ui="app-shell.frame"')
-    expect(html).toContain('data-ui="screen:projects-landing.placeholder"')
+    expect(html).toContain('data-ui="screen.toolHome.connected"')
   })
 
   test('forceBanner zeigt Unknown-Host-Banner', () => {

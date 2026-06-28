@@ -15,6 +15,8 @@ import { fn } from 'storybook/test'
 import AppShellFrame from './AppShell.jsx'
 import RoadmapBoardScreen from './RoadmapBoardScreen.jsx'
 import IssueDetails from './IssueDetails.jsx'
+import ElementBrowserScreen from './ElementBrowserScreen.jsx'
+import { FLAT_ISSUES } from '../foundations/fixtures/elementBrowser.demo.js'
 import milestones from '../foundations/fixtures/milestone-list.json'
 import deps from '../foundations/fixtures/milestone-deps.json'
 import unassignedSprints from '../foundations/fixtures/roadmap-unassigned.json'
@@ -22,11 +24,12 @@ import { roadmapHandlers } from '../foundations/fixtures/roadmap.handlers.js'
 
 // Shell an `path` rendern, `content` im Outlet. Pathless Layout-Route → AppShellFrame,
 // Catch-all-Kind → Screen. Der Pfad bestimmt, welches Rail-Item aktiv ist.
-function shellAt(path, content) {
+// shellProps werden direkt an AppShellFrame übergeben (z.B. sidePanel).
+function shellAt(path, content, shellProps = {}) {
   return (
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route element={<AppShellFrame />}>
+        <Route element={<AppShellFrame {...shellProps} />}>
           <Route path="*" element={content} />
         </Route>
       </Routes>
@@ -67,8 +70,18 @@ export const RoadmapImShell = {
 }
 
 // Issue-Detail im Shell — issues hat kein Rail-Item → Rail-Default, Breadcrumb [devd2].
+// Rail-Toggle (app-shell.rail.toggle) klappt den Strukturbrowser (ElementBrowser) auf/zu.
 export const IssueDetailImShell = {
-  render: () => shellAt('/devd2/issues/DD2-7', <IssueDetails dataUiScope="screen.issueDetails.fixture" />),
+  render: () =>
+    shellAt(
+      '/devd2/issues/DD2-7',
+      <IssueDetails dataUiScope="screen.issueDetails.fixture" />,
+      {
+        sidePanel: (
+          <ElementBrowserScreen items={FLAT_ISSUES} compact dataUiScope="screen.elementBrowser.storyPanel" />
+        ),
+      },
+    ),
 }
 
 // Nur Chrome (Rail + Topbar), leerer Content — Spacing/Token-Augenschein der Hülle.

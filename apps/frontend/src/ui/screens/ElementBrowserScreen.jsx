@@ -31,6 +31,7 @@
  * @param {()=>void} [props.onClearSelection]
  * @param {(action:string, value?:any)=>void} [props.onBulkAction]
  * @param {()=>void} [props.onClosePreview]
+ * @param {boolean} [props.compact=false] - Kompaktes Toolbar-Layout für schmale Panels (2 Zeilen, Icon-only-Sort)
  * @param {string} [props.dataUiScope='screen.elementBrowser']
  */
 import BrowserToolbar from '../organisms/complex/BrowserToolbar.jsx'
@@ -62,6 +63,7 @@ export default function ElementBrowserScreen({
   filterOpen = false,
   filterMenu,
   bulkOptions,
+  compact = false,
   onQueryChange, onSortChange, onToggleFilter, onRemoveFilter,
   onToggleExpand, onToggleSelect, onSelectRange, onOpenItem, onEmptyAction,
   onClearSelection, onBulkAction, onClosePreview,
@@ -87,6 +89,7 @@ export default function ElementBrowserScreen({
         activeFilters={activeFilters}
         filterOpen={filterOpen}
         filterMenu={menu}
+        compact={compact}
         onQueryChange={onQueryChange}
         onSortChange={onSortChange}
         onToggleFilter={onToggleFilter}

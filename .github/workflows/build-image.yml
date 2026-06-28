@@ -91,11 +91,15 @@ jobs:
             type=sha,format=short,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
 
+      # DD2 Monorepo (663e694): das alte kombinierte Root-./Dockerfile existiert
+      # nicht mehr. Bis das neue Frontend fertig ist, baut latest = reines
+      # Backend-API-Image (apps/backend/Dockerfile, API-only auf 3001). Frontend
+      # bekommt später ein eigenes Image + compose-Service.
       - name: Build and push (linux/amd64)
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile
+          file: ./apps/backend/Dockerfile
           platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}

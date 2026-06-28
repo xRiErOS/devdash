@@ -4,21 +4,23 @@
 // Routen später vom Stub auf den echten Screen (z.B. roadmap → RoadmapBoardScreenConnected).
 //
 // AppShellFrame ist pathless Layout über ALLEN App-Shell-Routen (global + projekt-scoped).
-// Statisches /projects rankt über dynamisches /:slug. ProjectScope löst :slug → project_id
+// Statisches /home rankt über dynamisches /:slug. ProjectScope löst :slug → project_id
 // SYNCHRON vor dem Kind-Render (X-Project-Id aus URL, DD-Review 2026-06-24).
 import { Route, Navigate } from 'react-router-dom'
 import { AppShellFrame } from './AppShellFrame.jsx'
 import ProjectScope from './ProjectScope.jsx'
 import Stub from './Stub.jsx'
+import ToolHome from '../ToolHome/ToolHome.jsx'
 
 export function buildRoutes() {
   return (
     <>
-      <Route path="/" element={<Navigate to="/projects" replace />} />
+      <Route path="/" element={<Navigate to="/home" replace />} />
 
       <Route element={<AppShellFrame />}>
         {/* App-/Tool-Ebene (global, kein Projekt-Slug) */}
-        <Route path="/projects" element={<Stub name="projects-landing" title="Projekte" />} />
+        <Route path="/home" element={<ToolHome />} />
+        <Route path="/projects" element={<Navigate to="/home" replace />} />
         <Route path="/settings" element={<Stub name="global-settings" title="Einstellungen" />} />
         <Route path="/settings/sops" element={<Stub name="sop-list" title="SOPs" />} />
         <Route path="/settings/sops/:key" element={<Stub name="sop-view" title="SOP" />} />
@@ -44,8 +46,8 @@ export function buildRoutes() {
         </Route>
       </Route>
 
-      {/* Catch-all → /projects (kein Legacy-Redirect) */}
-      <Route path="*" element={<Navigate to="/projects" replace />} />
+      {/* Catch-all → /home */}
+      <Route path="*" element={<Navigate to="/home" replace />} />
     </>
   )
 }

@@ -19,12 +19,14 @@
  * @param {boolean} [props.filterOpen=false] - FilterMenu-Popover sichtbar
  * @param {()=>void} [props.onToggleFilter]
  * @param {React.ReactNode} [props.filterMenu] - der FilterMenu-Organismus (Popover-Inhalt)
+ * @param {boolean} [props.compact=false] - Schmales Layout: Suche oben, Sort/Filter darunter als Icon-only-Zeile
  * @param {string} [props.dataUiScope='organism.browserToolbar']
  * @param {string} [props.className]
  */
 import Icon from '../../foundations/Icon.jsx'
 import Input from '../../atoms/Input.jsx'
 import Button from '../../atoms/Button.jsx'
+import IconButton from '../../atoms/IconButton.jsx'
 import Chip from '../../atoms/Chip.jsx'
 import SegmentedControl from '../../atoms/SegmentedControl.jsx'
 
@@ -42,46 +44,71 @@ export default function BrowserToolbar({
   sort = 'title', sortOptions = SORT_OPTIONS, onSortChange,
   activeFilters = [], onRemoveFilter,
   filterOpen = false, onToggleFilter, filterMenu,
+  compact = false,
   dataUiScope = 'organism.browserToolbar', className = '',
 }) {
+  const searchField = (
+    <label data-ui={`${dataUiScope}.search`} className={`relative ${compact ? 'w-full' : 'flex-1 min-w-0'}`}>
+      <span className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none">
+        <Icon name="search" size={15} mono />
+      </span>
+      <Input
+        value={query}
+        onChange={(e) => onQueryChange?.(e.target.value)}
+        placeholder="Suchen …"
+        dataUiScope={`${dataUiScope}.search.input`}
+        className="pl-8 py-1.5 text-[13px]"
+      />
+    </label>
+  )
+
+  const filterControl = (
+    <div data-ui={`${dataUiScope}.filter`} className="relative flex-shrink-0">
+      {compact ? (
+        <IconButton iconName="filter" label="Filter" on={filterOpen} onClick={onToggleFilter} dataUiScope={`${dataUiScope}.filter.trigger`} />
+      ) : (
+        <Button variant="ghost" size="sm" iconName="filter" onClick={onToggleFilter} aria-expanded={filterOpen} dataUiScope={`${dataUiScope}.filter.trigger`}>
+          Filter
+        </Button>
+      )}
+      {filterOpen && filterMenu && (
+        <div data-ui={`${dataUiScope}.filter.popover`} className="absolute right-0 top-[calc(100%+6px)] z-20">
+          {filterMenu}
+        </div>
+      )}
+    </div>
+  )
+
+  const sortControl = (
+    <SegmentedControl
+      options={compact ? sortOptions.map((o) => ({ ...o, label: '' })) : sortOptions}
+      value={sort}
+      onChange={onSortChange}
+      dataUiScope={`${dataUiScope}.sort`}
+      className={compact ? 'flex-1' : ''}
+    />
+  )
+
   return (
     <div
       data-ui={dataUiScope}
       className={`flex flex-col gap-[var(--space-2)] px-[var(--space-3)] py-[var(--space-2)] bg-[var(--mantle)] border-b border-[var(--border)] ${className}`}
     >
-      {/* Steuer-Zeile: Suche · Filter · Sort */}
-      <div data-ui={`${dataUiScope}.controls`} className="flex items-center gap-[var(--space-2)]">
-        <label data-ui={`${dataUiScope}.search`} className="relative flex-1 min-w-0">
-          <span className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none">
-            <Icon name="search" size={15} mono />
-          </span>
-          <Input
-            value={query}
-            onChange={(e) => onQueryChange?.(e.target.value)}
-            placeholder="Suchen … (/ oder Cmd+F)"
-            dataUiScope={`${dataUiScope}.search.input`}
-            className="pl-8 py-1.5 text-[13px]"
-          />
-        </label>
-
-        <div data-ui={`${dataUiScope}.filter`} className="relative">
-          <Button variant="ghost" size="sm" iconName="filter" onClick={onToggleFilter} aria-expanded={filterOpen} dataUiScope={`${dataUiScope}.filter.trigger`}>
-            Filter
-          </Button>
-          {filterOpen && filterMenu && (
-            <div data-ui={`${dataUiScope}.filter.popover`} className="absolute right-0 top-[calc(100%+6px)] z-20">
-              {filterMenu}
-            </div>
-          )}
+      {compact ? (
+        <>
+          {searchField}
+          <div data-ui={`${dataUiScope}.controls`} className="flex items-center gap-[var(--space-2)]">
+            {filterControl}
+            {sortControl}
+          </div>
+        </>
+      ) : (
+        <div data-ui={`${dataUiScope}.controls`} className="flex items-center gap-[var(--space-2)]">
+          {searchField}
+          {filterControl}
+          {sortControl}
         </div>
-
-        <SegmentedControl
-          options={sortOptions}
-          value={sort}
-          onChange={onSortChange}
-          dataUiScope={`${dataUiScope}.sort`}
-        />
-      </div>
+      )}
 
       {/* FilterBar: aktive Filter als löschbare Chips (nur wenn gesetzt) */}
       {activeFilters.length > 0 && (
