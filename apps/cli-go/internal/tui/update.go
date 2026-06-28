@@ -20,7 +20,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width, m.height = msg.Width, msg.Height
 		return m, nil
 	case createdMsg:
-		m.status = noticeText("Angelegt: " + msg.label)
+		// DD2-93: deutlicher Erfolgs-Toast, der den nachfolgenden Reload-Zyklus
+		// (loadMilestones→sprintMsg) übersteht (statusSticky), damit die PO sicher
+		// sieht, dass gespeichert wurde. Auto-Clear (2s) räumt ihn dann auf.
+		m.status = noticeText("✓ " + msg.label + " created")
+		m.statusSticky = true
 		m.statusSeq++ // DD2-35: Auto-Clear-Toast — Tick mit dieser Generation
 		clear := statusTimeout(m.statusSeq)
 		switch msg.kind {
@@ -42,6 +46,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case clearStatusMsg: // DD2-35: transienten Status nach Timeout löschen (Toast)
 		if msg.seq == m.statusSeq && !m.inputting {
 			m.status = ""
+			m.statusSticky = false // DD2-93: Sticky-Schutz endet mit dem Auto-Clear
 		}
 		return m, nil
 	case errMsg:
@@ -49,10 +54,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case statusMsg:
 		m.status = msg.text
+		m.statusSticky = false // DD2-93: neuer regulärer Status hebt den Sticky-Schutz auf
 		m.statusSeq++
 		return m, statusTimeout(m.statusSeq) // DD2-35: Auto-Clear
 	case noticeMsg:
 		m.status = noticeText(msg.text) // Sapphire-Hinweis (Aktions-Fehler/Info)
+		m.statusSticky = false // DD2-93: neuer regulärer Status hebt den Sticky-Schutz auf
 		m.statusSeq++
 		return m, statusTimeout(m.statusSeq) // DD2-35: Auto-Clear
 	case userStoriesMsg:
@@ -93,6 +100,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.ilist.setLen(len(m.visIssues()))
 		m.status = noticeText("Data reloaded")
+		m.statusSticky = false
 		m.statusSeq++
 		return m, statusTimeout(m.statusSeq)
 	case sprintMsg:
@@ -102,14 +110,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.treeIssues = map[int][]api.Issue{}
 			}
 			m.treeIssues[msg.sprint.ID] = msg.sprint.Items
-			m.status = ""
+			if !m.statusSticky { // DD2-93: Erfolgs-Toast nicht durch Reload clobbern
+				m.status = ""
+			}
 		}
 		if s := m.selSprint(); s != nil && m.curSprint != nil && s.ID == m.curSprint.ID {
 			m.ilist.setLen(len(m.visIssues()))
 		}
 		if m.view == viewReview && m.curSprint != nil {
 			m.rlist.setLen(len(m.curSprint.Items))
-			m.status = ""
+			if !m.statusSticky { // DD2-93: Erfolgs-Toast nicht durch Reload clobbern
+				m.status = ""
+			}
 		}
 		return m, nil
 	case backlogMsg:
