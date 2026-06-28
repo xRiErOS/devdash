@@ -50,6 +50,15 @@ func subhead(label, val string) string {
 	return theme.Accent.Render(label) + "\n" + val
 }
 
+// placeholderOr zeigt einen mutedem Platzhalter, wenn der Wert leer ist (DD2-135:
+// leere, aber editierbare Felder kenntlich machen — enter ergänzt sie).
+func placeholderOr(s string) string {
+	if strings.TrimSpace(s) == "" {
+		return theme.Muted.Render("(leer)") // kurz: bricht in schmaler Spalte nicht um
+	}
+	return s
+}
+
 // issueSections baut die vorhandenen Detail-Sektionen eines Issues in fester
 // Reihenfolge (Vorschlag DD2-50): 1=Goal/Beschreibung|PO-Notes, 2=Background/
 // Context, 3=Relevant Files, 4=User-Stories, 5=Result, 6=Review. bodyW = Innen-
@@ -59,26 +68,22 @@ func (m model) issueSections(it api.Issue, bodyW int) []accordionSection {
 	var secs []accordionSection
 
 	// Sektion 1: zweispaltig — links Goal+Beschreibung, rechts PO-Notes (PO-Wunsch).
-	// Editierbare Felder werden in Anzeige-Reihenfolge nur für vorhandene Werte
-	// geführt (gleiche Gating-Prädikate wie der Body → kein Drift Nav↔Render).
+	// DD2-135: Section 1 ist PO-wesentlich und IMMER vorhanden; goal + po_notes sind
+	// auch leer editierbar (Platzhalter), damit der PO sie nachtragen kann. description
+	// (deprecated) wird nur geführt, wenn bereits gesetzt — kein Neu-Anlegen.
 	goal, desc, po := deref(it.Goal), deref(it.Description), deref(it.PoNotes)
-	if goal != "" || desc != "" || po != "" {
+	{
 		gw := gridColWidths(bodyW, 2, []int{3, 2}) // linke Spalte breiter
 		var left []string
 		var fields []detailField
-		if goal != "" {
-			left = append(left, wrapText(subhead("Goal", goal), gw[0]))
-			fields = append(fields, detailField{"goal", "Goal", "text"})
-		}
+		left = append(left, wrapText(subhead("Goal", placeholderOr(goal)), gw[0]))
+		fields = append(fields, detailField{"goal", "Goal", "text"})
 		if desc != "" {
 			left = append(left, wrapText(subhead("Beschreibung", desc), gw[0]))
 			fields = append(fields, detailField{"description", "Beschreibung", "text"})
 		}
-		right := ""
-		if po != "" {
-			right = wrapText(subhead("PO-Notes", po), gw[1])
-			fields = append(fields, detailField{"po_notes", "PO-Notes", "text"})
-		}
+		right := wrapText(subhead("PO-Notes", placeholderOr(po)), gw[1])
+		fields = append(fields, detailField{"po_notes", "PO-Notes", "text"})
 		body := grid(bodyW, 2,
 			gridCell{weight: 3, content: strings.Join(left, "\n\n")},
 			gridCell{weight: 2, content: right})

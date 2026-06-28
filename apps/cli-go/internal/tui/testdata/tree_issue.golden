@@ -5,8 +5,8 @@
 │   ▾ DD2#9 review                   ││                                                  │
 │▌      ⯁ DD2-99                     ││Sections: Ziffer [1..n] öffnet                    │
 │                                    ││> [1] Goal / Beschreibung ∙ PO-Notes  ▾           │
-│                                    ││  Goal                                            │
-│                                    ││  Detail soll scrollbar                           │
+│                                    ││  Goal                        PO-Notes            │
+│                                    ││  Detail soll scrollbar       (leer)              │
 │                                    ││  sein, damit umfangreicher                       │
 │                                    ││  Inhalt lesbar bleibt.                           │
 │                                    ││> [2] Background / Context  ▸                     │

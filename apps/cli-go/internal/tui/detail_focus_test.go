@@ -200,9 +200,11 @@ func TestDetailFocusReadOnlySectionNoFieldEntry(t *testing.T) {
 	m.treeExpSprint[10] = true
 	m.view = viewTree
 	m.treeCursor = 2
-	// focusSections = [Übersicht(editierbar), User-Stories(read-only)]. enter landet
-	// auf der Übersicht → erst j auf die read-only Section, dann l/→ = no-op.
+	// focusSections = [Übersicht(editierbar), Section 1 (Goal/PO immer editierbar,
+	// DD2-135), User-Stories(read-only)]. enter landet auf der Übersicht → 2× k auf die
+	// read-only User-Stories-Section, dann l/→ = no-op.
 	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter})
+	mi, _ = mi.(model).keyTree(key("k")) // → Section 1 (editierbar)
 	mi, _ = mi.(model).keyTree(key("k")) // → read-only User-Stories-Section
 	mi, _ = mi.(model).keyTree(key("l"))
 	if mi.(model).detailLevel != 0 {
