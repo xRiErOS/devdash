@@ -6,9 +6,8 @@ FROM node:22-alpine AS builder
 RUN apk add --no-cache python3 make g++
 WORKDIR /app
 
-# Workspace-Manifeste + vendored file:-Dep (note-field) vor npm ci.
+# Workspace-Manifeste vor npm ci.
 COPY package.json package-lock.json* ./
-COPY vendor/ ./vendor/
 COPY packages/api-types/package.json ./packages/api-types/package.json
 COPY apps/backend/package.json ./apps/backend/package.json
 COPY apps/cli/package.json ./apps/cli/package.json
