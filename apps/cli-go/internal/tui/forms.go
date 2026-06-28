@@ -220,6 +220,10 @@ func (m *model) formCreateCmd() tea.Cmd {
 	switch m.formKind {
 	case "editField": // DD2-77: ein editiertes Issue-Feld zurückschreiben
 		return doUpdateIssueField(m.client, m.editID, m.editField, get("value"))
+	case "tagCreate": // DD2-75: neuen Tag anlegen
+		return doCreateTag(m.client, get("name"), m.form.GetString("color"))
+	case "tagEdit": // DD2-75: Tag umbenennen/umfärben
+		return doUpdateTag(m.client, m.tagEditID, get("name"), m.form.GetString("color"))
 	case "issue":
 		body := api.IssueCreateBody{Title: get("title"), Type: m.form.GetString("type"), Priority: 2}
 		if p, err := strconv.Atoi(m.form.GetString("priority")); err == nil {
@@ -280,6 +284,8 @@ func (m model) formBox() string {
 		"memory":    "Neue Memory",
 		"result":    "Ergebnisfeld setzen",
 		"editField": "Bearbeiten: " + m.editLabel, // DD2-77: dynamischer Feld-Titel
+		"tagCreate": "Neuer Tag",
+		"tagEdit":   "Tag bearbeiten",
 	}
 	// DD2-25: Höhe/Breite bei JEDEM Render aus dem aktuellen Terminal neu anlegen —
 	// fängt „bei height=0 geöffnet" und Resize nach dem Öffnen ab (huh.WithHeight

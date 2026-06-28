@@ -54,10 +54,16 @@ type Issue struct {
 }
 
 type Tag struct {
-	ID    int    `json:"id"`
-	Name  string `json:"name"`
-	Color string `json:"color"`
+	ID         int    `json:"id"`
+	Name       string `json:"name"`
+	Color      string `json:"color"`
+	UsageCount int    `json:"usage_count,omitempty"` // nur in GET /api/tags gesetzt
 }
+
+// TagColors ist die im TUI anwählbare Farb-Palette — Spiegel von TAG_COLORS in
+// packages/api-types/tag.contracts.js (Backend-validierte Enum). Reihenfolge
+// load-bearing für die Picker-Auswahl; bei Contract-Änderung hier nachziehen.
+var TagColors = []string{"blue", "green", "peach", "mauve", "teal", "overlay0"}
 
 // UserStory: PO hakt sie vor pass/rejected ab (us_verdict open|accepted|rejected).
 type UserStory struct {

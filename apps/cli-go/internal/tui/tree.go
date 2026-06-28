@@ -532,6 +532,25 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "y": // Kontext yanken (1:1 Ranger) — Meilenstein/Sprint
 		return m.treeYank(nodes)
+	case "T": // DD2-75: Tag-Manager (keyTree fängt vor dem globalen Switch)
+		return m.openTagManager()
+	case "g": // DD2-33: Tag-Picker für den fokussierten Knoten
+		if m.treeCursor < len(nodes) {
+			n := nodes[m.treeCursor]
+			switch n.kind {
+			case tkMile:
+				ms := m.milestones[n.mileIdx]
+				return m.openTagPicker("milestone", ms.ID, ms.Name, nil)
+			case tkSprint:
+				sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
+				return m.openTagPicker("sprint", sp.ID, sp.Name, nil)
+			case tkIssue:
+				if n.issue != nil {
+					return m.openTagPicker("issue", n.issue.ID, n.issue.Key+" "+n.issue.Title, n.issue.Tags)
+				}
+			}
+		}
+		return m, nil
 	}
 	switch navKey(msg.String()) {
 	case "up":

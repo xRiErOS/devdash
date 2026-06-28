@@ -154,6 +154,36 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.status = noticeText("Sprint abgeschlossen (Handover-Yank fehlgeschlagen)")
 		}
 		return m, nil
+	case tagsLoadedMsg: // DD2-75: Tag-Manager-Liste
+		m.tags = msg.items
+		m.taglist.setLen(len(m.tags))
+		return m, nil
+	case tagMutatedMsg: // DD2-75: create/update/delete → Liste neu laden
+		m.status = noticeText(msg.label)
+		if m.view == viewTags {
+			return m, loadTags(m.client)
+		}
+		return m, nil
+	case tagPickDataMsg: // DD2-33: Picker-Daten (alle Tags + ggf. aktuelle)
+		if m.tagPick && msg.id == m.tagPickID && msg.kind == m.tagPickKind {
+			m.tagPickAll = msg.all
+			m.tagPickLoaded = true
+			if msg.hasCurrent {
+				m.tagPickChecked = map[int]bool{}
+				for _, t := range msg.current {
+					m.tagPickChecked[t.ID] = true
+				}
+			}
+			m.tagPickMenu.setLen(len(m.tagPickAll))
+		}
+		return m, nil
+	case tagAssignedMsg: // DD2-33: Replace bestätigt → lokalen State patchen
+		m.tagPick = false
+		if msg.kind == "issue" {
+			m.patchIssueTags(msg.id, msg.tags)
+		}
+		m.status = noticeText("Tags gesetzt — " + msg.label)
+		return m, nil
 	case tea.MouseMsg:
 		return m.handleMouse(msg)
 	case tea.KeyMsg:
@@ -168,7 +198,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	// Modale/Picks sind tastaturgesteuert — Maus ignorieren (kein Fehlklick-Fokus).
 	if m.form != nil || m.paletteOpen || m.filtering || m.statusPick || m.sprintPick ||
-		m.msPick || m.smPick || m.maPick || m.delConfirm || m.mcConfirm || m.usOpen ||
+		m.msPick || m.smPick || m.maPick || m.tagPick || m.delConfirm || m.mcConfirm || m.usOpen ||
 		m.treeSearching || m.inputting {
 		return m, nil
 	}

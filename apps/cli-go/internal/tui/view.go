@@ -46,6 +46,9 @@ func (m model) View() string {
 	if m.maPick { // T03 Flow B: Meilenstein→Sprints-Checkliste
 		return placeOverlay(base, m.milestoneAssignMenu(), m.termWidth(), m.height)
 	}
+	if m.tagPick { // DD2-33: Tag-Zuweisungs-Picker
+		return placeOverlay(base, m.tagPickerMenu(), m.termWidth(), m.height)
+	}
 	if m.delConfirm { // T02b: Cascade-Delete-Confirm
 		return placeOverlay(base, m.deleteBox(), m.termWidth(), m.height)
 	}
@@ -120,6 +123,8 @@ func (m model) viewBase() string {
 		return m.viewMemory()
 	case viewTree:
 		return m.viewTree() // DD2-57: Tree+Detail-Prototyp
+	case viewTags:
+		return m.viewTags() // DD2-75: Tag-Manager
 	default:
 		return m.viewColumns() // rendert Filter-Modal inline, wenn m.filtering
 	}

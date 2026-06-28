@@ -46,6 +46,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.maPick {
 		return m.keyMilestoneAssign(msg)
 	}
+	// Tag-Zuweisungs-Picker (DD2-33) fängt als Overlay vor den View-Tasten.
+	if m.tagPick {
+		return m.keyTagPicker(msg)
+	}
 	// Cascade-Delete-Confirm (T02b) fängt vor View-Tasten.
 	if m.delConfirm {
 		return m.keyDelete(msg)
@@ -77,6 +81,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.view == viewMemory {
 		return m.keyMemory(msg)
 	}
+	// Tag-Manager (DD2-75) fängt voll (n/e/d + esc/q zurück).
+	if m.view == viewTags {
+		return m.keyTags(msg)
+	}
 	// Tree+Detail-Prototyp (DD2-57) fängt voll (eigene Nav + t/esc zurück).
 	if m.view == viewTree {
 		return m.keyTree(msg)
@@ -101,6 +109,8 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	case "R": // T17: R öffnet von überall die Liste offener Review-Sprints
 		return m.openReviewsList()
+	case "T": // DD2-75: Tag-Manager von überall
+		return m.openTagManager()
 	}
 
 	switch m.view {
@@ -123,6 +133,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				}
 				return m.openIssueStatus(it, sid)
 			}
+		case "g": // DD2-33: Tag-Picker für das Issue
+			if it := m.selIssue(); it != nil {
+				return m.openTagPicker("issue", it.ID, it.Key+" "+it.Title, it.Tags)
+			}
 		}
 		return m, nil
 	case viewMilestone:
@@ -139,6 +153,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "d": // T02b: Meilenstein kaskadierend löschen
 			if ms := m.selMilestone(); ms != nil {
 				return m.openDelete("milestone", ms.ID, ms.Name)
+			}
+		case "g": // DD2-33: Tag-Picker für den Meilenstein
+			if ms := m.selMilestone(); ms != nil {
+				return m.openTagPicker("milestone", ms.ID, ms.Name, nil)
 			}
 		}
 		return m, nil
@@ -158,6 +176,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "d": // T02b: Sprint kaskadierend löschen
 			if s := m.selSprint(); s != nil {
 				return m.openDelete("sprint", s.ID, s.Name)
+			}
+		case "g": // DD2-33: Tag-Picker für den Sprint
+			if s := m.selSprint(); s != nil {
+				return m.openTagPicker("sprint", s.ID, s.Name, nil)
 			}
 		}
 		return m, nil
@@ -314,6 +336,21 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 		} else if m.depth == 1 {
 			if sp := m.selSprint(); sp != nil {
 				return m.openDelete("sprint", sp.ID, sp.Name)
+			}
+		}
+	case "g": // DD2-33: Tag-Picker für die fokussierte Ebene
+		switch m.depth {
+		case 0:
+			if ms := m.selMilestone(); ms != nil {
+				return m.openTagPicker("milestone", ms.ID, ms.Name, nil)
+			}
+		case 1:
+			if sp := m.selSprint(); sp != nil {
+				return m.openTagPicker("sprint", sp.ID, sp.Name, nil)
+			}
+		case 2:
+			if it := m.selIssue(); it != nil {
+				return m.openTagPicker("issue", it.ID, it.Key+" "+it.Title, it.Tags)
 			}
 		}
 	}

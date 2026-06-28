@@ -40,6 +40,8 @@ type keyMap struct {
 	AssignSprint keybind.Binding // a (Sprints → Meilenstein)
 	Delete       keybind.Binding // d (Cascade-Delete)
 	Toggle       keybind.Binding // space / x (Facette an/aus)
+	Tags         keybind.Binding // T (Tag-Manager, DD2-75)
+	TagAssign    keybind.Binding // g (Tags zuweisen, DD2-33)
 }
 
 // newKeyMap liefert die aktuell aktive Tastenbelegung. Das Richtungskreuz nutzt
@@ -74,6 +76,8 @@ func newKeyMap() keyMap {
 		AssignSprint: keybind.NewBinding(keybind.WithKeys("a"), keybind.WithHelp("a", "Sprints zuweisen")),
 		Delete:       keybind.NewBinding(keybind.WithKeys("d"), keybind.WithHelp("d", "löschen (Cascade)")),
 		Toggle:       keybind.NewBinding(keybind.WithKeys(" ", "x"), keybind.WithHelp("space/x", "Facette an/aus")),
+		Tags:         keybind.NewBinding(keybind.WithKeys("T"), keybind.WithHelp("T", "Tag-Manager")),
+		TagAssign:    keybind.NewBinding(keybind.WithKeys("g"), keybind.WithHelp("g", "Tags zuweisen")),
 	}
 }
 
@@ -93,8 +97,8 @@ type helpGroup struct {
 func (k keyMap) helpGroups() []helpGroup {
 	return []helpGroup{
 		{"Navigation", []keybind.Binding{k.Up, k.Down, k.Left, k.Right, k.Enter, k.Back, k.Section}},
-		{"Views & Global", []keybind.Binding{k.Ranger, k.Backlog, k.Reviews, k.Picker, k.Search, k.Filter, k.Palette, k.Help, k.Quit}},
-		{"Aktionen", []keybind.Binding{k.Status, k.MileStatus, k.AssignMile, k.AssignSprint, k.Delete, k.Yank, k.Toggle}},
+		{"Views & Global", []keybind.Binding{k.Ranger, k.Backlog, k.Reviews, k.Picker, k.Tags, k.Search, k.Filter, k.Palette, k.Help, k.Quit}},
+		{"Aktionen", []keybind.Binding{k.Status, k.MileStatus, k.AssignMile, k.AssignSprint, k.TagAssign, k.Delete, k.Yank, k.Toggle}},
 	}
 }
 

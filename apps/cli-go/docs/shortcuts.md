@@ -26,6 +26,7 @@ Richtungskreuz: **jkli** — `i`=hoch, `j`=links/zurück, `k`=runter, `l`=rechts
 | `b` | Backlog |
 | `R` | Review-Cockpit |
 | `p` | Projekt wählen |
+| `T` | Tag-Manager |
 | `/` | Suche |
 | `f` | Filter |
 | `ctrl+k` | Command-Center |
@@ -40,6 +41,7 @@ Richtungskreuz: **jkli** — `i`=hoch, `j`=links/zurück, `k`=runter, `l`=rechts
 | `S` | Meilenstein-Status |
 | `m` | Sprint → Meilenstein |
 | `a` | Sprints zuweisen |
+| `g` | Tags zuweisen |
 | `d` | löschen (Cascade) |
 | `y` | Kontext kopieren |
 | `space/x` | Facette an/aus |

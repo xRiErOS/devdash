@@ -20,6 +20,7 @@ const (
 	viewReviewsList
 	viewMemory
 	viewTree // DD2-57: Tree+Detail-Layout-Prototyp
+	viewTags // DD2-75: Tag-Manager (projektweite Tag-CRUD)
 )
 
 // filterState hält pro Spalte, welche Werte ausgeblendet sind.
@@ -223,6 +224,29 @@ type model struct {
 	ffItems          []ffItem
 	treeFilterIssues []api.Issue
 	treeIssuesLoaded bool
+
+	// Tag-Manager (DD2-75): T öffnet viewTags — projektweite Tag-CRUD-Liste.
+	// n=neu, e=edit, d=löschen (Confirm), esc/q zurück zur Quell-View (tagReturn).
+	tags         []api.Tag
+	taglist      listState
+	tagReturn    viewID // Heimat-View für viewTags-esc/q
+	tagEditID    int    // Ziel-Tag des edit-Formulars (0 = create)
+	tagDelID     int    // Ziel-Tag des Lösch-Confirms
+	tagDelName   string
+	tagDelUsage  int
+	tagDelConfNo bool // Lösch-Confirm offen
+
+	// Tag-Picker (DD2-33): g öffnet ein Checkbox-Overlay über die Projekt-Tags für
+	// das fokussierte Issue/Sprint/Meilenstein. Vorbelegung = aktuelle Tags der
+	// Entität; enter ruft Set{Issue,Sprint,Milestone}Tags (vollständiger Replace).
+	tagPick        bool
+	tagPickKind    string // issue | sprint | milestone
+	tagPickID      int
+	tagPickLabel   string
+	tagPickAll     []api.Tag
+	tagPickChecked map[int]bool
+	tagPickMenu    listState
+	tagPickLoaded  bool // alle Tags geladen (sonst „lädt …")
 }
 
 // issueStatusOptions sind die manuell wählbaren Lifecycle-Ziele. Bewusst OHNE

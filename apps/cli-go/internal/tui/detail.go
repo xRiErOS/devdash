@@ -198,6 +198,11 @@ func (m model) keyDetailFocus(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "esc":
 		m.exitDetailFocus()
 		return m, nil
+	case "g": // DD2-33: Tag-Picker für das fokussierte Issue
+		if it := m.focusedIssue(); it != nil {
+			return m.openTagPicker("issue", it.ID, it.Key+" "+it.Title, it.Tags)
+		}
+		return m, nil
 	case "enter":
 		// Section-Ebene → in die Section rein (wie l/→); Feld-Ebene → editField-Form
 		// für das aktive Feld öffnen (D04).
