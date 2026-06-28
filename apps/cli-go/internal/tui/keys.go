@@ -391,7 +391,7 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 				return m.openIssueStatus(it, sid)
 			}
 		}
-	case "d": // T02b: Cascade-Delete des fokussierten Meilensteins/Sprints
+	case "d": // T02b: Cascade-Delete Meilenstein/Sprint; DD2-65/DD2-85: Issue einzeln
 		if m.depth == 0 {
 			if ms := m.selMilestone(); ms != nil {
 				return m.openDelete("milestone", ms.ID, ms.Name)
@@ -399,6 +399,10 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 		} else if m.depth == 1 {
 			if sp := m.selSprint(); sp != nil {
 				return m.openDelete("sprint", sp.ID, sp.Name)
+			}
+		} else if m.depth == 2 {
+			if it := m.selIssue(); it != nil {
+				return m.openDelete("issue", it.ID, it.Key+" "+it.Title)
 			}
 		}
 	case "t": // DD2-33: Tag-Picker für die fokussierte Ebene
