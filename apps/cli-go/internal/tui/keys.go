@@ -138,7 +138,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		switch k {
 		case "esc":
-			m.view = viewColumns
+			m.view = viewTree // DD2-111: Ranger gesunset → Tree-Primat
 		case "s": // DD2-29: Issue-Status auch im Detail mutieren
 			if it := m.selIssue(); it != nil {
 				sid := 0
@@ -159,7 +159,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		switch k {
 		case "esc":
-			m.view = viewColumns
+			m.view = viewTree // DD2-111: Ranger gesunset → Tree-Primat
 		case "S":
 			return m.openMilestoneStatus()
 		case "a": // T03 Flow B: Sprints diesem Meilenstein zuweisen (Checkliste)
@@ -180,7 +180,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		switch k {
 		case "esc":
-			m.view = viewColumns
+			m.view = viewTree // DD2-111: Ranger gesunset → Tree-Primat
 		case "y":
 			return m.yankContext()
 		case "m": // T03 Flow A: diesen Sprint einem Meilenstein zuweisen

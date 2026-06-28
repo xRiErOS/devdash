@@ -225,7 +225,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Columns + ggf. Cockpit/Detail-Quelle frisch; zurück auf Columns-Sicht.
 		m.curSprint = nil
 		if m.view == viewMilestone || m.view == viewSprint {
-			m.view = viewColumns
+			m.view = viewTree // DD2-111: Ranger gesunset → Tree-Primat
 		}
 		return m, loadMilestones(m.client)
 	case reworkDoneMsg:

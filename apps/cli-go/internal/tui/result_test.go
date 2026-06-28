@@ -36,15 +36,17 @@ func TestSprintClipHasErgebnisseColumn(t *testing.T) {
 	}
 }
 
-func TestCockpitEscReloadsColumns(t *testing.T) {
+func TestCockpitEscReloadsTree(t *testing.T) {
+	// DD2-111: der direkte (Nicht-Liste-)Cockpit-Rückweg führt jetzt zum Tree-Primat
+	// (Ranger gesunset), nicht mehr zu viewColumns. Reload bleibt (B01).
 	m := reviewModel()
-	m.reviewReturn = viewColumns // direkter Columns-Pfad statt Liste
+	m.reviewReturn = viewTree
 	mi, cmd := m.Update(keyMsg("q"))
 	m = mi.(model)
-	if m.view != viewColumns {
-		t.Errorf("q → view=%d, want viewColumns", m.view)
+	if m.view != viewTree {
+		t.Errorf("q → view=%d, want viewTree", m.view)
 	}
 	if cmd == nil {
-		t.Error("B01: q sollte Columns (loadMilestones) neu laden")
+		t.Error("B01: q sollte die Daten (loadMilestones) neu laden")
 	}
 }

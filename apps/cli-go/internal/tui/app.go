@@ -11,7 +11,7 @@ import (
 
 func newModel(client *api.Client, project *api.Project, global *api.Client) model {
 	m := model{client: client, project: project, global: global}
-	m.reviewReturn = viewColumns // Default-Rückkehr aus dem Cockpit
+	m.reviewReturn = viewTree // DD2-111: Default-Rückkehr aus dem Cockpit = Tree-Primat (Ranger gesunset)
 	m.topReturn = viewTree       // Tree ist Primat-Heimat (DD2-61)
 	m.treeExpMile = map[int]bool{}
 	m.treeExpSprint = map[int]bool{}

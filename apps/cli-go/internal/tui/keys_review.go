@@ -101,7 +101,7 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.view = viewReviewsList
 			return m, tea.Batch(loadReviewSprints(m.client), loadMilestones(m.client))
 		}
-		m.view = viewColumns
+		m.view = viewTree // DD2-111: Cockpit-q/esc → Tree-Primat (Ranger gesunset)
 		return m, loadMilestones(m.client)
 	case "enter": // Issue-Abnahme-Modal: goal/background/User-Stories abhaken
 		if it == nil {

@@ -32,7 +32,6 @@ func paletteActions(m *model) []paletteAction {
 		{"go_tags", "Go to: Tag manager"},
 		{"go_settings", "Settings"}, // DD2-125: edit user config
 		{"go_tutorial", "Tutorial: guided tour"}, // DD2-122
-		{"toggle_ranger", "Layout wechseln: Ranger ↔ Tree"},
 		{"test_form", "Test Form"}, // Styling-Sandbox (kein Persist)
 	}
 	if m.global != nil {
@@ -131,15 +130,6 @@ func (m model) dispatchPalette(id string) (tea.Model, tea.Cmd) {
 		return m, loadBacklog(m.client)
 	case "go_tags":
 		return m.openTagManager()
-	case "toggle_ranger": // Ranger↔Tree-Layout (Taste t ist jetzt Tag-Zuweisung, DD2-33)
-		if m.view == viewTree {
-			m.view = viewColumns
-			return m, m.syncSprint()
-		}
-		m.view = viewTree
-		m.treeCursor = 0
-		m.status = ""
-		return m, nil
 	case "go_project":
 		if m.global != nil {
 			return m.openProjPick() // DD2-124: Picker-Overlay
