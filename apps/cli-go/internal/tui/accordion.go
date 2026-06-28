@@ -134,18 +134,16 @@ func (m model) issueSections(it api.Issue, bodyW int) []accordionSection {
 	return secs
 }
 
-// renderAccordion rendert die Sektions-Header (`> [n] Title`, BG Mantle) und
-// klappt die offene Sektion (1-basiert, exklusiv) als Body-Box darunter auf
-// (Border Mantle, BG Base). w = volle Innenbreite der Detail-Fläche; die Box
-// nutzt Width(w-2), die Border wächst außen auf w (Golden Rule #1 — kein Height()).
+// renderAccordion rendert die Sektions-Header (`> [n] Title`) und klappt die
+// offene Sektion (1-basiert, exklusiv) als eingerückten Body darunter auf. Ruhige
+// Ein-Ebenen-Darstellung (keine Mantle-Leiste, kein Body-Kasten) — Heading vs.
+// Body nur über Chevron + Mauve/Muted-FG + Einrückung unterschieden.
 func renderAccordion(secs []accordionSection, open, w int, focus detailFocusView) string {
 	if len(secs) == 0 {
 		return theme.Dim.Render("(keine Detail-Felder)")
 	}
-	headerStyle := lipgloss.NewStyle().Background(theme.Mantle).Width(w)
-	boxStyle := lipgloss.NewStyle().Width(w - 2).
-		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mantle).
-		Background(theme.Base)
+	headerStyle := lipgloss.NewStyle().Width(w)
+	boxStyle := lipgloss.NewStyle().Width(w - 2).PaddingLeft(2)
 
 	var b strings.Builder
 	for i, s := range secs {

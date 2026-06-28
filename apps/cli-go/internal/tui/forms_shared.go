@@ -238,31 +238,13 @@ func formFooterHint(kind string) string {
 	}
 }
 
-// modalBox umrahmt vorgerenderten Inhalt als schwebendes Overlay-Modal — die
-// gemeinsame Chrome ALLER Overlays (RoundedBorder, Base-BG, Padding(0,1)).
-// Single-Source gegen Drift (DD2 I01). border = theme.Mauve (Standard) bzw.
-// theme.Red (destruktive Dialoge: delete/cascade).
-func modalBox(inner string, width int, border lipgloss.Color) string {
-	return lipgloss.NewStyle().
-		Width(width).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(border).
-		Background(theme.Base).
-		Padding(0, 1).
-		Render(inner)
-}
-
 // formChrome umrahmt jede embedded huh-Form wie die Command-Palette
 // (Header-Titel, Dim-Separator + Dim-Footer). Single-Source für alle Form-Kinds
-// (T03: Box-gerahmt), Chrome über modalBox.
+// (T03: Box-gerahmt), Chrome über modalPanel.
 func (m model) formChrome() string {
 	innerW := formInnerWidth(m.width)
-	var b strings.Builder
-	b.WriteString(theme.Header.Render(m.formTitle()) + "\n")
-	b.WriteString(theme.Dim.Render(strings.Repeat("─", innerW)) + "\n")
-	b.WriteString(m.form.View())
-	b.WriteString("\n" + theme.Dim.Render(formFooterHint(m.formKind)))
-	return modalBox(b.String(), modalBoxWidth(m.width), theme.Mauve)
+	body := theme.Dim.Render(strings.Repeat("─", innerW)) + "\n" + m.form.View()
+	return modalPanel(m.formTitle(), body, formFooterHint(m.formKind), modalBoxWidth(m.width), theme.Mauve)
 }
 
 // typeOptions / priorityOptions = Single Source der Issue-Type- bzw. Prioritäts-

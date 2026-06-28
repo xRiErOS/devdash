@@ -55,7 +55,6 @@ func (m model) helpBox() string {
 	}
 
 	var b strings.Builder
-	b.WriteString(theme.Header.Render("Tastatur-Shortcuts") + "\n")
 	for _, g := range groups {
 		b.WriteString("\n" + theme.Accent.Render(g.title) + "\n")
 		for _, bind := range g.bindings {
@@ -64,7 +63,6 @@ func (m model) helpBox() string {
 			b.WriteString("  " + theme.Header.Render(h.Key) + pad + "  " + theme.Dim.Render(h.Desc) + "\n")
 		}
 	}
-	b.WriteString("\n" + theme.Dim.Render("esc/?/q: schließen"))
 
-	return modalBox(b.String(), clampModalWidth(54, m.width), theme.Mauve)
+	return modalPanel("Tastatur-Shortcuts", b.String(), "esc/?/q: schließen", clampModalWidth(54, m.width), theme.Mauve)
 }

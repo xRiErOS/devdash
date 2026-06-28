@@ -727,7 +727,6 @@ func (m model) keyTreeFilter(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // treeFilterBox rendert das schwebende Filter-Menü (Checkboxen je Facette).
 func (m model) treeFilterBox() string {
 	var b strings.Builder
-	b.WriteString(theme.Header.Render("Tree-Filter") + "\n")
 	b.WriteString(theme.Muted.Render("space:an/aus  c:leeren  enter/esc:fertig") + "\n")
 	lastFacet := ""
 	facetHead := map[string]string{"art": "Art", "type": "Issue-Type", "status": "Status"}
@@ -757,7 +756,7 @@ func (m model) treeFilterBox() string {
 		}
 		b.WriteString(cursor + box + " " + label + "\n")
 	}
-	return modalBox(b.String(), clampModalWidth(40, m.width), theme.Mauve)
+	return modalPanel("Tree-Filter", b.String(), "", clampModalWidth(40, m.width), theme.Mauve)
 }
 
 // filterSummary fasst die aktiven Facetten kurz zusammen (Such-/Filterbox-Kopf).

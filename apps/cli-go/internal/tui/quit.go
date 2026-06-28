@@ -7,8 +7,6 @@ package tui
 // im handleKey-Dispatch vor diesem Pfad) und brechen direkt ab — ohne zweiten Prompt.
 
 import (
-	"strings"
-
 	"devd-cli/internal/theme"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -34,10 +32,8 @@ func (m model) keyConfirmQuit(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 // quitBox rendert den schwebenden Beenden-Confirm.
 func (m model) quitBox() string {
-	var b strings.Builder
-	b.WriteString(theme.Header.Render("Beenden?") + "\n\n")
-	b.WriteString(theme.Dim.Render("DevD-Cockpit wirklich schließen.") + "\n\n")
-	b.WriteString(theme.Accent.Render("y") + theme.Dim.Render(": beenden   ") +
-		theme.Accent.Render("n/esc") + theme.Dim.Render(": abbrechen"))
-	return modalBox(b.String(), clampModalWidth(40, m.width), theme.Mauve)
+	body := "\n" + theme.Dim.Render("DevD-Cockpit wirklich schließen.") + "\n\n"
+	body += theme.Accent.Render("y") + theme.Dim.Render(": beenden   ") +
+		theme.Accent.Render("n/esc") + theme.Dim.Render(": abbrechen")
+	return modalPanel("Beenden?", body, "", clampModalWidth(40, m.width), theme.Mauve)
 }

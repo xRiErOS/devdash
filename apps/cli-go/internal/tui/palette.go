@@ -154,23 +154,18 @@ func (m model) dispatchPalette(id string) (tea.Model, tea.Cmd) {
 
 // paletteBox rendert das schwebende Command-Center-Modal.
 func (m model) paletteBox() string {
-	var b strings.Builder
-	b.WriteString(theme.Header.Render("Command-Center") + "\n")
-	b.WriteString(theme.Accent.Render("> ") + m.palQuery + "▏\n")
-	b.WriteString(theme.Dim.Render(strings.Repeat("─", 44)) + "\n")
 	acts := m.palFiltered()
+	body := theme.Accent.Render("> ") + m.palQuery + "▏\n"
+	body += theme.Dim.Render(strings.Repeat("─", 44)) + "\n"
 	if len(acts) == 0 {
-		b.WriteString(theme.Dim.Render("(keine Treffer)") + "\n")
+		body += theme.Dim.Render("(keine Treffer)") + "\n"
 	}
-	for i, a := range acts {
-		cursor := "  "
-		label := a.label
-		if i == m.palList.cursor {
-			cursor = theme.Accent.Render("▸ ")
+	body += menuList(len(acts), m.palList.cursor, func(i int, sel bool) string {
+		label := acts[i].label
+		if sel {
 			label = theme.Header.Render(label)
 		}
-		b.WriteString(cursor + label + "\n")
-	}
-	b.WriteString("\n" + theme.Dim.Render("tippen: filtern   ↑↓: wählen   enter: ausführen   esc: zu"))
-	return modalBox(b.String(), clampModalWidth(48, m.width), theme.Mauve)
+		return label
+	})
+	return modalPanel("Command-Center", body, "tippen: filtern   ↑↓: wählen   enter: ausführen   esc: zu", clampModalWidth(48, m.width), theme.Mauve)
 }

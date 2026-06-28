@@ -7,7 +7,6 @@ package tui
 
 import (
 	"fmt"
-	"strings"
 
 	"devd-cli/internal/theme"
 	tea "github.com/charmbracelet/bubbletea"
@@ -70,19 +69,16 @@ func (m model) keySprintMilestone(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) sprintMilestoneMenu() string {
-	var b strings.Builder
-	b.WriteString(theme.Header.Render("Sprint einem Meilenstein zuweisen") + "\n")
-	b.WriteString(theme.Dim.Render("enter: setzen   esc: abbrechen") + "\n\n")
-	for i, o := range m.smOpts {
-		cursor := "  "
+	body := theme.Dim.Render("enter: setzen   esc: abbrechen") + "\n\n"
+	body += menuList(len(m.smOpts), m.smMenu.cursor, func(i int, sel bool) string {
+		o := m.smOpts[i]
 		label := o.label
-		if i == m.smMenu.cursor {
-			cursor = theme.Accent.Render("▸ ")
+		if sel {
 			label = theme.Header.Render(o.label)
 		}
-		b.WriteString(cursor + label + "\n")
-	}
-	return modalBox(b.String(), clampModalWidth(48, m.width), theme.Mauve)
+		return label
+	})
+	return modalPanel("Sprint einem Meilenstein zuweisen", body, "", clampModalWidth(48, m.width), theme.Mauve)
 }
 
 // --- Flow B: Meilenstein → Sprints (Multi-Select-Checkliste) ---
@@ -142,28 +138,25 @@ func (m model) keyMilestoneAssign(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) milestoneAssignMenu() string {
-	var b strings.Builder
 	name := ""
 	if ms := m.selMilestone(); ms != nil {
 		name = ms.Name
 	}
-	b.WriteString(theme.Header.Render("Sprints zuweisen → "+truncate(name, 28)) + "\n")
-	b.WriteString(theme.Dim.Render("space: an/aus   enter: zuweisen   esc: abbrechen") + "\n\n")
+	body := theme.Dim.Render("space: an/aus   enter: zuweisen   esc: abbrechen") + "\n\n"
 	if len(m.maSprints) == 0 {
-		b.WriteString(theme.Dim.Render("(keine Sprints ohne Meilenstein — oder lädt …)") + "\n")
+		body += theme.Dim.Render("(keine Sprints ohne Meilenstein — oder lädt …)") + "\n"
 	}
-	for i, s := range m.maSprints {
+	body += menuList(len(m.maSprints), m.maMenu.cursor, func(i int, sel bool) string {
+		s := m.maSprints[i]
 		box := theme.Dim.Render("[ ]")
 		if m.maChecked[s.ID] {
 			box = theme.Accent.Render("[x]")
 		}
-		cursor := "  "
 		label := fmt.Sprintf("%-9s %s", s.Key, truncate(s.Name, 26))
-		if i == m.maMenu.cursor {
-			cursor = theme.Accent.Render("▸ ")
+		if sel {
 			label = theme.Header.Render(label)
 		}
-		b.WriteString(cursor + box + " " + label + "\n")
-	}
-	return modalBox(b.String(), clampModalWidth(50, m.width), theme.Mauve)
+		return box + " " + label
+	})
+	return modalPanel("Sprints zuweisen → "+truncate(name, 28), body, "", clampModalWidth(50, m.width), theme.Mauve)
 }

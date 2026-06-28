@@ -61,38 +61,32 @@ func (m model) View() string {
 // milestoneCascadeBox: Confirm für den PO-getriggerten Cascade-Complete (DD2-28) —
 // schließt den Meilenstein und setzt offene Sprints/Issues terminal.
 func (m model) milestoneCascadeBox() string {
-	var b strings.Builder
-	b.WriteString(theme.Header.Render("Meilenstein abschließen") + "\n\n")
-	b.WriteString(m.mcName + "\n\n")
-	b.WriteString(theme.Dim.Render(fmt.Sprintf("%d offene Sprint(s) → completed, ihre offenen Issues → done.", m.mcSprints)) + "\n")
-	b.WriteString(theme.Dim.Render("PO-Aktion (DD-186) — nicht umkehrbar.") + "\n\n")
-	b.WriteString(lipgloss.NewStyle().Foreground(theme.Red).Render("y") + theme.Dim.Render(": kaskadierend abschließen   ") +
-		theme.Accent.Render("n/esc") + theme.Dim.Render(": abbrechen"))
-	return modalBox(b.String(), modalBoxWidth(m.width), theme.Red)
+	body := "\n" + m.mcName + "\n\n"
+	body += theme.Dim.Render(fmt.Sprintf("%d offene Sprint(s) → completed, ihre offenen Issues → done.", m.mcSprints)) + "\n"
+	body += theme.Dim.Render("PO-Aktion (DD-186) — nicht umkehrbar.") + "\n\n"
+	body += lipgloss.NewStyle().Foreground(theme.Red).Render("y") + theme.Dim.Render(": kaskadierend abschließen   ") +
+		theme.Accent.Render("n/esc") + theme.Dim.Render(": abbrechen")
+	return modalPanel("Meilenstein abschließen", body, "", modalBoxWidth(m.width), theme.Red)
 }
 
 // milestoneStatusMenu: schwebendes Meilenstein-Status-Menü (Taste S, T01).
 func (m model) milestoneStatusMenu() string {
-	var b strings.Builder
-	b.WriteString(theme.Header.Render("Meilenstein-Status setzen") + "\n")
-	b.WriteString(theme.Dim.Render("aktuell: "+m.msTargetStatus) + "\n\n")
-	for i, s := range m.msopts {
-		cursor := "  "
+	body := theme.Dim.Render("aktuell: "+m.msTargetStatus) + "\n\n"
+	body += menuList(len(m.msopts), m.msmenu.cursor, func(i int, sel bool) string {
+		s := m.msopts[i]
 		label := statusText(s)
 		if s == "completed" {
 			label = statusText(s) + theme.Dim.Render(" (alle Sprints müssen terminal sein)")
 		}
-		if i == m.msmenu.cursor {
-			cursor = theme.Accent.Render("▸ ")
+		if sel {
 			label = theme.Header.Render(s)
 			if s == "completed" {
 				label = theme.Header.Render(s) + theme.Dim.Render(" (alle Sprints müssen terminal sein)")
 			}
 		}
-		b.WriteString(cursor + label + "\n")
-	}
-	b.WriteString("\n" + theme.Dim.Render("enter: setzen   esc: abbrechen"))
-	return modalBox(b.String(), clampModalWidth(46, m.width), theme.Mauve)
+		return label
+	})
+	return modalPanel("Meilenstein-Status setzen", body, "enter: setzen   esc: abbrechen", clampModalWidth(46, m.width), theme.Mauve)
 }
 
 func (m model) viewBase() string {

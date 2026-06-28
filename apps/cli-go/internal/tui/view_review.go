@@ -145,26 +145,22 @@ func resultDot(it api.Issue) string {
 
 // sprintStatusMenu: schwebendes Sprint-Status-Menü (Taste S), zeigt gültige Transitions.
 func (m model) sprintStatusMenu() string {
-	var b strings.Builder
-	b.WriteString(theme.Header.Render("Sprint-Status setzen") + "\n")
-	b.WriteString(theme.Dim.Render("aktuell: "+m.spCurStatus) + "\n\n")
-	for i, s := range m.spopts {
-		cursor := "  "
+	body := theme.Dim.Render("aktuell: "+m.spCurStatus) + "\n\n"
+	body += menuList(len(m.spopts), m.spmenu.cursor, func(i int, sel bool) string {
+		s := m.spopts[i]
 		label := statusText(s)
 		if s == "completed" {
 			label = statusText(s) + theme.Dim.Render(" (prüft passed-Reviews)")
 		}
-		if i == m.spmenu.cursor {
-			cursor = theme.Accent.Render("▸ ")
+		if sel {
 			label = theme.Header.Render(s)
 			if s == "completed" {
 				label = theme.Header.Render(s) + theme.Dim.Render(" (prüft passed-Reviews)")
 			}
 		}
-		b.WriteString(cursor + label + "\n")
-	}
-	b.WriteString("\n" + theme.Dim.Render("enter: setzen   esc: abbrechen"))
-	return modalBox(b.String(), clampModalWidth(40, m.width), theme.Mauve)
+		return label
+	})
+	return modalPanel("Sprint-Status setzen", body, "enter: setzen   esc: abbrechen", clampModalWidth(40, m.width), theme.Mauve)
 }
 
 // reviewBadge zeigt das Review-Verdikt (review_feedback) je Issue — sichtbar
@@ -316,25 +312,21 @@ func (m model) reviewHints() string {
 
 // statusMenu ist das schwebende Issue-Status-Menü (Taste s).
 func (m model) statusMenu() string {
-	var b strings.Builder
-	b.WriteString(theme.Header.Render("Status setzen") + "\n")
 	cur := m.stIssueStatus
-	b.WriteString(theme.Dim.Render("aktuell: "+cur) + "\n\n")
-	for i, s := range m.sopts {
-		cursor := "  "
+	body := theme.Dim.Render("aktuell: "+cur) + "\n\n"
+	body += menuList(len(m.sopts), m.smenu.cursor, func(i int, sel bool) string {
+		s := m.sopts[i]
 		label := statusText(s)
-		if i == m.smenu.cursor {
-			cursor = theme.Accent.Render("▸ ")
+		if sel {
 			label = theme.Header.Render(s)
 		}
 		mark := "  "
 		if s == cur {
 			mark = theme.Dim.Render("∙ ") // U+2219 (neutral; war • U+2022 = ambiguous, DD2-53)
 		}
-		b.WriteString(cursor + mark + label + "\n")
-	}
-	b.WriteString("\n" + theme.Dim.Render("enter: setzen   esc: abbrechen"))
-	return modalBox(b.String(), clampModalWidth(30, m.width), theme.Mauve)
+		return mark + label
+	})
+	return modalPanel("Status setzen", body, "enter: setzen   esc: abbrechen", clampModalWidth(30, m.width), theme.Mauve)
 }
 
 // noticeText färbt einen transienten Hinweis in Sapphire (gültige Aktionen/Fehler).
@@ -347,27 +339,24 @@ func noticeText(s string) string {
 // filterBox rendert das schwebende Filter-Modal (kompakt, wird zentriert overlaid).
 func (m model) filterBox() string {
 	col := []string{"Meilensteine", "Sprints", "Issues"}[clampInt(m.ftarget, 0, 2)]
-	var b strings.Builder
-	b.WriteString(theme.Header.Render("Filter ∙ "+col) + "\n")
-	b.WriteString(theme.Dim.Render("space: an/aus   enter/esc: schließen") + "\n\n")
+	body := theme.Dim.Render("space: an/aus   enter/esc: schließen") + "\n\n"
 	if len(m.fopts) == 0 {
-		b.WriteString(theme.Dim.Render("(keine Werte)") + "\n")
+		body += theme.Dim.Render("(keine Werte)") + "\n"
 	}
 	fs := m.filterFor(m.ftarget)
-	for i, o := range m.fopts {
+	body += menuList(len(m.fopts), m.fcur.cursor, func(i int, sel bool) string {
+		o := m.fopts[i]
 		box := theme.Dim.Render("[ ]")
 		if fs.shown(o.value) {
 			box = theme.Accent.Render("[x]")
 		}
-		cursor := "  "
 		label := o.label
-		if i == m.fcur.cursor {
-			cursor = theme.Accent.Render("▸ ")
+		if sel {
 			label = theme.Header.Render(label)
 		}
-		b.WriteString(cursor + box + " " + label + "\n")
-	}
-	return modalBox(b.String(), clampModalWidth(38, m.width), theme.Mauve)
+		return box + " " + label
+	})
+	return modalPanel("Filter ∙ "+col, body, "", clampModalWidth(38, m.width), theme.Mauve)
 }
 
 // --- Helfer ---

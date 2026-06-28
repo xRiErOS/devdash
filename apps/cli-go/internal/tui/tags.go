@@ -246,27 +246,22 @@ func (m model) keyTagPicker(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 // tagPickerMenu rendert das schwebende Checkbox-Overlay (DD2-33).
 func (m model) tagPickerMenu() string {
-	var b strings.Builder
-	b.WriteString(theme.Header.Render("Tags → "+truncate(m.tagPickLabel, 32)) + "\n")
-	b.WriteString(theme.Dim.Render("space: an/aus   enter: setzen   esc: abbrechen") + "\n\n")
+	body := theme.Dim.Render("space: an/aus   enter: setzen   esc: abbrechen") + "\n\n"
 	switch {
 	case !m.tagPickLoaded:
-		b.WriteString(theme.Dim.Render("(lädt …)") + "\n")
+		body += theme.Dim.Render("(lädt …)") + "\n"
 	case len(m.tagPickAll) == 0:
-		b.WriteString(theme.Dim.Render("(keine Tags — erst T: Tag-Manager)") + "\n")
+		body += theme.Dim.Render("(keine Tags — erst T: Tag-Manager)") + "\n"
 	}
-	for i, t := range m.tagPickAll {
+	body += menuList(len(m.tagPickAll), m.tagPickMenu.cursor, func(i int, sel bool) string {
+		t := m.tagPickAll[i]
 		box := theme.Dim.Render("[ ]")
 		if m.tagPickChecked[t.ID] {
 			box = theme.Accent.Render("[x]")
 		}
-		cursor := "  "
-		if i == m.tagPickMenu.cursor {
-			cursor = theme.Accent.Render("▸ ")
-		}
-		b.WriteString(cursor + box + " " + tagSwatch(t) + "\n")
-	}
-	return modalBox(b.String(), clampModalWidth(46, m.width), theme.Mauve)
+		return box + " " + tagSwatch(t)
+	})
+	return modalPanel("Tags → "+truncate(m.tagPickLabel, 32), body, "", clampModalWidth(46, m.width), theme.Mauve)
 }
 
 // patchIssueTags ersetzt die Tags eines Issues in allen lokalen Caches (DD2-33,
