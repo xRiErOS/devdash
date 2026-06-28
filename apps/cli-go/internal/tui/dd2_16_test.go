@@ -119,3 +119,56 @@ func TestIssueFieldsRendersFull(t *testing.T) {
 		t.Error("leeres Issue darf keine Goal-Sektion rendern")
 	}
 }
+
+// DD2-67: viewReview rendert ein echtes Master-Detail — Issue-Liste links, volle
+// Felder des selektierten Issues rechts, horizontal NEBENEINANDER (nicht linear
+// untereinander gestapelt). Strukturanker: mind. eine Body-Zeile trägt zwei
+// bordered Panes nebeneinander (≥3 vertikale Border-Glyphen). Das alte lineare
+// Layout (chrome ohne Border) erfüllt das nicht.
+func TestReviewMasterDetailLayout(t *testing.T) {
+	m := reviewModel()
+	m.width, m.height = 120, 40
+	m.curSprint.Items[0].Title = "LISTENMARKER"
+	m.curSprint.Items[0].Goal = strptr("ZIELMARKER")
+	m.rlist.setLen(len(m.curSprint.Items))
+
+	out := m.viewReview()
+
+	if !strings.Contains(out, "LISTENMARKER") {
+		t.Error("Master-Liste (links) sollte den Issue-Titel zeigen")
+	}
+	if !strings.Contains(out, "ZIELMARKER") {
+		t.Error("Detail-Pane (rechts) sollte das Goal des selektierten Issues zeigen")
+	}
+	twoPane := false
+	for _, ln := range strings.Split(out, "\n") {
+		if strings.Count(ln, "│") >= 3 {
+			twoPane = true
+			break
+		}
+	}
+	if !twoPane {
+		t.Error("viewReview sollte horizontales Master-Detail rendern (zwei Panes nebeneinander), nicht linear gestapelt")
+	}
+}
+
+// DD2-67: das Detail-Pane ist scrollbar (ctrl+d), und ein Selektionswechsel setzt
+// den Detail-Scroll zurück (frisch gewähltes Issue startet oben).
+func TestReviewDetailScroll(t *testing.T) {
+	m := reviewModel()
+	m.width, m.height = 100, 24
+	m.curSprint.Items = append(m.curSprint.Items, api.Issue{Key: "SPF-2", Title: "B", Status: "to_review"})
+	m.rlist.setLen(len(m.curSprint.Items))
+
+	mi, _ := m.Update(keyMsg("ctrl+d"))
+	m = mi.(model)
+	if m.scroll == 0 {
+		t.Error("ctrl+d sollte das Detail-Pane scrollen (m.scroll > 0)")
+	}
+
+	mi2, _ := m.Update(keyMsg("k")) // Selektion runter
+	m = mi2.(model)
+	if m.scroll != 0 {
+		t.Error("Selektionswechsel sollte den Detail-Scroll zurücksetzen")
+	}
+}

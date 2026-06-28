@@ -364,53 +364,112 @@ func (m model) viewBacklog() string {
 
 // --- Review-Cockpit ---
 
+// viewReview ist das Review-Cockpit als echtes Master-Detail (DD2-67): links die
+// Issue-Liste (Master), rechts die VOLLEN Felder des selektierten Issues (Detail),
+// horizontal nebeneinander. Der Detail-Inhalt wird auf die Pane-Innenbreite
+// umgebrochen (vollständig lesbar, kein horizontales Truncaten) und ist via
+// m.scroll fensterbar. Kopf: globaler Header + Sprint-Titel + Review-Summary
+// (★ DD2-70 Abschluss-Bereitschaft); Footer: reviewHints + Status.
 func (m model) viewReview() string {
 	if m.curSprint == nil {
 		return m.framed("Review", theme.Dim.Render("(lädt …)"), "esc/q: zurück")
 	}
 	s := m.curSprint
-	slots := []hslot{
-		{"Status", statusText(s.Status)},
-		{"Meilenstein", sprintMilestoneName(s, m.selMilestone())},
-		{"Fortschritt", fmt.Sprintf("%d/%d", s.DoneCount, s.ItemCount)},
-	}
-	var b strings.Builder
-	b.WriteString(theme.Header.Render(s.Name) + "\n\n")
-	b.WriteString("  " + issueColHeader() + "\n")
-	for i, it := range s.Items {
-		cursor := "  "
-		if i == m.rlist.cursor {
-			cursor = theme.Accent.Render("▸ ")
-		}
-		// DD2-B06: gefärbte Zellen ANSI-bewusst padden (col), sonst zählt fmt
-		// die ANSI-Bytes als Breite → rechte Spalten kollabieren, der Ergebnis-Dot
-		// landet nicht unter seiner Überschrift. Header + Zeile teilen cockpitCols.
-		typePrio := theme.TypeIcon(it.Type) + " " + theme.Priority(it.Priority)
-		b.WriteString(cursor + cockpitRow(
-			typePrio, it.Key, truncate(it.Title, colTitle),
-			statusText(it.Status), reviewBadge(it), resultDot(it)) + "\n")
-	}
-	// Review-Ergebnisse (Runden-Übersicht) unten.
-	b.WriteString("\n" + m.reviewSummary() + "\n")
+	w := m.termWidth()
 
-	// DD2-67: Master-Detail — unter der Liste die VOLLEN Felder des selektierten
-	// Issues (Goal/Background/PO-Notes/Context/Result + User-Stories+QA), untruncated
-	// und scrollbar (chrome bricht um), damit der PO das Verdikt fundiert fällt.
+	head := m.header() + "\n" + theme.Header.Render(m.screenTitle("Review "+s.Key)) +
+		theme.Dim.Render(fmt.Sprintf("   %s · %d/%d", statusText(s.Status), s.DoneCount, s.ItemCount))
+	summary := m.reviewSummary()
+	foot := theme.Muted.Render(wrapText(m.reviewHints(), w))
+	statusLine := m.statusBar("")
+	if m.inputting { // Reject-Kommentar-Eingabe ersetzt die Status-Zeile
+		statusLine = theme.Key.Render(m.status) + m.input + "▏"
+	}
+
+	// Pane-Innenhöhe = Gesamthöhe minus Kopf/Summary/Footer/Status (+ 3 Trennzeilen).
+	chromeH := lipgloss.Height(head) + lipgloss.Height(summary) +
+		lipgloss.Height(foot) + lipgloss.Height(statusLine) + 3
+	h := m.height - chromeH
+	if h < 6 {
+		h = m.bodyHeight() // Höhe unbekannt (Init/Tests) → großzügiger Fallback
+	}
+
+	// Master schmaler, Detail breiter; Border frisst je 2 Spalten (Golden Rule #1/#4).
+	leftW := w*42/100 - 2
+	if leftW < 24 {
+		leftW = 24
+	}
+	rightW := w - leftW - 4
+	if rightW < 24 {
+		rightW = 24
+	}
+
+	listP := pane{
+		title:  fmt.Sprintf("Issues (%d)", len(s.Items)),
+		rows:   m.reviewRows(),
+		cursor: m.rlist.cursor,
+		isList: true,
+	}
+
+	detTitle := "Detail"
+	detRows := []string{theme.Dim.Render("(kein Issue gewählt)")}
 	if it := m.reviewItem(); it != nil {
-		b.WriteString("\n" + theme.Header.Render(truncate("▸ "+it.Key+" — "+it.Title, m.termWidth()-6)) + "\n")
-		b.WriteString(issueFields(it))
+		detTitle = truncate(it.Key+" — "+it.Title, rightW-2)
+		// Status/Typ/Prio/Verdikt als Meta-Zeile, dann die vollen Felder; alles auf
+		// die Pane-Innenbreite umgebrochen → nichts wird horizontal abgeschnitten.
+		meta := theme.StatusStyle(it.Status).Render(it.Status) + "  " +
+			theme.TypeIcon(it.Type) + " " + it.Type + "  " + theme.Priority(it.Priority) +
+			"  " + reviewBadge(*it)
+		content := meta + "\n" + issueFields(it)
+		lines := strings.Split(strings.TrimRight(wrapText(content, rightW-2), "\n"), "\n")
+		inner := h - 2
+		if inner < 1 {
+			inner = 1
+		}
+		off := clampInt(m.scroll, 0, maxInt(len(lines)-inner, 0))
+		if off > 0 || off+inner < len(lines) { // Scroll-Indikator nur wenn nötig
+			detTitle = truncate(it.Key+" — "+it.Title, rightW-14) +
+				theme.Dim.Render(fmt.Sprintf("  [%d–%d/%d]", off+1, min(off+inner, len(lines)), len(lines)))
+		}
+		detRows = lines[off:]
 	}
-	if m.inputting {
-		b.WriteString("\n" + theme.Key.Render(m.status) + m.input + "▏\n")
-	}
-	// Chrome liefert globalen Header (Projekt-Präfix), volle Höhe + Footer
-	// (reviewHints, von m.status transient überschrieben — wie alle Views, DD2-48).
-	// statusPick/sprintPick-Overlays liegen im View()-Wrapper (DD2-29/T05).
-	base := m.chrome("Review "+s.Key, slots, b.String(), m.reviewHints())
+	detP := pane{title: detTitle, rows: detRows, isList: false}
+
+	left := renderPane(listP, leftW, h, true)
+	right := renderPane(detP, rightW, h, false)
+	body := lipgloss.JoinHorizontal(lipgloss.Top, left, right)
+
+	frame := head + "\n" + summary + "\n" + body + "\n" + foot + "\n" + statusLine
 	if m.usOpen {
-		return placeOverlay(base, m.userStoryModal(), m.termWidth(), m.height)
+		return placeOverlay(frame, m.userStoryModal(), w, m.height)
 	}
-	return base
+	return frame
+}
+
+// reviewRows baut die kompakten Master-Listenzeilen: result-Dot + Verdikt-Glyph +
+// Key + Titel. renderPane setzt Cursor-Präfix und truncatet auf die Pane-Breite.
+func (m model) reviewRows() []string {
+	if m.curSprint == nil {
+		return nil
+	}
+	rows := make([]string, len(m.curSprint.Items))
+	for i, it := range m.curSprint.Items {
+		rows[i] = resultDot(it) + " " + reviewGlyph(it) + " " + theme.Key.Render(it.Key) + " " + it.Title
+	}
+	return rows
+}
+
+// reviewGlyph ist die schmale Verdikt-Markierung für die Master-Liste (volle
+// Badge-Form via reviewBadge bleibt der Detail-Pane vorbehalten).
+func reviewGlyph(it api.Issue) string {
+	switch deref(it.ReviewStatus) {
+	case "passed":
+		return lipgloss.NewStyle().Foreground(theme.Green).Render("✓")
+	case "not_passed":
+		return lipgloss.NewStyle().Foreground(theme.Red).Render("✗")
+	default:
+		return theme.Dim.Render("∙")
+	}
 }
 
 // Cockpit-Spaltenbreiten (sichtbare Breite). Header UND Datenzeile bauen aus
