@@ -106,7 +106,7 @@ func (m model) keyMemory(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 	switch msg.String() {
 	case "esc", "q":
-		m.view = viewColumns
+		m.view = m.topReturn // DD2-126: zurück in die Primat-Heimat (Default viewTree), nicht Ranger
 		m.status = ""
 		return m, nil
 	case "/":
@@ -183,14 +183,8 @@ func (m model) yankMemories() (tea.Model, tea.Cmd) {
 func (m model) viewMemory() string {
 	w := m.termWidth()
 	h := m.bodyHeight()
-	leftW := w/2 - 2
-	if leftW < 16 {
-		leftW = 16
-	}
-	rightW := w - leftW - 4
-	if rightW < 16 {
-		rightW = 16
-	}
+	// DD2-127: gemeinsames 1fr:2fr-MasterDetail-Verhältnis (wie Tree/Backlog) statt 50/50.
+	leftW, rightW := m.masterDetailWidths(w)
 
 	listP := pane{title: m.memListTitle(), rows: m.memRows(), cursor: m.memlist.cursor, isList: true}
 	detP := pane{title: "Detail", rows: m.memDetailRows(), isList: false}

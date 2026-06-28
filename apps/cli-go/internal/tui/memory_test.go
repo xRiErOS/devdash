@@ -123,6 +123,23 @@ func TestMemoryYankEmpty(t *testing.T) {
 	}
 }
 
+func TestMemoryExitReturnsToTopReturn(t *testing.T) {
+	// DD2-126: esc/q verlässt den Memory-Browser in die Primat-Heimat (viewTree),
+	// nicht in das sekundäre Ranger/Columns-Layout.
+	m := memModel()
+	m.topReturn = viewTree
+	mi, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	if mi.(model).view != viewTree {
+		t.Errorf("esc → view=%d, want viewTree (DD2-126)", mi.(model).view)
+	}
+	m2 := memModel()
+	m2.topReturn = viewTree
+	mi, _ = m2.Update(keyMsg("q"))
+	if mi.(model).view != viewTree {
+		t.Errorf("q → view=%d, want viewTree (DD2-126)", mi.(model).view)
+	}
+}
+
 func TestPaletteDispatchMemory(t *testing.T) {
 	m := paletteModel()
 	mi, _ := m.dispatchPalette("go_memory")

@@ -273,6 +273,28 @@ func (m model) termWidth() int {
 	return w
 }
 
+// masterDetailWidths liefert die geteilte Master-Detail-Pane-Breite: schmale
+// Liste links (DD2-40 layout.tree_width, gekappt auf w*2/5 → ~1fr:2fr), breiteres
+// Detail rechts (rw = w - lw - 4, je Pane 2 Border-Spalten). Single Source für
+// Tree/Backlog-Charakter; löst die 50/50-Sonderformel im Memory-Browser ab (DD2-127).
+func (m model) masterDetailWidths(w int) (lw, rw int) {
+	lw = m.cfg.Layout.TreeWidth
+	if lw <= 0 {
+		lw = 36
+	}
+	if cap := w * 2 / 5; lw > cap {
+		lw = cap
+	}
+	if lw < 24 {
+		lw = 24
+	}
+	rw = w - lw - 4
+	if rw < 20 {
+		rw = 20
+	}
+	return
+}
+
 // viewBordered meldet, ob die aktuelle View den App-Außenrahmen trägt (DD2-68 →
 // DD2-84). DD2-68 erfasst die chrome()/framed()-basierten Screens; DD2-84 weitet das
 // auf den vollständigen View-Satz (inkl. viewHome-Lobby) aus. Steuert ZUGLEICH die
