@@ -123,6 +123,8 @@ func (m model) viewBase() string {
 		return m.viewTree() // DD2-57: Tree+Detail-Prototyp
 	case viewTags:
 		return m.viewTags() // DD2-75: Tag-Manager
+	case viewSearch:
+		return m.viewSearch() // DD2-91: projektweite Suche
 	default:
 		return m.viewColumns() // rendert Filter-Modal inline, wenn m.filtering
 	}

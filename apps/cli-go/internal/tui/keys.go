@@ -95,6 +95,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.view == viewTree {
 		return m.keyTree(msg)
 	}
+	// Such-Ansicht (DD2-91) fängt voll (tippen filtert, esc zurück).
+	if m.view == viewSearch {
+		return m.keySearch(msg)
+	}
 	// Lobby (DD2-124): alle Keys an den Home-Handler (Nav/Auswahl/Filter).
 	if m.view == viewHome {
 		return m.keyHome(msg)

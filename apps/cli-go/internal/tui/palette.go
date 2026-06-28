@@ -27,6 +27,7 @@ func paletteActions(m *model) []paletteAction {
 		{"create_memory", "Create new memory"},
 		{"go_reviews", "Go to: Open reviews"},
 		{"go_memory", "Go to: Memory browser"},
+		{"go_search", "Go to: Search all issues"}, // DD2-91
 		{"go_backlog", "Go to: Backlog"},
 		{"go_tags", "Go to: Tag manager"},
 		{"go_settings", "Settings"}, // DD2-125: edit user config
@@ -120,6 +121,8 @@ func (m model) dispatchPalette(id string) (tea.Model, tea.Cmd) {
 		return m.openReviewsList()
 	case "go_memory":
 		return m.openMemory()
+	case "go_search": // DD2-91: projektweite Issue-Suche
+		return m.openSearch()
 	case "go_backlog":
 		m.view = viewBacklog
 		return m, loadBacklog(m.client)

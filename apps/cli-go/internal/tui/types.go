@@ -19,8 +19,9 @@ const (
 	viewSprint
 	viewReviewsList
 	viewMemory
-	viewTree // DD2-57: Tree+Detail-Layout-Prototyp
-	viewTags // DD2-75: Tag-Manager (projektweite Tag-CRUD)
+	viewTree   // DD2-57: Tree+Detail-Layout-Prototyp
+	viewTags   // DD2-75: Tag-Manager (projektweite Tag-CRUD)
+	viewSearch // DD2-91: projektweite Issue-Such-Ansicht (Command-Center)
 )
 
 // filterState hält pro Spalte, welche Werte ausgeblendet sind.
@@ -274,6 +275,10 @@ type model struct {
 	// DD2-89: Lazy-Cache der Milestone-/Sprint-Abhängigkeiten (Vorgänger/Nachfolger),
 	// read-only im Detail angezeigt. Schlüssel "m:<id>"/"s:<id>" (depCacheKey).
 	depsCache map[string]*api.Dependencies
+
+	// DD2-91: projektweite Such-Ansicht (viewSearch). Quelle = treeFilterIssues.
+	searchQuery string
+	searchList  listState
 
 	// Tag-Manager (DD2-75): T öffnet viewTags — projektweite Tag-CRUD-Liste.
 	// n=neu, e=edit, d=löschen (Confirm), esc/q zurück zur Quell-View (tagReturn).
