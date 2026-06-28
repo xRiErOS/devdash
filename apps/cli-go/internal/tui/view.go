@@ -23,7 +23,7 @@ func (m model) View() string {
 	}
 	// Command-Center (T16): Formular bzw. Palette schweben zentriert über dem Frame.
 	if m.form != nil {
-		return placeOverlay(base, m.formBox(), m.termWidth(), m.height)
+		return m.form.View()
 	}
 	if m.paletteOpen {
 		return placeOverlay(base, m.paletteBox(), m.termWidth(), m.height)

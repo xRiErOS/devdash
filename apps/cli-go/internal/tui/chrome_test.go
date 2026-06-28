@@ -62,15 +62,15 @@ func TestFormInnerHeight(t *testing.T) {
 	}
 }
 
-// DD2-25: das Form-Modal darf nie höher als das Terminal werden (sonst unten
-// abgeschnitten). formBox re-appliziert die Höhe je Render — Guard über kurze
+// DD2-25: die bare huh-Form darf nie höher als das Terminal werden (sonst unten
+// abgeschnitten). openForm setzt WithHeight(formInnerHeight) — Guard über kurze
 // und große Terminals.
 func TestFormModalNeverOverflows(t *testing.T) {
 	for _, h := range []int{12, 14, 20, 24, 34, 50} {
 		m := model{width: 90, height: h}
 		mm, _ := m.openForm("issue")
-		if box := lipgloss.Height(mm.(model).formBox()); box > h {
-			t.Errorf("Form-Modal h=%d > Terminal h=%d (Overflow → abgeschnitten)", box, h)
+		if box := lipgloss.Height(mm.(model).form.View()); box > h {
+			t.Errorf("Form h=%d > Terminal h=%d (Overflow → abgeschnitten)", box, h)
 		}
 	}
 }
@@ -81,10 +81,10 @@ func TestChromeBreadcrumbAndSplitStatus(t *testing.T) {
 	m := model{width: 90, height: 14, status: "Kontext kopiert", errNote: "Clipboard-Fehler: x"}
 	out := m.framed("Titel", "body", "esc: zurück")
 	for _, want := range []string{
-		"> dd: Titel",    // Breadcrumb mit Titel (Projekt nil → slug "dd")
-		"p:Projekt",      // globale Shortcuts rechts
-		"esc: zurück",    // lokale Shortcuts (Zone 3)
-		"Kontext kopiert", // Status-Meldung (Zone 4 links)
+		"> dd: Titel",         // Breadcrumb mit Titel (Projekt nil → slug "dd")
+		"p:Projekt",           // globale Shortcuts rechts
+		"esc: zurück",         // lokale Shortcuts (Zone 3)
+		"Kontext kopiert",     // Status-Meldung (Zone 4 links)
 		"Clipboard-Fehler: x", // kritischer Fehler (Zone 4 rechts)
 	} {
 		if !strings.Contains(out, want) {
