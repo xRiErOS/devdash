@@ -39,7 +39,7 @@ func TestTreeGlobalKeysReachable(t *testing.T) {
 	}
 	// Rückkehr aus Backlog landet wieder im Tree (topReturn), nicht in Columns.
 	mb, _ := base().keyTree(key("b"))
-	if back, _ := mb.(model).keyBacklog("esc"); back.(model).view != viewTree {
+	if back, _ := mb.(model).keyBacklog(key("esc")); back.(model).view != viewTree {
 		t.Errorf("Backlog esc → view=%d, want viewTree (topReturn)", back.(model).view)
 	}
 }

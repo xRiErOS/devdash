@@ -82,6 +82,20 @@ type model struct {
 	blFocus   bool
 	blAccOpen int
 	blSec     int
+	// Backlog Suche/Filter/Sortierung (DD2-46): client-seitig über backlogVisible.
+	// blSearch/blSearching/blQuery = Freitext (/), blf* = Facetten-Menü (f),
+	// blSort* = Sortier-Picker (s). Default blSort "" = Priorität.
+	blSearch     textinput.Model
+	blSearching  bool
+	blQuery      string
+	blFilterOpen bool
+	blfItems     []ffItem
+	blfMenu      listState
+	blfType      map[string]bool
+	blfStatus    map[string]bool
+	blSortOpen   bool
+	blSortMenu   listState
+	blSort       string
 
 	// Review-Cockpit (über curSprint.Items)
 	rlist           listState

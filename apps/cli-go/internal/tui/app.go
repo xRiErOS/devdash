@@ -22,6 +22,11 @@ func newModel(client *api.Client, project *api.Project, global *api.Client) mode
 	ti.Prompt = ""
 	ti.CharLimit = 60
 	m.treeSearch = ti
+	bs := textinput.New() // DD2-46: Backlog-Suchfeld
+	bs.Placeholder = "Suche im Backlog"
+	bs.Prompt = ""
+	bs.CharLimit = 60
+	m.blSearch = bs
 	ps := textinput.New() // DD2-41: Projekt-Suchfeld
 	ps.Placeholder = "Suche nach Projekt…"
 	ps.Prompt = ""

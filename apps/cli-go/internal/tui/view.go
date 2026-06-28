@@ -40,6 +40,12 @@ func (m model) View() string {
 	if m.treeFilterOpen { // DD2-62 Rework: Tree-Filter-Facetten-Menü
 		return placeOverlay(base, m.treeFilterBox(), m.termWidth(), m.height)
 	}
+	if m.blFilterOpen { // DD2-46: Backlog-Facetten-Filter
+		return placeOverlay(base, m.backlogFilterBox(), m.termWidth(), m.height)
+	}
+	if m.blSortOpen { // DD2-46: Backlog-Sortier-Picker
+		return placeOverlay(base, m.backlogSortBox(), m.termWidth(), m.height)
+	}
 	if m.smPick { // T03 Flow A: Sprint→Meilenstein-Picker
 		return placeOverlay(base, m.sprintMilestoneMenu(), m.termWidth(), m.height)
 	}

@@ -33,7 +33,7 @@ func backlogMDModel() model {
 // D01: l/→ (und enter) auf der Liste verlagert den Fokus in die Detail-Pane;
 // blSec=0, erste Section offen.
 func TestBacklogEnterDetailFocus(t *testing.T) {
-	mi, _ := backlogMDModel().keyBacklog("l")
+	mi, _ := backlogMDModel().keyBacklog(key("l"))
 	m := mi.(model)
 	if !m.blFocus {
 		t.Fatal("l/→ sollte blFocus setzen")
@@ -41,7 +41,7 @@ func TestBacklogEnterDetailFocus(t *testing.T) {
 	if m.blSec != 0 || m.blAccOpen != 1 {
 		t.Errorf("blSec=%d blAccOpen=%d, want 0/1", m.blSec, m.blAccOpen)
 	}
-	me, _ := backlogMDModel().keyBacklog("enter")
+	me, _ := backlogMDModel().keyBacklog(key("enter"))
 	if !me.(model).blFocus {
 		t.Error("enter sollte ebenfalls blFocus setzen")
 	}
@@ -50,19 +50,19 @@ func TestBacklogEnterDetailFocus(t *testing.T) {
 // D02: i/k bewegt im Detail-Fokus den Section-Cursor (geklemmt); die offene
 // Accordion-Section folgt (blAccOpen = blSec+1).
 func TestBacklogDetailSectionNav(t *testing.T) {
-	mi, _ := backlogMDModel().keyBacklog("l")
+	mi, _ := backlogMDModel().keyBacklog(key("l"))
 	m := mi.(model)
-	mi, _ = m.keyBacklog("k") // runter: Section 1 → 2
+	mi, _ = m.keyBacklog(key("k")) // runter: Section 1 → 2
 	m = mi.(model)
 	if m.blSec != 1 || m.blAccOpen != 2 {
 		t.Errorf("k → blSec=%d blAccOpen=%d, want 1/2", m.blSec, m.blAccOpen)
 	}
-	mi, _ = m.keyBacklog("k") // am Ende (2 Sektionen) geklemmt
+	mi, _ = m.keyBacklog(key("k")) // am Ende (2 Sektionen) geklemmt
 	m = mi.(model)
 	if m.blSec != 1 {
 		t.Errorf("k geklemmt → blSec=%d, want 1", m.blSec)
 	}
-	mi, _ = m.keyBacklog("i") // hoch zurück
+	mi, _ = m.keyBacklog(key("i")) // hoch zurück
 	m = mi.(model)
 	if m.blSec != 0 || m.blAccOpen != 1 {
 		t.Errorf("i → blSec=%d blAccOpen=%d, want 0/1", m.blSec, m.blAccOpen)
@@ -71,8 +71,8 @@ func TestBacklogDetailSectionNav(t *testing.T) {
 
 // D02: Ziffer 1..n = Direktsprung in die Section.
 func TestBacklogDetailDigitJump(t *testing.T) {
-	mi, _ := backlogMDModel().keyBacklog("l")
-	mi, _ = mi.(model).keyBacklog("2")
+	mi, _ := backlogMDModel().keyBacklog(key("l"))
+	mi, _ = mi.(model).keyBacklog(key("2"))
 	m := mi.(model)
 	if m.blSec != 1 || m.blAccOpen != 2 {
 		t.Errorf("Ziffer 2 → blSec=%d blAccOpen=%d, want 1/2", m.blSec, m.blAccOpen)
@@ -81,12 +81,12 @@ func TestBacklogDetailDigitJump(t *testing.T) {
 
 // D02: j/← und esc geben den Fokus an die Liste zurück.
 func TestBacklogDetailBackToList(t *testing.T) {
-	mi, _ := backlogMDModel().keyBacklog("l")
-	mj, _ := mi.(model).keyBacklog("j")
+	mi, _ := backlogMDModel().keyBacklog(key("l"))
+	mj, _ := mi.(model).keyBacklog(key("j"))
 	if mj.(model).blFocus {
 		t.Error("j/← sollte zurück zur Liste (blFocus=false)")
 	}
-	me, _ := mi.(model).keyBacklog("esc")
+	me, _ := mi.(model).keyBacklog(key("esc"))
 	if me.(model).blFocus {
 		t.Error("esc sollte zurück zur Liste (blFocus=false)")
 	}
@@ -94,7 +94,7 @@ func TestBacklogDetailBackToList(t *testing.T) {
 
 // Liste: i/k bewegt den Listen-Cursor und setzt das Detail zurück.
 func TestBacklogListNav(t *testing.T) {
-	mi, _ := backlogMDModel().keyBacklog("k")
+	mi, _ := backlogMDModel().keyBacklog(key("k"))
 	m := mi.(model)
 	if m.blist.cursor != 1 {
 		t.Errorf("k → cursor=%d, want 1", m.blist.cursor)

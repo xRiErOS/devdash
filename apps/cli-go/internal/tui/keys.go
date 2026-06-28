@@ -94,6 +94,11 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.view == viewPicker {
 		return m.updatePickerMsg(msg)
 	}
+	// Backlog mit aktivem Eingabe-/Menü-Overlay (DD2-46): alle Tasten direkt an den
+	// Backlog-Handler, bevor die globalen Shortcuts (p/q/R/T) sie abfangen.
+	if m.view == viewBacklog && (m.blSearching || m.blFilterOpen || m.blSortOpen) {
+		return m.keyBacklog(msg)
+	}
 	k := msg.String()
 	// Globale Tasten
 	switch k {
@@ -188,7 +193,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case viewReviewsList:
 		return m.keyReviewsList(k)
 	case viewBacklog:
-		return m.keyBacklog(k)
+		return m.keyBacklog(msg)
 	}
 	return m, nil
 }
