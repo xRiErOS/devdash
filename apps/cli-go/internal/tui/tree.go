@@ -496,8 +496,7 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "p": // Projekt-Switch — keyTree fängt vor dem globalen Switch, drum hier wiren
 		if m.global != nil {
-			m.view = viewPicker
-			return m, loadProjects(m.global)
+			return m.openProjectPicker()
 		}
 		return m, nil
 	case "R": // Reviews-Liste — analog, sonst im Tree verschluckt

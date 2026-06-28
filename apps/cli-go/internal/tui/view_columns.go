@@ -10,17 +10,33 @@ import (
 )
 
 func (m model) viewPicker() string {
+	// Suchfeld — TextStyle rot wenn Filter aktiv (DD2-41)
+	ti := m.projectSearch
+	if m.projectQuery != "" {
+		ti.TextStyle = lipgloss.NewStyle().Foreground(theme.Red)
+	} else {
+		ti.TextStyle = lipgloss.NewStyle().Foreground(theme.Text)
+	}
+	searchLine := lipgloss.NewStyle().Foreground(theme.Hint).Render("[switch] Project  ") + ti.View()
+
+	// Gefilterte Projektliste
+	filtered := m.filteredProjects()
 	var b strings.Builder
-	for i, p := range m.projects {
+	b.WriteString(searchLine + "\n\n")
+	for i, p := range filtered {
 		cursor := "  "
-		line := fmt.Sprintf("%-10s %-26s %d Sprints ∙ %d Backlog", p.Prefix, p.Name, p.SprintCount, p.BacklogCount)
+		name := lipgloss.NewStyle().Foreground(theme.Text).Render(p.Name)
+		hint := lipgloss.NewStyle().Foreground(theme.Hint).Render(fmt.Sprintf("(%s | %s)", p.Prefix, p.Slug))
 		if i == m.plist.cursor {
 			cursor = theme.Accent.Render("▸ ")
-			line = theme.Header.Render(line)
+			name = theme.Header.Render(p.Name)
 		}
-		b.WriteString(cursor + line + "\n")
+		b.WriteString(cursor + name + "  " + hint + "\n")
 	}
-	return m.framed("Projekt wählen", b.String(), "i/k:↑↓  enter:wählen  q:quit")
+	if len(filtered) == 0 && len(m.projects) > 0 {
+		b.WriteString(lipgloss.NewStyle().Foreground(theme.Hint).Render("  (keine Treffer)") + "\n")
+	}
+	return m.framed("[switch] Project", b.String(), "↑↓:navigieren  enter:wählen  esc:schließen  tippen:filtern")
 }
 
 // --- Miller-Columns ---

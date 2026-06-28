@@ -105,9 +105,19 @@ func formInnerHeight(termH int) int {
 // der Terminalbreite (DD2-25), damit Formulare auf schmalen Views nicht ausbrechen.
 func (m model) openForm(kind string) (tea.Model, tea.Cmd) {
 	m.formKind = kind
+	// Reset Multi-Tab-State; Issue-Form hat 2 Tabs (DD2-36).
+	m.formGroupIdx = 0
+	m.formGroupTitles = nil
+	m.formPartials = nil
+	if kind == "issue" {
+		m.formGroupTitles = []string{"Basis", "Inhalt"}
+		m.formPartials = make(map[string]string)
+	}
 	f := buildForm(kind, m.milestones, m.tags)
 	if f != nil {
-		f = f.WithWidth(formInnerWidth(m.width)).WithHeight(formInnerHeight(m.height))
+		f = f.WithWidth(formInnerWidth(m.width)).
+			WithHeight(formInnerHeight(m.height)).
+			WithTheme(formHuhTheme())
 	}
 	m.form = f
 	m.status = ""
@@ -144,18 +154,13 @@ func priorityOptions() []huh.Option[string] {
 func buildForm(kind string, milestones []api.Milestone, tags []api.Tag) *huh.Form {
 	switch kind {
 	case "issue":
-		fields := []huh.Field{
+		// Tab 0 „Basis": Titel, Typ, Priorität. Tab 1 „Inhalt" folgt nach Abschluss (DD2-36).
+		return huh.NewForm(huh.NewGroup(
 			huh.NewInput().Key("title").Title("Titel").
 				Placeholder("Kurze Beschreibung des Issues").Validate(nonEmpty),
 			huh.NewSelect[string]().Key("type").Title("Typ").Options(typeOptions()...),
 			huh.NewSelect[string]().Key("priority").Title("Priorität").Options(priorityOptions()...),
-			huh.NewText().Key("description").Title("Beschreibung (optional)"),
-			huh.NewText().Key("user_stories").Title("User-Stories (eine pro Zeile, optional)"), // DD2-66
-		}
-		if len(tags) > 0 {
-			fields = append(fields, tagMultiSelect(tags))
-		}
-		return huh.NewForm(huh.NewGroup(fields...)).WithWidth(58).WithShowHelp(true)
+		)).WithWidth(58).WithShowHelp(true)
 	case "milestone":
 		fields := []huh.Field{
 			huh.NewInput().Key("name").Title("Name").Validate(nonEmpty),
@@ -209,6 +214,36 @@ func buildForm(kind string, milestones []api.Milestone, tags []api.Tag) *huh.For
 		)).WithWidth(58).WithShowHelp(true)
 	}
 	return nil
+}
+
+// buildFormIssueTab1 baut Tab 1 „Inhalt" (Beschreibung, User-Stories, Tags) des
+// zweistufigen Issue-Create-Flows (DD2-36). Wird nach Tab-0-Abschluss aufgerufen.
+func buildFormIssueTab1(tags []api.Tag) *huh.Form {
+	fields := []huh.Field{
+		huh.NewText().Key("description").Title("Beschreibung (optional)"),
+		huh.NewText().Key("user_stories").Title("User-Stories (eine pro Zeile, optional)"),
+	}
+	if len(tags) > 0 {
+		fields = append(fields, tagMultiSelect(tags))
+	}
+	return huh.NewForm(huh.NewGroup(fields...)).WithWidth(58).WithShowHelp(true)
+}
+
+// formTabStrip renders den Tab-Strip für mehrblättrige Forms (DD2-36).
+// Aktiver Tab: Mauve bold; inaktive Tabs: Hint. Strip-BG: Mantle.
+func formTabStrip(titles []string, active int, width int) string {
+	var parts []string
+	for i, t := range titles {
+		if i == active {
+			parts = append(parts, lipgloss.NewStyle().Foreground(theme.Mauve).Bold(true).Render(t))
+		} else {
+			parts = append(parts, lipgloss.NewStyle().Foreground(theme.Hint).Render(t))
+		}
+	}
+	return lipgloss.NewStyle().
+		Width(width).Background(theme.Mantle).
+		PaddingLeft(1).
+		Render(strings.Join(parts, "  "))
 }
 
 // buildEditFieldForm baut die Single-Field-editForm (DD2-77) je Feldtyp: Input
@@ -265,8 +300,21 @@ func (m *model) formCreateCmd() tea.Cmd {
 	case "tagEdit": // DD2-75: Tag umbenennen/umfärben
 		return doUpdateTag(m.client, m.tagEditID, get("name"), m.form.GetString("color"))
 	case "issue":
-		body := api.IssueCreateBody{Title: get("title"), Type: m.form.GetString("type"), Priority: 2}
-		if p, err := strconv.Atoi(m.form.GetString("priority")); err == nil {
+		// Tab 1 (Inhalt): Partials aus Tab 0 + aktuelle Felder kombinieren (DD2-36).
+		title := strings.TrimSpace(m.formPartials["title"])
+		if title == "" {
+			title = get("title")
+		}
+		typ := m.formPartials["type"]
+		if typ == "" {
+			typ = m.form.GetString("type")
+		}
+		prioStr := m.formPartials["priority"]
+		if prioStr == "" {
+			prioStr = m.form.GetString("priority")
+		}
+		body := api.IssueCreateBody{Title: title, Type: typ, Priority: 2}
+		if p, err := strconv.Atoi(prioStr); err == nil {
 			body.Priority = p
 		}
 		if d := get("description"); d != "" {
@@ -334,10 +382,94 @@ func (m model) formBox() string {
 	if m.form != nil {
 		m.form.WithWidth(formInnerWidth(m.width)).WithHeight(formInnerHeight(m.height))
 	}
-	inner := theme.Header.Render(titles[m.formKind]) + "\n\n" + m.form.View()
+	boxW := modalBoxWidth(m.width)
+	innerW := formInnerWidth(m.width)
+
+	// Header: Mantle BG, Mauve bold (DD2-64 BG-Layer)
+	header := lipgloss.NewStyle().
+		Width(innerW).Background(theme.Mantle).
+		Bold(true).Foreground(theme.Mauve).
+		Render(titles[m.formKind])
+
+	// Tab-Strip: nur bei mehrblättrigen Forms (DD2-36)
+	var sections []string
+	sections = append(sections, header)
+	if len(m.formGroupTitles) > 1 {
+		sections = append(sections, formTabStrip(m.formGroupTitles, m.formGroupIdx, innerW))
+	}
+	sections = append(sections, m.form.View())
+
+	// Footer: form-spezifische Keybindings (DD2-64)
+	footer := lipgloss.NewStyle().
+		Width(innerW).Foreground(theme.Hint).
+		Render(formFooterKeys(m.formKind))
+	sections = append(sections, footer)
+
+	inner := lipgloss.JoinVertical(lipgloss.Left, sections...)
+
 	return lipgloss.NewStyle().
-		Width(modalBoxWidth(m.width)).
+		Width(boxW).
 		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
-		Background(theme.Base).Padding(0, 1).
+		Background(theme.Crust).Padding(0, 1).
 		Render(inner)
+}
+
+// formFooterKeys returns the keybinding hint for a given form kind.
+func formFooterKeys(kind string) string {
+	switch kind {
+	case "editField", "tagCreate", "tagEdit":
+		return "enter confirm · esc cancel"
+	default:
+		return "tab next · shift+tab prev · ctrl+enter submit · esc cancel"
+	}
+}
+
+// formHuhTheme returns a Catppuccin Macchiato huh theme (DD2-64).
+// Select (#fe640b) = aktiver Select-Cursor; Overlay = Input-/Feld-Border; Mauve = Title.
+func formHuhTheme() *huh.Theme {
+	t := huh.ThemeBase()
+
+	// Focused field: Overlay border, Mauve title
+	t.Focused.Base = t.Focused.Base.BorderForeground(theme.Overlay)
+	t.Focused.Card = t.Focused.Base
+	t.Focused.Title = t.Focused.Title.Foreground(theme.Mauve).Bold(true)
+	t.Focused.Description = t.Focused.Description.Foreground(theme.Hint)
+	t.Focused.ErrorIndicator = t.Focused.ErrorIndicator.Foreground(theme.Red)
+	t.Focused.ErrorMessage = t.Focused.ErrorMessage.Foreground(theme.Red)
+
+	// Select: aktiver Cursor + Indikatoren = Select (#fe640b, D02 ≠ Peach)
+	t.Focused.SelectSelector = t.Focused.SelectSelector.Foreground(theme.Select)
+	t.Focused.NextIndicator = t.Focused.NextIndicator.Foreground(theme.Select)
+	t.Focused.PrevIndicator = t.Focused.PrevIndicator.Foreground(theme.Select)
+	t.Focused.Option = t.Focused.Option.Foreground(theme.Text)
+	t.Focused.SelectedOption = t.Focused.SelectedOption.Foreground(theme.Select)
+
+	// Multi-select
+	t.Focused.MultiSelectSelector = t.Focused.MultiSelectSelector.Foreground(theme.Select)
+	t.Focused.SelectedPrefix = lipgloss.NewStyle().Foreground(theme.Select).SetString("[•] ")
+	t.Focused.UnselectedPrefix = lipgloss.NewStyle().Foreground(theme.Hint).SetString("[ ] ")
+	t.Focused.UnselectedOption = t.Focused.UnselectedOption.Foreground(theme.Text)
+
+	// Active button = Select orange (D02)
+	t.Focused.FocusedButton = t.Focused.FocusedButton.Foreground(theme.Base).Background(theme.Select)
+	t.Focused.BlurredButton = t.Focused.BlurredButton.Foreground(theme.Text).Background(theme.Surface)
+	t.Focused.Next = t.Focused.FocusedButton
+
+	// TextInput
+	t.Focused.TextInput.Cursor = t.Focused.TextInput.Cursor.Foreground(theme.Select)
+	t.Focused.TextInput.Placeholder = t.Focused.TextInput.Placeholder.Foreground(theme.Hint)
+	t.Focused.TextInput.Prompt = t.Focused.TextInput.Prompt.Foreground(theme.Mauve)
+	t.Focused.TextInput.Text = t.Focused.TextInput.Text.Foreground(theme.Text)
+
+	// Form base BG = Base (DD2-64 BG-Layer: body sits on Base)
+	t.Form.Base = t.Form.Base.Background(theme.Base)
+
+	// Blurred = Focused with hidden border
+	t.Blurred = t.Focused
+	t.Blurred.Base = t.Focused.Base.BorderStyle(lipgloss.HiddenBorder())
+	t.Blurred.Card = t.Blurred.Base
+	t.Blurred.NextIndicator = lipgloss.NewStyle()
+	t.Blurred.PrevIndicator = lipgloss.NewStyle()
+
+	return t
 }

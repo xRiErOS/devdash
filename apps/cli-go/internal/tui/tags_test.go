@@ -192,7 +192,18 @@ func TestTagMultiSelectKey(t *testing.T) {
 // Tag-Feld erscheint nur bei vorhandenen Tags (kein leeres Multiselect). Geprüft
 // am gerenderten Form-View (huh.Get liefert vor dem Run nil → nicht introspizierbar).
 func TestBuildFormTagFieldConditional(t *testing.T) {
-	for _, kind := range []string{"issue", "milestone", "sprint"} {
+	// Issue-Tags liegen seit DD2-36 in Tab 1 (buildFormIssueTab1); Milestone/Sprint direkt.
+	withIssue := buildFormIssueTab1([]api.Tag{{ID: 1, Name: "alpha"}})
+	_ = withIssue.Init()
+	if !strings.Contains(withIssue.View(), "Tags") {
+		t.Errorf("issue mit Tags: Multiselect-Titel fehlt im Tab-1-View")
+	}
+	withoutIssue := buildFormIssueTab1(nil)
+	_ = withoutIssue.Init()
+	if strings.Contains(withoutIssue.View(), "Tags") {
+		t.Errorf("issue ohne Tags: kein Tag-Feld erwartet in Tab-1")
+	}
+	for _, kind := range []string{"milestone", "sprint"} {
 		with := buildForm(kind, nil, []api.Tag{{ID: 1, Name: "alpha"}})
 		_ = with.Init()
 		if !strings.Contains(with.View(), "Tags") {
@@ -208,7 +219,7 @@ func TestBuildFormTagFieldConditional(t *testing.T) {
 
 // Ohne Auswahl darf das Anlegen keinen Tag erzwingen → selectedTagIDs = leer.
 func TestSelectedTagIDsEmptyWhenNothingPicked(t *testing.T) {
-	m := model{form: buildForm("issue", nil, []api.Tag{{ID: 1, Name: "a"}})}
+	m := model{form: buildFormIssueTab1([]api.Tag{{ID: 1, Name: "a"}})}
 	if ids := m.selectedTagIDs(); len(ids) != 0 {
 		t.Errorf("ohne Auswahl: selectedTagIDs=%v, want leer (kein Tag erzwungen)", ids)
 	}

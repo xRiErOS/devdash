@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"strings"
+
 	"devd-cli/internal/api"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
@@ -328,13 +330,36 @@ func (m model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	switch m.form.State {
 	case huh.StateCompleted:
+		// Multi-Tab: Issue-Form Tab 0 → Tab 1 advance (DD2-36)
+		if m.formKind == "issue" && m.formGroupIdx < len(m.formGroupTitles)-1 {
+			if m.formPartials == nil {
+				m.formPartials = make(map[string]string)
+			}
+			m.formPartials["title"] = strings.TrimSpace(m.form.GetString("title"))
+			m.formPartials["type"] = m.form.GetString("type")
+			m.formPartials["priority"] = m.form.GetString("priority")
+			m.formGroupIdx++
+			f := buildFormIssueTab1(m.tags)
+			f = f.WithWidth(formInnerWidth(m.width)).
+				WithHeight(formInnerHeight(m.height)).
+				WithTheme(formHuhTheme())
+			m.form = f
+			m.status = ""
+			return m, m.form.Init()
+		}
 		createCmd := m.formCreateCmd()
 		m.form = nil
 		m.formKind = ""
+		m.formGroupIdx = 0
+		m.formGroupTitles = nil
+		m.formPartials = nil
 		return m, createCmd
 	case huh.StateAborted:
 		m.form = nil
 		m.formKind = ""
+		m.formGroupIdx = 0
+		m.formGroupTitles = nil
+		m.formPartials = nil
 		m.status = ""
 		return m, nil
 	}

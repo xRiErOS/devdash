@@ -172,6 +172,13 @@ type model struct {
 	form     *huh.Form
 	formKind string // issue | milestone | sprint | memory | result
 
+	// Multi-Tab-Forms (DD2-36): Tab-Strip für mehrblättrige Create-Formulare.
+	// formGroupTitles != nil → Tab-Strip sichtbar. formGroupIdx = aktiver Tab (0-basiert).
+	// formPartials speichert Werte der abgeschlossenen Tabs bis zum letzten Submit.
+	formGroupIdx    int
+	formGroupTitles []string
+	formPartials    map[string]string
+
 	// Ziel des result-Formulars (I02): r im Cockpit füllt das Ergebnisfeld.
 	resultIssueID  int
 	resultIssueKey string
@@ -213,6 +220,11 @@ type model struct {
 	treeSearch    textinput.Model
 	treeSearching bool
 	treeQuery     string
+
+	// Project-Switch-Picker (DD2-41): p öffnet eine suchbare Projektliste aus jedem View.
+	// projectSearch ist immer fokussiert, solange viewPicker aktiv ist.
+	projectSearch textinput.Model
+	projectQuery  string
 
 	// Tree-Filter (DD2-62 Rework): `f` öffnet ein Facetten-Menü (Art/Issue-Type/
 	// Status), kombinierbar mit der Textsuche. Bei aktivem Filter wird projektweit

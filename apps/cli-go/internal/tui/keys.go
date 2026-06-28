@@ -4,6 +4,7 @@ import (
 	"devd-cli/internal/api"
 	"devd-cli/internal/config"
 	"fmt"
+	"strings"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -89,6 +90,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.view == viewTree {
 		return m.keyTree(msg)
 	}
+	// Project-Switch-Picker (DD2-41): alle Keys direkt ans Suchfeld leiten.
+	if m.view == viewPicker {
+		return m.updatePickerMsg(msg)
+	}
 	k := msg.String()
 	// Globale Tasten
 	switch k {
@@ -104,8 +109,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.requestQuit() // DD2-49: Columns/Picker → Beenden-Confirm
 	case "p":
 		if m.global != nil {
-			m.view = viewPicker
-			return m, loadProjects(m.global)
+			return m.openProjectPicker()
 		}
 	case "R": // T17: R öffnet von überall die Liste offener Review-Sprints
 		return m.openReviewsList()
@@ -114,8 +118,6 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	switch m.view {
-	case viewPicker:
-		return m.keyPicker(k)
 	case viewColumns:
 		return m.keyColumns(k)
 	case viewDetail:
@@ -241,15 +243,46 @@ func (m model) keyReviewsList(k string) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m model) keyPicker(k string) (tea.Model, tea.Cmd) {
-	switch navKey(k) {
+// openProjectPicker öffnet den Such-Picker (DD2-41).
+func (m model) openProjectPicker() (tea.Model, tea.Cmd) {
+	m.view = viewPicker
+	m.projectQuery = ""
+	m.projectSearch.SetValue("")
+	m.plist.cursor = 0
+	return m, loadProjects(m.global)
+}
+
+// filteredProjects filtert m.projects nach dem aktuellen projectQuery (Name/Prefix/Slug).
+func (m model) filteredProjects() []api.Project {
+	q := strings.ToLower(strings.TrimSpace(m.projectQuery))
+	if q == "" {
+		return m.projects
+	}
+	var out []api.Project
+	for _, p := range m.projects {
+		if strings.Contains(strings.ToLower(p.Name), q) ||
+			strings.Contains(strings.ToLower(p.Prefix), q) ||
+			strings.Contains(strings.ToLower(p.Slug), q) {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// updatePickerMsg verarbeitet alle Key-Messages im viewPicker (DD2-41).
+func (m model) updatePickerMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch navKey(msg.String()) {
 	case "up":
 		m.plist.move(-1)
+		return m, nil
 	case "down":
+		m.plist.setLen(len(m.filteredProjects()))
 		m.plist.move(1)
+		return m, nil
 	case "enter":
-		if m.plist.cursor < len(m.projects) {
-			p := m.projects[m.plist.cursor]
+		filtered := m.filteredProjects()
+		if m.plist.cursor < len(filtered) {
+			p := filtered[m.plist.cursor]
 			m.project = &p
 			m.client = api.NewClient(fmt.Sprintf("%d", p.ID))
 			_ = config.Save(config.State{LastProject: p.Slug})
@@ -261,10 +294,30 @@ func (m model) keyPicker(k string) (tea.Model, tea.Cmd) {
 			m.slist = listState{}
 			m.ilist = listState{}
 			m.curSprint = nil
+			m.projectQuery = ""
+			m.projectSearch.SetValue("")
 			return m, tea.Batch(loadMilestones(m.client), loadTags(m.client))
 		}
+		return m, nil
+	case "esc":
+		if m.project != nil {
+			m.view = viewTree
+		}
+		m.projectQuery = ""
+		m.projectSearch.SetValue("")
+		return m, nil
 	}
-	return m, nil
+	// Alle anderen Keys → Suchfeld (Focus sicherstellen, damit Update Runes verarbeitet)
+	m.projectSearch.Focus()
+	var cmd tea.Cmd
+	m.projectSearch, cmd = m.projectSearch.Update(msg)
+	prevQuery := m.projectQuery
+	m.projectQuery = strings.TrimSpace(m.projectSearch.Value())
+	if m.projectQuery != prevQuery {
+		m.plist.cursor = 0
+		m.plist.setLen(len(m.filteredProjects()))
+	}
+	return m, cmd
 }
 
 func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
