@@ -29,6 +29,7 @@ func paletteActions(m *model) []paletteAction {
 		{"go_memory", "Gehe zu: Memory-Browser"},
 		{"go_backlog", "Gehe zu: Backlog"},
 		{"go_tags", "Gehe zu: Tag-Manager"},
+		{"go_settings", "Einstellungen"}, // DD2-125: User-Config bearbeiten
 		{"toggle_ranger", "Layout wechseln: Ranger ↔ Tree"},
 		{"test_form", "Test Form"}, // Styling-Sandbox (kein Persist)
 	}
@@ -145,6 +146,8 @@ func (m model) dispatchPalette(id string) (tea.Model, tea.Cmd) {
 		return m.openForm("sprint")
 	case "create_memory":
 		return m.openForm("memory")
+	case "go_settings": // DD2-125: Settings-Form öffnen
+		return m.openForm("settings")
 	case "test_form":
 		return m.openForm("testform")
 	}

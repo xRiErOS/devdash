@@ -130,6 +130,8 @@ func (m model) openForm(kind string) (tea.Model, tea.Cmd) {
 		f = buildMemoryForm()
 	case "result":
 		f = buildResultForm()
+	case "settings": // DD2-125: User-Config bearbeiten
+		f = buildSettingsForm(m.cfg)
 	}
 	if f == nil {
 		return m, nil
@@ -216,6 +218,8 @@ func (m model) formTitle() string {
 		return "Neue Memory"
 	case "result":
 		return "Ergebnisfeld setzen"
+	case "settings":
+		return "Einstellungen"
 	case "editField":
 		return "Bearbeiten: " + m.editLabel
 	case "tagCreate":
@@ -396,6 +400,17 @@ func (m *model) formCreateCmd() tea.Cmd {
 			m.resultIssueKey,
 		)
 		return doSetResult(m.client, m.resultIssueID, yaml, m.resultSprintID)
+	case "settings": // DD2-125: schreibt User-Config, lädt neu, wendet an (in-place)
+		accent := strings.TrimSpace(get("accent"))
+		tw, _ := strconv.Atoi(get("tree_width"))
+		mw, _ := strconv.Atoi(get("modal_width"))
+		nm, err := m.saveAndApplySettings(accent, tw, mw)
+		*m = nm
+		if err != nil {
+			msg := "Speichern fehlgeschlagen: " + err.Error()
+			return func() tea.Msg { return noticeMsg{msg} }
+		}
+		return func() tea.Msg { return noticeMsg{"Einstellungen gespeichert"} }
 	}
 	return nil
 }
