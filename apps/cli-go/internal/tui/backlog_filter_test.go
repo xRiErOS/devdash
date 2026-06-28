@@ -20,7 +20,7 @@ func backlogFilterModel() model {
 			{ID: 2, Key: "DD2-2", Title: "Crash beheben", Type: "bug", Priority: 1, Status: "planned", CreatedAt: &c2},
 			{ID: 3, Key: "DD2-3", Title: "Login-Bug", Type: "bug", Priority: 2, Status: "new", CreatedAt: &c3},
 		},
-		blAccOpen: 1,
+		accOpen:   1,
 	}
 	m.blSearch = textinput.New()
 	return m

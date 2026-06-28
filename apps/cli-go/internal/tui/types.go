@@ -72,16 +72,12 @@ type model struct {
 	fopts                  []filterOpt
 	ftarget                int // depth, dessen Filter editiert wird
 
-	// Backlog (Master-Detail, DD2-32): Liste links, read-only Detail-Preview rechts.
-	// blFocus = Detail-Pane fokussiert (D01-D03, analog detailFocus im Tree). blAccOpen
-	// = offene Accordion-Section (1-basiert, 0 = zu). blSec = Section-Cursor bei Detail-
-	// Fokus (0-basiert über issueSections; D08-Balken + Ziffer-Sprung). Der Inline-Edit
-	// (Feld-Ebene) folgt in DD2-74.
-	backlog   []api.Issue
-	blist     listState
-	blFocus   bool
-	blAccOpen int
-	blSec     int
+	// Backlog (Master-Detail, DD2-32/DD2-74): Liste links, Detail-Pane rechts. Der
+	// Detail-Fokus + Inline-Edit laufen über die GETEILTE Fokus-Maschine (detailFocus/
+	// secCursor/detailLevel/fieldCursor/accOpen, s.u.) — eine Bedienlogik mit dem Tree
+	// (tui-plan.md). focusedIssue() liefert im Backlog-View die Listen-Selektion.
+	backlog []api.Issue
+	blist   listState
 	// Backlog Suche/Filter/Sortierung (DD2-46): client-seitig über backlogVisible.
 	// blSearch/blSearching/blQuery = Freitext (/), blf* = Facetten-Menü (f),
 	// blSort* = Sortier-Picker (s). Default blSort "" = Priorität.

@@ -78,16 +78,6 @@ func (m model) backlogSelected() *api.Issue {
 	return &vis[m.blist.cursor]
 }
 
-// backlogDetailSections sind die navigierbaren Detail-Sektionen des selektierten
-// Issues (Single Source = issueSections). Die Section-Zahl hängt nur am Inhalt.
-func (m model) backlogDetailSections() []accordionSection {
-	it := m.backlogSelected()
-	if it == nil {
-		return nil
-	}
-	return m.issueSections(*it, 60)
-}
-
 // --- Filter-/Sortier-Menüs (DD2-46) ---
 
 // buildBacklogFilterItems baut die Facetten-Zeilen: feste Type-Facetten + die im
@@ -148,8 +138,8 @@ func (m model) backlogLayout() (head, localKeys string, lw, rw, innerH int) {
 	switch {
 	case m.blSearching:
 		hint = "tippen: filtern   enter: übernehmen   esc: abbrechen"
-	case m.blFocus:
-		hint = "i/k:Section  1…n:Section  j/←/esc:Liste  t:Tags"
+	case m.detailFocus:
+		hint = "i/k:Section/Feld  l/→:rein  enter:bearbeiten  j/←:zurück  1…n:Section  esc:Liste"
 	}
 	localKeys = theme.Muted.Render(wrapText(hint, w))
 	footH := lipgloss.Height(localKeys) + 1 // + 1 Status-Zeile
@@ -240,11 +230,18 @@ func (m model) backlogListLines(vis []api.Issue, w int, active bool) []string {
 	return lines
 }
 
-// backlogDetail rendert die read-only Detail-Preview des selektierten Issues:
-// detailTitle + Meta-Strip + ziffern-Accordion (DD2-50).
+// backlogDetail rendert die Detail-Preview des selektierten Issues: detailTitle +
+// Meta-Strip + ziffern-Accordion (DD2-50). Spiegelt treeDetail (DD2-74, eine
+// Bedienlogik): die Übersicht (Fokus-Index 0) trägt title/type/priority, bei Fokus
+// dort bekommt der Titel den D08-Balken; auf Feld-Ebene zeigt ein Feld-Streifen.
 func (m model) backlogDetail(it api.Issue, w int) string {
 	var b strings.Builder
-	b.WriteString(detailTitle(it.Key, it.Title, w) + "\n")
+	kopfActive := m.detailFocus && m.secCursor == 0
+	title := detailTitle(it.Key, it.Title, w)
+	if kopfActive {
+		title = theme.Accent.Render("▌" + truncate(ansi.Strip(title), w-1))
+	}
+	b.WriteString(title + "\n")
 	var tags string
 	if len(it.Tags) > 0 {
 		names := make([]string, len(it.Tags))
@@ -260,11 +257,16 @@ func (m model) backlogDetail(it api.Issue, w int) string {
 		{theme.TypeIcon(it.Type) + " " + theme.TypeStyle(it.Type).Render(it.Type), "type"},
 		{tags, "tags"},
 	}, statusText(it.Status), w))
+	if kopfActive && m.detailLevel == 1 {
+		b.WriteString("\n" + fieldStrip(kopfFields(), m.fieldCursor, w))
+	}
 	b.WriteString("\n\n")
-	b.WriteString(theme.Muted.Render("Sections: Ziffer [1..n] öffnet") + "\n")
-	secs := m.issueSections(it, w-2)
-	focus := detailFocusView{active: m.blFocus, level: 0, sec: m.blSec}
-	b.WriteString(renderAccordion(secs, m.blAccOpen, w, focus))
+	b.WriteString(theme.Muted.Render("Sections: Ziffer [1..n] öffnet  ∙  enter: bearbeiten") + "\n")
+	// Accordion-Fokus nur, wenn der Cursor auf einer Content-Section steht (secCursor
+	// ≥ 1); sec = secCursor-1 (Übersicht ist Index 0). Wie treeDetail (DD2-76/77).
+	focus := detailFocusView{active: m.detailFocus && m.secCursor >= 1,
+		level: m.detailLevel, sec: m.secCursor - 1, field: m.fieldCursor}
+	b.WriteString(renderAccordion(m.issueSections(it, w-2), m.accOpen, w, focus))
 	return b.String()
 }
 
@@ -277,7 +279,7 @@ func (m model) viewBacklog() string {
 
 	// Linke Pane: Such-/Filterbox als Kopfzeile, darunter die gefensterte Liste.
 	searchLine := m.backlogSearchLine(lw - 2)
-	listLines := windowAround(m.backlogListLines(vis, lw-2, !m.blFocus), innerH-1, m.blist.cursor)
+	listLines := windowAround(m.backlogListLines(vis, lw-2, !m.detailFocus), innerH-1, m.blist.cursor)
 	left := append([]string{searchLine}, listLines...)
 	for len(left) < innerH {
 		left = append(left, "")
@@ -302,7 +304,7 @@ func (m model) viewBacklog() string {
 	}
 
 	// D03: Pane-Border-Tausch — der fokussierte Pane ist Mauve, der andere Overlay.
-	leftCol, rightCol := paneBorderColors(m.blFocus)
+	leftCol, rightCol := paneBorderColors(m.detailFocus)
 	leftBox := lipgloss.NewStyle().Width(lw).
 		Border(lipgloss.RoundedBorder()).BorderForeground(leftCol).
 		Render(strings.Join(left, "\n"))
@@ -377,32 +379,32 @@ func (m model) keyBacklog(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.blSortOpen {
 		return m.keyBacklogSort(msg)
 	}
+	// Detail-Pane fokussiert: die geteilte Fokus-Maschine (DD2-74 reuse, D01-D05) —
+	// Section/Feld-Nav, Ziffer-Sprung, enter öffnet die editField-Form, esc/links raus.
+	if m.detailFocus {
+		return m.keyDetailFocus(msg)
+	}
 	k := msg.String()
 	m.blist.setLen(len(m.backlogVisible()))
-	if m.blFocus {
-		return m.keyBacklogDetail(k)
-	}
 	switch navKey(k) {
 	case "up":
 		m.blist.move(-1)
-		m.blSec, m.blAccOpen = 0, 1 // Auswahl gewechselt → Detail zurücksetzen
+		m.secCursor, m.accOpen = 0, 1 // Auswahl gewechselt → Detail-Preview zurücksetzen
 		return m, nil
 	case "down":
 		m.blist.move(1)
-		m.blSec, m.blAccOpen = 0, 1
+		m.secCursor, m.accOpen = 0, 1
 		return m, nil
 	case "right": // l/→ : in die Detail-Pane (D01)
 		if m.backlogSelected() != nil {
-			m.blFocus = true
-			m.blSec, m.blAccOpen = 0, 1
+			return m.enterDetailFocus()
 		}
 		return m, nil
 	}
 	switch k {
 	case "enter":
 		if m.backlogSelected() != nil {
-			m.blFocus = true
-			m.blSec, m.blAccOpen = 0, 1
+			return m.enterDetailFocus()
 		}
 	case "/": // DD2-46 S1: Freitext-Suche
 		m.blSearching = true
@@ -419,7 +421,6 @@ func (m model) keyBacklog(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	case "b":
 		m.view = m.topReturn // zurück zur Quell-View (Tree/Columns, DD2-61)
-		m.blFocus = false
 	case "esc":
 		// esc räumt zuerst aktive Suche/Filter ab, sonst zurück zur Quell-View.
 		if m.blQuery != "" || m.backlogFilterActive() {
@@ -429,7 +430,6 @@ func (m model) keyBacklog(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.view = m.topReturn
-		m.blFocus = false
 	}
 	return m, nil
 }
@@ -533,51 +533,6 @@ func (m model) keyBacklogSort(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// keyBacklogDetail steuert die Detail-Pane im Fokus (read-only): i/k über die
-// Sektionen (offene Accordion-Section folgt), Ziffer-Sprung, j/←/esc zurück zur
-// Liste. enter/Edit folgt in DD2-74.
-func (m model) keyBacklogDetail(k string) (tea.Model, tea.Cmd) {
-	secs := m.backlogDetailSections()
-	n := len(secs)
-	if m.blSec >= n {
-		m.blSec = maxInt(n-1, 0)
-	}
-	if m.blSec < 0 {
-		m.blSec = 0
-	}
-
-	// Ziffer 1..n = Direktsprung in die Section (öffnet sie).
-	if len(k) == 1 && k[0] >= '1' && k[0] <= '9' {
-		if d := int(k[0] - '0'); d <= n {
-			m.blSec, m.blAccOpen = d-1, d
-		}
-		return m, nil
-	}
-
-	switch navKey(k) {
-	case "down":
-		if m.blSec < n-1 {
-			m.blSec++
-			m.blAccOpen = m.blSec + 1
-		}
-		return m, nil
-	case "up":
-		if m.blSec > 0 {
-			m.blSec--
-			m.blAccOpen = m.blSec + 1
-		}
-		return m, nil
-	case "left": // j/← : zurück zur Liste
-		m.blFocus = false
-		return m, nil
-	}
-	switch k {
-	case "esc":
-		m.blFocus = false
-	case "t": // DD2-33: Tag-Picker fürs fokussierte Issue
-		if it := m.backlogSelected(); it != nil {
-			return m.openTagPicker("issue", it.ID, it.Key+" "+it.Title, it.Tags)
-		}
-	}
-	return m, nil
-}
+// Hinweis: Die Detail-Pane im Fokus läuft über die geteilte keyDetailFocus-Maschine
+// (detail.go) — Section/Feld-Nav, Ziffer-Sprung, enter→editField, esc/links raus.
+// focusedIssue() liefert dort im Backlog-View die Listen-Selektion (DD2-74).

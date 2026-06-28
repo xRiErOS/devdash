@@ -25,82 +25,88 @@ func backlogMDModel() model {
 			{ID: 1, Key: "DD2-1", Title: "A", Type: "bug", Priority: 1, Status: "new", Goal: &g, Background: &bg},
 			{ID: 2, Key: "DD2-2", Title: "B", Type: "feature", Priority: 2, Status: "planned"},
 		},
-		blist:     listState{length: 2, cursor: 0},
-		blAccOpen: 1,
+		blist:   listState{length: 2, cursor: 0},
+		accOpen: 1, // Detail-Preview: erste Content-Section offen (Listen-Modus)
 	}
 }
 
-// D01: l/→ (und enter) auf der Liste verlagert den Fokus in die Detail-Pane;
-// blSec=0, erste Section offen.
+// D01: l/→ (und enter) auf der Liste verlagert den Fokus in die Detail-Pane
+// (geteilte Maschine): secCursor=0 (Übersicht), Accordion zu.
 func TestBacklogEnterDetailFocus(t *testing.T) {
 	mi, _ := backlogMDModel().keyBacklog(key("l"))
 	m := mi.(model)
-	if !m.blFocus {
-		t.Fatal("l/→ sollte blFocus setzen")
+	if !m.detailFocus {
+		t.Fatal("l/→ sollte detailFocus setzen")
 	}
-	if m.blSec != 0 || m.blAccOpen != 1 {
-		t.Errorf("blSec=%d blAccOpen=%d, want 0/1", m.blSec, m.blAccOpen)
+	if m.secCursor != 0 || m.accOpen != 0 {
+		t.Errorf("secCursor=%d accOpen=%d, want 0/0 (Übersicht)", m.secCursor, m.accOpen)
 	}
 	me, _ := backlogMDModel().keyBacklog(key("enter"))
-	if !me.(model).blFocus {
-		t.Error("enter sollte ebenfalls blFocus setzen")
+	if !me.(model).detailFocus {
+		t.Error("enter sollte ebenfalls detailFocus setzen")
 	}
 }
 
-// D02: i/k bewegt im Detail-Fokus den Section-Cursor (geklemmt); die offene
-// Accordion-Section folgt (blAccOpen = blSec+1).
+// D02: i/k bewegt im Detail-Fokus den Section-Cursor (geklemmt); die offene Content-
+// Section folgt (accOpen = secCursor, da Übersicht Index 0 ist). focusSections =
+// [Übersicht, Goal, Background] → secCursor 0..2.
 func TestBacklogDetailSectionNav(t *testing.T) {
 	mi, _ := backlogMDModel().keyBacklog(key("l"))
 	m := mi.(model)
-	mi, _ = m.keyBacklog(key("k")) // runter: Section 1 → 2
+	mi, _ = m.keyBacklog(key("k")) // Übersicht → Content-Section 1
 	m = mi.(model)
-	if m.blSec != 1 || m.blAccOpen != 2 {
-		t.Errorf("k → blSec=%d blAccOpen=%d, want 1/2", m.blSec, m.blAccOpen)
+	if m.secCursor != 1 || m.accOpen != 1 {
+		t.Errorf("k → secCursor=%d accOpen=%d, want 1/1", m.secCursor, m.accOpen)
 	}
-	mi, _ = m.keyBacklog(key("k")) // am Ende (2 Sektionen) geklemmt
+	mi, _ = m.keyBacklog(key("k")) // → Content-Section 2
 	m = mi.(model)
-	if m.blSec != 1 {
-		t.Errorf("k geklemmt → blSec=%d, want 1", m.blSec)
+	if m.secCursor != 2 || m.accOpen != 2 {
+		t.Errorf("k → secCursor=%d accOpen=%d, want 2/2", m.secCursor, m.accOpen)
+	}
+	mi, _ = m.keyBacklog(key("k")) // am Ende geklemmt
+	m = mi.(model)
+	if m.secCursor != 2 {
+		t.Errorf("k geklemmt → secCursor=%d, want 2", m.secCursor)
 	}
 	mi, _ = m.keyBacklog(key("i")) // hoch zurück
 	m = mi.(model)
-	if m.blSec != 0 || m.blAccOpen != 1 {
-		t.Errorf("i → blSec=%d blAccOpen=%d, want 0/1", m.blSec, m.blAccOpen)
+	if m.secCursor != 1 || m.accOpen != 1 {
+		t.Errorf("i → secCursor=%d accOpen=%d, want 1/1", m.secCursor, m.accOpen)
 	}
 }
 
-// D02: Ziffer 1..n = Direktsprung in die Section.
+// D02: Ziffer 1..n = Direktsprung in die Content-Section (focusSections-Index n).
 func TestBacklogDetailDigitJump(t *testing.T) {
 	mi, _ := backlogMDModel().keyBacklog(key("l"))
-	mi, _ = mi.(model).keyBacklog(key("2"))
+	mi, _ = mi.(model).keyBacklog(key("2")) // Content-Section 2
 	m := mi.(model)
-	if m.blSec != 1 || m.blAccOpen != 2 {
-		t.Errorf("Ziffer 2 → blSec=%d blAccOpen=%d, want 1/2", m.blSec, m.blAccOpen)
+	if m.secCursor != 2 || m.accOpen != 2 {
+		t.Errorf("Ziffer 2 → secCursor=%d accOpen=%d, want 2/2", m.secCursor, m.accOpen)
 	}
 }
 
-// D02: j/← und esc geben den Fokus an die Liste zurück.
+// D02: j/← (auf oberster Section) und esc geben den Fokus an die Liste zurück.
 func TestBacklogDetailBackToList(t *testing.T) {
 	mi, _ := backlogMDModel().keyBacklog(key("l"))
 	mj, _ := mi.(model).keyBacklog(key("j"))
-	if mj.(model).blFocus {
-		t.Error("j/← sollte zurück zur Liste (blFocus=false)")
+	if mj.(model).detailFocus {
+		t.Error("j/← auf oberster Section sollte zurück zur Liste (detailFocus=false)")
 	}
 	me, _ := mi.(model).keyBacklog(key("esc"))
-	if me.(model).blFocus {
-		t.Error("esc sollte zurück zur Liste (blFocus=false)")
+	if me.(model).detailFocus {
+		t.Error("esc sollte zurück zur Liste (detailFocus=false)")
 	}
 }
 
-// Liste: i/k bewegt den Listen-Cursor und setzt das Detail zurück.
+// Liste: i/k bewegt den Listen-Cursor und setzt die Detail-Preview zurück.
 func TestBacklogListNav(t *testing.T) {
 	mi, _ := backlogMDModel().keyBacklog(key("k"))
 	m := mi.(model)
 	if m.blist.cursor != 1 {
 		t.Errorf("k → cursor=%d, want 1", m.blist.cursor)
 	}
-	if m.blSec != 0 || m.blAccOpen != 1 {
-		t.Errorf("Auswahl-Wechsel sollte Detail zurücksetzen: blSec=%d blAccOpen=%d", m.blSec, m.blAccOpen)
+	if m.secCursor != 0 || m.accOpen != 1 {
+		t.Errorf("Auswahl-Wechsel sollte Preview zurücksetzen: secCursor=%d accOpen=%d, want 0/1", m.secCursor, m.accOpen)
 	}
 }
 
@@ -138,7 +144,7 @@ func TestBacklogViewRendersDetail(t *testing.T) {
 	}
 
 	// D03: bei Detail-Fokus ist der rechte Pane Mauve.
-	l, r := paneBorderColors(m.blFocus)
+	l, r := paneBorderColors(m.detailFocus)
 	if l != theme.Mauve || r != theme.Overlay {
 		t.Errorf("Listen-Fokus: left=%v right=%v, want Mauve/Overlay", l, r)
 	}

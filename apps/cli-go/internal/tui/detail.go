@@ -15,9 +15,13 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// focusedIssue liefert das Issue unter dem Tree-Cursor, falls der Knoten ein
-// Issue ist (nur dort ist der Detail-Fokus gültig, D01/Sprint-Schnitt DD2#12).
+// focusedIssue liefert das Issue, dessen Detail-Pane gerade den Fokus hält. Im
+// Backlog-Screen (DD2-74) ist das die Listen-Selektion; im Tree der Knoten unter
+// dem Cursor, falls er ein Issue ist (nur dort gilt der Detail-Fokus, D01).
 func (m model) focusedIssue() *api.Issue {
+	if m.view == viewBacklog {
+		return m.backlogSelected()
+	}
 	nodes := m.treeNodes()
 	if m.treeCursor < 0 || m.treeCursor >= len(nodes) {
 		return nil
@@ -128,6 +132,13 @@ func (m *model) mergeIssueIntoCache(src *api.Issue) {
 	for i := range m.treeFilterIssues {
 		if m.treeFilterIssues[i].ID == src.ID {
 			mergeIssueCore(&m.treeFilterIssues[i], src)
+		}
+	}
+	// DD2-74: dieselbe in-place-Merge auch im Backlog-Cache (Edit aus dem Backlog-
+	// Screen) — kein Refetch, die Detail-Preview spiegelt den neuen Wert sofort.
+	for i := range m.backlog {
+		if m.backlog[i].ID == src.ID {
+			mergeIssueCore(&m.backlog[i], src)
 		}
 	}
 }
