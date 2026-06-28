@@ -7,6 +7,7 @@
 -- ältere description-Inhalte sind echte Beschreibungen und bleiben unangetastet.
 -- Cutoff absolut '2026-06-25' (robuster als date('now','-3 days'), das vom
 -- Deploy-Zeitpunkt abhinge; Sprint-Datum 2026-06-28).
+-- NB: backlog hat KEINE updated_at-Spalte → Auswahl allein über created_at.
 --
 -- Merge-Regel (Q01, PO 2026-06-28 = ANHÄNGEN):
 --   po_notes leer  → po_notes = description
@@ -23,17 +24,16 @@ CREATE TABLE IF NOT EXISTS _dd2_130_desc_to_po_notes_backup (
   old_po_notes   TEXT,
   old_description TEXT,
   created_at     TEXT,
-  updated_at     TEXT,
   migrated_at    DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 INSERT OR IGNORE INTO _dd2_130_desc_to_po_notes_backup
-  (id, project_number, old_po_notes, old_description, created_at, updated_at)
-SELECT id, project_number, po_notes, description, created_at, updated_at
+  (id, project_number, old_po_notes, old_description, created_at)
+SELECT id, project_number, po_notes, description, created_at
 FROM backlog
 WHERE project_id = 10
   AND description IS NOT NULL AND TRIM(description) <> ''
-  AND (created_at >= '2026-06-25' OR updated_at >= '2026-06-25');
+  AND created_at >= '2026-06-25';
 
 UPDATE backlog
 SET po_notes = CASE
