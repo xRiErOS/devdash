@@ -125,6 +125,8 @@ func (m model) viewBase() string {
 		return m.viewTags() // DD2-75: Tag-Manager
 	case viewSearch:
 		return m.viewSearch() // DD2-91: projektweite Suche
+	case viewTutorial:
+		return m.viewTutorial() // DD2-122: Onboarding
 	default:
 		return m.viewColumns() // rendert Filter-Modal inline, wenn m.filtering
 	}

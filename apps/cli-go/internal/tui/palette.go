@@ -31,6 +31,7 @@ func paletteActions(m *model) []paletteAction {
 		{"go_backlog", "Go to: Backlog"},
 		{"go_tags", "Go to: Tag manager"},
 		{"go_settings", "Settings"}, // DD2-125: edit user config
+		{"go_tutorial", "Tutorial: guided tour"}, // DD2-122
 		{"toggle_ranger", "Layout wechseln: Ranger ↔ Tree"},
 		{"test_form", "Test Form"}, // Styling-Sandbox (kein Persist)
 	}
@@ -123,6 +124,8 @@ func (m model) dispatchPalette(id string) (tea.Model, tea.Cmd) {
 		return m.openMemory()
 	case "go_search": // DD2-91: projektweite Issue-Suche
 		return m.openSearch()
+	case "go_tutorial": // DD2-122: geführtes Onboarding
+		return m.openTutorial()
 	case "go_backlog":
 		m.view = viewBacklog
 		return m, loadBacklog(m.client)

@@ -21,7 +21,8 @@ const (
 	viewMemory
 	viewTree   // DD2-57: Tree+Detail-Layout-Prototyp
 	viewTags   // DD2-75: Tag-Manager (projektweite Tag-CRUD)
-	viewSearch // DD2-91: projektweite Issue-Such-Ansicht (Command-Center)
+	viewSearch   // DD2-91: projektweite Issue-Such-Ansicht (Command-Center)
+	viewTutorial // DD2-122: geführtes, seitenweises Onboarding
 )
 
 // filterState hält pro Spalte, welche Werte ausgeblendet sind.
@@ -279,6 +280,9 @@ type model struct {
 	// DD2-91: projektweite Such-Ansicht (viewSearch). Quelle = treeFilterIssues.
 	searchQuery string
 	searchList  listState
+
+	// DD2-122: aktuelle Tutorial-Seite (viewTutorial).
+	tutorialPage int
 
 	// Tag-Manager (DD2-75): T öffnet viewTags — projektweite Tag-CRUD-Liste.
 	// n=neu, e=edit, d=löschen (Confirm), esc/q zurück zur Quell-View (tagReturn).

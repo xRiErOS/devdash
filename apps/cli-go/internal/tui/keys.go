@@ -99,6 +99,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.view == viewSearch {
 		return m.keySearch(msg)
 	}
+	// Tutorial (DD2-122) fängt voll (blättern, esc zurück).
+	if m.view == viewTutorial {
+		return m.keyTutorial(msg)
+	}
 	// Lobby (DD2-124): alle Keys an den Home-Handler (Nav/Auswahl/Filter).
 	if m.view == viewHome {
 		return m.keyHome(msg)
