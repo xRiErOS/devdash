@@ -213,6 +213,11 @@ func (m model) keyDetailFocus(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m.openTagPicker("issue", it.ID, it.Key+" "+it.Title, it.Tags)
 		}
 		return m, nil
+	case "d": // DD2-65: fokussiertes Issue löschen (Confirm)
+		if it := m.focusedIssue(); it != nil {
+			return m.openDelete("issue", it.ID, it.Key+" "+it.Title)
+		}
+		return m, nil
 	case "enter":
 		// Section-Ebene → in die Section rein (wie l/→); Feld-Ebene → editField-Form
 		// für das aktive Feld öffnen (D04).

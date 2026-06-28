@@ -151,6 +151,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case deleteDoneMsg:
 		m.status = noticeText("Gelöscht: " + msg.name)
+		if msg.kind == "issue" { // DD2-65: in-place aus den Caches, kein View-Wechsel
+			m.removeIssueFromCaches(msg.id)
+			m.detailFocus = false // Detail-Fokus zeigte auf das gelöschte Issue
+			m.blist.setLen(len(m.backlogVisible()))
+			return m, loadMilestones(m.client) // Fortschritts-Counts auffrischen
+		}
 		// Columns + ggf. Cockpit/Detail-Quelle frisch; zurück auf Columns-Sicht.
 		m.curSprint = nil
 		if m.view == viewMilestone || m.view == viewSprint {

@@ -230,9 +230,11 @@ type deletePreviewMsg struct {
 	docs    int
 }
 
-// deleteDoneMsg signalisiert einen erfolgreichen Cascade-Delete (T02b).
+// deleteDoneMsg signalisiert einen erfolgreichen Delete (T02b / DD2-65). id trägt
+// die gelöschte Entität (für die in-place-Cache-Entfernung beim Issue-Delete).
 type deleteDoneMsg struct {
 	kind string
+	id   int
 	name string
 }
 
@@ -269,7 +271,17 @@ func doCascadeDelete(c *api.Client, kind string, id int, name string) tea.Cmd {
 		if err != nil {
 			return noticeMsg{cleanAPIErr(err)}
 		}
-		return deleteDoneMsg{kind, name}
+		return deleteDoneMsg{kind, id, name}
+	}
+}
+
+// doDeleteIssue löscht ein einzelnes Issue (DD2-65, kein Cascade).
+func doDeleteIssue(c *api.Client, id int, name string) tea.Cmd {
+	return func() tea.Msg {
+		if err := c.DeleteIssue(id); err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return deleteDoneMsg{"issue", id, name}
 	}
 }
 

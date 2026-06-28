@@ -419,6 +419,10 @@ func (m model) keyBacklog(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if it := m.backlogSelected(); it != nil {
 			return m.openTagPicker("issue", it.ID, it.Key+" "+it.Title, it.Tags)
 		}
+	case "d": // DD2-65: selektiertes Issue löschen (Confirm)
+		if it := m.backlogSelected(); it != nil {
+			return m.openDelete("issue", it.ID, it.Key+" "+it.Title)
+		}
 	case "b":
 		m.view = m.topReturn // zurück zur Quell-View (Tree/Columns, DD2-61)
 	case "esc":

@@ -88,7 +88,7 @@ func TestDeleteEscCancels(t *testing.T) {
 func TestDeleteDoneReloads(t *testing.T) {
 	m := columnsModel()
 	m.view = viewMilestone
-	mi, cmd := m.Update(deleteDoneMsg{"milestone", "M1"})
+	mi, cmd := m.Update(deleteDoneMsg{"milestone", 1, "M1"})
 	m = mi.(model)
 	if m.view != viewColumns {
 		t.Error("nach Delete zurück auf Columns")

@@ -88,6 +88,13 @@ func (c *Client) AssignSprint(id int, sprintID *int) (*Issue, error) {
 	return &it, json.Unmarshal(data, &it)
 }
 
+// DeleteIssue löscht ein Issue dauerhaft (DD2-65). Issues haben keine Kinder →
+// kein Cascade, einfacher DELETE auf die Backlog-Zeile.
+func (c *Client) DeleteIssue(id int) error {
+	_, err := c.Do("DELETE", fmt.Sprintf("/api/backlog/%d", id), nil)
+	return err
+}
+
 // UpdateIssue editiert Felder (goal/background/type/priority/result/...).
 func (c *Client) UpdateIssue(id int, fields map[string]any) (*Issue, error) {
 	data, err := c.Do("PUT", fmt.Sprintf("/api/backlog/%d", id), fields)

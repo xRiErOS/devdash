@@ -524,7 +524,7 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 		return m, nil
-	case "d": // Cascade-Delete (1:1 Ranger) — Meilenstein/Sprint
+	case "d": // Delete — Meilenstein/Sprint kaskadierend, Issue einzeln (DD2-65)
 		if m.treeCursor < len(nodes) {
 			n := nodes[m.treeCursor]
 			switch n.kind {
@@ -534,6 +534,10 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			case tkSprint:
 				sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
 				return m.openDelete("sprint", sp.ID, sp.Name)
+			case tkIssue:
+				if n.issue != nil {
+					return m.openDelete("issue", n.issue.ID, n.issue.Key+" "+n.issue.Title)
+				}
 			}
 		}
 		return m, nil
