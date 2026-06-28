@@ -1,12 +1,12 @@
-> devd2: Projekt-Browser      ctrl+k:Cmd  p:Projekt  b:Backlog  R:Reviews  ?:Hilfe  q:Quit
+> devd2: Project browser       ctrl+k:cmd  p:project  b:backlog  R:reviews  ?:help  q:quit
 ╭────────────────────────────────────╮╭──────────────────────────────────────────────────╮
-│⌕ Suchen mit /  ∙  Filter f         ││> DD2#9 Sprint Neun                               │
-│ ▾ ◉ Meilenstein Eins               ││Meilenstein Eins Meilenstein  ∙  0/0 For… review  │
+│⌕ search with /  ∙  filter f        ││> DD2#9 Sprint Neun                               │
+│ ▾ ◉ Meilenstein Eins               ││Meilenstein Eins Milestone  ∙  0/0 Progr… review  │
 │▌  ▾ DD2#9 review                   ││                                                  │
 │       ⯁ DD2-99                     ││> Name                                            │
 │                                    ││  Sprint Neun                                     │
 │                                    ││> Goal                                            │
-│                                    ││  (leer)                                          │
+│                                    ││  (empty)                                         │
 │                                    ││                                                  │
 │                                    ││                                                  │
 │                                    ││                                                  │
@@ -17,5 +17,5 @@
 │                                    ││                                                  │
 │                                    ││                                                  │
 ╰────────────────────────────────────╯╰──────────────────────────────────────────────────╯
-i/k:↑↓  l/→:auf  j/←:zu  1…n:Section  s:Status  S:Meilenstein  d:löschen  y:yank  /:Suche
-f:Filter  t:Tags  ctrl+r:neu laden                                                       
+i/k:↑↓  l/→:expand  j/←:collapse  1…n:section  s:status  S:milestone  d:delete  y:yank
+/:search  f:filter  t:tags  ctrl+r:reload                                             

@@ -9,10 +9,10 @@ import (
 // tags (optional) ergänzt ein Multiselect (DD2-33).
 func buildIssueForm(tags []api.Tag) *huh.Form {
 	fields := []huh.Field{
-		huh.NewInput().Key("title").Title("Titel").Validate(nonEmpty),
+		huh.NewInput().Key("title").Title("Title").Validate(nonEmpty),
 		huh.NewText().Key("po_notes").Title("PO-Notes (optional)"),
-		huh.NewSelect[string]().Key("type").Title("Typ").Options(typeOptions()...),
-		huh.NewText().Key("user_stories").Title("User-Stories (optional, eine pro Zeile)"),
+		huh.NewSelect[string]().Key("type").Title("Type").Options(typeOptions()...),
+		huh.NewText().Key("user_stories").Title("User stories (optional, one per line)"),
 	}
 	if len(tags) > 0 {
 		fields = append(fields, tagMultiSelect(tags))

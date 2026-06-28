@@ -51,33 +51,33 @@ type keyMap struct {
 // navKey, daher genügt diese eine Stelle für die komplette Umstellung.
 func newKeyMap() keyMap {
 	return keyMap{
-		Up:    keybind.NewBinding(keybind.WithKeys("up", "i"), keybind.WithHelp("↑/i", "hoch")),
-		Down:  keybind.NewBinding(keybind.WithKeys("down", "k"), keybind.WithHelp("↓/k", "runter")),
-		Left:  keybind.NewBinding(keybind.WithKeys("left", "j"), keybind.WithHelp("←/j", "zurück/raus")),
-		Right: keybind.NewBinding(keybind.WithKeys("right", "l", "tab"), keybind.WithHelp("→/l", "rein/auf")),
+		Up:    keybind.NewBinding(keybind.WithKeys("up", "i"), keybind.WithHelp("↑/i", "up")),
+		Down:  keybind.NewBinding(keybind.WithKeys("down", "k"), keybind.WithHelp("↓/k", "down")),
+		Left:  keybind.NewBinding(keybind.WithKeys("left", "j"), keybind.WithHelp("←/j", "back/out")),
+		Right: keybind.NewBinding(keybind.WithKeys("right", "l", "tab"), keybind.WithHelp("→/l", "in/expand")),
 
-		Enter:   keybind.NewBinding(keybind.WithKeys("enter"), keybind.WithHelp("enter", "öffnen/bestätigen")),
-		Back:    keybind.NewBinding(keybind.WithKeys("esc"), keybind.WithHelp("esc", "zurück")),
-		Quit:    keybind.NewBinding(keybind.WithKeys("q", "ctrl+c"), keybind.WithHelp("q", "beenden")),
-		Help:    keybind.NewBinding(keybind.WithKeys("?"), keybind.WithHelp("?", "Hilfe")),
+		Enter:   keybind.NewBinding(keybind.WithKeys("enter"), keybind.WithHelp("enter", "open/confirm")),
+		Back:    keybind.NewBinding(keybind.WithKeys("esc"), keybind.WithHelp("esc", "back")),
+		Quit:    keybind.NewBinding(keybind.WithKeys("q", "ctrl+c"), keybind.WithHelp("q", "quit")),
+		Help:    keybind.NewBinding(keybind.WithKeys("?"), keybind.WithHelp("?", "help")),
 		Palette: keybind.NewBinding(keybind.WithKeys("ctrl+k", "K"), keybind.WithHelp("ctrl+k", "Command-Center")),
-		Picker:  keybind.NewBinding(keybind.WithKeys("p"), keybind.WithHelp("p", "Projekt wählen")),
+		Picker:  keybind.NewBinding(keybind.WithKeys("p"), keybind.WithHelp("p", "Select project")),
 		Reviews: keybind.NewBinding(keybind.WithKeys("R"), keybind.WithHelp("R", "Review-Cockpit")),
 		Backlog: keybind.NewBinding(keybind.WithKeys("b"), keybind.WithHelp("b", "Backlog")),
-		Search:  keybind.NewBinding(keybind.WithKeys("/"), keybind.WithHelp("/", "Suche")),
+		Search:  keybind.NewBinding(keybind.WithKeys("/"), keybind.WithHelp("/", "Search")),
 		Filter:  keybind.NewBinding(keybind.WithKeys("f"), keybind.WithHelp("f", "Filter")),
-		Yank:    keybind.NewBinding(keybind.WithKeys("y"), keybind.WithHelp("y", "Kontext kopieren")),
-		Refresh: keybind.NewBinding(keybind.WithKeys("ctrl+r"), keybind.WithHelp("ctrl+r", "Daten neu laden")),
+		Yank:    keybind.NewBinding(keybind.WithKeys("y"), keybind.WithHelp("y", "Copy context")),
+		Refresh: keybind.NewBinding(keybind.WithKeys("ctrl+r"), keybind.WithHelp("ctrl+r", "Reload data")),
 		Section: keybind.NewBinding(keybind.WithKeys("1", "2", "3", "4", "5", "6", "7", "8", "9"), keybind.WithHelp("1…9", "Section")),
 
 		Status:       keybind.NewBinding(keybind.WithKeys("s"), keybind.WithHelp("s", "Status (Issue/Sprint)")),
-		MileStatus:   keybind.NewBinding(keybind.WithKeys("S"), keybind.WithHelp("S", "Meilenstein-Status")),
-		AssignMile:   keybind.NewBinding(keybind.WithKeys("m"), keybind.WithHelp("m", "Sprint → Meilenstein")),
-		AssignSprint: keybind.NewBinding(keybind.WithKeys("a"), keybind.WithHelp("a", "Sprints zuweisen")),
-		Delete:       keybind.NewBinding(keybind.WithKeys("d"), keybind.WithHelp("d", "löschen (Cascade)")),
-		Toggle:       keybind.NewBinding(keybind.WithKeys(" ", "x"), keybind.WithHelp("space/x", "Facette an/aus")),
+		MileStatus:   keybind.NewBinding(keybind.WithKeys("S"), keybind.WithHelp("S", "Milestone status")),
+		AssignMile:   keybind.NewBinding(keybind.WithKeys("m"), keybind.WithHelp("m", "Sprint → milestone")),
+		AssignSprint: keybind.NewBinding(keybind.WithKeys("a"), keybind.WithHelp("a", "Assign sprints")),
+		Delete:       keybind.NewBinding(keybind.WithKeys("d"), keybind.WithHelp("d", "delete (cascade)")),
+		Toggle:       keybind.NewBinding(keybind.WithKeys(" ", "x"), keybind.WithHelp("space/x", "Toggle facet")),
 		Tags:         keybind.NewBinding(keybind.WithKeys("T"), keybind.WithHelp("T", "Tag-Manager")),
-		TagAssign:    keybind.NewBinding(keybind.WithKeys("t"), keybind.WithHelp("t", "Tags zuweisen")),
+		TagAssign:    keybind.NewBinding(keybind.WithKeys("t"), keybind.WithHelp("t", "Assign tags")),
 	}
 }
 
@@ -98,7 +98,7 @@ func (k keyMap) helpGroups() []helpGroup {
 	return []helpGroup{
 		{"Navigation", []keybind.Binding{k.Up, k.Down, k.Left, k.Right, k.Enter, k.Back, k.Section}},
 		{"Views & Global", []keybind.Binding{k.Backlog, k.Reviews, k.Picker, k.Tags, k.Search, k.Filter, k.Refresh, k.Palette, k.Help, k.Quit}},
-		{"Aktionen", []keybind.Binding{k.Status, k.MileStatus, k.AssignMile, k.AssignSprint, k.TagAssign, k.Delete, k.Yank, k.Toggle}},
+		{"Actions", []keybind.Binding{k.Status, k.MileStatus, k.AssignMile, k.AssignSprint, k.TagAssign, k.Delete, k.Yank, k.Toggle}},
 	}
 }
 

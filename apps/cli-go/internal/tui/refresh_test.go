@@ -20,7 +20,7 @@ func TestRefreshedMsgSetsToastAndUpdatesCache(t *testing.T) {
 	}
 	mi, cmd := m.Update(msg)
 	got := mi.(model)
-	if s := ansi.Strip(got.status); !strings.Contains(s, "neu geladen") {
+	if s := ansi.Strip(got.status); !strings.Contains(s, "reloaded") {
 		t.Errorf("Toast fehlt, status = %q", s)
 	}
 	if cmd == nil {

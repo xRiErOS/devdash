@@ -432,7 +432,7 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 func (m model) openSprintStatus(id int, status string) (tea.Model, tea.Cmd) {
 	opts := sprintTransitions[status]
 	if len(opts) == 0 {
-		m.status = noticeText("Keine Sprint-Übergänge ab '" + status + "'")
+		m.status = noticeText("No sprint transitions from '" + status + "'")
 		return m, nil
 	}
 	m.sprintPick = true
@@ -449,12 +449,12 @@ func (m model) openSprintStatus(id int, status string) (tea.Model, tea.Cmd) {
 // der Refresh-Kontext (0 wenn kein Sprint geladen).
 func (m model) openIssueStatus(it *api.Issue, sprintID int) (tea.Model, tea.Cmd) {
 	if it == nil {
-		m.status = "Kein Issue gewählt"
+		m.status = "No issue selected"
 		return m, nil
 	}
 	opts := allowedManualStatuses(it.Status)
 	if len(opts) == 0 {
-		m.status = noticeText("Keine manuellen Übergänge ab '" + it.Status + "' (passed/rejected via Review)")
+		m.status = noticeText("No manual transitions from '" + it.Status + "' (passed/rejected via Review)")
 		return m, nil
 	}
 	m.statusPick = true
@@ -482,7 +482,7 @@ func (m model) openMilestoneStatusFor(ms *api.Milestone) (tea.Model, tea.Cmd) {
 	}
 	opts := milestoneTransitions[ms.Status]
 	if len(opts) == 0 {
-		m.status = noticeText("Keine Meilenstein-Übergänge ab '" + ms.Status + "'")
+		m.status = noticeText("No milestone transitions from '" + ms.Status + "'")
 		return m, nil
 	}
 	m.msPick = true
@@ -527,7 +527,7 @@ func (m model) keyMilestoneStatus(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.status = ""
 			return m, nil
 		}
-		m.status = "Meilenstein → " + target + " …"
+		m.status = "Milestone → " + target + " …"
 		return m, doMilestoneStatus(m.client, m.msTargetID, target)
 	}
 	return m, nil
@@ -551,7 +551,7 @@ func (m model) keyMilestoneCascade(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "y", "Y", "enter":
 		m.mcConfirm = false
-		m.status = "Meilenstein wird kaskadierend abgeschlossen …"
+		m.status = "Closing milestone cascading …"
 		return m, doMilestoneCascadeComplete(m.client, m.mcID)
 	case "n", "N", "esc", "q":
 		m.mcConfirm = false
@@ -588,7 +588,7 @@ func (m *model) filterOptsFor(depth int) []filterOpt {
 		for _, ms := range m.milestones {
 			add(ms.Status, ms.Status)
 		}
-		opts = append(opts, filterOpt{deferredKey, "zurückgestellte zeigen"})
+		opts = append(opts, filterOpt{deferredKey, "show deferred"})
 	case 1:
 		if ms := m.selMilestone(); ms != nil {
 			for _, s := range ms.Sprints {

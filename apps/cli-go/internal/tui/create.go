@@ -20,17 +20,17 @@ func RunIssueCreateForm() (*api.IssueCreateBody, []string, error) {
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().
-				Title("Titel").
-				Placeholder("Kurze Beschreibung des Issues").
+				Title("Title").
+				Placeholder("Short description of the issue").
 				Value(&body.Title).
 				Validate(func(s string) error {
 					if s == "" {
-						return fmt.Errorf("Titel darf nicht leer sein")
+						return fmt.Errorf("Title must not be empty")
 					}
 					return nil
 				}),
 			huh.NewSelect[string]().
-				Title("Typ").
+				Title("Type").
 				Options(
 					huh.NewOption("Feature", "feature"),
 					huh.NewOption("Bug", "bug"),
@@ -39,16 +39,16 @@ func RunIssueCreateForm() (*api.IssueCreateBody, []string, error) {
 				).
 				Value(&typeStr),
 			huh.NewSelect[string]().
-				Title("Priorität").
+				Title("Priority").
 				Options(
-					huh.NewOption("P1 — Kritisch", "1"),
-					huh.NewOption("P2 — Hoch", "2"),
-					huh.NewOption("P3 — Mittel", "3"),
-					huh.NewOption("P4 — Niedrig", "4"),
+					huh.NewOption("P1 — Critical", "1"),
+					huh.NewOption("P2 — High", "2"),
+					huh.NewOption("P3 — Medium", "3"),
+					huh.NewOption("P4 — Low", "4"),
 				).
 				Value(&prioStr),
 			huh.NewText().Title("PO-Notes (optional)").Value(&desc),
-			huh.NewText().Title("User-Stories (eine pro Zeile, optional)").Value(&stories),
+			huh.NewText().Title("User stories (one per line, optional)").Value(&stories),
 		),
 	)
 

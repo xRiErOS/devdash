@@ -92,7 +92,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 		m.ilist.setLen(len(m.visIssues()))
-		m.status = noticeText("Daten neu geladen")
+		m.status = noticeText("Data reloaded")
 		m.statusSeq++
 		return m, statusTimeout(m.statusSeq)
 	case sprintMsg:
@@ -197,7 +197,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	case deleteDoneMsg:
-		m.status = noticeText("Gelöscht: " + msg.name)
+		m.status = noticeText("Deleted: " + msg.name)
 		if msg.kind == "issue" { // DD2-65: in-place aus den Caches, kein View-Wechsel
 			m.removeIssueFromCaches(msg.id)
 			m.detailFocus = false // Detail-Fokus zeigte auf das gelöschte Issue
@@ -215,14 +215,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.curSprint != nil {
 			m.rlist.setLen(len(m.curSprint.Items))
 		}
-		m.status = noticeText("Rework fertig → Issue ist to_review, jetzt a:pass")
+		m.status = noticeText("Rework done → issue is to_review, now a:pass")
 		return m, nil
 	case reviewSubmittedMsg: // DD2-44: Review-Pass markiert (review_submitted_at)
 		m.curSprint = msg.sprint
 		if m.curSprint != nil {
 			m.rlist.setLen(len(m.curSprint.Items))
 		}
-		m.status = noticeText("Review-Pass markiert — Sprint wartet auf PO-Abschluss (C)")
+		m.status = noticeText("Review pass marked — sprint waiting for PO completion (C)")
 		return m, nil
 	case completeDoneMsg: // DD2-45: Sprint abgeschlossen + Ergebnis-Handover geyankt
 		m.curSprint = msg.sprint
@@ -230,9 +230,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.rlist.setLen(len(m.curSprint.Items))
 		}
 		if msg.yanked {
-			m.status = noticeText("Sprint abgeschlossen — Ergebnis-Handover in Zwischenablage")
+			m.status = noticeText("Sprint completed — result handover in clipboard")
 		} else {
-			m.status = noticeText("Sprint abgeschlossen (Handover-Yank fehlgeschlagen)")
+			m.status = noticeText("Sprint completed (handover yank failed)")
 		}
 		return m, nil
 	case tagsLoadedMsg: // DD2-75: Tag-Manager-Liste

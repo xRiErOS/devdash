@@ -65,7 +65,7 @@ func (m model) keyDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil // erst Counts abwarten
 		}
 		m.delConfirm = false
-		m.status = "Lösche " + m.delName + " …"
+		m.status = "Deleting " + m.delName + " …"
 		if m.delKind == "issue" { // DD2-65: einzelnes Issue, kein Cascade
 			return m, doDeleteIssue(m.client, m.delID, m.delName)
 		}
@@ -77,29 +77,29 @@ func (m model) keyDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // deleteBox rendert den Confirm-Dialog (rot = destruktiv).
 func (m model) deleteBox() string {
 	var b strings.Builder
-	head := "Meilenstein löschen"
+	head := "Delete milestone"
 	switch m.delKind {
 	case "sprint":
-		head = "Sprint löschen"
+		head = "Delete sprint"
 	case "issue":
-		head = "Issue löschen"
+		head = "Delete issue"
 	}
 	b.WriteString(lipgloss.NewStyle().Foreground(theme.Red).Bold(true).Render(head) + "\n")
 	b.WriteString(theme.Header.Render(truncate(m.delName, 40)) + "\n\n")
 	if m.delKind == "issue" { // DD2-65: kein Cascade — schlichtes Confirm
-		b.WriteString(theme.Dim.Render("Das Issue wird dauerhaft gelöscht.") + "\n")
-		b.WriteString("\n" + lipgloss.NewStyle().Foreground(theme.Red).Render("Unwiderruflich.") + "\n")
+		b.WriteString(theme.Dim.Render("The issue will be permanently deleted.") + "\n")
+		b.WriteString("\n" + lipgloss.NewStyle().Foreground(theme.Red).Render("Irreversible.") + "\n")
 	} else if m.delLoading {
-		b.WriteString(theme.Dim.Render("(lädt Umfang …)") + "\n")
+		b.WriteString(theme.Dim.Render("(loading scope …)") + "\n")
 	} else {
-		b.WriteString("Mitgelöscht wird:\n")
+		b.WriteString("Also deleted:\n")
 		if m.delKind == "milestone" {
 			b.WriteString(fmt.Sprintf("  %d Sprint(s)\n", m.delSprints))
 		}
 		b.WriteString(fmt.Sprintf("  %d Issue(s)\n", m.delIssues))
 		b.WriteString(fmt.Sprintf("  %d Dokument(e)\n", m.delDocs))
-		b.WriteString("\n" + lipgloss.NewStyle().Foreground(theme.Red).Render("Unwiderruflich.") + "\n")
+		b.WriteString("\n" + lipgloss.NewStyle().Foreground(theme.Red).Render("Irreversible.") + "\n")
 	}
-	b.WriteString("\n" + theme.Dim.Render("y: endgültig löschen   esc/n: abbrechen"))
+	b.WriteString("\n" + theme.Dim.Render("y: delete permanently   esc/n: cancel"))
 	return modalBox(b.String(), clampModalWidth(48, m.width), theme.Red)
 }

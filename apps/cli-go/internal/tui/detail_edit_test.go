@@ -18,7 +18,7 @@ func TestKopfSectionEditable(t *testing.T) {
 	if len(secs) < 3 {
 		t.Fatalf("erwartet Übersicht + 2 Content-Sektionen, got %d", len(secs))
 	}
-	if secs[0].title != "Übersicht" {
+	if secs[0].title != "Overview" {
 		t.Fatalf("Fokus-Section 0 = %q, want Übersicht", secs[0].title)
 	}
 	want := map[string]string{"title": "input", "type": "select", "priority": "select"}
@@ -122,8 +122,8 @@ func TestIssueUpdatedMsgMergesFilterCache(t *testing.T) {
 
 // D05: Update-Fehler → errNote rot (kein Cache-Schreiben).
 func TestIssueUpdatedMsgErrorSetsErrNote(t *testing.T) {
-	mi, _ := treeModel().Update(issueUpdatedMsg{err: "darf nicht leer sein"})
-	if got := mi.(model).errNote; got != "darf nicht leer sein" {
+	mi, _ := treeModel().Update(issueUpdatedMsg{err: "must not be empty"})
+	if got := mi.(model).errNote; got != "must not be empty" {
 		t.Errorf("errNote=%q, want Fehlertext", got)
 	}
 }
@@ -147,9 +147,9 @@ func TestMergeIssueCore(t *testing.T) {
 
 // currentFieldValue liefert den Preset je Contract-Feld (Strings + Priority als Zahl-String).
 func TestCurrentFieldValue(t *testing.T) {
-	g := "Ziel"
+	g := "Target"
 	it := api.Issue{Title: "T", Type: "bug", Priority: 3, Goal: &g}
-	cases := map[string]string{"title": "T", "type": "bug", "priority": "3", "goal": "Ziel", "po_notes": ""}
+	cases := map[string]string{"title": "T", "type": "bug", "priority": "3", "goal": "Target", "po_notes": ""}
 	for k, want := range cases {
 		if got := currentFieldValue(it, k); got != want {
 			t.Errorf("currentFieldValue(%q)=%q, want %q", k, got, want)
@@ -180,10 +180,10 @@ func TestEditFormEscCancels(t *testing.T) {
 // editField-Editoren je Feldtyp: input/text/select.
 func TestBuildEditFieldFormByEditor(t *testing.T) {
 	for _, f := range []detailField{
-		{key: "title", label: "Titel", editor: "input"},
+		{key: "title", label: "Title", editor: "input"},
 		{key: "goal", label: "Goal", editor: "text"},
-		{key: "type", label: "Typ", editor: "select"},
-		{key: "priority", label: "Priorität", editor: "select"},
+		{key: "type", label: "Type", editor: "select"},
+		{key: "priority", label: "Priority", editor: "select"},
 	} {
 		if form := buildEditFieldForm(f, "x"); form == nil {
 			t.Errorf("buildEditFieldForm(%q) = nil", f.key)

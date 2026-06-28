@@ -36,7 +36,7 @@ func TestAssignSprintMenuBlockLayout(t *testing.T) {
 	if !strings.Contains(out, "4 Issues") {
 		t.Errorf("Issue-Count fehlt: %q", out)
 	}
-	if !strings.Contains(out, "Meilenstein:") || !strings.Contains(out, "42") {
+	if !strings.Contains(out, "Milestone:") || !strings.Contains(out, "42") {
 		t.Errorf("Meilenstein-Zeile (mit ID) fehlt: %q", out)
 	}
 	// Titel umbricht → das Titel-Ende steht auf einer Folgezeile.
@@ -45,7 +45,7 @@ func TestAssignSprintMenuBlockLayout(t *testing.T) {
 		t.Errorf("Titel-Ende nach Umbruch fehlt: %q", flat)
 	}
 	// Sprint ohne Meilenstein wird sauber gelabelt.
-	if !strings.Contains(out, "kein Meilenstein") {
+	if !strings.Contains(out, "no milestone") {
 		t.Errorf("Sprint ohne Meilenstein nicht gelabelt: %q", out)
 	}
 }

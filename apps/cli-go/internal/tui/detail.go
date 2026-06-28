@@ -38,9 +38,9 @@ func (m model) focusedIssue() *api.Issue {
 // kommt zur Edit-Zeit aus currentFieldValue.
 func kopfFields() []detailField {
 	return []detailField{
-		{"title", "Titel", "input"},
-		{"type", "Typ", "select"},
-		{"priority", "Priorität", "select"},
+		{"title", "Title", "input"},
+		{"type", "Type", "select"},
+		{"priority", "Priority", "select"},
 	}
 }
 
@@ -53,7 +53,7 @@ func (m model) focusSections() []accordionSection {
 		return nil
 	}
 	_, _, _, rw, _ := m.treeLayout()
-	secs := []accordionSection{{title: "Übersicht", fields: kopfFields()}}
+	secs := []accordionSection{{title: "Overview", fields: kopfFields()}}
 	return append(secs, m.issueSections(*it, rw-4)...)
 }
 

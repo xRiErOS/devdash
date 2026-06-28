@@ -469,7 +469,7 @@ func doCreateIssue(c *api.Client, body api.IssueCreateBody, stories []string) te
 		}
 		for _, s := range stories {
 			if _, err := c.AddUserStory(it.ID, s, ""); err != nil {
-				return noticeMsg{it.Key + " angelegt, User-Story fehlgeschlagen: " + cleanAPIErr(err)}
+				return noticeMsg{it.Key + " created, user story failed: " + cleanAPIErr(err)}
 			}
 		}
 		return createdMsg{"issue", it.Key + " " + it.Title}
@@ -487,7 +487,7 @@ func doCreateMilestone(c *api.Client, body api.MilestoneCreateBody, tagIDs []int
 		}
 		if len(tagIDs) > 0 {
 			if _, err := c.SetMilestoneTags(ms.ID, tagIDs); err != nil {
-				return noticeMsg{"Meilenstein angelegt, Tags fehlgeschlagen: " + cleanAPIErr(err)}
+				return noticeMsg{"Milestone created, tags failed: " + cleanAPIErr(err)}
 			}
 		}
 		return createdMsg{"milestone", ms.Name}
@@ -504,7 +504,7 @@ func doCreateSprint(c *api.Client, body api.SprintCreateBody, tagIDs []int) tea.
 		}
 		if len(tagIDs) > 0 {
 			if _, err := c.SetSprintTags(s.ID, tagIDs); err != nil {
-				return noticeMsg{"Sprint angelegt, Tags fehlgeschlagen: " + cleanAPIErr(err)}
+				return noticeMsg{"Sprint created, tags failed: " + cleanAPIErr(err)}
 			}
 		}
 		return createdMsg{"sprint", s.Name}

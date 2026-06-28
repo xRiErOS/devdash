@@ -54,7 +54,7 @@ func subhead(label, val string) string {
 // leere, aber editierbare Felder kenntlich machen — enter ergänzt sie).
 func placeholderOr(s string) string {
 	if strings.TrimSpace(s) == "" {
-		return theme.Muted.Render("(leer)") // kurz: bricht in schmaler Spalte nicht um
+		return theme.Muted.Render("(empty)") // kurz: bricht in schmaler Spalte nicht um
 	}
 	return s
 }
@@ -79,15 +79,15 @@ func (m model) issueSections(it api.Issue, bodyW int) []accordionSection {
 		left = append(left, wrapText(subhead("Goal", placeholderOr(goal)), gw[0]))
 		fields = append(fields, detailField{"goal", "Goal", "text"})
 		if desc != "" {
-			left = append(left, wrapText(subhead("Beschreibung", desc), gw[0]))
-			fields = append(fields, detailField{"description", "Beschreibung", "text"})
+			left = append(left, wrapText(subhead("Description", desc), gw[0]))
+			fields = append(fields, detailField{"description", "Description", "text"})
 		}
 		right := wrapText(subhead("PO-Notes", placeholderOr(po)), gw[1])
 		fields = append(fields, detailField{"po_notes", "PO-Notes", "text"})
 		body := grid(bodyW, 2,
 			gridCell{weight: 3, content: strings.Join(left, "\n\n")},
 			gridCell{weight: 2, content: right})
-		secs = append(secs, accordionSection{"Goal / Beschreibung ∙ PO-Notes", body, fields})
+		secs = append(secs, accordionSection{"Goal / Description ∙ PO notes", body, fields})
 	}
 
 	// Sektion 2: Background + Context Notes (einspaltig).
@@ -145,7 +145,7 @@ func (m model) issueSections(it api.Issue, bodyW int) []accordionSection {
 // Body nur über Chevron + Mauve/Muted-FG + Einrückung unterschieden.
 func renderAccordion(secs []accordionSection, open, w int, focus detailFocusView) string {
 	if len(secs) == 0 {
-		return theme.Dim.Render("(keine Detail-Felder)")
+		return theme.Dim.Render("(no detail fields)")
 	}
 	headerStyle := lipgloss.NewStyle().Width(w)
 	boxStyle := lipgloss.NewStyle().Width(w - 2).PaddingLeft(2)
@@ -188,7 +188,7 @@ func renderAccordion(secs []accordionSection, open, w int, focus detailFocusView
 // (keine Felder) bekommen einen Hinweis statt eines Streifens.
 func fieldStrip(fields []detailField, active, w int) string {
 	if len(fields) == 0 {
-		return theme.Muted.Render("Felder: (keine editierbaren)")
+		return theme.Muted.Render("Fields: (none editable)")
 	}
 	parts := make([]string, len(fields))
 	for i, f := range fields {
@@ -198,5 +198,5 @@ func fieldStrip(fields []detailField, active, w int) string {
 			parts[i] = theme.Muted.Render(f.label)
 		}
 	}
-	return truncate(theme.Muted.Render("Felder: ")+strings.Join(parts, "  "), w)
+	return truncate(theme.Muted.Render("Fields: ")+strings.Join(parts, "  "), w)
 }

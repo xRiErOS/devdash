@@ -38,7 +38,7 @@ func TestDeleteBoxNoRawAPICall(t *testing.T) {
 			t.Errorf("deleteBox leakt rohen Request-Teil %q: %q", leak, out)
 		}
 	}
-	if !strings.Contains(out, "Issue löschen") {
+	if !strings.Contains(out, "Delete issue") {
 		t.Errorf("erwarteter Confirm-Header fehlt: %q", out)
 	}
 }

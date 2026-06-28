@@ -25,7 +25,7 @@ func TestPriorityOptionsComplete(t *testing.T) {
 // Die gerenderte Priority-editField-Form zeigt ALLE Stufen P1..P5 (PO-Befund:
 // P1/P2 fehlten). Direkter Augenschein-Ersatz über huh Form.View().
 func TestEditPriorityFormShowsAllLevels(t *testing.T) {
-	f := buildEditFieldForm(detailField{key: "priority", label: "Priorität", editor: "select"}, "2")
+	f := buildEditFieldForm(detailField{key: "priority", label: "Priority", editor: "select"}, "2")
 	f.Init()
 	view := ansi.Strip(f.View())
 	for _, p := range []string{"P1", "P2", "P3", "P4", "P5"} {

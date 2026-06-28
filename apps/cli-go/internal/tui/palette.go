@@ -22,18 +22,18 @@ type paletteAction struct {
 func paletteActions(m *model) []paletteAction {
 	acts := []paletteAction{
 		{"create_issue", "Neues Issue anlegen"},
-		{"create_milestone", "Neuen Meilenstein anlegen"},
-		{"create_sprint", "Neuen Sprint anlegen"},
-		{"create_memory", "Neue Memory anlegen"},
-		{"go_reviews", "Gehe zu: Offene Reviews"},
-		{"go_memory", "Gehe zu: Memory-Browser"},
-		{"go_backlog", "Gehe zu: Backlog"},
-		{"go_tags", "Gehe zu: Tag-Manager"},
+		{"create_milestone", "Create new milestone"},
+		{"create_sprint", "Create new sprint"},
+		{"create_memory", "Create new memory"},
+		{"go_reviews", "Go to: Open reviews"},
+		{"go_memory", "Go to: Memory browser"},
+		{"go_backlog", "Go to: Backlog"},
+		{"go_tags", "Go to: Tag manager"},
 		{"toggle_ranger", "Layout wechseln: Ranger ↔ Tree"},
 		{"test_form", "Test Form"}, // Styling-Sandbox (kein Persist)
 	}
 	if m.global != nil {
-		acts = append(acts, paletteAction{"go_project", "Projekt wechseln"})
+		acts = append(acts, paletteAction{"go_project", "Switch project"})
 	}
 	return acts
 }
@@ -158,7 +158,7 @@ func (m model) paletteBox() string {
 	body := theme.Accent.Render("> ") + m.palQuery + "▏\n"
 	body += theme.Dim.Render(strings.Repeat("─", 44)) + "\n"
 	if len(acts) == 0 {
-		body += theme.Dim.Render("(keine Treffer)") + "\n"
+		body += theme.Dim.Render("(no matches)") + "\n"
 	}
 	body += menuList(len(acts), m.palList.cursor, func(i int, sel bool) string {
 		label := acts[i].label
@@ -167,5 +167,5 @@ func (m model) paletteBox() string {
 		}
 		return label
 	})
-	return modalPanel("Command-Center", body, "tippen: filtern   ↑↓: wählen   enter: ausführen   esc: zu", clampModalWidth(48, m.width), theme.Mauve)
+	return modalPanel("Command-Center", body, "type: filter   ↑↓: select   enter: run   esc: close", clampModalWidth(48, m.width), theme.Mauve)
 }

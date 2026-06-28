@@ -1,13 +1,13 @@
-> devd2: Sprint DD2#9         ctrl+k:Cmd  p:Projekt  b:Backlog  R:Reviews  ?:Hilfe  q:Quit
-Status: review   Meilenstein: Meilenstein Eins   Fortschritt: 0/0                         
+> devd2: Sprint DD2#9          ctrl+k:cmd  p:project  b:backlog  R:reviews  ?:help  q:quit
+Status: review   Milestone: Meilenstein Eins   Progress: 0/0                              
  Sprint Neun                                                                             
                                                                                          
  Issues (1):                                                                             
-   Typ  Kennung   Titel                                  Status       Review-Verdikt     
- Ergebnisse                                                                              
-   ⯁ P1 DD2-99    Beispiel-Issue für den Snapshot        to_review    ∙ kein Verdikt   ◉ 
+   Type Key       Title                                  Status       Review verdict     
+ Results                                                                                 
+   ⯁ P1 DD2-99    Beispiel-Issue für den Snapshot        to_review    ∙ no verdict     ◉ 
                                                                                          
- Review-Runden: ✓ 0 passed  ✗ 0 not_passed  ∙ 1 offen  ◉ 1 ohne Ergebnis                 
+ Review rounds: ✓ 0 passed  ✗ 0 not_passed  ∙ 1 open  ◉ 1 without result                 
                                                                                          
 
 
@@ -18,4 +18,4 @@ Status: review   Meilenstein: Meilenstein Eins   Fortschritt: 0/0
 
 
 
-R: Review-Cockpit   m: Meilenstein   y: kopieren   i/k: scrollen   esc/q: zurück
+R: review cockpit   m: milestone   y: copy   i/k: scroll   esc/q: back

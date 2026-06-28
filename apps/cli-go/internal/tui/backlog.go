@@ -25,7 +25,7 @@ type sortOpt struct{ value, label string }
 // backlogSortOpts sind die client-seitigen Sortier-Modi (API hat keinen sort-Param).
 func backlogSortOpts() []sortOpt {
 	return []sortOpt{
-		{"prio", "Priorität (kritisch zuerst)"},
+		{"prio", "Priority (critical first)"},
 		{"created", "Erstelldatum (neueste zuerst)"},
 		{"key", "Anlage-Reihenfolge (id)"},
 	}
@@ -134,12 +134,12 @@ func (m model) openBacklogSort() (tea.Model, tea.Cmd) {
 func (m model) backlogLayout() (head, localKeys string, lw, rw, innerH int) {
 	w := m.termWidth()
 	head = m.breadcrumb("Backlog")
-	hint := "i/k:↑↓  l/→/enter:Detail  /:Suche  f:Filter  s:Sortierung  S:Sprint  d:löschen  t:Tags  b/esc:zurück"
+	hint := "i/k:↑↓  l/→/enter:detail  /:search  f:filter  s:sort  S:sprint  d:delete  t:tags  b/esc:back"
 	switch {
 	case m.blSearching:
-		hint = "tippen: filtern   enter: übernehmen   esc: abbrechen"
+		hint = "type: filter   enter: apply   esc: cancel"
 	case m.detailFocus:
-		hint = "i/k:Section/Feld  l/→:rein  enter:bearbeiten  j/←:zurück  1…n:Section  esc:Liste"
+		hint = "i/k:section/field  l/→:in  enter:edit  j/←:back  1…n:section  esc:list"
 	}
 	localKeys = theme.Muted.Render(wrapText(hint, w))
 	footH := lipgloss.Height(localKeys) + 1 // + 1 Status-Zeile
@@ -185,14 +185,14 @@ func (m model) backlogSearchLine(w int) string {
 	if len(parts) > 0 {
 		return truncate(lipgloss.NewStyle().Foreground(theme.Red).Render(shield+" "+strings.Join(parts, " ")), w)
 	}
-	return truncate(theme.Dim.Render(shield+" /:Suche  f:Filter  s:Sortierung"), w)
+	return truncate(theme.Dim.Render(shield+" /:search  f:filter  s:sort"), w)
 }
 
 // backlogFilterSummary fasst die aktiven Facetten + Nicht-Default-Sortierung kurz.
 func (m model) backlogFilterSummary() string {
 	var p []string
 	if len(m.blfType) > 0 {
-		p = append(p, "Typ:"+joinFilterKeys(m.blfType))
+		p = append(p, "Type:"+joinFilterKeys(m.blfType))
 	}
 	if len(m.blfStatus) > 0 {
 		p = append(p, "St:"+joinFilterKeys(m.blfStatus))
@@ -209,9 +209,9 @@ func (m model) backlogFilterSummary() string {
 // active=false friert ihn ein (Detail-Fokus, D03): Balken bleibt, aber muted.
 func (m model) backlogListBlocks(vis []api.Issue, w int, active bool) [][]string {
 	if len(vis) == 0 {
-		msg := "(leer — neu + geplant ohne Sprint)"
+		msg := "(empty — new + planned without sprint)"
 		if m.blQuery != "" || m.backlogFilterActive() {
-			msg = "(keine Treffer)"
+			msg = "(no matches)"
 		}
 		return [][]string{{theme.Dim.Render(msg)}}
 	}
@@ -303,7 +303,7 @@ func (m model) backlogDetail(it api.Issue, w int) string {
 		b.WriteString("\n" + fieldStrip(kopfFields(), m.fieldCursor, w))
 	}
 	b.WriteString("\n\n")
-	b.WriteString(theme.Muted.Render("Sections: Ziffer [1..n] öffnet  ∙  enter: bearbeiten") + "\n")
+	b.WriteString(theme.Muted.Render("Sections: digit [1..n] opens  ∙  enter: edit") + "\n")
 	// Accordion-Fokus nur, wenn der Cursor auf einer Content-Section steht (secCursor
 	// ≥ 1); sec = secCursor-1 (Übersicht ist Index 0). Wie treeDetail (DD2-76/77).
 	focus := detailFocusView{active: m.detailFocus && m.secCursor >= 1,
@@ -332,7 +332,7 @@ func (m model) viewBacklog() string {
 	if it := m.backlogSelected(); it != nil {
 		detailStr = m.backlogDetail(*it, rw-2)
 	} else {
-		detailStr = theme.Dim.Render("(nichts gewählt)")
+		detailStr = theme.Dim.Render("(nothing selected)")
 	}
 	detail := strings.Split(detailStr, "\n")
 	for i := range detail {
@@ -362,7 +362,7 @@ func (m model) viewBacklog() string {
 // backlogFilterBox rendert das schwebende Facetten-Menü (Checkboxen je Facette).
 func (m model) backlogFilterBox() string {
 	var b strings.Builder
-	b.WriteString(theme.Muted.Render("space:an/aus  c:leeren  enter/esc:fertig") + "\n")
+	b.WriteString(theme.Muted.Render("space:toggle  c:clear  enter/esc:done") + "\n")
 	lastFacet := ""
 	facetHead := map[string]string{"type": "Issue-Type", "status": "Status"}
 	for i, it := range m.blfItems {
@@ -404,7 +404,7 @@ func (m model) backlogSortBox() string {
 		}
 		return label
 	})
-	return modalPanel("Backlog sortieren", body, "enter: wählen   esc: abbrechen", clampModalWidth(46, m.width), theme.Mauve)
+	return modalPanel("Sort backlog", body, "enter: select   esc: cancel", clampModalWidth(46, m.width), theme.Mauve)
 }
 
 // --- Key-Handling ---

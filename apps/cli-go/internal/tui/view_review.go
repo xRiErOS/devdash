@@ -129,9 +129,9 @@ func cockpitRow(typePrio, key, title, status, verdikt, rest string) string {
 }
 
 // issueColHeader liefert die Spalten-Überschrift, deckungsgleich mit cockpitRow.
-// Letzte Spalte "Ergebnisse" = result-Indikator (I01, Gate für Sprint-Abschluss).
+// Letzte Spalte "Results" = result-Indikator (I01, Gate für Sprint-Abschluss).
 func issueColHeader() string {
-	return theme.Dim.Render(cockpitRow("Typ", "Kennung", "Titel", "Status", "Review-Verdikt", "Ergebnisse"))
+	return theme.Dim.Render(cockpitRow("Type", "Key", "Title", "Status", "Review verdict", "Results"))
 }
 
 // resultDot zeigt, ob das result-Feld gepflegt ist (grün) oder fehlt (rot).
@@ -150,17 +150,17 @@ func (m model) sprintStatusMenu() string {
 		s := m.spopts[i]
 		label := statusText(s)
 		if s == "completed" {
-			label = statusText(s) + theme.Dim.Render(" (prüft passed-Reviews)")
+			label = statusText(s) + theme.Dim.Render(" (checks passed reviews)")
 		}
 		if sel {
 			label = theme.Header.Render(s)
 			if s == "completed" {
-				label = theme.Header.Render(s) + theme.Dim.Render(" (prüft passed-Reviews)")
+				label = theme.Header.Render(s) + theme.Dim.Render(" (checks passed reviews)")
 			}
 		}
 		return label
 	})
-	return modalPanel("Sprint-Status setzen", body, "enter: setzen   esc: abbrechen", clampModalWidth(40, m.width), theme.Mauve)
+	return modalPanel("Set sprint status", body, "enter: set   esc: cancel", clampModalWidth(40, m.width), theme.Mauve)
 }
 
 // reviewBadge zeigt das Review-Verdikt (review_feedback) je Issue — sichtbar
@@ -173,7 +173,7 @@ func reviewBadge(it api.Issue) string {
 	case "not_passed":
 		return lipgloss.NewStyle().Foreground(theme.Red).Render("✗ not_passed")
 	default:
-		return theme.Dim.Render("∙ kein Verdikt")
+		return theme.Dim.Render("∙ no verdict")
 	}
 }
 
@@ -269,12 +269,12 @@ func (m model) reviewSummary() string {
 	parts := []string{
 		lipgloss.NewStyle().Foreground(theme.Green).Render(fmt.Sprintf("✓ %d passed", passed)),
 		lipgloss.NewStyle().Foreground(theme.Red).Render(fmt.Sprintf("✗ %d not_passed", rejected)),
-		theme.Dim.Render(fmt.Sprintf("∙ %d offen", pending)),
+		theme.Dim.Render(fmt.Sprintf("∙ %d open", pending)),
 	}
 	if missingResult > 0 {
-		parts = append(parts, lipgloss.NewStyle().Foreground(theme.Red).Render(fmt.Sprintf("◉ %d ohne Ergebnis", missingResult)))
+		parts = append(parts, lipgloss.NewStyle().Foreground(theme.Red).Render(fmt.Sprintf("◉ %d without result", missingResult)))
 	}
-	head := theme.Dim.Render("Review-Runden: ")
+	head := theme.Dim.Render("Review rounds: ")
 	if sprintReviewReady(m.curSprint) {
 		head = lipgloss.NewStyle().Foreground(theme.Green).Bold(true).Render("★ Abschluss-bereit (C: PO) — ")
 	}
@@ -300,7 +300,7 @@ func (m model) userStoryModal() string {
 	}
 	b.WriteString("\n" + theme.Dim.Render(fmt.Sprintf("User-Stories (%d):", len(m.usList))) + "\n")
 	if len(m.usList) == 0 {
-		b.WriteString(theme.Dim.Render("(keine — lädt oder keine vorhanden)") + "\n")
+		b.WriteString(theme.Dim.Render("(none — loading or none present)") + "\n")
 	}
 	for i, us := range m.usList {
 		cursor := "  "
@@ -311,7 +311,7 @@ func (m model) userStoryModal() string {
 		}
 		b.WriteString(cursor + usVerdictBox(us.Verdict) + " " + truncate(t, 50) + "\n")
 	}
-	b.WriteString("\n" + theme.Dim.Render("a:accept  r:reject  o:open  i/k:↑↓  enter/esc:schließen"))
+	b.WriteString("\n" + theme.Dim.Render("a:accept  r:reject  o:open  i/k:↑↓  enter/esc:close"))
 	return modalBox(b.String(), modalBoxWidth(m.width), theme.Mauve)
 }
 
@@ -328,7 +328,7 @@ func usVerdictBox(v string) string {
 
 // reviewHints zeigt nur die im aktuellen Zustand gültigen Aktionen.
 func (m model) reviewHints() string {
-	hints := []string{"i/k:↑↓", "1-n:Section", "ctrl+d/u:scroll", "enter:Abnahme", "s:Status", "r:Ergebnis", "a:pass", "x:reject"}
+	hints := []string{"i/k:↑↓", "1-n:Section", "ctrl+d/u:scroll", "enter:Abnahme", "s:status", "r:result", "a:pass", "x:reject"}
 	if it := m.reviewItem(); it != nil {
 		if it.Status == "to_review" {
 			hints = append(hints, "o:reopen")
@@ -337,16 +337,16 @@ func (m model) reviewHints() string {
 		}
 	}
 	if m.curSprint != nil {
-		hints = append(hints, "P:Review-Pass", "S:Sprint-Status")
+		hints = append(hints, "P:Review-Pass", "S:sprint-status")
 		if m.curSprint.Status == "review" {
-			c := "C:abschließen(PO)"
+			c := "C:complete(PO)"
 			if sprintReviewReady(m.curSprint) { // DD2-70: bereit → prominent
-				c = "★C:abschließen(PO)"
+				c = "★C:complete(PO)"
 			}
 			hints = append(hints, c)
 		}
 	}
-	hints = append(hints, "q:zurück")
+	hints = append(hints, "q:back")
 	return strings.Join(hints, "  ")
 }
 
@@ -366,7 +366,7 @@ func (m model) statusMenu() string {
 		}
 		return mark + label
 	})
-	return modalPanel("Status setzen", body, "enter: setzen   esc: abbrechen", clampModalWidth(30, m.width), theme.Mauve)
+	return modalPanel("Set status", body, "enter: set   esc: cancel", clampModalWidth(30, m.width), theme.Mauve)
 }
 
 // noticeText färbt einen transienten Hinweis in Sapphire (gültige Aktionen/Fehler).
@@ -378,10 +378,10 @@ func noticeText(s string) string {
 
 // filterBox rendert das schwebende Filter-Modal (kompakt, wird zentriert overlaid).
 func (m model) filterBox() string {
-	col := []string{"Meilensteine", "Sprints", "Issues"}[clampInt(m.ftarget, 0, 2)]
-	body := theme.Dim.Render("space: an/aus   enter/esc: schließen") + "\n\n"
+	col := []string{"Milestones", "Sprints", "Issues"}[clampInt(m.ftarget, 0, 2)]
+	body := theme.Dim.Render("space: toggle   enter/esc: close") + "\n\n"
 	if len(m.fopts) == 0 {
-		body += theme.Dim.Render("(keine Werte)") + "\n"
+		body += theme.Dim.Render("(no values)") + "\n"
 	}
 	fs := m.filterFor(m.ftarget)
 	body += menuList(len(m.fopts), m.fcur.cursor, func(i int, sel bool) string {

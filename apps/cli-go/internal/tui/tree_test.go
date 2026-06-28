@@ -319,7 +319,7 @@ func TestTreeSearchLineActiveRed(t *testing.T) {
 		t.Errorf("aktiver Filter nicht rot\n got: %q\nwant: %q", got, want)
 	}
 	m.treeQuery = ""
-	if got := ansi.Strip(m.treeSearchLine(40)); !strings.Contains(got, "Suchen mit /") {
+	if got := ansi.Strip(m.treeSearchLine(40)); !strings.Contains(got, "search with /") {
 		t.Errorf("inaktiv sollte Hint zeigen, got %q", got)
 	}
 }

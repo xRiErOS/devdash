@@ -123,7 +123,7 @@ func TestFlatRenderMilestoneFields(t *testing.T) {
 	node := m.treeNodes()[0]
 	raw := m.treeDetail(node, 60)
 	out := ansi.Strip(raw)
-	for _, lbl := range []string{"Name", "Beschreibung", "Ziel-Datum"} {
+	for _, lbl := range []string{"Name", "Description", "Target date"} {
 		if !strings.Contains(out, lbl) {
 			t.Errorf("flache Liste fehlt Label %q: %q", lbl, out)
 		}
@@ -135,7 +135,7 @@ func TestFlatRenderMilestoneFields(t *testing.T) {
 			barLine = l
 		}
 	}
-	if !strings.Contains(barLine, "Beschreibung") {
+	if !strings.Contains(barLine, "Description") {
 		t.Errorf("D08-Balken nicht an aktivem Feld 'Beschreibung': %q", barLine)
 	}
 }

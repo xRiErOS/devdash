@@ -24,12 +24,12 @@ func TestScreenTitlePrefix(t *testing.T) {
 
 func TestMetaGridOrderAndDropsEmpty(t *testing.T) {
 	out := ansi.Strip(metaGrid([]hslot{
-		{"Status", "passed"}, {"Meilenstein", ""}, {"Fortschritt", "2/3"},
+		{"Status", "passed"}, {"Milestone", ""}, {"Progress", "2/3"},
 	}, 200))
-	if strings.Contains(out, "Meilenstein") {
+	if strings.Contains(out, "Milestone") {
 		t.Errorf("leerer Slot nicht entfernt: %q", out)
 	}
-	si, fi := strings.Index(out, "Status"), strings.Index(out, "Fortschritt")
+	si, fi := strings.Index(out, "Status"), strings.Index(out, "Progress")
 	if si < 0 || fi < 0 || si > fi {
 		t.Errorf("Slot-Reihenfolge falsch (Status vor Fortschritt): %q", out)
 	}

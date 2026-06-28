@@ -22,7 +22,7 @@ import (
 func detailFocusModel() model {
 	m := treeModel() // M1 → S1(id10) S2(id11)
 	m.treeExpMile[1] = true
-	g, d, po, bg := "Ziel", "Beschr", "PO sagt", "Hintergrund"
+	g, d, po, bg := "Target", "Beschr", "PO sagt", "Hintergrund"
 	m.treeIssues[10] = []api.Issue{{
 		Key: "DD2-1", Title: "A", Type: "bug", Priority: 1, Status: "in_progress",
 		Goal: &g, Description: &d, PoNotes: &po, Background: &bg,
@@ -298,15 +298,15 @@ func TestAccordionFieldStrip(t *testing.T) {
 	secs := []accordionSection{
 		{title: "Eins", body: "B1", fields: []detailField{
 			{key: "goal", label: "Goal", editor: "text"},
-			{key: "description", label: "Beschreibung", editor: "text"},
+			{key: "description", label: "Description", editor: "text"},
 		}},
 	}
 	focus := detailFocusView{active: true, level: 1, sec: 0, field: 1}
 	out := ansi.Strip(renderAccordion(secs, 1, 60, focus))
-	if !strings.Contains(out, "Felder:") {
+	if !strings.Contains(out, "Fields:") {
 		t.Errorf("Feld-Streifen fehlt: %q", out)
 	}
-	if !strings.Contains(out, "Beschreibung") {
+	if !strings.Contains(out, "Description") {
 		t.Errorf("aktives Feld 'Beschreibung' nicht im Streifen: %q", out)
 	}
 }

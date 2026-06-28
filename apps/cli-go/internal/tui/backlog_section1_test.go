@@ -16,7 +16,7 @@ import (
 func TestSection1AlwaysPresent(t *testing.T) {
 	it := api.Issue{Key: "DD2-9", Title: "Leer", Type: "bug", Priority: 1, Status: "new"}
 	secs := (model{}).issueSections(it, 60)
-	if len(secs) == 0 || secs[0].title != "Goal / Beschreibung ∙ PO-Notes" {
+	if len(secs) == 0 || secs[0].title != "Goal / Description ∙ PO notes" {
 		t.Fatalf("Section 1 fehlt bei feldlosem Issue: %+v", secs)
 	}
 	keys := make([]string, len(secs[0].fields))

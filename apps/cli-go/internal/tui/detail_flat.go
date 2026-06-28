@@ -23,8 +23,8 @@ import (
 func milestoneFields() []detailField {
 	return []detailField{
 		{"name", "Name", "input"},
-		{"description", "Beschreibung", "text"},
-		{"target_date", "Ziel-Datum", "input"},
+		{"description", "Description", "text"},
+		{"target_date", "Target date", "input"},
 	}
 }
 
@@ -233,7 +233,7 @@ func renderFlatFields(fields []detailField, values []string, active int, focused
 		b.WriteString(truncate(head, w) + "\n")
 		val := values[i]
 		if strings.TrimSpace(val) == "" {
-			val = theme.Dim.Render("(leer)")
+			val = theme.Dim.Render("(empty)")
 		}
 		b.WriteString(boxStyle.Render(wrapText(val, w-2)) + "\n")
 	}

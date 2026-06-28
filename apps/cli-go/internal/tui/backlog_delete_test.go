@@ -74,7 +74,7 @@ func TestDeleteBoxIssueHeader(t *testing.T) {
 	m := backlogMDModel()
 	mi, _ := m.keyBacklog(key("d"))
 	out := mi.(model).deleteBox()
-	if !strings.Contains(out, "Issue löschen") {
+	if !strings.Contains(out, "Delete issue") {
 		t.Errorf("deleteBox sollte 'Issue löschen' zeigen: %q", out)
 	}
 }

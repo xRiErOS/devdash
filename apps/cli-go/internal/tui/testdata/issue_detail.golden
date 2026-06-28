@@ -1,5 +1,5 @@
-> devd2: Issue DD2-99         ctrl+k:Cmd  p:Projekt  b:Backlog  R:Reviews  ?:Hilfe  q:Quit
-Status: to_review   Typ: ⯁ bug   Prio: P1                                                 
+> devd2: Issue DD2-99          ctrl+k:cmd  p:project  b:backlog  R:reviews  ?:help  q:quit
+Status: to_review   Type: ⯁ bug   Prio: P1                                                
  Beispiel-Issue für den Snapshot                                                      
                                                                                       
  Goal:                                                                                
@@ -18,4 +18,4 @@ Status: to_review   Typ: ⯁ bug   Prio: P1
 
 
 
-s: Status   i/k: scrollen   g/G: Anfang/Ende   esc/q: zurück
+s: status   i/k: scroll   g/G: start/end   esc/q: back
