@@ -203,31 +203,73 @@ func (m model) backlogFilterSummary() string {
 	return strings.Join(p, " ")
 }
 
-// backlogListLines rendert die (gefilterte) Issue-Liste mit Cursor. active=false
-// friert den Cursor ein (Detail-Fokus, D03): Balken bleibt, aber muted.
-func (m model) backlogListLines(vis []api.Issue, w int, active bool) []string {
+// backlogListBlocks rendert die (gefilterte) Issue-Liste als EINEN Block je Issue
+// (DD2-134): icon+prio+key+Titel, ANSI-sicher auf w umgebrochen (kein …-Truncate,
+// Review-Befund #2). Der Cursor-Block bekommt auf jeder Zeile den D08-Balken;
+// active=false friert ihn ein (Detail-Fokus, D03): Balken bleibt, aber muted.
+func (m model) backlogListBlocks(vis []api.Issue, w int, active bool) [][]string {
 	if len(vis) == 0 {
+		msg := "(leer — neu + geplant ohne Sprint)"
 		if m.blQuery != "" || m.backlogFilterActive() {
-			return []string{theme.Dim.Render("(keine Treffer)")}
+			msg = "(keine Treffer)"
 		}
-		return []string{theme.Dim.Render("(leer — neu + geplant ohne Sprint)")}
+		return [][]string{{theme.Dim.Render(msg)}}
 	}
-	lines := make([]string, 0, len(vis))
+	blocks := make([][]string, len(vis))
 	for i, it := range vis {
 		raw := theme.TypeIcon(it.Type) + " " + theme.Priority(it.Priority) + " " +
 			theme.Key.Render(it.Key) + " " + it.Title
+		lines := strings.Split(wrapText(raw, w-1), "\n") // ANSI-sicher umbrochen
 		if i == m.blist.cursor {
-			plain := truncate(ansi.Strip(raw), w-1)
-			if active {
-				lines = append(lines, theme.Accent.Render("▌"+plain))
-			} else {
-				lines = append(lines, theme.Dim.Render("▌"+plain))
+			for j := range lines {
+				plain := truncate(ansi.Strip(lines[j]), w-1)
+				if active {
+					lines[j] = theme.Accent.Render("▌" + plain)
+				} else {
+					lines[j] = theme.Dim.Render("▌" + plain)
+				}
 			}
 		} else {
-			lines = append(lines, " "+truncate(raw, w-1))
+			for j := range lines {
+				lines[j] = " " + truncate(lines[j], w-1)
+			}
+		}
+		blocks[i] = lines
+	}
+	return blocks
+}
+
+// windowBlocks fenstert variabel hohe Blöcke auf height Zeilen, sodass der Cursor-
+// Block stets vollständig sichtbar bleibt (wächst symmetrisch um den Cursor). Liefert
+// die geflachte Zeilenliste. Block-bewusstes Pendant zu windowAround (DD2-134).
+func windowBlocks(blocks [][]string, height, cursor int) []string {
+	if len(blocks) == 0 {
+		return nil
+	}
+	cursor = clampInt(cursor, 0, len(blocks)-1)
+	lo, hi := cursor, cursor
+	used := len(blocks[cursor])
+	for {
+		grew := false
+		if hi+1 < len(blocks) && used+len(blocks[hi+1]) <= height {
+			hi++
+			used += len(blocks[hi])
+			grew = true
+		}
+		if lo-1 >= 0 && used+len(blocks[lo-1]) <= height {
+			lo--
+			used += len(blocks[lo])
+			grew = true
+		}
+		if !grew {
+			break
 		}
 	}
-	return lines
+	var out []string
+	for i := lo; i <= hi; i++ {
+		out = append(out, blocks[i]...)
+	}
+	return out
 }
 
 // backlogDetail rendert die Detail-Preview des selektierten Issues: detailTitle +
@@ -279,7 +321,7 @@ func (m model) viewBacklog() string {
 
 	// Linke Pane: Such-/Filterbox als Kopfzeile, darunter die gefensterte Liste.
 	searchLine := m.backlogSearchLine(lw - 2)
-	listLines := windowAround(m.backlogListLines(vis, lw-2, !m.detailFocus), innerH-1, m.blist.cursor)
+	listLines := windowBlocks(m.backlogListBlocks(vis, lw-2, !m.detailFocus), innerH-1, m.blist.cursor)
 	left := append([]string{searchLine}, listLines...)
 	for len(left) < innerH {
 		left = append(left, "")
