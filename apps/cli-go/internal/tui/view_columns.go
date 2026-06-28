@@ -333,9 +333,6 @@ func (m model) viewReview() string {
 	summary := m.reviewSummary()
 	foot := theme.Muted.Render(wrapText(m.reviewHints(), w))
 	statusLine := m.statusBar("")
-	if m.inputting { // Reject-Kommentar-Eingabe ersetzt die Status-Zeile
-		statusLine = theme.Key.Render(m.status) + m.input + "▏"
-	}
 
 	// Pane-Innenhöhe = Gesamthöhe minus Kopf/Summary/Footer/Status/Trennzeilen,
 	// minus 2 für den Pane-Border (der außen wächst → Gesamthöhe = innerH+2).

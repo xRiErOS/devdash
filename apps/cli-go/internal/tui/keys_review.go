@@ -1,10 +1,12 @@
 package tui
 
 import (
+	"fmt"
+	"strings"
+
 	"devd-cli/internal/api"
 	"devd-cli/internal/clip"
 	tea "github.com/charmbracelet/bubbletea"
-	"strings"
 )
 
 func (m model) yankContext() (tea.Model, tea.Cmd) {
@@ -49,9 +51,6 @@ func (m *model) reviewItem() *api.Issue {
 func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.usOpen {
 		return m.keyUserStory(msg)
-	}
-	if m.inputting {
-		return m.keyReviewInput(msg)
 	}
 	if m.statusPick {
 		return m.keyStatusPick(msg)
@@ -136,13 +135,16 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.status = "Pass gesendet …"
 		return m, doVerdict(m.client, it.ID, "passed", "", m.curSprint.ID)
-	case "x": // Reject — analog, Backend validiert
+	case "x": // Reject — DD2-119: mehrzeiliges Kommentar-Modal (US-50) statt Footer-Eingabe
 		if it == nil {
 			return m, nil
 		}
-		m.inputting = true
-		m.input = ""
-		m.status = "Reject comment (enter=send, esc=cancel): "
+		m.rejectIssueID = it.ID
+		m.rejectIssueKey = it.Key
+		if m.curSprint != nil {
+			m.rejectSprintID = m.curSprint.ID
+		}
+		return m.openForm("reject")
 	case "o": // Reopen — direkt aus to_review/passed/rejected (DD2-7). Löst den
 		// Deadlock (passed + letztes Verdikt not_passed) ohne den w:Rework-
 		// Mehrschritt; das Backend öffnet eine frische pending-Runde + Marker-Reset.
@@ -167,6 +169,17 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.status = "Rework: " + it.Status + " → " + strings.Join(path, " → ") + " …"
 		return m, doRework(m.client, it.ID, path, m.curSprint.ID)
+	case "y": // DD2-121: Review-Stand als Markdown in die Zwischenablage (auch vor Abschluss)
+		if m.curSprint == nil {
+			return m, nil
+		}
+		if err := clip.Copy(m.reviewStandClip()); err != nil {
+			m.errNote = "Clipboard-Fehler: " + err.Error()
+		} else {
+			m.errNote = ""
+			m.status = noticeText(fmt.Sprintf("Review state copied (%s, %d issues)", m.curSprint.Key, len(m.curSprint.Items)))
+		}
+		return m, nil
 	case "P": // DD2-44: Review-Pass markieren (review_submitted_at) — „Review-Durchgang
 		// fertig"-Marker. Backend ist idempotent; entsperrt keinen Auto-Close.
 		if m.curSprint == nil {
@@ -199,39 +212,6 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, doSprintComplete(m.client, m.curSprint.ID)
 	}
 	return m, nil
-}
-
-func (m model) keyReviewInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.Type {
-	case tea.KeyEnter:
-		comment := strings.TrimSpace(m.input)
-		m.inputting = false
-		m.input = ""
-		if comment == "" {
-			m.status = noticeText("Reject cancelled — comment was empty")
-			return m, nil
-		}
-		it := m.reviewItem()
-		if it == nil || m.curSprint == nil {
-			return m, nil
-		}
-		m.status = "Reject gesendet …"
-		return m, doVerdict(m.client, it.ID, "not_passed", comment, m.curSprint.ID)
-	case tea.KeyEsc:
-		m.inputting = false
-		m.input = ""
-		m.status = "Reject abgebrochen"
-		return m, nil
-	case tea.KeyBackspace, tea.KeyDelete:
-		if len(m.input) > 0 {
-			r := []rune(m.input)
-			m.input = string(r[:len(r)-1])
-		}
-		return m, nil
-	default:
-		m.input += string(msg.Runes)
-		return m, nil
-	}
 }
 
 func (m model) keyStatusPick(msg tea.KeyMsg) (tea.Model, tea.Cmd) {

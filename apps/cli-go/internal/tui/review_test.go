@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"strings"
 	"testing"
 
 	"devd-cli/internal/api"
@@ -38,32 +39,49 @@ func TestReviewPassDispatch(t *testing.T) {
 	}
 }
 
-func TestReviewRejectNeedsCommentThenDispatches(t *testing.T) {
+func TestReviewRejectOpensMultilineForm(t *testing.T) {
+	// DD2-119/US-50: x öffnet das mehrzeilige Reject-Kommentar-Modal (huh-Form)
+	// statt der alten einzeiligen Footer-Eingabe.
 	m := reviewModel()
-	// x → Eingabemodus
 	mi, _ := m.Update(keyMsg("x"))
 	m = mi.(model)
-	if !m.inputting {
-		t.Fatal("'x' sollte inputting=true setzen")
+	if m.form == nil || m.formKind != "reject" {
+		t.Fatalf("'x' sollte das reject-Formular öffnen (form=%v kind=%q)", m.form != nil, m.formKind)
 	}
-	// leerer Kommentar + enter → kein Dispatch
-	mi, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	m = mi.(model)
-	if cmd != nil {
-		t.Error("leerer Reject-Kommentar darf nicht dispatchen")
-	}
-	// erneut x, Text tippen, enter → Dispatch
-	mi, _ = m.Update(keyMsg("x"))
-	m = mi.(model)
-	mi, _ = m.Update(keyMsg("bitte fixen"))
-	m = mi.(model)
-	mi, cmd = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	m = mi.(model)
-	if cmd == nil {
-		t.Error("Reject mit Kommentar sollte dispatchen")
+	if m.rejectIssueID != 100 || m.rejectSprintID != 10 {
+		t.Errorf("Reject-Kontext falsch: issue=%d sprint=%d, want 100/10", m.rejectIssueID, m.rejectSprintID)
 	}
 	if m.inputting {
-		t.Error("nach enter sollte inputting=false sein")
+		t.Error("inputting darf im neuen Form-Flow nicht mehr gesetzt werden")
+	}
+}
+
+func TestRejectFormCreateCmdDispatches(t *testing.T) {
+	// formCreateCmd("reject") baut bei vorhandenem Kommentar ein not_passed-Verdikt.
+	m := reviewModel()
+	m.formKind = "reject"
+	m.rejectIssueID = 100
+	m.rejectSprintID = 10
+	m.form = buildRejectForm()
+	_ = m.form.Init()
+	// leeres Kommentarfeld → kein Dispatch
+	if cmd := m.formCreateCmd(); cmd != nil {
+		t.Error("leerer Reject-Kommentar darf nicht dispatchen")
+	}
+}
+
+func TestReviewStandClipRendersMarkdown(t *testing.T) {
+	// DD2-121: y rendert den Review-Stand als Markdown-Tabelle (Key/Verdict/Result).
+	m := reviewModel()
+	m.curSprint.Items = []api.Issue{
+		{Key: "SPF-1", Title: "A", Status: "passed", ReviewStatus: strptr("passed"), Result: strptr("done")},
+		{Key: "SPF-2", Title: "B", Status: "to_review"},
+	}
+	out := m.reviewStandClip()
+	for _, want := range []string{"# Review SPF#1", "1 passed", "1 open", "| SPF-1 |", "| SPF-2 |", "| Key | Title |"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("reviewStandClip fehlt %q\n%s", want, out)
+		}
 	}
 }
 

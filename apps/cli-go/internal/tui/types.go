@@ -207,6 +207,12 @@ type model struct {
 	resultIssueKey string
 	resultSprintID int
 
+	// Ziel des Reject-Formulars (DD2-119, US-50): x im Cockpit öffnet das
+	// mehrzeilige Reject-Kommentar-Modal statt der einzeiligen Footer-Eingabe.
+	rejectIssueID  int
+	rejectIssueKey string
+	rejectSprintID int
+
 	// Tree+Detail-Layout-Prototyp (DD2-57): t aus den Columns. Expansions-Sets +
 	// Lazy-Issue-Cache pro Sprint; treeCursor läuft über die geflachte Knotenliste.
 	treeExpMile   map[int]bool
