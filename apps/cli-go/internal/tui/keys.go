@@ -286,10 +286,12 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	}
-	if bindHas(keys.Refresh, k) { // DD2-72: manueller Daten-Reload (Spalten + Sprint-Items)
-		m.curSprint = nil
-		m.status = noticeText("Daten neu geladen")
-		return m, tea.Batch(loadMilestones(m.client), m.syncSprint())
+	if bindHas(keys.Refresh, k) { // DD2-72: manueller Daten-Reload (Spalten + selektierter Sprint)
+		var ids []int
+		if s := m.selSprint(); s != nil {
+			ids = append(ids, s.ID)
+		}
+		return m, doRefresh(m.client, ids)
 	}
 	switch k {
 	case "enter":

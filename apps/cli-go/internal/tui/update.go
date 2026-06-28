@@ -69,6 +69,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.milestones = msg.items
 		m.mlist.setLen(len(m.visMilestonesRaw()))
 		return m, m.syncSprint()
+	case refreshedMsg: // DD2-72 R2: atomarer manueller Daten-Reload (Toast bleibt stehen)
+		m.milestones = msg.milestones
+		m.mlist.setLen(len(m.visMilestonesRaw()))
+		if m.treeIssues == nil {
+			m.treeIssues = map[int][]api.Issue{}
+		}
+		for sid, s := range msg.sprints {
+			m.treeIssues[sid] = s.Items
+			if m.curSprint != nil && m.curSprint.ID == sid {
+				m.curSprint = s
+			}
+		}
+		m.ilist.setLen(len(m.visIssues()))
+		m.status = noticeText("Daten neu geladen")
+		m.statusSeq++
+		return m, statusTimeout(m.statusSeq)
 	case sprintMsg:
 		m.curSprint = msg.sprint
 		if msg.sprint != nil { // DD2-57: Tree-Lazy-Cache mitfüllen (egal von wo geladen)

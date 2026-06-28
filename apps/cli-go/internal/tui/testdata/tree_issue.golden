@@ -18,4 +18,4 @@
 │                                    ││                                                  │
 ╰────────────────────────────────────╯╰──────────────────────────────────────────────────╯
 i/k:↑↓  l/→:auf  j/←:zu  1…n:Section  s:Status  S:Meilenstein  d:löschen  y:yank  /:Suche
-f:Filter  t:Ranger                                                                       
+f:Filter  t:Tags  ctrl+r:neu laden                                                       

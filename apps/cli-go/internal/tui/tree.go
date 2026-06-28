@@ -181,14 +181,14 @@ func (m model) treeLayout() (head, localKeys string, lw, rw, innerH int) {
 	head = m.breadcrumb("Projekt-Browser") // Zone 1: `> slug: Title` + globale Shortcuts
 	// Zone 3 = NUR view-spezifische Tasten; globale (b/R/p/q/Cmd) stehen bereits im
 	// Header rechts → nicht doppeln (verwirrt, PO-Befund Augenschein).
-	hint := "i/k:↑↓  l/→:auf  j/←:zu  1…n:Section  s:Status  S:Meilenstein  d:löschen  y:yank  /:Suche  f:Filter  t:Ranger"
+	hint := "i/k:↑↓  l/→:auf  j/←:zu  1…n:Section  s:Status  S:Meilenstein  d:löschen  y:yank  /:Suche  f:Filter  t:Tags  ctrl+r:neu laden"
 	switch {
 	case m.treeSearching:
 		hint = "tippen: filtern   enter: übernehmen   esc: abbrechen"
 	case m.detailFocus: // DD2-76/86: Detail-Pane fokussiert — Section/Feld-Navigation
 		hint = "i/k:Section/Feld  l/→:rein  enter:rein/bearbeiten  j/←:zurück  1…n:Section  esc: Tree-Fokus"
 	case m.treeActive():
-		hint = "i/k:↑↓  l/→:auf  s:Status  /:Suche  f:Filter  esc: Filter+Suche löschen  t:Ranger"
+		hint = "i/k:↑↓  l/→:auf  s:Status  /:Suche  f:Filter  esc: Filter+Suche löschen  t:Tags  ctrl+r:neu laden"
 	}
 	localKeys = theme.Muted.Render(wrapText(hint, w)) // Zone 3: lokale Shortcuts
 	footH := lipgloss.Height(localKeys) + 1           // + 1 Status-Zeile (Split-Status)
@@ -456,19 +456,18 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			cmd = loadAllIssues(m.client)
 		}
 		return m, tea.Batch(textinput.Blink, cmd)
-	case "ctrl+r": // DD2-72: manueller Daten-Reload — Meilensteine + alle expandierten Sprints neu holen
-		cmds := []tea.Cmd{loadMilestones(m.client)}
+	case "ctrl+r": // DD2-72: manueller Daten-Reload — Meilensteine + alle expandierten Sprints (atomar, Toast bleibt)
+		var ids []int
 		for sid, open := range m.treeExpSprint {
 			if open {
-				cmds = append(cmds, loadSprint(m.client, sid))
+				ids = append(ids, sid)
 			}
 		}
+		var extra tea.Cmd
 		if m.treeIssuesLoaded {
-			cmds = append(cmds, loadAllIssues(m.client))
+			extra = loadAllIssues(m.client)
 		}
-		m.curSprint = nil
-		m.status = noticeText("Daten neu geladen")
-		return m, tea.Batch(cmds...)
+		return m, tea.Batch(doRefresh(m.client, ids), extra)
 	case "f": // DD2-62 Rework: Filter-Facetten-Menü (Art/Issue-Type/Status)
 		return m.openTreeFilter()
 	case "1", "2", "3", "4", "5", "6", "7", "8", "9":

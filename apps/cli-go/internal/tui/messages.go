@@ -507,6 +507,34 @@ func loadMemDetail(c *api.Client, id int) tea.Cmd {
 	}
 }
 
+// refreshedMsg trägt das Ergebnis des manuellen Daten-Reloads (DD2-72): frische
+// Meilensteine + die neu geholten Sprints (key = sprint-ID). Eigener Pfad statt
+// loadMilestones/loadSprint zu batchen, weil der sprintMsg-Handler m.status leert
+// (DD2-57) und damit den Refresh-Toast sofort wegräumen würde.
+type refreshedMsg struct {
+	milestones []api.Milestone
+	sprints    map[int]*api.Sprint
+}
+
+// doRefresh lädt Meilensteine neu und holt für jede übergebene Sprint-ID die Items
+// frisch — alles in EINEM Cmd, damit der bestätigende Toast (im refreshedMsg-Handler
+// gesetzt) nicht von einem nachlaufenden sprintMsg überschrieben wird (DD2-72 R2).
+func doRefresh(c *api.Client, sprintIDs []int) tea.Cmd {
+	return func() tea.Msg {
+		ms, err := c.ListMilestones("all")
+		if err != nil {
+			return errMsg{err}
+		}
+		sprints := map[int]*api.Sprint{}
+		for _, sid := range sprintIDs {
+			if s, err := c.GetSprint(sid); err == nil {
+				sprints[sid] = s
+			}
+		}
+		return refreshedMsg{ms, sprints}
+	}
+}
+
 // refreshSprint lädt den Sprint neu (gemeinsam von Aktions-Cmds genutzt).
 func refreshSprint(c *api.Client, sprintID int) tea.Msg {
 	s, err := c.GetSprint(sprintID)
