@@ -143,7 +143,7 @@ func (m model) viewReviewsList() string {
 			s.Key, truncate(s.Name, 30), statusText(s.Status),
 			theme.Dim.Render(fmt.Sprintf("  %d/%d", s.DoneCount, s.ItemCount))) + ms + "\n")
 	}
-	return m.framed("Offene Reviews", b.String(), "j/k:↑↓  enter:Cockpit  esc/q:zurück")
+	return m.framed("Offene Reviews", b.String(), "i/k:↑↓  enter:Cockpit  esc/q:zurück")
 }
 
 // --- Header / Footer ---
@@ -243,7 +243,7 @@ func (m model) footer() string {
 	default:
 		act = "s:Issue-Status"
 	}
-	hint := "j/k:↑↓  l/→:rein  h/←:raus  enter:Detail  " + act + "  f:Filter  y:Yank  b:Backlog  R:Reviews  t:Tree  q:quit"
+	hint := "i/k:↑↓  l/→:rein  j/←:raus  enter:Detail  " + act + "  f:Filter  y:Yank  b:Backlog  R:Reviews  t:Tree  q:quit"
 	return theme.Dim.Render(hint)
 }
 

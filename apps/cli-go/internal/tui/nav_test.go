@@ -34,18 +34,18 @@ func TestRangerDrillAndBack(t *testing.T) {
 		t.Fatalf("nach 'l' depth=%d, want 1", m.depth)
 	}
 
-	// j → Sprint-Cursor 1
-	mi, _ = m.Update(keyMsg("j"))
+	// k → Sprint-Cursor 1 (jkli: k=runter)
+	mi, _ = m.Update(keyMsg("k"))
 	m = mi.(model)
 	if m.slist.cursor != 1 {
 		t.Errorf("slist.cursor=%d, want 1", m.slist.cursor)
 	}
 
-	// h → zurück auf depth 0
-	mi, _ = m.Update(keyMsg("h"))
+	// j → zurück auf depth 0 (jkli: j=links/zurück)
+	mi, _ = m.Update(keyMsg("j"))
 	m = mi.(model)
 	if m.depth != 0 {
-		t.Errorf("nach 'h' depth=%d, want 0", m.depth)
+		t.Errorf("nach 'j' depth=%d, want 0", m.depth)
 	}
 }
 
@@ -59,9 +59,9 @@ func TestDepthClamps(t *testing.T) {
 	if m.depth != 2 {
 		t.Errorf("depth=%d, want clamp 2", m.depth)
 	}
-	// 5x raus → min depth 0
+	// 5x raus (j=links/zurück) → min depth 0
 	for i := 0; i < 5; i++ {
-		mi, _ := m.Update(keyMsg("h"))
+		mi, _ := m.Update(keyMsg("j"))
 		m = mi.(model)
 	}
 	if m.depth != 0 {
@@ -74,15 +74,15 @@ func TestMilestoneMoveResetsSprintCursor(t *testing.T) {
 	// auf depth 1 Sprint-Cursor bewegen
 	mi, _ := m.Update(keyMsg("l"))
 	m = mi.(model)
-	mi, _ = m.Update(keyMsg("j"))
+	mi, _ = m.Update(keyMsg("k"))
 	m = mi.(model)
 	if m.slist.cursor != 1 {
 		t.Fatalf("setup: slist.cursor=%d", m.slist.cursor)
 	}
 	// zurück auf depth 0, anderen Meilenstein wählen → Sprint-Cursor reset
-	mi, _ = m.Update(keyMsg("h"))
-	m = mi.(model)
 	mi, _ = m.Update(keyMsg("j"))
+	m = mi.(model)
+	mi, _ = m.Update(keyMsg("k"))
 	m = mi.(model)
 	if m.mlist.cursor != 1 {
 		t.Fatalf("mlist.cursor=%d, want 1", m.mlist.cursor)

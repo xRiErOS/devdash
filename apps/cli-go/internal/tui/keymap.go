@@ -43,13 +43,15 @@ type keyMap struct {
 }
 
 // newKeyMap liefert die aktuell aktive Tastenbelegung. Das Richtungskreuz nutzt
-// (Stand DD2-47) noch die klassische hjkl-vi-Belegung; DD2-34 stellt hier auf jkli
-// um. Die Pfeiltasten bleiben in jeder Variante zweite Bindung (DD2-71).
+// das jkli-Layout (DD2-34): i=hoch, j=links/zurück, k=runter, l=rechts/rein
+// (inverted-T um den rechten Zeigefinger). 'h' ist damit frei. Die Pfeiltasten
+// bleiben in jeder Variante zweite Bindung (DD2-71) — alle Handler routen über
+// navKey, daher genügt diese eine Stelle für die komplette Umstellung.
 func newKeyMap() keyMap {
 	return keyMap{
-		Up:    keybind.NewBinding(keybind.WithKeys("up", "k"), keybind.WithHelp("↑/k", "hoch")),
-		Down:  keybind.NewBinding(keybind.WithKeys("down", "j"), keybind.WithHelp("↓/j", "runter")),
-		Left:  keybind.NewBinding(keybind.WithKeys("left", "h"), keybind.WithHelp("←/h", "zurück/raus")),
+		Up:    keybind.NewBinding(keybind.WithKeys("up", "i"), keybind.WithHelp("↑/i", "hoch")),
+		Down:  keybind.NewBinding(keybind.WithKeys("down", "k"), keybind.WithHelp("↓/k", "runter")),
+		Left:  keybind.NewBinding(keybind.WithKeys("left", "j"), keybind.WithHelp("←/j", "zurück/raus")),
 		Right: keybind.NewBinding(keybind.WithKeys("right", "l", "tab"), keybind.WithHelp("→/l", "rein/auf")),
 
 		Enter:   keybind.NewBinding(keybind.WithKeys("enter"), keybind.WithHelp("enter", "öffnen/bestätigen")),

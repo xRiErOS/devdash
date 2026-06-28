@@ -39,6 +39,20 @@ func TestArrowKeysBoundInEveryDirection(t *testing.T) {
 	}
 }
 
+// DD2-34: jkli-Layout ist aktiv — i=hoch, j=links, k=runter, l=rechts. 'h' ist
+// freigegeben (kein Richtungsbezug mehr → passthrough).
+func TestJkliMapping(t *testing.T) {
+	want := map[string]string{"i": "up", "k": "down", "j": "left", "l": "right"}
+	for k, dir := range want {
+		if got := navKey(k); got != dir {
+			t.Errorf("navKey(%q)=%q, want %q (jkli)", k, got, dir)
+		}
+	}
+	if got := navKey("h"); got != "h" {
+		t.Errorf("navKey(%q)=%q, want passthrough (h ist frei seit jkli)", "h", got)
+	}
+}
+
 // Nicht-Richtungstasten werden unverändert durchgereicht.
 func TestNavKeyPassthrough(t *testing.T) {
 	for _, k := range []string{"enter", "esc", "s", "?", "ctrl+c"} {

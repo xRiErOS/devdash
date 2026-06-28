@@ -20,7 +20,7 @@ func (m model) viewPicker() string {
 		}
 		b.WriteString(cursor + line + "\n")
 	}
-	return m.framed("Projekt wählen", b.String(), "j/k:↑↓  enter:wählen  q:quit")
+	return m.framed("Projekt wählen", b.String(), "i/k:↑↓  enter:wählen  q:quit")
 }
 
 // --- Miller-Columns ---
@@ -199,7 +199,7 @@ func (m model) viewMilestone() string {
 		b.WriteString(fmt.Sprintf("  %-8s %s  %s%s\n", s.Key, statusText(s.Status), truncate(s.Name, 30), goal))
 	}
 	return m.chrome("Meilenstein", slots, b.String(),
-		"S: Status   a: Sprints zuweisen   y: kopieren   j/k: scrollen   esc/q: zurück")
+		"S: Status   a: Sprints zuweisen   y: kopieren   i/k: scrollen   esc/q: zurück")
 }
 
 // --- Sprint-Detail ---
@@ -240,7 +240,7 @@ func (m model) viewSprint() string {
 		m.curSprint = old
 	}
 	return m.chrome("Sprint "+s.Key, slots, b.String(),
-		"R: Review-Cockpit   m: Meilenstein   y: kopieren   j/k: scrollen   esc/q: zurück")
+		"R: Review-Cockpit   m: Meilenstein   y: kopieren   i/k: scrollen   esc/q: zurück")
 }
 
 // --- Issue-Detail (#5 Rahmen, #6 alle Felder, #9 Titel) ---
@@ -308,7 +308,7 @@ func (m model) viewDetail() string {
 		b.WriteString("\n" + theme.Dim.Render(strings.Join(stamp, " ∙ ")) + "\n")
 	}
 	return m.chrome("Issue "+it.Key, slots, b.String(),
-		"s: Status   j/k: scrollen   g/G: Anfang/Ende   esc/q: zurück")
+		"s: Status   i/k: scrollen   g/G: Anfang/Ende   esc/q: zurück")
 }
 
 // --- Backlog (#2 Rahmen) ---
@@ -328,7 +328,7 @@ func (m model) viewBacklog() string {
 			theme.TypeIcon(it.Type), theme.Priority(it.Priority), it.Key,
 			truncate(it.Title, 46), statusText(it.Status)) + "\n")
 	}
-	return m.framed("Backlog", b.String(), "j/k:↑↓  b/esc:zurück  q:quit")
+	return m.framed("Backlog", b.String(), "i/k:↑↓  b/esc:zurück  q:quit")
 }
 
 // --- Review-Cockpit ---

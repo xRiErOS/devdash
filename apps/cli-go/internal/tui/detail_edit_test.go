@@ -65,7 +65,7 @@ func TestDetailFieldEditTypeSelect(t *testing.T) {
 	m := detailFocusModel()
 	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter}) // Übersicht
 	mi, _ = mi.(model).keyTree(key("l"))               // Feld-Ebene, fieldCursor 0 (title)
-	mi, _ = mi.(model).keyTree(key("j"))               // fieldCursor 1 (type)
+	mi, _ = mi.(model).keyTree(key("k"))               // fieldCursor 1 (type)
 	mi, _ = mi.(model).keyTree(tea.KeyMsg{Type: tea.KeyEnter})
 	m = mi.(model)
 	if m.editField != "type" || m.editEditor != "select" {

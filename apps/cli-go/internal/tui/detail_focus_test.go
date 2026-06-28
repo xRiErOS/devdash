@@ -76,23 +76,23 @@ func TestDetailFocusSectionNav(t *testing.T) {
 	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter})
 	m = mi.(model)
 
-	mi, _ = m.keyTree(key("j"))
+	mi, _ = m.keyTree(key("k"))
 	m = mi.(model)
 	if m.secCursor != 1 || m.accOpen != 1 {
 		t.Errorf("j → secCursor=%d accOpen=%d, want 1/1", m.secCursor, m.accOpen)
 	}
-	mi, _ = m.keyTree(key("j"))
+	mi, _ = m.keyTree(key("k"))
 	m = mi.(model)
 	if m.secCursor != 2 || m.accOpen != 2 {
 		t.Errorf("j → secCursor=%d accOpen=%d, want 2/2", m.secCursor, m.accOpen)
 	}
 	// Am Ende geklemmt (3 Sektionen, Index max 2).
-	mi, _ = m.keyTree(key("j"))
+	mi, _ = m.keyTree(key("k"))
 	m = mi.(model)
 	if m.secCursor != 2 {
 		t.Errorf("j am Ende → secCursor=%d, want 2 (geklemmt)", m.secCursor)
 	}
-	mi, _ = m.keyTree(key("k"))
+	mi, _ = m.keyTree(key("i"))
 	m = mi.(model)
 	if m.secCursor != 1 || m.accOpen != 1 {
 		t.Errorf("k → secCursor=%d accOpen=%d, want 1/1", m.secCursor, m.accOpen)
@@ -117,14 +117,14 @@ func TestDetailFocusFieldNav(t *testing.T) {
 	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter})
 	mi, _ = mi.(model).keyTree(key("l")) // in Feld-Ebene
 	m = mi.(model)
-	mi, _ = m.keyTree(key("j"))
+	mi, _ = m.keyTree(key("k"))
 	m = mi.(model)
 	if m.fieldCursor != 1 {
 		t.Errorf("j → fieldCursor=%d, want 1", m.fieldCursor)
 	}
-	mi, _ = m.keyTree(key("j"))
+	mi, _ = m.keyTree(key("k"))
 	m = mi.(model)
-	mi, _ = m.keyTree(key("j")) // 3 Felder → an Index 2 geklemmt
+	mi, _ = m.keyTree(key("k")) // 3 Felder → an Index 2 geklemmt
 	m = mi.(model)
 	if m.fieldCursor != 2 {
 		t.Errorf("j geklemmt → fieldCursor=%d, want 2", m.fieldCursor)
@@ -136,7 +136,7 @@ func TestDetailFocusBackLevels(t *testing.T) {
 	m := detailFocusModel()
 	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter})
 	mi, _ = mi.(model).keyTree(key("l")) // Feld-Ebene
-	mi, _ = mi.(model).keyTree(key("h")) // zurück auf Section
+	mi, _ = mi.(model).keyTree(key("j")) // zurück auf Section
 	m = mi.(model)
 	if m.detailLevel != 0 {
 		t.Errorf("h auf Feld → level=%d, want 0", m.detailLevel)
@@ -144,7 +144,7 @@ func TestDetailFocusBackLevels(t *testing.T) {
 	if !m.detailFocus {
 		t.Error("h auf Feld sollte im Detail-Fokus bleiben")
 	}
-	mi, _ = m.keyTree(key("h")) // Section-Ebene → zurück in den Tree
+	mi, _ = m.keyTree(key("j")) // Section-Ebene → zurück in den Tree
 	m = mi.(model)
 	if m.detailFocus {
 		t.Error("h auf oberster Section sollte zurück in den Tree-Fokus")
@@ -191,7 +191,7 @@ func TestDetailFocusReadOnlySectionNoFieldEntry(t *testing.T) {
 	// focusSections = [Übersicht(editierbar), User-Stories(read-only)]. enter landet
 	// auf der Übersicht → erst j auf die read-only Section, dann l/→ = no-op.
 	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter})
-	mi, _ = mi.(model).keyTree(key("j")) // → read-only User-Stories-Section
+	mi, _ = mi.(model).keyTree(key("k")) // → read-only User-Stories-Section
 	mi, _ = mi.(model).keyTree(key("l"))
 	if mi.(model).detailLevel != 0 {
 		t.Errorf("l/→ in feldlose Section → level=%d, want 0 (no-op)", mi.(model).detailLevel)

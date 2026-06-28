@@ -19,4 +19,4 @@
 │                            ││                            ││                            │
 │                            ││                            ││                            │
 ╰────────────────────────────╯╰────────────────────────────╯╰────────────────────────────╯
-j/k:↑↓  l/→:rein  h/←:raus  enter:Detail  S:Meilenstein-Status  d:löschen  f:Filter  y:Yank  b:Backlog  R:Reviews  t:Tree  q:quit
+i/k:↑↓  l/→:rein  j/←:raus  enter:Detail  S:Meilenstein-Status  d:löschen  f:Filter  y:Yank  b:Backlog  R:Reviews  t:Tree  q:quit

@@ -3,7 +3,7 @@ package tui
 // detail.go — Detail-Fokus-Maschine (DD2-76). Macht die rechte Detail-Pane aus
 // einem read-only Anzeigeblock zur fokussierbaren, zwei-stufig navigierbaren
 // Arbeitsfläche. Tree bleibt Navigator (D01); enter/l auf einem Issue-Knoten
-// verlagert den Fokus, h/← bzw. esc geben ihn zurück. Reine Navigation — der
+// verlagert den Fokus, j/← bzw. esc geben ihn zurück. Reine Navigation — der
 // Schreibpfad (huh-Form → UpdateIssue) folgt in DD2-77. Guardrail: tui-plan.md.
 
 import (
@@ -182,7 +182,7 @@ func (m *model) clampDetailCursor(secs []accordionSection) {
 }
 
 // keyDetailFocus steuert die Detail-Pane im Fokus (DD2-76, read-only): zwei-Ebenen-
-// Navigation Section↔Feld mit j/k, l/→ rein, h/← raus (oberste → Tree), Ziffer-
+// Navigation Section↔Feld mit i/k, l/→ rein, j/← raus (oberste → Tree), Ziffer-
 // Sprung, esc zurück. Vom keyTree-Dispatch aufgerufen, solange detailFocus gilt.
 func (m model) keyDetailFocus(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	secs := m.focusSections()
@@ -252,7 +252,7 @@ func (m model) keyDetailFocus(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.detailLevel = 1
 			m.fieldCursor = 0
 		}
-	case "left": // h/← : eine Ebene zurück (oberste Section → Tree)
+	case "left": // j/← : eine Ebene zurück (oberste Section → Tree)
 		if m.detailLevel == 1 {
 			m.detailLevel = 0
 		} else {

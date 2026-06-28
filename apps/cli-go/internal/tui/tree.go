@@ -181,14 +181,14 @@ func (m model) treeLayout() (head, localKeys string, lw, rw, innerH int) {
 	head = m.breadcrumb("Projekt-Browser") // Zone 1: `> slug: Title` + globale Shortcuts
 	// Zone 3 = NUR view-spezifische Tasten; globale (b/R/p/q/Cmd) stehen bereits im
 	// Header rechts → nicht doppeln (verwirrt, PO-Befund Augenschein).
-	hint := "j/k:↑↓  l/→:auf  h/←:zu  1…n:Section  s:Status  S:Meilenstein  d:löschen  y:yank  /:Suche  f:Filter  t:Ranger"
+	hint := "i/k:↑↓  l/→:auf  j/←:zu  1…n:Section  s:Status  S:Meilenstein  d:löschen  y:yank  /:Suche  f:Filter  t:Ranger"
 	switch {
 	case m.treeSearching:
 		hint = "tippen: filtern   enter: übernehmen   esc: abbrechen"
 	case m.detailFocus: // DD2-76/86: Detail-Pane fokussiert — Section/Feld-Navigation
-		hint = "j/k:Section/Feld  l/→:rein  enter:rein/bearbeiten  h/←:zurück  1…n:Section  esc: Tree-Fokus"
+		hint = "i/k:Section/Feld  l/→:rein  enter:rein/bearbeiten  j/←:zurück  1…n:Section  esc: Tree-Fokus"
 	case m.treeActive():
-		hint = "j/k:↑↓  l/→:auf  s:Status  /:Suche  f:Filter  esc: Filter+Suche löschen  t:Ranger"
+		hint = "i/k:↑↓  l/→:auf  s:Status  /:Suche  f:Filter  esc: Filter+Suche löschen  t:Ranger"
 	}
 	localKeys = theme.Muted.Render(wrapText(hint, w)) // Zone 3: lokale Shortcuts
 	footH := lipgloss.Height(localKeys) + 1           // + 1 Status-Zeile (Split-Status)

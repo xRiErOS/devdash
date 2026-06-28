@@ -33,7 +33,7 @@ func TestSprintMilestonePickerEnterDispatches(t *testing.T) {
 	m.view = viewSprint
 	mi, _ := m.Update(keyMsg("m"))
 	m = mi.(model)
-	mi, _ = m.Update(keyMsg("j")) // auf erste echte Meilenstein-Option
+	mi, _ = m.Update(keyMsg("k")) // auf erste echte Meilenstein-Option
 	m = mi.(model)
 	mi, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = mi.(model)

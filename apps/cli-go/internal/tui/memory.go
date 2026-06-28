@@ -201,7 +201,7 @@ func (m model) viewMemory() string {
 	// DD2-48: globaler Header (Projekt-Nav) + Präfix-Titel "dd2 — Memory-Browser",
 	// konsistent zu den übrigen Screens (Zwei-Pane-Body bleibt eigenständig).
 	head := m.header() + "\n" + theme.Header.Render(m.screenTitle("Memory-Browser"))
-	footer := theme.Dim.Render("j/k:↑↓  /:Suche  c:Kategorie  y:kopieren  esc/q:zurück")
+	footer := theme.Dim.Render("i/k:↑↓  /:Suche  c:Kategorie  y:kopieren  esc/q:zurück")
 	if m.memSearching {
 		footer = theme.Key.Render("Suche: ") + m.memQuery + "▏"
 	} else if m.status != "" {

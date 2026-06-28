@@ -346,7 +346,7 @@ func (m *model) onFocusMove() tea.Cmd {
 }
 
 // keyScroll behandelt Scroll-Tasten in den statischen Detail-Views (DD2-25/30):
-// j/k/↑↓ zeilenweise, ctrl+d/u + pgdn/pgup seitenweise, g/G an den Anfang/Ende.
+// i/k/↑↓ zeilenweise, ctrl+d/u + pgdn/pgup seitenweise, g/G an den Anfang/Ende.
 // ok=true wenn die Taste als Scroll konsumiert wurde. scrollView klemmt das Maximum.
 func (m *model) keyScroll(k string) bool {
 	switch k {

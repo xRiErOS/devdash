@@ -246,7 +246,7 @@ func (m model) userStoryModal() string {
 		}
 		b.WriteString(cursor + usVerdictBox(us.Verdict) + " " + truncate(t, 50) + "\n")
 	}
-	b.WriteString("\n" + theme.Dim.Render("a:accept  r:reject  o:open  j/k:↑↓  enter/esc:schließen"))
+	b.WriteString("\n" + theme.Dim.Render("a:accept  r:reject  o:open  i/k:↑↓  enter/esc:schließen"))
 	return lipgloss.NewStyle().
 		Width(modalBoxWidth(m.width)). // DD2-55: auf Terminal clampen (Standard-Modalbreite)
 		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
@@ -267,7 +267,7 @@ func usVerdictBox(v string) string {
 
 // reviewHints zeigt nur die im aktuellen Zustand gültigen Aktionen.
 func (m model) reviewHints() string {
-	hints := []string{"j/k:↑↓", "enter:Abnahme", "s:Status", "r:Ergebnis", "a:pass", "x:reject"}
+	hints := []string{"i/k:↑↓", "enter:Abnahme", "s:Status", "r:Ergebnis", "a:pass", "x:reject"}
 	if it := m.reviewItem(); it != nil {
 		if it.Status == "to_review" {
 			hints = append(hints, "o:reopen")
