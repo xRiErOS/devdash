@@ -323,7 +323,17 @@ func (m model) reviewStandClip() string {
 // Innenbreite UMGEBROCHEN (kein truncate), damit die PO alles vollständig liest.
 func (m model) userStoryModal() string {
 	var b strings.Builder
-	iw := modalBoxWidth(m.width) - 2 // Innenbreite (Box-Padding 0,1)
+	// DD2-90 Rework: das Abnahme-Modal skaliert mit der Terminalbreite. Die fixe
+	// 64er-Standardbox (modalBoxWidth) war auf breiten Terminals winzig und der
+	// 62-Spalten-Wrap quetschte Goal/Background (PO-Befund „klein/abgeschnitten").
+	boxW := m.termWidth() - 8
+	if boxW > 110 {
+		boxW = 110
+	}
+	if boxW < 50 {
+		boxW = 50
+	}
+	iw := boxW - 2 // Innenbreite (Box-Padding 0,1)
 	it := m.reviewItem()
 	title := "Issue-Abnahme"
 	if it != nil {
@@ -363,8 +373,20 @@ func (m model) userStoryModal() string {
 			}
 		}
 	}
-	b.WriteString("\n" + theme.Dim.Render("a:accept  r:reject  o:open  i/k:↑↓  enter/esc:close"))
-	return modalBox(b.String(), modalBoxWidth(m.width), theme.Mauve)
+	content := b.String()
+	footer := theme.Dim.Render("a:accept  r:reject  o:open  i/k:↑↓  enter/esc:close")
+	// DD2-90 Rework: Höhen-Guard — sehr lange Texte sollen das Modal nicht über den
+	// Schirm hinaus wachsen lassen (placeOverlay clippt sonst unten weg). Überlauf →
+	// Hinweis auf den Detail-Pane (dort voller, scrollbarer Text). Footer bleibt sichtbar.
+	if m.height > 8 {
+		maxH := m.height - 6 // Platz für Box-Border + Footer
+		lines := strings.Split(content, "\n")
+		if len(lines) > maxH {
+			lines = append(lines[:maxH], theme.Dim.Render("… (full text in detail pane — scroll ctrl+d/u)"))
+			content = strings.Join(lines, "\n")
+		}
+	}
+	return modalBox(content+"\n\n"+footer, boxW, theme.Mauve)
 }
 
 func usVerdictBox(v string) string {
