@@ -92,6 +92,41 @@ func LoadSettings() (Settings, []string) {
 	return validateSettings(s), sources
 }
 
+// UserConfigPath liefert den Pfad der User-Config (~/.config/devd-cli/config.yaml).
+func UserConfigPath() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".config", "devd-cli", "config.yaml"), nil
+}
+
+// SaveUserSettings schreibt theme.accent + layout.tree_width/modal_width in die
+// USER-Config (DD2-125) — NICHT den lokalen Override. Read-modify-write: eine
+// bestehende Datei wird gelesen, damit andere Felder (z.B. keybindings, DD2-34)
+// erhalten bleiben. Leerer accent löscht das Feld. Verzeichnis wird angelegt.
+func SaveUserSettings(accent string, treeWidth, modalWidth int) error {
+	path, err := UserConfigPath()
+	if err != nil {
+		return err
+	}
+	var s Settings
+	if data, rerr := os.ReadFile(path); rerr == nil {
+		_ = yaml.Unmarshal(data, &s) // kaputtes YAML → bei Null beginnen
+	}
+	s.Theme.Accent = accent
+	s.Layout.TreeWidth = treeWidth
+	s.Layout.ModalWidth = modalWidth
+	out, err := yaml.Marshal(s)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(path, out, 0o644)
+}
+
 // parseSettings dekodiert YAML in Settings (reine Funktion, FS-frei — testbar).
 func parseSettings(data []byte) (Settings, error) {
 	var s Settings

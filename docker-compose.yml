@@ -34,8 +34,11 @@ services:
       # ANTHROPIC_API_KEY: set via Portainer "Environment variables" UI to
       # keep the secret out of git.
     volumes:
-      - /volume2/docker/devd/data:/app/data
-      - /volume2/docker/devd/uploads:/app/uploads
+      # Mount-Targets = Code-Pfade (apps/backend/{data,uploads}), NICHT /app/{data,uploads}
+      # (stale Alt-Kombi-Image-Layout). api.js/migrate.js lesen __dirname-relativ
+      # apps/backend/data/devd.db bzw. apps/backend/uploads.
+      - /volume2/docker/devd/data:/app/apps/backend/data
+      - /volume2/docker/devd/uploads:/app/apps/backend/uploads
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/health"]
       interval: 30s

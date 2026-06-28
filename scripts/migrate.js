@@ -24,7 +24,7 @@ import Database from 'better-sqlite3'
 import { readdirSync, copyFileSync, existsSync } from 'fs'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
-import { applyMigration } from '../server/lib/migrationRunner.js'
+import { applyMigration } from '../apps/backend/src/lib/migrationRunner.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(__dirname, '..')

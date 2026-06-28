@@ -29,6 +29,7 @@ func paletteActions(m *model) []paletteAction {
 		{"go_memory", "Go to: Memory browser"},
 		{"go_backlog", "Go to: Backlog"},
 		{"go_tags", "Go to: Tag manager"},
+		{"go_settings", "Settings"}, // DD2-125: edit user config
 		{"toggle_ranger", "Layout wechseln: Ranger ↔ Tree"},
 		{"test_form", "Test Form"}, // Styling-Sandbox (kein Persist)
 	}
@@ -135,8 +136,7 @@ func (m model) dispatchPalette(id string) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "go_project":
 		if m.global != nil {
-			m.view = viewPicker
-			return m, loadProjects(m.global)
+			return m.openProjPick() // DD2-124: Picker-Overlay
 		}
 	case "create_issue":
 		return m.openForm("issue")
@@ -146,6 +146,8 @@ func (m model) dispatchPalette(id string) (tea.Model, tea.Cmd) {
 		return m.openForm("sprint")
 	case "create_memory":
 		return m.openForm("memory")
+	case "go_settings": // DD2-125: Settings-Form öffnen
+		return m.openForm("settings")
 	case "test_form":
 		return m.openForm("testform")
 	}

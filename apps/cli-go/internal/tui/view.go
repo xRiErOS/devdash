@@ -28,6 +28,9 @@ func (m model) View() string {
 	if m.paletteOpen {
 		return placeOverlay(base, m.paletteBox(), m.termWidth(), m.height)
 	}
+	if m.projPick { // DD2-124: Projekt-Picker als schwebendes Overlay (p von überall)
+		return placeOverlay(base, m.projPickBox(), m.termWidth(), m.height)
+	}
 	if m.msPick {
 		return placeOverlay(base, m.milestoneStatusMenu(), m.termWidth(), m.height)
 	}
@@ -100,8 +103,8 @@ func (m model) milestoneStatusMenu() string {
 
 func (m model) viewBase() string {
 	switch m.view {
-	case viewPicker:
-		return m.viewPicker()
+	case viewHome:
+		return m.viewHome() // DD2-124: Lobby (Logo + Projektauswahl)
 	case viewBacklog:
 		return m.viewBacklog()
 	case viewDetail:

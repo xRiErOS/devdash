@@ -39,7 +39,7 @@ func newModel(client *api.Client, project *api.Project, global *api.Client) mode
 	m.fSprint = filterState{hidden: map[string]bool{"completed": true, "cancelled": true}}
 	m.fIssue = filterState{hidden: map[string]bool{"cancelled": true}}
 	if project == nil {
-		m.view = viewPicker
+		m.view = viewHome // DD2-124: Lobby (Logo + Projektauswahl) als Einstieg
 	} else {
 		m.view = viewTree // DD2-61: Tree+Detail ist Primat-View (Ranger via t sekundär)
 	}
@@ -70,7 +70,7 @@ func Run(client *api.Client, project *api.Project, global *api.Client) error {
 }
 
 func (m model) Init() tea.Cmd {
-	if m.view == viewPicker {
+	if m.view == viewHome {
 		return loadProjects(m.global)
 	}
 	// Tags mitladen, damit die Create-Forms (DD2-33) sofort ein Tag-Multiselect haben.

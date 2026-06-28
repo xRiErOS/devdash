@@ -10,7 +10,7 @@ import (
 type viewID int
 
 const (
-	viewPicker viewID = iota
+	viewHome viewID = iota // DD2-124: Startschirm/Lobby (ASCII-Logo + Projektauswahl)
 	viewColumns
 	viewDetail
 	viewBacklog
@@ -244,10 +244,12 @@ type model struct {
 	treeSearching bool
 	treeQuery     string
 
-	// Project-Switch-Picker (DD2-41): p öffnet eine suchbare Projektliste aus jedem View.
-	// projectSearch ist immer fokussiert, solange viewPicker aktiv ist.
+	// Project-Switch-Picker (DD2-41/DD2-124): projectSearch ist sowohl im viewHome
+	// (Lobby-Liste) als auch im projPick-Overlay das Suchfeld. projPick = schwebendes
+	// Picker-Overlay über der aktuellen View (p von überall), KEIN View-Wechsel.
 	projectSearch textinput.Model
 	projectQuery  string
+	projPick      bool
 
 	// Tree-Filter (DD2-62 Rework): `f` öffnet ein Facetten-Menü (Art/Issue-Type/
 	// Status), kombinierbar mit der Textsuche. Bei aktivem Filter wird projektweit
