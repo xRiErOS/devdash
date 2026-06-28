@@ -30,6 +30,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.view == viewBacklog {
 				return m, tea.Batch(loadBacklog(m.client), clear)
 			}
+			// DD2-72: im Tree/Columns nach Issue-Anlage die Spalten/Counts auffrischen,
+			// sonst hängt die Ansicht auf veralteten Fortschrittszahlen.
+			return m, tea.Batch(loadMilestones(m.client), clear)
 		case "memory":
 			if m.view == viewMemory {
 				return m, tea.Batch(loadMemories(m.client, m.memCat), clear)

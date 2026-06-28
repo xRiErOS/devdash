@@ -30,6 +30,7 @@ type keyMap struct {
 	Search  keybind.Binding // /
 	Filter  keybind.Binding // f
 	Yank    keybind.Binding // y
+	Refresh keybind.Binding // ctrl+r (DD2-72: manueller Daten-Reload)
 	Section keybind.Binding // 1…9 (Accordion-Section)
 
 	// Kontext-Aktionen (Status/Zuweisung/Löschen/Toggle).
@@ -66,6 +67,7 @@ func newKeyMap() keyMap {
 		Search:  keybind.NewBinding(keybind.WithKeys("/"), keybind.WithHelp("/", "Suche")),
 		Filter:  keybind.NewBinding(keybind.WithKeys("f"), keybind.WithHelp("f", "Filter")),
 		Yank:    keybind.NewBinding(keybind.WithKeys("y"), keybind.WithHelp("y", "Kontext kopieren")),
+		Refresh: keybind.NewBinding(keybind.WithKeys("ctrl+r"), keybind.WithHelp("ctrl+r", "Daten neu laden")),
 		Section: keybind.NewBinding(keybind.WithKeys("1", "2", "3", "4", "5", "6", "7", "8", "9"), keybind.WithHelp("1…9", "Section")),
 
 		Status:       keybind.NewBinding(keybind.WithKeys("s"), keybind.WithHelp("s", "Status (Issue/Sprint)")),
@@ -95,7 +97,7 @@ type helpGroup struct {
 func (k keyMap) helpGroups() []helpGroup {
 	return []helpGroup{
 		{"Navigation", []keybind.Binding{k.Up, k.Down, k.Left, k.Right, k.Enter, k.Back, k.Section}},
-		{"Views & Global", []keybind.Binding{k.Backlog, k.Reviews, k.Picker, k.Tags, k.Search, k.Filter, k.Palette, k.Help, k.Quit}},
+		{"Views & Global", []keybind.Binding{k.Backlog, k.Reviews, k.Picker, k.Tags, k.Search, k.Filter, k.Refresh, k.Palette, k.Help, k.Quit}},
 		{"Aktionen", []keybind.Binding{k.Status, k.MileStatus, k.AssignMile, k.AssignSprint, k.TagAssign, k.Delete, k.Yank, k.Toggle}},
 	}
 }

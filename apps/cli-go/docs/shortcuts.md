@@ -28,6 +28,7 @@ Richtungskreuz: **jkli** — `i`=hoch, `j`=links/zurück, `k`=runter, `l`=rechts
 | `T` | Tag-Manager |
 | `/` | Suche |
 | `f` | Filter |
+| `ctrl+r` | Daten neu laden |
 | `ctrl+k` | Command-Center |
 | `?` | Hilfe |
 | `q` | beenden |

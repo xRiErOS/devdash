@@ -286,6 +286,11 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	}
+	if bindHas(keys.Refresh, k) { // DD2-72: manueller Daten-Reload (Spalten + Sprint-Items)
+		m.curSprint = nil
+		m.status = noticeText("Daten neu geladen")
+		return m, tea.Batch(loadMilestones(m.client), m.syncSprint())
+	}
 	switch k {
 	case "enter":
 		if m.depth == 0 && m.selMilestone() != nil {

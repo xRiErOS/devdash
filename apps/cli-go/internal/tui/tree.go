@@ -456,6 +456,19 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			cmd = loadAllIssues(m.client)
 		}
 		return m, tea.Batch(textinput.Blink, cmd)
+	case "ctrl+r": // DD2-72: manueller Daten-Reload — Meilensteine + alle expandierten Sprints neu holen
+		cmds := []tea.Cmd{loadMilestones(m.client)}
+		for sid, open := range m.treeExpSprint {
+			if open {
+				cmds = append(cmds, loadSprint(m.client, sid))
+			}
+		}
+		if m.treeIssuesLoaded {
+			cmds = append(cmds, loadAllIssues(m.client))
+		}
+		m.curSprint = nil
+		m.status = noticeText("Daten neu geladen")
+		return m, tea.Batch(cmds...)
 	case "f": // DD2-62 Rework: Filter-Facetten-Menü (Art/Issue-Type/Status)
 		return m.openTreeFilter()
 	case "1", "2", "3", "4", "5", "6", "7", "8", "9":
