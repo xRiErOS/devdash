@@ -28,6 +28,7 @@
     "gen:composition": "npm --prefix apps/frontend run gen:composition",
     "gen:composition:check": "npm --prefix apps/frontend run gen:composition:check",
     "generate-pwa-icons": "node scripts/generate-pwa-icons.mjs",
+    "gen:mcp-notes": "node scripts/gen-mcp-notes.mjs",
     "prepare": "husky"
   },
   "lint-staged": {
