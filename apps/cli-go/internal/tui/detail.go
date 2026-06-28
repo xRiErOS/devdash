@@ -132,15 +132,20 @@ func (m *model) mergeIssueIntoCache(src *api.Issue) {
 	}
 }
 
-// enterDetailFocus verlagert den Fokus vom Tree in die Detail-Pane (D01): erste
-// Section, Section-Ebene, Section offen.
+// enterDetailFocus verlagert den Fokus vom Tree in die Detail-Pane (D01). Issue:
+// erste Section, Section-Ebene, Section zu (zweistufig). Meilenstein/Sprint: direkt
+// auf Feld-Ebene (flache Liste, einstufig — D09/DD2-78).
 func (m model) enterDetailFocus() (tea.Model, tea.Cmd) {
 	m.detailFocus = true
-	m.detailLevel = 0
-	m.secCursor = 0 // Übersicht (Kopf) — title/type/priority
 	m.fieldCursor = 0
-	m.accOpen = 0 // Accordion zu; der Fokus steht auf der Übersicht
+	m.secCursor = 0
 	m.status = ""
+	if n := m.focusedNode(); n != nil && (n.kind == tkMile || n.kind == tkSprint) {
+		m.detailLevel = 1 // flach: sofort Feld-Ebene (D09)
+		return m, nil
+	}
+	m.detailLevel = 0 // Issue: Übersicht (Kopf), Section-Ebene
+	m.accOpen = 0     // Accordion zu; der Fokus steht auf der Übersicht
 	return m, nil
 }
 
@@ -184,6 +189,10 @@ func (m *model) clampDetailCursor(secs []accordionSection) {
 // Navigation Section↔Feld mit i/k, l/→ rein, j/← raus (oberste → Tree), Ziffer-
 // Sprung, esc zurück. Vom keyTree-Dispatch aufgerufen, solange detailFocus gilt.
 func (m model) keyDetailFocus(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// Meilenstein/Sprint: flache, einstufige Feldliste (D09/DD2-78) — eigener Handler.
+	if ff := m.detailFlatFields(); ff != nil {
+		return m.keyDetailFlat(msg, ff)
+	}
 	secs := m.focusSections()
 	if len(secs) == 0 { // Issue weg/feldlos → Fokus zurück in den Tree
 		m.exitDetailFocus()
