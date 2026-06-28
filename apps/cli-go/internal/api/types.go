@@ -82,6 +82,7 @@ type IssueCreateBody struct {
 	Type        string  `json:"type"`
 	Priority    int     `json:"priority"`
 	Description *string `json:"description,omitempty"`
+	TagIDs      []int   `json:"tag_ids,omitempty"` // optionale Tag-Zuweisung beim Anlegen
 }
 
 // MilestoneCreateBody ist der POST-Body für CreateMilestone (name Pflicht;

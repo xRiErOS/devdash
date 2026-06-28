@@ -63,7 +63,8 @@ func (m model) Init() tea.Cmd {
 	if m.view == viewPicker {
 		return loadProjects(m.global)
 	}
-	return loadMilestones(m.client)
+	// Tags mitladen, damit die Create-Forms (DD2-33) sofort ein Tag-Multiselect haben.
+	return tea.Batch(loadMilestones(m.client), loadTags(m.client))
 }
 
 // --- Sichtbare (gefilterte) Listen ---

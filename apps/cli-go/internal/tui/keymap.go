@@ -27,7 +27,6 @@ type keyMap struct {
 	Picker  keybind.Binding // p
 	Reviews keybind.Binding // R
 	Backlog keybind.Binding // b
-	Ranger  keybind.Binding // t (Tree↔Columns-Wechsel)
 	Search  keybind.Binding // /
 	Filter  keybind.Binding // f
 	Yank    keybind.Binding // y
@@ -64,7 +63,6 @@ func newKeyMap() keyMap {
 		Picker:  keybind.NewBinding(keybind.WithKeys("p"), keybind.WithHelp("p", "Projekt wählen")),
 		Reviews: keybind.NewBinding(keybind.WithKeys("R"), keybind.WithHelp("R", "Review-Cockpit")),
 		Backlog: keybind.NewBinding(keybind.WithKeys("b"), keybind.WithHelp("b", "Backlog")),
-		Ranger:  keybind.NewBinding(keybind.WithKeys("t"), keybind.WithHelp("t", "Tree↔Columns")),
 		Search:  keybind.NewBinding(keybind.WithKeys("/"), keybind.WithHelp("/", "Suche")),
 		Filter:  keybind.NewBinding(keybind.WithKeys("f"), keybind.WithHelp("f", "Filter")),
 		Yank:    keybind.NewBinding(keybind.WithKeys("y"), keybind.WithHelp("y", "Kontext kopieren")),
@@ -77,7 +75,7 @@ func newKeyMap() keyMap {
 		Delete:       keybind.NewBinding(keybind.WithKeys("d"), keybind.WithHelp("d", "löschen (Cascade)")),
 		Toggle:       keybind.NewBinding(keybind.WithKeys(" ", "x"), keybind.WithHelp("space/x", "Facette an/aus")),
 		Tags:         keybind.NewBinding(keybind.WithKeys("T"), keybind.WithHelp("T", "Tag-Manager")),
-		TagAssign:    keybind.NewBinding(keybind.WithKeys("g"), keybind.WithHelp("g", "Tags zuweisen")),
+		TagAssign:    keybind.NewBinding(keybind.WithKeys("t"), keybind.WithHelp("t", "Tags zuweisen")),
 	}
 }
 
@@ -97,7 +95,7 @@ type helpGroup struct {
 func (k keyMap) helpGroups() []helpGroup {
 	return []helpGroup{
 		{"Navigation", []keybind.Binding{k.Up, k.Down, k.Left, k.Right, k.Enter, k.Back, k.Section}},
-		{"Views & Global", []keybind.Binding{k.Ranger, k.Backlog, k.Reviews, k.Picker, k.Tags, k.Search, k.Filter, k.Palette, k.Help, k.Quit}},
+		{"Views & Global", []keybind.Binding{k.Backlog, k.Reviews, k.Picker, k.Tags, k.Search, k.Filter, k.Palette, k.Help, k.Quit}},
 		{"Aktionen", []keybind.Binding{k.Status, k.MileStatus, k.AssignMile, k.AssignSprint, k.TagAssign, k.Delete, k.Yank, k.Toggle}},
 	}
 }

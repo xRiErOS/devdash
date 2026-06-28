@@ -469,10 +469,6 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.accOpen = d
 		}
 		return m, nil
-	case "t":
-		m.view = viewColumns
-		m.status = ""
-		return m, nil
 	case "esc":
 		if m.treeActive() { // erst Filter + Suche löschen, dann Ranger
 			m.treeQuery = ""
@@ -534,7 +530,7 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.treeYank(nodes)
 	case "T": // DD2-75: Tag-Manager (keyTree fängt vor dem globalen Switch)
 		return m.openTagManager()
-	case "g": // DD2-33: Tag-Picker für den fokussierten Knoten
+	case "t": // DD2-33: Tag-Picker für den fokussierten Knoten
 		if m.treeCursor < len(nodes) {
 			n := nodes[m.treeCursor]
 			switch n.kind {

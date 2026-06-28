@@ -29,6 +29,8 @@ func paletteActions(m *model) []paletteAction {
 		{"go_reviews", "Gehe zu: Offene Reviews"},
 		{"go_memory", "Gehe zu: Memory-Browser"},
 		{"go_backlog", "Gehe zu: Backlog"},
+		{"go_tags", "Gehe zu: Tag-Manager"},
+		{"toggle_ranger", "Layout wechseln: Ranger ↔ Tree"},
 	}
 	if m.global != nil {
 		acts = append(acts, paletteAction{"go_project", "Projekt wechseln"})
@@ -120,6 +122,17 @@ func (m model) dispatchPalette(id string) (tea.Model, tea.Cmd) {
 	case "go_backlog":
 		m.view = viewBacklog
 		return m, loadBacklog(m.client)
+	case "go_tags":
+		return m.openTagManager()
+	case "toggle_ranger": // Ranger↔Tree-Layout (Taste t ist jetzt Tag-Zuweisung, DD2-33)
+		if m.view == viewTree {
+			m.view = viewColumns
+			return m, m.syncSprint()
+		}
+		m.view = viewTree
+		m.treeCursor = 0
+		m.status = ""
+		return m, nil
 	case "go_project":
 		if m.global != nil {
 			m.view = viewPicker

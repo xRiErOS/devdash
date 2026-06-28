@@ -135,6 +135,32 @@ func TestSetIssueTagsEmptyIsArray(t *testing.T) {
 	}
 }
 
+// DD2-33 Part B: Issue-Create trägt tag_ids nativ (POST /api/backlog).
+func TestCreateIssueSendsTagIDs(t *testing.T) {
+	var body struct {
+		Title  string `json:"title"`
+		TagIDs []int  `json:"tag_ids"`
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" || r.URL.Path != "/api/backlog" {
+			t.Errorf("CreateIssue: %s %s, want POST /api/backlog", r.Method, r.URL.Path)
+		}
+		raw, _ := io.ReadAll(r.Body)
+		json.Unmarshal(raw, &body)
+		json.NewEncoder(w).Encode(map[string]any{"id": 1, "key": "DD2-1", "title": body.Title})
+	}))
+	defer srv.Close()
+	t.Setenv("DEVD_API_URL", srv.URL)
+	c := api.NewClient("10")
+
+	if _, err := c.CreateIssue(api.IssueCreateBody{Title: "X", Type: "feature", Priority: 2, TagIDs: []int{3, 7}}); err != nil {
+		t.Fatal(err)
+	}
+	if len(body.TagIDs) != 2 || body.TagIDs[0] != 3 || body.TagIDs[1] != 7 {
+		t.Errorf("tag_ids im Create-Body = %v, want [3 7]", body.TagIDs)
+	}
+}
+
 func TestGetSprintAndMilestoneTags(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]any{"tags": []map[string]any{{"id": 9, "name": "z", "color": "green"}}})

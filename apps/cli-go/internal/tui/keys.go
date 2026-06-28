@@ -133,7 +133,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				}
 				return m.openIssueStatus(it, sid)
 			}
-		case "g": // DD2-33: Tag-Picker für das Issue
+		case "t": // DD2-33: Tag-Picker für das Issue
 			if it := m.selIssue(); it != nil {
 				return m.openTagPicker("issue", it.ID, it.Key+" "+it.Title, it.Tags)
 			}
@@ -154,7 +154,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if ms := m.selMilestone(); ms != nil {
 				return m.openDelete("milestone", ms.ID, ms.Name)
 			}
-		case "g": // DD2-33: Tag-Picker für den Meilenstein
+		case "t": // DD2-33: Tag-Picker für den Meilenstein
 			if ms := m.selMilestone(); ms != nil {
 				return m.openTagPicker("milestone", ms.ID, ms.Name, nil)
 			}
@@ -177,7 +177,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if s := m.selSprint(); s != nil {
 				return m.openDelete("sprint", s.ID, s.Name)
 			}
-		case "g": // DD2-33: Tag-Picker für den Sprint
+		case "t": // DD2-33: Tag-Picker für den Sprint
 			if s := m.selSprint(); s != nil {
 				return m.openTagPicker("sprint", s.ID, s.Name, nil)
 			}
@@ -261,7 +261,7 @@ func (m model) keyPicker(k string) (tea.Model, tea.Cmd) {
 			m.slist = listState{}
 			m.ilist = listState{}
 			m.curSprint = nil
-			return m, loadMilestones(m.client)
+			return m, tea.Batch(loadMilestones(m.client), loadTags(m.client))
 		}
 	}
 	return m, nil
@@ -305,11 +305,6 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 		return m.yankContext()
 	case "b":
 		return m.openBacklog()
-	case "t": // DD2-57: Tree+Detail-Layout-Prototyp (Vergleich zum Ranger)
-		m.view = viewTree
-		m.treeCursor = 0
-		m.status = ""
-		return m, nil
 	case "S": // T01: Meilenstein-Status (nur auf fokussiertem Meilenstein)
 		if m.depth == 0 {
 			return m.openMilestoneStatus()
@@ -338,7 +333,7 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 				return m.openDelete("sprint", sp.ID, sp.Name)
 			}
 		}
-	case "g": // DD2-33: Tag-Picker für die fokussierte Ebene
+	case "t": // DD2-33: Tag-Picker für die fokussierte Ebene
 		switch m.depth {
 		case 0:
 			if ms := m.selMilestone(); ms != nil {

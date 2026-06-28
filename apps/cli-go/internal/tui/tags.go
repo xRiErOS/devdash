@@ -8,6 +8,7 @@ package tui
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"devd-cli/internal/api"
@@ -50,6 +51,17 @@ func tagColorOptions() []huh.Option[string] {
 		opts = append(opts, huh.NewOption(c, c))
 	}
 	return opts
+}
+
+// tagMultiSelect liefert ein optionales Tag-Multiselect-Feld für die Create-Forms
+// (DD2-33: Tags direkt beim Anlegen setzen — spart Create-dann-Zuweisen). Wert wird
+// keyed gelesen (form.Get("tags").([]string)), nicht per Pointer (Value-Copy-Bruch).
+func tagMultiSelect(tags []api.Tag) *huh.MultiSelect[string] {
+	opts := make([]huh.Option[string], 0, len(tags))
+	for _, t := range tags {
+		opts = append(opts, huh.NewOption(t.Name, strconv.Itoa(t.ID)))
+	}
+	return huh.NewMultiSelect[string]().Key("tags").Title("Tags (optional)").Options(opts...)
 }
 
 // buildTagForm baut die Tag-huh-Form (Name + Farbe), vorbelegt für edit (DD2-75).
@@ -206,7 +218,7 @@ func (m model) keyTagPicker(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	switch msg.String() {
-	case "esc", "q", "g":
+	case "esc", "q", "t":
 		m.tagPick = false
 		m.status = ""
 		return m, nil

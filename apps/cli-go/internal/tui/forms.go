@@ -93,7 +93,7 @@ func formInnerHeight(termH int) int {
 // der Terminalbreite (DD2-25), damit Formulare auf schmalen Views nicht ausbrechen.
 func (m model) openForm(kind string) (tea.Model, tea.Cmd) {
 	m.formKind = kind
-	f := buildForm(kind, m.milestones)
+	f := buildForm(kind, m.milestones, m.tags)
 	if f != nil {
 		f = f.WithWidth(formInnerWidth(m.width)).WithHeight(formInnerHeight(m.height))
 	}
@@ -126,32 +126,47 @@ func priorityOptions() []huh.Option[string] {
 }
 
 // buildForm konstruiert das keyed Formular je kind (issue|milestone|sprint).
-func buildForm(kind string, milestones []api.Milestone) *huh.Form {
+// tags (optional) ergänzt ein Multiselect, damit Tags direkt beim Anlegen gesetzt
+// werden — kein Create-dann-Zuweisen-Doppelschritt (DD2-33). Leere Tag-Liste → Feld
+// entfällt (kein leeres Multiselect).
+func buildForm(kind string, milestones []api.Milestone, tags []api.Tag) *huh.Form {
 	switch kind {
 	case "issue":
-		return huh.NewForm(huh.NewGroup(
+		fields := []huh.Field{
 			huh.NewInput().Key("title").Title("Titel").
 				Placeholder("Kurze Beschreibung des Issues").Validate(nonEmpty),
 			huh.NewSelect[string]().Key("type").Title("Typ").Options(typeOptions()...),
 			huh.NewSelect[string]().Key("priority").Title("Priorität").Options(priorityOptions()...),
 			huh.NewText().Key("description").Title("Beschreibung (optional)"),
-		)).WithWidth(58).WithShowHelp(true)
+		}
+		if len(tags) > 0 {
+			fields = append(fields, tagMultiSelect(tags))
+		}
+		return huh.NewForm(huh.NewGroup(fields...)).WithWidth(58).WithShowHelp(true)
 	case "milestone":
-		return huh.NewForm(huh.NewGroup(
+		fields := []huh.Field{
 			huh.NewInput().Key("name").Title("Name").Validate(nonEmpty),
 			huh.NewText().Key("description").Title("Beschreibung (optional)"),
 			huh.NewInput().Key("target_date").Title("Zieldatum (optional, YYYY-MM-DD)"),
-		)).WithWidth(58).WithShowHelp(true)
+		}
+		if len(tags) > 0 {
+			fields = append(fields, tagMultiSelect(tags))
+		}
+		return huh.NewForm(huh.NewGroup(fields...)).WithWidth(58).WithShowHelp(true)
 	case "sprint":
 		opts := []huh.Option[string]{huh.NewOption("(kein Meilenstein)", "")}
 		for _, ms := range openMilestones(milestones) {
 			opts = append(opts, huh.NewOption(ms.Name, strconv.Itoa(ms.ID)))
 		}
-		return huh.NewForm(huh.NewGroup(
+		fields := []huh.Field{
 			huh.NewInput().Key("name").Title("Name").Validate(nonEmpty),
 			huh.NewText().Key("goal").Title("Goal (optional)"),
 			huh.NewSelect[string]().Key("milestone_id").Title("Meilenstein").Options(opts...),
-		)).WithWidth(58).WithShowHelp(true)
+		}
+		if len(tags) > 0 {
+			fields = append(fields, tagMultiSelect(tags))
+		}
+		return huh.NewForm(huh.NewGroup(fields...)).WithWidth(58).WithShowHelp(true)
 	case "memory":
 		return huh.NewForm(huh.NewGroup(
 			huh.NewSelect[string]().Key("category").Title("Kategorie").Options(
@@ -215,6 +230,18 @@ func buildEditFieldForm(f detailField, value string) *huh.Form {
 
 // formCreateCmd liest die abgeschlossenen Formularwerte und liefert den
 // passenden Create-/Update-Cmd. Wird vor dem Nullen von m.form aufgerufen.
+// selectedTagIDs liest die im Multiselect gewählten Tag-IDs (keyed, Value-Copy-safe).
+func (m *model) selectedTagIDs() []int {
+	raw, _ := m.form.Get("tags").([]string)
+	ids := make([]int, 0, len(raw))
+	for _, s := range raw {
+		if n, err := strconv.Atoi(s); err == nil {
+			ids = append(ids, n)
+		}
+	}
+	return ids
+}
+
 func (m *model) formCreateCmd() tea.Cmd {
 	get := func(k string) string { return strings.TrimSpace(m.form.GetString(k)) }
 	switch m.formKind {
@@ -232,6 +259,7 @@ func (m *model) formCreateCmd() tea.Cmd {
 		if d := get("description"); d != "" {
 			body.Description = &d
 		}
+		body.TagIDs = m.selectedTagIDs() // DD2-33: Tags beim Anlegen (Backend nativ)
 		return doCreateIssue(m.client, body)
 	case "milestone":
 		body := api.MilestoneCreateBody{Name: get("name")}
@@ -241,7 +269,7 @@ func (m *model) formCreateCmd() tea.Cmd {
 		if td := get("target_date"); td != "" {
 			body.TargetDate = &td
 		}
-		return doCreateMilestone(m.client, body)
+		return doCreateMilestone(m.client, body, m.selectedTagIDs())
 	case "sprint":
 		body := api.SprintCreateBody{Name: get("name")}
 		if g := get("goal"); g != "" {
@@ -252,7 +280,7 @@ func (m *model) formCreateCmd() tea.Cmd {
 				body.MilestoneID = &id
 			}
 		}
-		return doCreateSprint(m.client, body)
+		return doCreateSprint(m.client, body, m.selectedTagIDs())
 	case "memory":
 		body := api.ProjectMemoryCreateBody{Category: m.form.GetString("category"), Summary: get("summary")}
 		if c := get("content"); c != "" {

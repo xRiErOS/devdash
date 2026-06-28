@@ -407,23 +407,36 @@ func doCreateIssue(c *api.Client, body api.IssueCreateBody) tea.Cmd {
 	}
 }
 
-// doCreateMilestone legt einen Meilenstein an (Command-Center).
-func doCreateMilestone(c *api.Client, body api.MilestoneCreateBody) tea.Cmd {
+// doCreateMilestone legt einen Meilenstein an (Command-Center). tagIDs (optional):
+// Meilenstein-Create kennt kein tag_ids → nach dem Anlegen per SetMilestoneTags
+// zuweisen (DD2-33, kein Create-dann-manuell-Zuweisen).
+func doCreateMilestone(c *api.Client, body api.MilestoneCreateBody, tagIDs []int) tea.Cmd {
 	return func() tea.Msg {
 		ms, err := c.CreateMilestone(body)
 		if err != nil {
 			return noticeMsg{cleanAPIErr(err)}
 		}
+		if len(tagIDs) > 0 {
+			if _, err := c.SetMilestoneTags(ms.ID, tagIDs); err != nil {
+				return noticeMsg{"Meilenstein angelegt, Tags fehlgeschlagen: " + cleanAPIErr(err)}
+			}
+		}
 		return createdMsg{"milestone", ms.Name}
 	}
 }
 
-// doCreateSprint legt einen Sprint an (Command-Center).
-func doCreateSprint(c *api.Client, body api.SprintCreateBody) tea.Cmd {
+// doCreateSprint legt einen Sprint an (Command-Center). tagIDs analog Meilenstein:
+// Sprint-Create kennt kein tag_ids → nach dem Anlegen per SetSprintTags (DD2-33).
+func doCreateSprint(c *api.Client, body api.SprintCreateBody, tagIDs []int) tea.Cmd {
 	return func() tea.Msg {
 		s, err := c.CreateSprint(body)
 		if err != nil {
 			return noticeMsg{cleanAPIErr(err)}
+		}
+		if len(tagIDs) > 0 {
+			if _, err := c.SetSprintTags(s.ID, tagIDs); err != nil {
+				return noticeMsg{"Sprint angelegt, Tags fehlgeschlagen: " + cleanAPIErr(err)}
+			}
 		}
 		return createdMsg{"sprint", s.Name}
 	}

@@ -4,6 +4,7 @@ package tui
 // State/Update-Ebene (kein Netz): Tasten → Modell-Transitionen, Cache-Patch.
 
 import (
+	"strings"
 	"testing"
 
 	"devd-cli/internal/api"
@@ -18,8 +19,8 @@ func TestTagKeymapBindings(t *testing.T) {
 	if !bindHas(keys.Tags, "T") {
 		t.Errorf("Tags-Binding fehlt 'T': %v", keys.Tags.Keys())
 	}
-	if !bindHas(keys.TagAssign, "g") {
-		t.Errorf("TagAssign-Binding fehlt 'g': %v", keys.TagAssign.Keys())
+	if !bindHas(keys.TagAssign, "t") {
+		t.Errorf("TagAssign-Binding fehlt 't': %v", keys.TagAssign.Keys())
 	}
 }
 
@@ -176,6 +177,32 @@ func TestTagAssignedPatchesIssueCache(t *testing.T) {
 	}
 	if got := m.curSprint.Items[0].Tags; len(got) != 1 || got[0].ID != 8 {
 		t.Errorf("curSprint nicht gepatcht: %v", got)
+	}
+}
+
+// --- DD2-33 Part B: Tags in den Create-Forms ---
+
+func TestTagMultiSelectKey(t *testing.T) {
+	f := tagMultiSelect([]api.Tag{{ID: 5, Name: "x"}})
+	if f.GetKey() != "tags" {
+		t.Errorf("Multiselect-Key = %q, want tags", f.GetKey())
+	}
+}
+
+// Tag-Feld erscheint nur bei vorhandenen Tags (kein leeres Multiselect). Geprüft
+// am gerenderten Form-View (huh.Get liefert vor dem Run nil → nicht introspizierbar).
+func TestBuildFormTagFieldConditional(t *testing.T) {
+	for _, kind := range []string{"issue", "milestone", "sprint"} {
+		with := buildForm(kind, nil, []api.Tag{{ID: 1, Name: "alpha"}})
+		_ = with.Init()
+		if !strings.Contains(with.View(), "Tags") {
+			t.Errorf("%s mit Tags: Multiselect-Titel fehlt im View", kind)
+		}
+		without := buildForm(kind, nil, nil)
+		_ = without.Init()
+		if strings.Contains(without.View(), "Tags") {
+			t.Errorf("%s ohne Tags: kein Tag-Feld erwartet", kind)
+		}
 	}
 }
 
