@@ -60,9 +60,32 @@ func (m model) homeLogoBlock() []string {
 	return out
 }
 
-// projectPickerBody rendert Suchzeile + gefilterte Projektliste — geteilt von
-// der viewHome-Lobby und dem projPick-Overlay (Single Source, kein Zweit-Layout).
-func (m model) projectPickerBody() string {
+// projectStatusDot codiert den Projekt-Aktivitätsstatus als farbigen Punkt (DD2-81):
+// api.Project hat kein Status-Feld → SprintCount als Aktivitäts-Proxy: >0 laufende
+// Sprints = aktiv (◉ Grün), sonst ruhend (◦ Overlay). Glyphen East-Asian-neutral
+// (◉/◦, kein ambiguous ●/○ → kein Spalten-Drift).
+func projectStatusDot(p api.Project) string {
+	if p.SprintCount > 0 {
+		return lipgloss.NewStyle().Foreground(theme.Green).Render("◉")
+	}
+	return lipgloss.NewStyle().Foreground(theme.Overlay).Render("◦")
+}
+
+// pickerRowFill setzt die right-Spalte rechtsbündig auf w Spalten (links zuerst
+// gekürzt → kein Overflow) — ANSI-/runewidth-bewusst.
+func pickerRowFill(left, right string, w int) string {
+	gap := w - lipgloss.Width(left) - lipgloss.Width(right)
+	if gap < 1 {
+		gap = 1
+	}
+	return left + strings.Repeat(" ", gap) + right
+}
+
+// projectPickerBody rendert Suchzeile + gefilterte Projektliste als ausgerichtete
+// Tabelle (DD2-81/82/83) — geteilt von der viewHome-Lobby und dem projPick-Overlay
+// (Single Source). w = Tabellenbreite (Lobby: breit gedeckelt; Overlay: Modal-Innen-
+// breite). Spalten: Aktivitäts-Dot + Name links, Prefix·Slug + Sprints/Backlog rechts.
+func (m model) projectPickerBody(w int) string {
 	ti := m.projectSearch
 	if m.projectQuery != "" {
 		ti.TextStyle = lipgloss.NewStyle().Foreground(theme.Red)
@@ -71,16 +94,25 @@ func (m model) projectPickerBody() string {
 	}
 	var b strings.Builder
 	b.WriteString(theme.Muted.Render("⌕ ") + ti.View() + "\n\n")
+	// DD2-83: Spalten-Header (Project | Prefix·Slug · S/B) + Trennlinie → Tabellen-Optik.
+	b.WriteString(pickerRowFill(theme.Dim.Render("  ◦ Project"), theme.Dim.Render("Prefix · Slug    S/B"), w) + "\n")
+	b.WriteString(theme.Dim.Render(strings.Repeat("─", w)) + "\n")
 	filtered := m.filteredProjects()
 	for i, p := range filtered {
 		cursor := "  "
-		name := lipgloss.NewStyle().Foreground(theme.Text).Render(p.Name)
-		hint := theme.Muted.Render(fmt.Sprintf("(%s · %s)", p.Prefix, p.Slug))
+		nameStyle := lipgloss.NewStyle().Foreground(theme.Text)
 		if i == m.plist.cursor {
 			cursor = theme.Accent.Render("▸ ")
-			name = theme.Header.Render(p.Name)
+			nameStyle = theme.Header
 		}
-		b.WriteString(cursor + name + "  " + hint + "\n")
+		// DD2-82: volle Metriken sichtbar (kein Abschnitt), Breite dynamisch genutzt.
+		meta := theme.Muted.Render(fmt.Sprintf("%s · %s   %d/%d", p.Prefix, p.Slug, p.SprintCount, p.BacklogCount))
+		nameW := w - lipgloss.Width(cursor) - 2 - lipgloss.Width(meta) - 1 // dot(1)+space(1)
+		if nameW < 8 {
+			nameW = 8
+		}
+		left := cursor + projectStatusDot(p) + " " + nameStyle.Render(truncate(p.Name, nameW))
+		b.WriteString(pickerRowFill(left, meta, w) + "\n")
 	}
 	if len(filtered) == 0 && len(m.projects) > 0 {
 		b.WriteString(theme.Muted.Render("  (no matches)") + "\n")
@@ -88,6 +120,19 @@ func (m model) projectPickerBody() string {
 		b.WriteString(theme.Muted.Render("  (loading projects …)") + "\n")
 	}
 	return b.String()
+}
+
+// pickerBodyWidth = Tabellenbreite der Lobby: breit, aber gedeckelt, damit der
+// zentrierte Block nicht über das halbe Terminal hinausläuft.
+func (m model) pickerBodyWidth() int {
+	w := m.termWidth() - 8
+	if w > 72 {
+		w = 72
+	}
+	if w < 30 {
+		w = 30
+	}
+	return w
 }
 
 // viewHome rendert die Lobby: Logo + Untertitel + Projektliste als EIN zentrierter
@@ -98,7 +143,7 @@ func (m model) viewHome() string {
 	lines := append([]string{}, m.homeLogoBlock()...)
 	lines = append(lines, "",
 		theme.Muted.Render("Sprint · Backlog · Review · Live-Cockpit"), "")
-	lines = append(lines, strings.Split(m.projectPickerBody(), "\n")...)
+	lines = append(lines, strings.Split(m.projectPickerBody(m.pickerBodyWidth()), "\n")...)
 
 	cw := 0 // Inhaltsbreite = breiteste Zeile (Logo oder Liste)
 	for _, l := range lines {
@@ -122,9 +167,10 @@ func (m model) viewHome() string {
 
 // projPickBox rendert den Projekt-Picker als schwebendes Overlay-Modal (DD2-124).
 func (m model) projPickBox() string {
-	return modalPanel("Switch project", m.projectPickerBody(),
+	pw := clampModalWidth(52, m.width)
+	return modalPanel("Switch project", m.projectPickerBody(pw-4),
 		"i/k: select   enter: open   type: filter   esc: close",
-		clampModalWidth(52, m.width), theme.Mauve)
+		pw, theme.Mauve)
 }
 
 // --- Handler ---
