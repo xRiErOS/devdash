@@ -107,7 +107,9 @@ func (m model) openForm(kind string) (tea.Model, tea.Cmd) {
 	m.formKind = kind
 	f := buildForm(kind, m.milestones, m.tags)
 	if f != nil {
-		f = f.WithWidth(formInnerWidth(m.width)).WithHeight(formInnerHeight(m.height))
+		f = f.WithWidth(formInnerWidth(m.width)).
+			WithHeight(formInnerHeight(m.height)).
+			WithTheme(formHuhTheme())
 	}
 	m.form = f
 	m.status = ""
@@ -334,10 +336,85 @@ func (m model) formBox() string {
 	if m.form != nil {
 		m.form.WithWidth(formInnerWidth(m.width)).WithHeight(formInnerHeight(m.height))
 	}
-	inner := theme.Header.Render(titles[m.formKind]) + "\n\n" + m.form.View()
+	boxW := modalBoxWidth(m.width)
+	innerW := formInnerWidth(m.width)
+
+	// Header: Mantle BG, Mauve bold (DD2-64 BG-Layer)
+	header := lipgloss.NewStyle().
+		Width(innerW).Background(theme.Mantle).
+		Bold(true).Foreground(theme.Mauve).
+		Render(titles[m.formKind])
+
+	// Footer: form-spezifische Keybindings (DD2-64)
+	footer := lipgloss.NewStyle().
+		Width(innerW).Foreground(theme.Hint).
+		Render(formFooterKeys(m.formKind))
+
+	inner := lipgloss.JoinVertical(lipgloss.Left, header, m.form.View(), footer)
+
 	return lipgloss.NewStyle().
-		Width(modalBoxWidth(m.width)).
+		Width(boxW).
 		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
-		Background(theme.Base).Padding(0, 1).
+		Background(theme.Crust).Padding(0, 1).
 		Render(inner)
+}
+
+// formFooterKeys returns the keybinding hint for a given form kind.
+func formFooterKeys(kind string) string {
+	switch kind {
+	case "editField", "tagCreate", "tagEdit":
+		return "enter confirm · esc cancel"
+	default:
+		return "tab next · shift+tab prev · ctrl+enter submit · esc cancel"
+	}
+}
+
+// formHuhTheme returns a Catppuccin Macchiato huh theme (DD2-64).
+// Select (#fe640b) = aktiver Select-Cursor; Overlay = Input-/Feld-Border; Mauve = Title.
+func formHuhTheme() *huh.Theme {
+	t := huh.ThemeBase()
+
+	// Focused field: Overlay border, Mauve title
+	t.Focused.Base = t.Focused.Base.BorderForeground(theme.Overlay)
+	t.Focused.Card = t.Focused.Base
+	t.Focused.Title = t.Focused.Title.Foreground(theme.Mauve).Bold(true)
+	t.Focused.Description = t.Focused.Description.Foreground(theme.Hint)
+	t.Focused.ErrorIndicator = t.Focused.ErrorIndicator.Foreground(theme.Red)
+	t.Focused.ErrorMessage = t.Focused.ErrorMessage.Foreground(theme.Red)
+
+	// Select: aktiver Cursor + Indikatoren = Select (#fe640b, D02 ≠ Peach)
+	t.Focused.SelectSelector = t.Focused.SelectSelector.Foreground(theme.Select)
+	t.Focused.NextIndicator = t.Focused.NextIndicator.Foreground(theme.Select)
+	t.Focused.PrevIndicator = t.Focused.PrevIndicator.Foreground(theme.Select)
+	t.Focused.Option = t.Focused.Option.Foreground(theme.Text)
+	t.Focused.SelectedOption = t.Focused.SelectedOption.Foreground(theme.Select)
+
+	// Multi-select
+	t.Focused.MultiSelectSelector = t.Focused.MultiSelectSelector.Foreground(theme.Select)
+	t.Focused.SelectedPrefix = lipgloss.NewStyle().Foreground(theme.Select).SetString("[•] ")
+	t.Focused.UnselectedPrefix = lipgloss.NewStyle().Foreground(theme.Hint).SetString("[ ] ")
+	t.Focused.UnselectedOption = t.Focused.UnselectedOption.Foreground(theme.Text)
+
+	// Active button = Select orange (D02)
+	t.Focused.FocusedButton = t.Focused.FocusedButton.Foreground(theme.Base).Background(theme.Select)
+	t.Focused.BlurredButton = t.Focused.BlurredButton.Foreground(theme.Text).Background(theme.Surface)
+	t.Focused.Next = t.Focused.FocusedButton
+
+	// TextInput
+	t.Focused.TextInput.Cursor = t.Focused.TextInput.Cursor.Foreground(theme.Select)
+	t.Focused.TextInput.Placeholder = t.Focused.TextInput.Placeholder.Foreground(theme.Hint)
+	t.Focused.TextInput.Prompt = t.Focused.TextInput.Prompt.Foreground(theme.Mauve)
+	t.Focused.TextInput.Text = t.Focused.TextInput.Text.Foreground(theme.Text)
+
+	// Form base BG = Base (DD2-64 BG-Layer: body sits on Base)
+	t.Form.Base = t.Form.Base.Background(theme.Base)
+
+	// Blurred = Focused with hidden border
+	t.Blurred = t.Focused
+	t.Blurred.Base = t.Focused.Base.BorderStyle(lipgloss.HiddenBorder())
+	t.Blurred.Card = t.Blurred.Base
+	t.Blurred.NextIndicator = lipgloss.NewStyle()
+	t.Blurred.PrevIndicator = lipgloss.NewStyle()
+
+	return t
 }
