@@ -420,6 +420,18 @@ server.tool(
 )
 
 server.tool(
+  'devd_sstd_slot_list',
+  'List all SSTD slots of a project (slot-key + raw content) in one call. Unlike devd_sstd_get (full reassembly incl. projections) this returns the raw editable slots as a list. Read-only (MEM-16/18, DD2-98).',
+  { id_or_slug: z.string().describe('Numeric project id or slug string (e.g. "devd", "2")') },
+  async ({ id_or_slug }) => {
+    let pid
+    try { pid = await resolveProjectNumericId(id_or_slug) } catch (e) { return ok({ error: true, message: e.message }) }
+    const data = await apiRequest('GET', `/api/projects/${pid}/sstd/slots`)
+    return ok(data)
+  },
+)
+
+server.tool(
   'devd_sstd_slot_set',
   'WRITE: Replace a whole SSTD slot (last-write-wins). Use for the initial fill or full rewrite of one slot; for line-level edits use devd_sstd_slot_edit (MEM-16/18).',
   {
