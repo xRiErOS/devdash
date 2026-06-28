@@ -252,7 +252,9 @@ func (m model) footer() string {
 		act = "s:Issue-Status"
 	}
 	hint := "i/k:↑↓  l/→:rein  j/←:raus  enter:Detail  " + act + "  f:Filter  y:Yank  b:Backlog  R:Reviews  t:Tree  q:quit"
-	return theme.Dim.Render(hint)
+	// DD2-73: auf schmalen Terminals umbrechen statt in die Pane-Spalten überlaufen
+	// (analog chrome()). viewColumns rechnet die Footer-Höhe in die Body-Höhe ein.
+	return theme.Dim.Render(wrapText(hint, m.termWidth()))
 }
 
 func (m model) termWidth() int {

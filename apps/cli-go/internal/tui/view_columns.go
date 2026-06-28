@@ -47,7 +47,13 @@ func (m model) viewColumns() string {
 	visible := all[start:end]
 	n := len(visible)
 
-	h := m.bodyHeight()
+	// DD2-73: Footer kann mehrzeilig sein (umgebrochener Hint) — seine Höhe von der
+	// Pane-Innenhöhe abziehen, damit der Frame nie über das Terminal hinauswächst.
+	foot := m.footer()
+	h := m.bodyHeight() - (lipgloss.Height(foot) - 1)
+	if h < 5 {
+		h = 5
+	}
 	w := m.termWidth()
 	colW := (w - n*2) / n // Border frisst 2 Spalten je Pane
 	if colW < 12 {
@@ -60,7 +66,7 @@ func (m model) viewColumns() string {
 		cols[i] = renderPane(p, colW, h, focused)
 	}
 	body := lipgloss.JoinHorizontal(lipgloss.Top, cols...)
-	frame := m.header() + "\n" + body + "\n" + m.footer()
+	frame := m.header() + "\n" + body + "\n" + foot
 
 	// Filter-Modal schwebt zentriert über dem Frame (Liste bleibt darunter sichtbar).
 	if m.filtering {
