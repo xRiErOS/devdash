@@ -26,6 +26,7 @@ type sortOpt struct{ value, label string }
 func backlogSortOpts() []sortOpt {
 	return []sortOpt{
 		{"prio", "Priority (critical first)"},
+		{"title", "Title (A–Z)"}, // DD2-137: alphabetisch nach Titel
 		{"created", "Erstelldatum (neueste zuerst)"},
 		{"key", "Anlage-Reihenfolge (id)"},
 	}
@@ -35,6 +36,10 @@ func backlogSortOpts() []sortOpt {
 // Eingangsreihenfolge behalten). prio: Priority aufsteigend (1 = kritisch zuerst).
 func sortBacklog(items []api.Issue, mode string) {
 	switch mode {
+	case "title": // DD2-137: alphabetisch (case-insensitive) nach Titel
+		sort.SliceStable(items, func(i, j int) bool {
+			return strings.ToLower(items[i].Title) < strings.ToLower(items[j].Title)
+		})
 	case "created":
 		sort.SliceStable(items, func(i, j int) bool {
 			return deref(items[i].CreatedAt) > deref(items[j].CreatedAt) // neueste zuerst

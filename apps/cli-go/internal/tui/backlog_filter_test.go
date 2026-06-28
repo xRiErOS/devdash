@@ -135,14 +135,29 @@ func TestBacklogSortPicker(t *testing.T) {
 	if !m.blSortOpen {
 		t.Fatal("s sollte den Sortier-Picker öffnen")
 	}
-	// Auf "created" navigieren (Index 1) und wählen.
+	// Auf "title" navigieren (Index 1, DD2-137) und wählen.
 	m.blSortMenu.cursor = 1
 	mi, _ = m.keyBacklog(tea.KeyMsg{Type: tea.KeyEnter})
 	m = mi.(model)
 	if m.blSortOpen {
 		t.Error("enter sollte den Picker schließen")
 	}
-	if m.blSort != "created" {
-		t.Errorf("blSort=%q, want created", m.blSort)
+	if m.blSort != "title" {
+		t.Errorf("blSort=%q, want title", m.blSort)
+	}
+}
+
+// DD2-137: sortBacklog("title") sortiert alphabetisch case-insensitive.
+func TestSortBacklogByTitle(t *testing.T) {
+	items := []api.Issue{
+		{Title: "banana"}, {Title: "Apple"}, {Title: "cherry"},
+	}
+	sortBacklog(items, "title")
+	got := []string{items[0].Title, items[1].Title, items[2].Title}
+	want := []string{"Apple", "banana", "cherry"}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("title-Sort[%d]=%q, want %q", i, got[i], want[i])
+		}
 	}
 }
