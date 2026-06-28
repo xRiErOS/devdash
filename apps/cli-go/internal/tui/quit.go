@@ -11,7 +11,6 @@ import (
 
 	"devd-cli/internal/theme"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
 // requestQuit öffnet den Beenden-Confirm statt direkt zu beenden (DD2-49).
@@ -40,9 +39,5 @@ func (m model) quitBox() string {
 	b.WriteString(theme.Dim.Render("DevD-Cockpit wirklich schließen.") + "\n\n")
 	b.WriteString(theme.Accent.Render("y") + theme.Dim.Render(": beenden   ") +
 		theme.Accent.Render("n/esc") + theme.Dim.Render(": abbrechen"))
-	return lipgloss.NewStyle().
-		Width(clampModalWidth(40, m.width)). // DD2-55: auf Terminalbreite clampen
-		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
-		Background(theme.Base).Padding(0, 1).
-		Render(b.String())
+	return modalBox(b.String(), clampModalWidth(40, m.width), theme.Mauve)
 }

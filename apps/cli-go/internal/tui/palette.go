@@ -9,7 +9,6 @@ import (
 
 	"devd-cli/internal/theme"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
 // paletteAction ist ein wählbarer Eintrag im Command-Center.
@@ -173,9 +172,5 @@ func (m model) paletteBox() string {
 		b.WriteString(cursor + label + "\n")
 	}
 	b.WriteString("\n" + theme.Dim.Render("tippen: filtern   ↑↓: wählen   enter: ausführen   esc: zu"))
-	return lipgloss.NewStyle().
-		Width(clampModalWidth(48, m.width)). // DD2-55: auf Terminal clampen
-		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
-		Background(theme.Base).Padding(0, 1).
-		Render(b.String())
+	return modalBox(b.String(), clampModalWidth(48, m.width), theme.Mauve)
 }

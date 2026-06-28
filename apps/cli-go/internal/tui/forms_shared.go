@@ -17,8 +17,10 @@ import (
 	"strings"
 
 	"devd-cli/internal/api"
+	"devd-cli/internal/theme"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/lipgloss"
 )
 
 func nonEmpty(s string) error {
@@ -132,10 +134,135 @@ func (m model) openForm(kind string) (tea.Model, tea.Cmd) {
 	if f == nil {
 		return m, nil
 	}
-	f = f.WithWidth(formInnerWidth(m.width)).
-		WithHeight(formInnerHeight(m.height))
-	m.form = f
+	m.form = m.styleForm(f)
 	return m, m.form.Init()
+}
+
+// styleForm finalisiert jede embedded huh-Form einheitlich: Palette-Theme +
+// Terminal-Maße + huh-Eigen-Help aus (Footer kommt aus formChrome). Single-Source
+// für openForm, editField (detail.go) und Tag-Forms (tags.go).
+func (m model) styleForm(f *huh.Form) *huh.Form {
+	return f.WithWidth(formInnerWidth(m.width)).
+		WithHeight(formInnerHeight(m.height)).
+		WithShowHelp(false).
+		WithTheme(paletteFormTheme())
+}
+
+// paletteFormTheme spiegelt die Command-Palette-Optik auf ein huh.Theme:
+// Mauve = Akzent (Titel, Selector, Indikatoren, aktive Option), Yellow =
+// Signalbalken am aktiven Feld (Orientierung), Overlay/Hint gedimmt, Base = BG.
+func paletteFormTheme() *huh.Theme {
+	t := huh.ThemeBase()
+
+	// Aktives Feld: Yellow-Signalbalken für Orientierung. BG = Base (flach,
+	// palette-konsistent). Hinweis: leere textarea-Zeilen (EndOfBuffer) lassen
+	// sich in huh v1.0.0 NICHT per Theme füllen — unter Terminal-Transparenz
+	// scheinen sie durch; opakes Terminal (bg=Base) ist die Design-Annahme.
+	t.Focused.Base = t.Focused.Base.BorderForeground(theme.Yellow).Background(theme.Base)
+	t.Focused.Card = t.Focused.Base
+	t.Focused.Title = t.Focused.Title.Foreground(theme.Mauve).Bold(true)
+	t.Focused.Description = t.Focused.Description.Foreground(theme.Hint)
+	t.Focused.ErrorIndicator = t.Focused.ErrorIndicator.Foreground(theme.Red)
+	t.Focused.ErrorMessage = t.Focused.ErrorMessage.Foreground(theme.Red)
+
+	// Select: Mauve-Cursor "▸ " + Indikatoren (wie Palette-Cursor)
+	t.Focused.SelectSelector = t.Focused.SelectSelector.Foreground(theme.Mauve).SetString("▸ ")
+	t.Focused.NextIndicator = t.Focused.NextIndicator.Foreground(theme.Mauve)
+	t.Focused.PrevIndicator = t.Focused.PrevIndicator.Foreground(theme.Mauve)
+	t.Focused.Option = t.Focused.Option.Foreground(theme.Text)
+	t.Focused.SelectedOption = t.Focused.SelectedOption.Foreground(theme.Mauve)
+
+	// Multi-select
+	t.Focused.MultiSelectSelector = t.Focused.MultiSelectSelector.Foreground(theme.Mauve).SetString("▸ ")
+	t.Focused.SelectedPrefix = lipgloss.NewStyle().Foreground(theme.Mauve).SetString("[•] ")
+	t.Focused.UnselectedPrefix = lipgloss.NewStyle().Foreground(theme.Hint).SetString("[ ] ")
+	t.Focused.UnselectedOption = t.Focused.UnselectedOption.Foreground(theme.Text)
+
+	// Buttons (Submit) = Mauve-Akzent
+	t.Focused.FocusedButton = t.Focused.FocusedButton.Foreground(theme.Base).Background(theme.Mauve)
+	t.Focused.BlurredButton = t.Focused.BlurredButton.Foreground(theme.Text).Background(theme.Surface)
+	t.Focused.Next = t.Focused.FocusedButton
+
+	// TextInput — Prompt-"> " entfernt (war zusätzliches Zeichen im Input).
+	t.Focused.TextInput.Cursor = t.Focused.TextInput.Cursor.Foreground(theme.Mauve)
+	t.Focused.TextInput.Placeholder = t.Focused.TextInput.Placeholder.Foreground(theme.Hint)
+	t.Focused.TextInput.Prompt = t.Focused.TextInput.Prompt.Foreground(theme.Mauve).SetString("")
+	t.Focused.TextInput.Text = t.Focused.TextInput.Text.Foreground(theme.Text)
+
+	t.Form.Base = t.Form.Base.Background(theme.Base)
+
+	// Blurred = Focused, nur Border gedimmt
+	t.Blurred = t.Focused
+	t.Blurred.Base = t.Focused.Base.BorderForeground(theme.Hint).Background(theme.Base)
+	t.Blurred.Card = t.Blurred.Base
+	t.Blurred.NextIndicator = lipgloss.NewStyle()
+	t.Blurred.PrevIndicator = lipgloss.NewStyle()
+
+	return t
+}
+
+// formTitle liefert den Modal-Titel je formKind.
+func (m model) formTitle() string {
+	switch m.formKind {
+	case "testform":
+		return "Test Form"
+	case "issue":
+		return "Neues Issue"
+	case "milestone":
+		return "Neuer Meilenstein"
+	case "sprint":
+		return "Neuer Sprint"
+	case "memory":
+		return "Neue Memory"
+	case "result":
+		return "Ergebnisfeld setzen"
+	case "editField":
+		return "Bearbeiten: " + m.editLabel
+	case "tagCreate":
+		return "Neuer Tag"
+	case "tagEdit":
+		return "Tag bearbeiten"
+	}
+	return ""
+}
+
+// formFooterHint liefert die Keybinding-Zeile je formKind.
+func formFooterHint(kind string) string {
+	switch kind {
+	case "testform":
+		return "↑↓ wählen · enter weiter · ctrl+e Editor · esc zu"
+	case "editField", "tagCreate", "tagEdit":
+		return "enter speichern · esc abbrechen"
+	default:
+		return "alt+enter speichern · tab Feld · esc abbrechen"
+	}
+}
+
+// modalBox umrahmt vorgerenderten Inhalt als schwebendes Overlay-Modal — die
+// gemeinsame Chrome ALLER Overlays (RoundedBorder, Base-BG, Padding(0,1)).
+// Single-Source gegen Drift (DD2 I01). border = theme.Mauve (Standard) bzw.
+// theme.Red (destruktive Dialoge: delete/cascade).
+func modalBox(inner string, width int, border lipgloss.Color) string {
+	return lipgloss.NewStyle().
+		Width(width).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(border).
+		Background(theme.Base).
+		Padding(0, 1).
+		Render(inner)
+}
+
+// formChrome umrahmt jede embedded huh-Form wie die Command-Palette
+// (Header-Titel, Dim-Separator + Dim-Footer). Single-Source für alle Form-Kinds
+// (T03: Box-gerahmt), Chrome über modalBox.
+func (m model) formChrome() string {
+	innerW := formInnerWidth(m.width)
+	var b strings.Builder
+	b.WriteString(theme.Header.Render(m.formTitle()) + "\n")
+	b.WriteString(theme.Dim.Render(strings.Repeat("─", innerW)) + "\n")
+	b.WriteString(m.form.View())
+	b.WriteString("\n" + theme.Dim.Render(formFooterHint(m.formKind)))
+	return modalBox(b.String(), modalBoxWidth(m.width), theme.Mauve)
 }
 
 // typeOptions / priorityOptions = Single Source der Issue-Type- bzw. Prioritäts-

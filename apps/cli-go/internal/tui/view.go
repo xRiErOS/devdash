@@ -23,10 +23,7 @@ func (m model) View() string {
 	}
 	// Command-Center (T16): Formular bzw. Palette schweben zentriert über dem Frame.
 	if m.form != nil {
-		if m.formKind == "testform" { // Styling-Sandbox: palette-gerahmt
-			return placeOverlay(base, m.sandboxFormBox(), m.termWidth(), m.height)
-		}
-		return m.form.View()
+		return placeOverlay(base, m.formChrome(), m.termWidth(), m.height)
 	}
 	if m.paletteOpen {
 		return placeOverlay(base, m.paletteBox(), m.termWidth(), m.height)
@@ -71,11 +68,7 @@ func (m model) milestoneCascadeBox() string {
 	b.WriteString(theme.Dim.Render("PO-Aktion (DD-186) — nicht umkehrbar.") + "\n\n")
 	b.WriteString(lipgloss.NewStyle().Foreground(theme.Red).Render("y") + theme.Dim.Render(": kaskadierend abschließen   ") +
 		theme.Accent.Render("n/esc") + theme.Dim.Render(": abbrechen"))
-	return lipgloss.NewStyle().
-		Width(modalBoxWidth(m.width)).
-		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Red).
-		Background(theme.Base).Padding(0, 1).
-		Render(b.String())
+	return modalBox(b.String(), modalBoxWidth(m.width), theme.Red)
 }
 
 // milestoneStatusMenu: schwebendes Meilenstein-Status-Menü (Taste S, T01).
@@ -99,11 +92,7 @@ func (m model) milestoneStatusMenu() string {
 		b.WriteString(cursor + label + "\n")
 	}
 	b.WriteString("\n" + theme.Dim.Render("enter: setzen   esc: abbrechen"))
-	return lipgloss.NewStyle().
-		Width(clampModalWidth(46, m.width)). // DD2-55: auf Terminal clampen
-		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
-		Background(theme.Base).Padding(0, 1).
-		Render(b.String())
+	return modalBox(b.String(), clampModalWidth(46, m.width), theme.Mauve)
 }
 
 func (m model) viewBase() string {

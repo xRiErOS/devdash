@@ -11,7 +11,6 @@ import (
 
 	"devd-cli/internal/theme"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
 // smOpt ist eine Picker-Option (id=nil → „kein Meilenstein").
@@ -83,11 +82,7 @@ func (m model) sprintMilestoneMenu() string {
 		}
 		b.WriteString(cursor + label + "\n")
 	}
-	return lipgloss.NewStyle().
-		Width(clampModalWidth(48, m.width)). // DD2-55: auf Terminal clampen
-		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
-		Background(theme.Base).Padding(0, 1).
-		Render(b.String())
+	return modalBox(b.String(), clampModalWidth(48, m.width), theme.Mauve)
 }
 
 // --- Flow B: Meilenstein → Sprints (Multi-Select-Checkliste) ---
@@ -170,9 +165,5 @@ func (m model) milestoneAssignMenu() string {
 		}
 		b.WriteString(cursor + box + " " + label + "\n")
 	}
-	return lipgloss.NewStyle().
-		Width(clampModalWidth(50, m.width)). // DD2-55: auf Terminal clampen
-		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
-		Background(theme.Base).Padding(0, 1).
-		Render(b.String())
+	return modalBox(b.String(), clampModalWidth(50, m.width), theme.Mauve)
 }

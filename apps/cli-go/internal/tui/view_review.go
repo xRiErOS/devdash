@@ -164,11 +164,7 @@ func (m model) sprintStatusMenu() string {
 		b.WriteString(cursor + label + "\n")
 	}
 	b.WriteString("\n" + theme.Dim.Render("enter: setzen   esc: abbrechen"))
-	return lipgloss.NewStyle().
-		Width(clampModalWidth(40, m.width)). // DD2-55: auf Terminal clampen
-		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
-		Background(theme.Base).Padding(0, 1).
-		Render(b.String())
+	return modalBox(b.String(), clampModalWidth(40, m.width), theme.Mauve)
 }
 
 // reviewBadge zeigt das Review-Verdikt (review_feedback) je Issue — sichtbar
@@ -280,11 +276,7 @@ func (m model) userStoryModal() string {
 		b.WriteString(cursor + usVerdictBox(us.Verdict) + " " + truncate(t, 50) + "\n")
 	}
 	b.WriteString("\n" + theme.Dim.Render("a:accept  r:reject  o:open  i/k:↑↓  enter/esc:schließen"))
-	return lipgloss.NewStyle().
-		Width(modalBoxWidth(m.width)). // DD2-55: auf Terminal clampen (Standard-Modalbreite)
-		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
-		Background(theme.Base).Padding(0, 1).
-		Render(b.String())
+	return modalBox(b.String(), modalBoxWidth(m.width), theme.Mauve)
 }
 
 func usVerdictBox(v string) string {
@@ -342,11 +334,7 @@ func (m model) statusMenu() string {
 		b.WriteString(cursor + mark + label + "\n")
 	}
 	b.WriteString("\n" + theme.Dim.Render("enter: setzen   esc: abbrechen"))
-	return lipgloss.NewStyle().
-		Width(clampModalWidth(30, m.width)). // DD2-55: auf Terminal clampen
-		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
-		Background(theme.Base).Padding(0, 1).
-		Render(b.String())
+	return modalBox(b.String(), clampModalWidth(30, m.width), theme.Mauve)
 }
 
 // noticeText färbt einen transienten Hinweis in Sapphire (gültige Aktionen/Fehler).
@@ -379,12 +367,7 @@ func (m model) filterBox() string {
 		}
 		b.WriteString(cursor + box + " " + label + "\n")
 	}
-	return lipgloss.NewStyle().
-		Width(clampModalWidth(38, m.width)). // DD2-55: auf Terminal clampen
-		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
-		Background(theme.Base).
-		Padding(0, 1).
-		Render(b.String())
+	return modalBox(b.String(), clampModalWidth(38, m.width), theme.Mauve)
 }
 
 // --- Helfer ---

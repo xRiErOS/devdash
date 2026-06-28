@@ -62,15 +62,15 @@ func TestFormInnerHeight(t *testing.T) {
 	}
 }
 
-// DD2-25: die bare huh-Form darf nie höher als das Terminal werden (sonst unten
-// abgeschnitten). openForm setzt WithHeight(formInnerHeight) — Guard über kurze
-// und große Terminals.
+// DD2-25: die palette-gerahmte Form (formChrome) darf nie höher als das Terminal
+// werden (sonst unten abgeschnitten). styleForm setzt WithHeight(formInnerHeight),
+// formChrome addiert Header/Separator/Footer — Guard über kurze und große Terminals.
 func TestFormModalNeverOverflows(t *testing.T) {
 	for _, h := range []int{12, 14, 20, 24, 34, 50} {
 		m := model{width: 90, height: h}
 		mm, _ := m.openForm("issue")
-		if box := lipgloss.Height(mm.(model).form.View()); box > h {
-			t.Errorf("Form h=%d > Terminal h=%d (Overflow → abgeschnitten)", box, h)
+		if box := lipgloss.Height(mm.(model).formChrome()); box > h {
+			t.Errorf("Form-Chrome h=%d > Terminal h=%d (Overflow → abgeschnitten)", box, h)
 		}
 	}
 }

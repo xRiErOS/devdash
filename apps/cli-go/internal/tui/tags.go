@@ -98,8 +98,7 @@ func (m model) openTagForm(id int, name, color string) (tea.Model, tea.Cmd) {
 		m.formKind = "tagEdit"
 	}
 	form := buildTagForm(name, color)
-	form = form.WithWidth(formInnerWidth(m.width)).WithHeight(formInnerHeight(m.height))
-	m.form = form
+	m.form = m.styleForm(form)
 	m.status = ""
 	return m, m.form.Init()
 }
@@ -267,11 +266,7 @@ func (m model) tagPickerMenu() string {
 		}
 		b.WriteString(cursor + box + " " + tagSwatch(t) + "\n")
 	}
-	return lipgloss.NewStyle().
-		Width(clampModalWidth(46, m.width)).
-		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
-		Background(theme.Base).Padding(0, 1).
-		Render(b.String())
+	return modalBox(b.String(), clampModalWidth(46, m.width), theme.Mauve)
 }
 
 // patchIssueTags ersetzt die Tags eines Issues in allen lokalen Caches (DD2-33,

@@ -66,9 +66,5 @@ func (m model) helpBox() string {
 	}
 	b.WriteString("\n" + theme.Dim.Render("esc/?/q: schließen"))
 
-	return lipgloss.NewStyle().
-		Width(clampModalWidth(54, m.width)). // DD2-55: auf Terminalbreite clampen
-		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
-		Background(theme.Base).Padding(0, 1).
-		Render(b.String())
+	return modalBox(b.String(), clampModalWidth(54, m.width), theme.Mauve)
 }

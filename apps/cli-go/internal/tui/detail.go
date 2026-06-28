@@ -90,9 +90,7 @@ func (m model) openEditField(it api.Issue, f detailField) (tea.Model, tea.Cmd) {
 	m.editValue = currentFieldValue(it, f.key)
 	m.formKind = "editField"
 	form := buildEditFieldForm(f, m.editValue)
-	form = form.WithWidth(formInnerWidth(m.width)).
-		WithHeight(formInnerHeight(m.height))
-	m.form = form
+	m.form = m.styleForm(form)
 	m.status = ""
 	return m, m.form.Init()
 }
