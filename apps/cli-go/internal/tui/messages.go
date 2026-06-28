@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"devd-cli/internal/api"
+	"devd-cli/internal/clip"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -92,6 +93,56 @@ func doSprintTo(c *api.Client, sprintID int, to string) tea.Cmd {
 			return noticeMsg{cleanAPIErr(err)}
 		}
 		return refreshSprint(c, sprintID)
+	}
+}
+
+// reviewSubmittedMsg signalisiert einen markierten Review-Durchgang (DD2-44).
+type reviewSubmittedMsg struct{ sprint *api.Sprint }
+
+// doReviewSubmit markiert den Sprint-Review-Durchgang als abgeschlossen
+// (POST /review-submit setzt review_submitted_at, idempotent) — DD2-44 P-Taste.
+// Signalisiert dem PO-Workflow „Review-Pass fertig", entsperrt KEINEN Auto-Close.
+// Lädt den Sprint neu und meldet Erfolg.
+func doReviewSubmit(c *api.Client, sprintID int) tea.Cmd {
+	return func() tea.Msg {
+		if _, err := c.SprintReviewSubmit(sprintID); err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		s, err := c.GetSprint(sprintID)
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return reviewSubmittedMsg{s}
+	}
+}
+
+// completeDoneMsg trägt das Ergebnis von doSprintComplete: frischer Sprint +
+// Handover-Markdown (rev-results), das in die Zwischenablage geyankt wurde (DD2-45).
+type completeDoneMsg struct {
+	sprint *api.Sprint
+	yanked bool
+}
+
+// doSprintComplete schließt den Sprint ab (review→completed, PO-gated) UND stellt
+// danach automatisch den Ergebnis-Handover her (DD2-45): rev-results laden und in
+// die Zwischenablage yanken, damit der PO den Sprint-Review sauber übergeben kann
+// — ohne manuellen Wechsel zur rev-results-Seite.
+func doSprintComplete(c *api.Client, sprintID int) tea.Cmd {
+	return func() tea.Msg {
+		if _, err := c.SprintComplete(sprintID); err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		s, err := c.GetSprint(sprintID)
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		yanked := false
+		if raw, err := c.SprintRevResults(sprintID); err == nil && len(raw) > 0 {
+			if clip.Copy(string(raw)) == nil {
+				yanked = true
+			}
+		}
+		return completeDoneMsg{sprint: s, yanked: yanked}
 	}
 }
 

@@ -136,6 +136,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.status = noticeText("Rework fertig → Issue ist to_review, jetzt a:pass")
 		return m, nil
+	case reviewSubmittedMsg: // DD2-44: Review-Pass markiert (review_submitted_at)
+		m.curSprint = msg.sprint
+		if m.curSprint != nil {
+			m.rlist.setLen(len(m.curSprint.Items))
+		}
+		m.status = noticeText("Review-Pass markiert — Sprint wartet auf PO-Abschluss (C)")
+		return m, nil
+	case completeDoneMsg: // DD2-45: Sprint abgeschlossen + Ergebnis-Handover geyankt
+		m.curSprint = msg.sprint
+		if m.curSprint != nil {
+			m.rlist.setLen(len(m.curSprint.Items))
+		}
+		if msg.yanked {
+			m.status = noticeText("Sprint abgeschlossen — Ergebnis-Handover in Zwischenablage")
+		} else {
+			m.status = noticeText("Sprint abgeschlossen (Handover-Yank fehlgeschlagen)")
+		}
+		return m, nil
 	case tea.MouseMsg:
 		return m.handleMouse(msg)
 	case tea.KeyMsg:
