@@ -475,23 +475,30 @@ func (m model) viewColumns() string {
 	return frame
 }
 
+// renderPane rendert eine bordered Pane. DD2-54 / Golden Rule #1: KEIN Height()
+// auf dem bordered Style — stattdessen den Content auf die Innenhöhe (h Zeilen)
+// auffüllen und den Border natürlich darum wachsen lassen (Gesamthöhe h+2). So
+// kippt die Ausrichtung nicht, falls eine künftige Zeile nicht truncatet wird:
+// die Zeilenzahl ist explizit gedeckelt, nicht von Height() abhängig.
 func renderPane(p pane, w, h int, focused bool) string {
 	titleStyle := theme.Dim
 	if focused {
 		titleStyle = theme.Header
 	}
-	var b strings.Builder
-	b.WriteString(titleStyle.Render(truncate(p.title, w)) + "\n")
-	b.WriteString(theme.Dim.Render(strings.Repeat("─", min(w, lipgloss.Width(p.title)+2))) + "\n")
-	max := h - 2 // Titel + Trennlinie
-	for i := 0; i < max && i < len(p.rows); i++ {
+	lines := make([]string, 0, h)
+	lines = append(lines, titleStyle.Render(truncate(p.title, w)))
+	lines = append(lines, theme.Dim.Render(strings.Repeat("─", min(w, lipgloss.Width(p.title)+2))))
+	for i := 0; i < len(p.rows) && len(lines) < h; i++ { // max h Zeilen inkl. Titel+Trennlinie
 		row := truncate(p.rows[i], w-2)
 		if p.isList && i == p.cursor && focused {
 			row = theme.Accent.Render("▸ ") + row
 		} else if p.isList {
 			row = "  " + row
 		}
-		b.WriteString(row + "\n")
+		lines = append(lines, row)
+	}
+	for len(lines) < h { // auf Innenhöhe auffüllen statt Height() zu erzwingen
+		lines = append(lines, "")
 	}
 	border := lipgloss.RoundedBorder()
 	col := theme.Overlay
@@ -499,9 +506,9 @@ func renderPane(p pane, w, h int, focused bool) string {
 		col = theme.Mauve
 	}
 	return lipgloss.NewStyle().
-		Width(w).Height(h).
+		Width(w).
 		Border(border).BorderForeground(col).
-		Render(b.String())
+		Render(strings.Join(lines, "\n"))
 }
 
 func (m model) msRows() []string {
