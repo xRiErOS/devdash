@@ -263,14 +263,58 @@ func (m model) footer() string {
 }
 
 func (m model) termWidth() int {
-	if m.width < 30 {
-		return 100
+	w := m.width
+	if w < 30 {
+		w = 100
 	}
-	return m.width
+	if m.viewBordered() {
+		w -= 2 // DD2-68: App-Außenrahmen reserviert je 1 Spalte links/rechts (Innenbreite)
+	}
+	return w
+}
+
+// viewBordered meldet, ob die aktuelle View den App-Außenrahmen trägt (DD2-68 →
+// DD2-84). DD2-68 erfasst die chrome()/framed()-basierten Screens; DD2-84 weitet das
+// auf den vollständigen View-Satz (inkl. viewHome-Lobby) aus. Steuert ZUGLEICH die
+// Innen-Reservierung in termWidth()/frameH() — Rahmen-Wrap und Maß bleiben synchron.
+func (m model) viewBordered() bool {
+	switch m.view {
+	case viewDetail, viewMilestone, viewSprint, viewReviewsList, viewTags, // DD2-68 chrome-Subset
+		viewHome, viewColumns, viewBacklog, viewReview, viewTree: // DD2-84 vollständiger Satz
+		return true
+	}
+	return false
+}
+
+// frameH ist die Innenhöhe für rahmen-bewusste Layouts: bei App-Außenrahmen 2
+// Zeilen (oben/unten) weniger als die Terminalhöhe, sonst die volle Höhe.
+func (m model) frameH() int {
+	if m.viewBordered() {
+		return m.height - 2
+	}
+	return m.height
+}
+
+// outerBorder legt den App-Außenrahmen (RoundedBorder, Overlay) um den fertigen
+// Screen-Inhalt — nur wenn viewBordered(). Width = termWidth() (bereits Innenbreite)
+// → Gesamtbreite m.width; KEIN Height() (Golden Rule #1): der Inhalt füllt bereits
+// frameH() Zeilen, der Rahmen wächst natürlich auf m.height.
+func (m model) outerBorder(content string) string {
+	if !m.viewBordered() {
+		return content
+	}
+	return lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(theme.Overlay).
+		Width(m.termWidth()).
+		Render(content)
 }
 
 func (m model) bodyHeight() int {
 	h := m.height - 4
+	if m.viewBordered() {
+		h -= 2 // DD2-84: App-Außenrahmen reserviert oben/unten je 1 Zeile
+	}
 	if h < 6 {
 		return 18
 	}
@@ -416,14 +460,18 @@ func (m model) chrome(title string, slots []hslot, body, hint string) string {
 	wrapped := lipgloss.NewStyle().Padding(0, 1).Render(wrapText(body, m.termWidth()-2))
 	// Zone 3: lokale Shortcuts — auf schmalen Screens umbrechen statt überlaufen.
 	localKeys := theme.Muted.Render(wrapText(hint, m.termWidth()))
-	footH := lipgloss.Height(localKeys) + 1 // + 1 Status-Zeile
-	avail := m.height - lipgloss.Height(head) - footH
+	// DD2-68 Rework: TopBar (Zone 1/2) und Footer (Zone 3/4) je per Trennlinie vom
+	// Body abgesetzt (Wireframe-Zonen) — Innenbreite = termWidth().
+	div := theme.Dim.Render(strings.Repeat("─", m.termWidth()))
+	footH := lipgloss.Height(localKeys) + 2                 // + 1 Status-Zeile + 1 Divider über dem Footer
+	avail := m.frameH() - lipgloss.Height(head) - footH - 1 // DD2-68: Innenhöhe, - 1 Divider unter der TopBar
 	if avail < 4 {
 		avail = m.bodyHeight() // Höhe unbekannt (Init/Tests) → großzügiger Fallback
 	}
 	win, ind := scrollView(wrapped, avail, m.scroll)
 	status := m.statusBar(ind) // Zone 4: Split-Status (Info blau | Fehler rot), 1 Zeile
-	return head + "\n" + win + "\n" + localKeys + "\n" + status
+	// DD2-68: Screen mit Zonen-Trennlinien in den App-Außenrahmen wrappen (no-op wenn !viewBordered).
+	return m.outerBorder(head + "\n" + div + "\n" + win + "\n" + div + "\n" + localKeys + "\n" + status)
 }
 
 // framed = chrome ohne Info-Grid (Backlog/Reviews/Picker).

@@ -1,21 +1,22 @@
-> devd2: Project browser       ctrl+k:cmd  p:project  b:backlog  R:reviews  ?:help  q:quit
-╭────────────────────────────────────╮╭──────────────────────────────────────────────────╮
-│⌕ search with /  ∙  filter f        ││> DD2-99 Beispiel-Issue für den Snapshot          │
-│ ▾ ◉ Meilenstein Eins               ││P1 prio  ∙  ⯁ bug type                 to_review  │
-│   ▾ DD2#9 review                   ││                                                  │
-│▌      ⯁ DD2-99                     ││Sections: digit [1..n] opens                      │
-│                                    ││> [1] Goal / Description ∙ PO notes  ▾            │
-│                                    ││  Goal                        PO-Notes            │
-│                                    ││  Detail soll scrollbar       (empty)             │
-│                                    ││  sein, damit umfangreicher                       │
-│                                    ││  Inhalt lesbar bleibt.                           │
-│                                    ││> [2] Background / Context  ▸                     │
-│                                    ││> [3] User-Stories (2)  ▸                         │
-│                                    ││                                                  │
-│                                    ││                                                  │
-│                                    ││                                                  │
-│                                    ││                                                  │
-│                                    ││                                                  │
-╰────────────────────────────────────╯╰──────────────────────────────────────────────────╯
-i/k:↑↓  l/→:expand  j/←:collapse  1…n:section  s:status  S:milestone  d:delete  y:yank
-/:search  f:filter  t:tags  ctrl+r:reload                                             
+╭────────────────────────────────────────────────────────────────────────────────────────╮
+│> devd2: Project browser     ctrl+k:cmd  p:project  b:backlog  R:reviews  ?:help  q:quit│
+│╭───────────────────────────────────╮╭─────────────────────────────────────────────────╮│
+││⌕ search with /  ∙  filter f       ││> DD2-99 Beispiel-Issue für den Snapshot         ││
+││ ▾ ◉ Meilenstein Eins              ││P1 prio  ∙  ⯁ bug type                to_review  ││
+││   ▾ DD2#9 review                  ││                                                 ││
+││▌      ⯁ DD2-99                    ││Sections: digit [1..n] opens                     ││
+││                                   ││> [1] Goal / Description ∙ PO notes  ▾           ││
+││                                   ││  Goal                       PO-Notes            ││
+││                                   ││  Detail soll scrollbar      (empty)             ││
+││                                   ││  sein, damit umfangreicher                      ││
+││                                   ││  Inhalt lesbar bleibt.                          ││
+││                                   ││> [2] Background / Context  ▸                    ││
+││                                   ││> [3] User-Stories (2)  ▸                        ││
+││                                   ││                                                 ││
+││                                   ││                                                 ││
+││                                   ││                                                 ││
+│╰───────────────────────────────────╯╰─────────────────────────────────────────────────╯│
+│i/k:↑↓  l/→:expand  j/←:collapse  1…n:section  s:status  S:milestone  d:delete  y:yank  │
+│/:search  f:filter  t:tags  ctrl+r:reload                                               │
+│                                                                                        │
+╰────────────────────────────────────────────────────────────────────────────────────────╯

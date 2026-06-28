@@ -192,7 +192,7 @@ func (m model) treeLayout() (head, localKeys string, lw, rw, innerH int) {
 	}
 	localKeys = theme.Muted.Render(wrapText(hint, w)) // Zone 3: lokale Shortcuts
 	footH := lipgloss.Height(localKeys) + 1           // + 1 Status-Zeile (Split-Status)
-	avail := m.height - lipgloss.Height(head) - footH
+	avail := m.frameH() - lipgloss.Height(head) - footH // DD2-84: Innenhöhe (Rahmen reserviert)
 	if avail < 4 {
 		avail = m.bodyHeight() // Höhe unbekannt (Init/Tests) → großzügiger Fallback
 	}
@@ -270,7 +270,7 @@ func (m model) viewTree() string {
 	body := lipgloss.JoinHorizontal(lipgloss.Top, leftBox, rightBox)
 
 	status := m.statusBar("") // Zone 4: Split-Status (Info blau | Fehler rot)
-	return head + "\n" + body + "\n" + localKeys + "\n" + status
+	return m.outerBorder(head + "\n" + body + "\n" + localKeys + "\n" + status) // DD2-84
 }
 
 // treeLeftLines rendert die Baumzeilen (mit Expand-Marker, Einrückung, Cursor).

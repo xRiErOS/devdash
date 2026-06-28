@@ -143,7 +143,7 @@ func (m model) backlogLayout() (head, localKeys string, lw, rw, innerH int) {
 	}
 	localKeys = theme.Muted.Render(wrapText(hint, w))
 	footH := lipgloss.Height(localKeys) + 1 // + 1 Status-Zeile
-	avail := m.height - lipgloss.Height(head) - footH
+	avail := m.frameH() - lipgloss.Height(head) - footH // DD2-84: Innenhöhe (Rahmen reserviert)
 	if avail < 4 {
 		avail = m.bodyHeight() // Höhe unbekannt (Init/Tests) → großzügiger Fallback
 	}
@@ -356,7 +356,7 @@ func (m model) viewBacklog() string {
 	body := lipgloss.JoinHorizontal(lipgloss.Top, leftBox, rightBox)
 
 	status := m.statusBar("") // Zone 4: Split-Status (Info blau | Fehler rot)
-	return head + "\n" + body + "\n" + localKeys + "\n" + status
+	return m.outerBorder(head + "\n" + body + "\n" + localKeys + "\n" + status) // DD2-84
 }
 
 // backlogFilterBox rendert das schwebende Facetten-Menü (Checkboxen je Facette).
