@@ -206,6 +206,14 @@ func TestBuildFormTagFieldConditional(t *testing.T) {
 	}
 }
 
+// Ohne Auswahl darf das Anlegen keinen Tag erzwingen → selectedTagIDs = leer.
+func TestSelectedTagIDsEmptyWhenNothingPicked(t *testing.T) {
+	m := model{form: buildForm("issue", nil, []api.Tag{{ID: 1, Name: "a"}})}
+	if ids := m.selectedTagIDs(); len(ids) != 0 {
+		t.Errorf("ohne Auswahl: selectedTagIDs=%v, want leer (kein Tag erzwungen)", ids)
+	}
+}
+
 // tagMutatedMsg im Manager triggert einen Reload (loadTags-Cmd).
 func TestTagMutatedReloadsInManager(t *testing.T) {
 	m := model{view: viewTags, client: api.NewClient("10")}

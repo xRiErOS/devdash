@@ -61,7 +61,10 @@ func tagMultiSelect(tags []api.Tag) *huh.MultiSelect[string] {
 	for _, t := range tags {
 		opts = append(opts, huh.NewOption(t.Name, strconv.Itoa(t.ID)))
 	}
-	return huh.NewMultiSelect[string]().Key("tags").Title("Tags (optional)").Options(opts...)
+	return huh.NewMultiSelect[string]().Key("tags").
+		Title("Tags (optional)").
+		Description("x: an/aus · enter: weiter — leer lassen = kein Tag").
+		Options(opts...)
 }
 
 // buildTagForm baut die Tag-huh-Form (Name + Farbe), vorbelegt für edit (DD2-75).
