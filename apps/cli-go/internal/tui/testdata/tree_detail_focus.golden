@@ -1,21 +1,22 @@
-> devd2: Project browser       ctrl+k:cmd  p:project  b:backlog  R:reviews  ?:help  q:quit
-╭────────────────────────────────────╮╭──────────────────────────────────────────────────╮
-│⌕ search with /  ∙  filter f        ││▌> DD2-99 Beispiel-Issue für den Snapshot         │
-│ ▾ ◉ Meilenstein Eins               ││P1 prio  ∙  ⯁ bug type                 to_review  │
-│   ▾ DD2#9 review                   ││Fields: ▌Title  Type  Priority                    │
-│▌      ⯁ DD2-99                     ││                                                  │
-│                                    ││Sections: digit [1..n] opens                      │
-│                                    ││> [1] Goal / Description ∙ PO notes  ▸            │
-│                                    ││> [2] Background / Context  ▸                     │
-│                                    ││> [3] User-Stories (2)  ▸                         │
-│                                    ││                                                  │
-│                                    ││                                                  │
-│                                    ││                                                  │
-│                                    ││                                                  │
-│                                    ││                                                  │
-│                                    ││                                                  │
-│                                    ││                                                  │
-│                                    ││                                                  │
-│                                    ││                                                  │
-╰────────────────────────────────────╯╰──────────────────────────────────────────────────╯
-i/k:section/field  l/→:in  enter:in/edit  j/←:back  1…n:section  esc: tree focus
+╭────────────────────────────────────────────────────────────────────────────────────────╮
+│> devd2: Project browser     ctrl+k:cmd  p:project  b:backlog  R:reviews  ?:help  q:quit│
+│╭───────────────────────────────────╮╭─────────────────────────────────────────────────╮│
+││⌕ search with /  ∙  filter f       ││▌> DD2-99 Beispiel-Issue für den Snapshot        ││
+││ ▾ ◉ Meilenstein Eins              ││P1 prio  ∙  ⯁ bug type                to_review  ││
+││   ▾ DD2#9 review                  ││Fields: ▌Title  Type  Priority                   ││
+││▌      ⯁ DD2-99                    ││                                                 ││
+││                                   ││Sections: digit [1..n] opens                     ││
+││                                   ││> [1] Goal / Description ∙ PO notes  ▸           ││
+││                                   ││> [2] Background / Context  ▸                    ││
+││                                   ││> [3] User-Stories (2)  ▸                        ││
+││                                   ││                                                 ││
+││                                   ││                                                 ││
+││                                   ││                                                 ││
+││                                   ││                                                 ││
+││                                   ││                                                 ││
+││                                   ││                                                 ││
+││                                   ││                                                 ││
+│╰───────────────────────────────────╯╰─────────────────────────────────────────────────╯│
+│i/k:section/field  l/→:in  enter:in/edit  j/←:back  1…n:section  esc: tree focus        │
+│                                                                                        │
+╰────────────────────────────────────────────────────────────────────────────────────────╯

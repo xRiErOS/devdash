@@ -52,11 +52,11 @@ func (m model) viewColumns() string {
 		cols[i] = renderPane(p, colW, h, focused)
 	}
 	body := lipgloss.JoinHorizontal(lipgloss.Top, cols...)
-	frame := m.header() + "\n" + body + "\n" + foot
-
-	// Filter-Modal schwebt zentriert über dem Frame (Liste bleibt darunter sichtbar).
+	// DD2-84: fertigen Frame in den App-Außenrahmen wrappen; Filter-Modal schwebt
+	// danach zentriert über dem gerahmten Frame (Liste bleibt darunter sichtbar).
+	frame := m.outerBorder(m.header() + "\n" + body + "\n" + foot)
 	if m.filtering {
-		return placeOverlay(frame, m.filterBox(), w, m.height)
+		return placeOverlay(frame, m.filterBox(), m.width, m.height)
 	}
 	return frame
 }
@@ -341,7 +341,7 @@ func (m model) viewReview() string {
 	// minus 2 für den Pane-Border (der außen wächst → Gesamthöhe = innerH+2).
 	chromeH := lipgloss.Height(head) + lipgloss.Height(summary) +
 		lipgloss.Height(foot) + lipgloss.Height(statusLine) + 3
-	h := m.height - chromeH - 2
+	h := m.frameH() - chromeH - 2 // DD2-84: Innenhöhe (App-Außenrahmen reserviert)
 	if h < 6 {
 		h = m.bodyHeight() // Höhe unbekannt (Init/Tests) → großzügiger Fallback
 	}
@@ -360,9 +360,10 @@ func (m model) viewReview() string {
 	right := m.reviewDetailPane(m.reviewItem(), rightW, h)
 	body := lipgloss.JoinHorizontal(lipgloss.Top, left, right)
 
-	frame := head + "\n" + summary + "\n" + body + "\n" + foot + "\n" + statusLine
+	// DD2-84: gerahmter App-Außenrahmen; User-Story-Modal schwebt danach zentriert.
+	frame := m.outerBorder(head + "\n" + summary + "\n" + body + "\n" + foot + "\n" + statusLine)
 	if m.usOpen {
-		return placeOverlay(frame, m.userStoryModal(), w, m.height)
+		return placeOverlay(frame, m.userStoryModal(), m.width, m.height)
 	}
 	return frame
 }

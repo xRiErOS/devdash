@@ -1,21 +1,22 @@
-> devd2: Sprint DD2#9          ctrl+k:cmd  p:project  b:backlog  R:reviews  ?:help  q:quit
-Status: review   Milestone: Meilenstein Eins   Progress: 0/0                              
- Sprint Neun                                                                             
-                                                                                         
- Issues (1):                                                                             
-   Type Key       Title                                  Status       Review verdict     
- Results                                                                                 
-   ⯁ P1 DD2-99    Beispiel-Issue für den Snapshot        to_review    ∙ no verdict     ◉ 
-                                                                                         
- Review rounds: ✓ 0 passed  ✗ 0 not_passed  ∙ 1 open  ◉ 1 without result                 
-                                                                                         
-
-
-
-
-
-
-
-
-
-R: review cockpit   m: milestone   y: copy   i/k: scroll   esc/q: back
+╭────────────────────────────────────────────────────────────────────────────────────────╮
+│> devd2: Sprint DD2#9        ctrl+k:cmd  p:project  b:backlog  R:reviews  ?:help  q:quit│
+│Status: review   Milestone: Meilenstein Eins   Progress: 0/0                            │
+│────────────────────────────────────────────────────────────────────────────────────────│
+│ Sprint Neun                                                                            │
+│                                                                                        │
+│ Issues (1):                                                                            │
+│   Type Key       Title                                  Status       Review verdict    │
+│ Results                                                                                │
+│   ⯁ P1 DD2-99    Beispiel-Issue für den Snapshot        to_review    ∙ no verdict      │
+│ ◉                                                                                      │
+│                                                                                        │
+│ Review rounds: ✓ 0 passed  ✗ 0 not_passed  ∙ 1 open  ◉ 1 without result                │
+│                                                                                        │
+│                                                                                        │
+│                                                                                        │
+│                                                                                        │
+│                                                                                        │
+│────────────────────────────────────────────────────────────────────────────────────────│
+│R: review cockpit   m: milestone   y: copy   i/k: scroll   esc/q: back                  │
+│                                                                                        │
+╰────────────────────────────────────────────────────────────────────────────────────────╯

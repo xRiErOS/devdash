@@ -112,12 +112,12 @@ func (m model) viewHome() string {
 	body := strings.Join(lines, "\n")
 
 	hint := theme.Muted.Render(centerInto("i/k:↑↓   enter:open project   type:filter   ctrl+k:Cmd   q/esc:quit", w))
-	h := m.height
+	h := m.frameH() // DD2-84: Innenhöhe (App-Außenrahmen reserviert)
 	if h < 8 {
 		h = 24 // Höhe unbekannt (Init/Tests) → großzügiger Fallback
 	}
 	placed := lipgloss.Place(w, h-1, lipgloss.Center, lipgloss.Center, body)
-	return placed + "\n" + hint
+	return m.outerBorder(placed + "\n" + hint) // DD2-84
 }
 
 // projPickBox rendert den Projekt-Picker als schwebendes Overlay-Modal (DD2-124).
