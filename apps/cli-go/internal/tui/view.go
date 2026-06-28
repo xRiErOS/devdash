@@ -61,6 +61,9 @@ func (m model) View() string {
 	if m.tagPick { // DD2-33: Tag-Zuweisungs-Picker
 		return placeOverlay(base, m.tagPickerMenu(), m.termWidth(), m.height)
 	}
+	if m.createConfirm { // DD2-93: y/n-Confirm vor der Anlage neuer Entitäten
+		return placeOverlay(base, m.createConfirmBox(), m.termWidth(), m.height)
+	}
 	if m.delConfirm { // T02b: Cascade-Delete-Confirm
 		return placeOverlay(base, m.deleteBox(), m.termWidth(), m.height)
 	}
@@ -123,6 +126,10 @@ func (m model) viewBase() string {
 		return m.viewTree() // DD2-57: Tree+Detail-Prototyp
 	case viewTags:
 		return m.viewTags() // DD2-75: Tag-Manager
+	case viewSearch:
+		return m.viewSearch() // DD2-91: projektweite Suche
+	case viewTutorial:
+		return m.viewTutorial() // DD2-122: Onboarding
 	default:
 		return m.viewColumns() // rendert Filter-Modal inline, wenn m.filtering
 	}
@@ -273,6 +280,31 @@ func (m model) termWidth() int {
 	return w
 }
 
+// masterDetailWidths liefert die geteilte Master-Detail-Pane-Breite als echtes
+// 1fr:2fr: die Liste links bekommt ein Drittel (w/3), das Detail rechts den Rest
+// (rw = w - lw - 4, je Pane 2 Border-Spalten). DD2-91 Rework: vorher auf
+// layout.tree_width (36) GEPINNT → auf breiten Terminals eine fixe schmale Spalte
+// statt 1fr; tree_width gilt jetzt nur noch als Mindestbreite (Lesbarkeit auf
+// schmalen Terminals), gekappt auf w*2/5. Single Source für Memory-Browser (DD2-127)
+// und Such-Ansicht (DD2-91).
+func (m model) masterDetailWidths(w int) (lw, rw int) {
+	lw = w / 3 // 1fr
+	if floor := m.cfg.Layout.TreeWidth; floor > 0 && lw < floor {
+		lw = floor // layout.tree_width = Mindestbreite, nicht Fixbreite
+	}
+	if lw < 24 {
+		lw = 24
+	}
+	if cap := w * 2 / 5; lw > cap {
+		lw = cap
+	}
+	rw = w - lw - 4
+	if rw < 20 {
+		rw = 20
+	}
+	return
+}
+
 // viewBordered meldet, ob die aktuelle View den App-Außenrahmen trägt (DD2-68 →
 // DD2-84). DD2-68 erfasst die chrome()/framed()-basierten Screens; DD2-84 weitet das
 // auf den vollständigen View-Satz (inkl. viewHome-Lobby) aus. Steuert ZUGLEICH die
@@ -280,7 +312,8 @@ func (m model) termWidth() int {
 func (m model) viewBordered() bool {
 	switch m.view {
 	case viewDetail, viewMilestone, viewSprint, viewReviewsList, viewTags, // DD2-68 chrome-Subset
-		viewHome, viewColumns, viewBacklog, viewReview, viewTree: // DD2-84 vollständiger Satz
+		viewHome, viewColumns, viewBacklog, viewReview, viewTree, // DD2-84 vollständiger Satz
+		viewSearch: // DD2-91 Rework: Such-Ansicht trägt den App-Außenrahmen (Chrome-Parität)
 		return true
 	}
 	return false

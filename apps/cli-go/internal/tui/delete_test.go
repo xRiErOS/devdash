@@ -90,8 +90,8 @@ func TestDeleteDoneReloads(t *testing.T) {
 	m.view = viewMilestone
 	mi, cmd := m.Update(deleteDoneMsg{"milestone", 1, "M1"})
 	m = mi.(model)
-	if m.view != viewColumns {
-		t.Error("nach Delete zurück auf Columns")
+	if m.view != viewTree { // DD2-111: Ranger gesunset → Tree-Primat
+		t.Errorf("nach Delete zurück auf Tree, got view=%d", m.view)
 	}
 	if cmd == nil {
 		t.Error("deleteDone sollte Columns neu laden")

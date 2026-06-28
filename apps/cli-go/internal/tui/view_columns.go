@@ -333,9 +333,6 @@ func (m model) viewReview() string {
 	summary := m.reviewSummary()
 	foot := theme.Muted.Render(wrapText(m.reviewHints(), w))
 	statusLine := m.statusBar("")
-	if m.inputting { // Reject-Kommentar-Eingabe ersetzt die Status-Zeile
-		statusLine = theme.Key.Render(m.status) + m.input + "▏"
-	}
 
 	// Pane-Innenhöhe = Gesamthöhe minus Kopf/Summary/Footer/Status/Trennzeilen,
 	// minus 2 für den Pane-Border (der außen wächst → Gesamthöhe = innerH+2).
@@ -372,27 +369,41 @@ func (m model) viewReview() string {
 // Verdikt-Dot + Key, darunter der auf Pane-Breite UMGEBROCHENE Titel (kein
 // horizontales Truncaten). Die Selektion hebt den ganzen Block akzentuiert hervor.
 func (m model) reviewMasterPane(w, h int) string {
-	lines := make([]string, 0, h)
-	lines = append(lines, theme.Header.Render(truncate(fmt.Sprintf("Issues (%d)", len(m.curSprint.Items)), w)))
-	lines = append(lines, theme.Dim.Render(strings.Repeat("─", min(w, 14))))
+	header := []string{
+		theme.Header.Render(truncate(fmt.Sprintf("Issues (%d)", len(m.curSprint.Items)), w)),
+		theme.Dim.Render(strings.Repeat("─", min(w, 14))),
+	}
+	var body []string
+	cursorLine := 0
 	for i, it := range m.curSprint.Items {
 		sel := i == m.rlist.cursor
+		if sel {
+			cursorLine = len(body) // Body-Zeilenindex des selektierten Issues
+		}
 		cur := "  "
 		key := theme.Key.Render(it.Key)
 		if sel {
 			cur = theme.Accent.Render("▸ ")
 			key = theme.Header.Render(it.Key)
 		}
-		lines = append(lines, truncate(cur+verdictDot(it)+" "+key, w))
+		body = append(body, truncate(cur+verdictDot(it)+" "+key, w))
 		for _, tl := range strings.Split(wrapText(it.Title, w-4), "\n") {
 			styled := theme.Dim.Render(tl)
 			if sel {
 				styled = tl
 			}
-			lines = append(lines, "    "+styled)
+			body = append(body, "    "+styled)
 		}
 	}
-	return borderedPane(lines, w, h, theme.Mauve)
+	// Master-Liste um den Cursor fenstern, damit das selektierte Issue sichtbar
+	// bleibt — borderedPane cappte vorher hart auf die ersten h Zeilen (selektiertes
+	// Issue verschwand unten bei langen Sprints, z.B. DD2#25 mit 16 Issues).
+	avail := h - len(header)
+	if avail < 1 {
+		avail = 1
+	}
+	body = windowAround(body, avail, cursorLine)
+	return borderedPane(append(header, body...), w, h, theme.Mauve)
 }
 
 // reviewDetailPane rendert das Detail des selektierten Issues als Tree-Accordion

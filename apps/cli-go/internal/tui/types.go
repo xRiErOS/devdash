@@ -4,6 +4,7 @@ import (
 	"devd-cli/internal/api"
 	"devd-cli/internal/config"
 	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 )
 
@@ -19,8 +20,10 @@ const (
 	viewSprint
 	viewReviewsList
 	viewMemory
-	viewTree // DD2-57: Tree+Detail-Layout-Prototyp
-	viewTags // DD2-75: Tag-Manager (projektweite Tag-CRUD)
+	viewTree   // DD2-57: Tree+Detail-Layout-Prototyp
+	viewTags   // DD2-75: Tag-Manager (projektweite Tag-CRUD)
+	viewSearch   // DD2-91: projektweite Issue-Such-Ansicht (Command-Center)
+	viewTutorial // DD2-122: geführtes, seitenweises Onboarding
 )
 
 // filterState hält pro Spalte, welche Werte ausgeblendet sind.
@@ -50,6 +53,7 @@ type model struct {
 	err           error
 	status        string // Info/Meldungen (Footer-Zone 4 links, Blue)
 	statusSeq     int    // DD2-35: Generation des aktuellen Status — Auto-Clear-Tick feuert nur, wenn die Generation noch stimmt
+	statusSticky  bool   // DD2-93: Erfolgs-Toast (z.B. "created") übersteht einen Reload-Zyklus (sprintMsg/milestonesMsg clobbern ihn nicht); Auto-Clear/neuer Status setzt zurück
 	errNote       string // transienter, nicht-fataler Fehler (Footer-Zone 4 rechts, Red) — DD2-60
 	scroll        int    // Scroll-Offset für statische Detail-Views (DD2-25/30 Chrome)
 
@@ -177,6 +181,13 @@ type model struct {
 	mcName    string
 	mcSprints int
 
+	// Create-Confirm (DD2-93): nach dem Ausfüllen eines Create-Formulars (Issue/
+	// Sprint/Meilenstein/…) erst ein y/n-Prompt, bevor die Anlage feuert. Der bereits
+	// aus den Formularwerten gebaute Cmd wird zwischengeparkt.
+	createConfirm bool
+	pendingCreate tea.Cmd
+	createLabel   string
+
 	// Memory-Browser (T18): Master-Detail über project_memories.
 	memList      []api.ProjectMemory
 	memlist      listState
@@ -206,6 +217,12 @@ type model struct {
 	resultIssueID  int
 	resultIssueKey string
 	resultSprintID int
+
+	// Ziel des Reject-Formulars (DD2-119, US-50): x im Cockpit öffnet das
+	// mehrzeilige Reject-Kommentar-Modal statt der einzeiligen Footer-Eingabe.
+	rejectIssueID  int
+	rejectIssueKey string
+	rejectSprintID int
 
 	// Tree+Detail-Layout-Prototyp (DD2-57): t aus den Columns. Expansions-Sets +
 	// Lazy-Issue-Cache pro Sprint; treeCursor läuft über die geflachte Knotenliste.
@@ -258,10 +275,22 @@ type model struct {
 	fArt             map[treeKind]bool
 	fType            map[string]bool
 	fStatus          map[string]bool
+	fTags            map[string]bool // DD2-116: Tag-Facette (Issue-Tag-Namen)
 	ffMenu           listState
 	ffItems          []ffItem
 	treeFilterIssues []api.Issue
 	treeIssuesLoaded bool
+
+	// DD2-89: Lazy-Cache der Milestone-/Sprint-Abhängigkeiten (Vorgänger/Nachfolger),
+	// read-only im Detail angezeigt. Schlüssel "m:<id>"/"s:<id>" (depCacheKey).
+	depsCache map[string]*api.Dependencies
+
+	// DD2-91: projektweite Such-Ansicht (viewSearch). Quelle = treeFilterIssues.
+	searchQuery string
+	searchList  listState
+
+	// DD2-122: aktuelle Tutorial-Seite (viewTutorial).
+	tutorialPage int
 
 	// Tag-Manager (DD2-75): T öffnet viewTags — projektweite Tag-CRUD-Liste.
 	// n=neu, e=edit, d=löschen (Confirm), esc/q zurück zur Quell-View (tagReturn).

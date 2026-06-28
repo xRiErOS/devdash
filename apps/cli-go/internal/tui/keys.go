@@ -53,6 +53,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.tagPick {
 		return m.keyTagPicker(msg)
 	}
+	// Create-Confirm (DD2-93) fängt vor View-Tasten.
+	if m.createConfirm {
+		return m.keyCreateConfirm(msg)
+	}
 	// Cascade-Delete-Confirm (T02b) fängt vor View-Tasten.
 	if m.delConfirm {
 		return m.keyDelete(msg)
@@ -95,6 +99,14 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.view == viewTree {
 		return m.keyTree(msg)
 	}
+	// Such-Ansicht (DD2-91) fängt voll (tippen filtert, esc zurück).
+	if m.view == viewSearch {
+		return m.keySearch(msg)
+	}
+	// Tutorial (DD2-122) fängt voll (blättern, esc zurück).
+	if m.view == viewTutorial {
+		return m.keyTutorial(msg)
+	}
 	// Lobby (DD2-124): alle Keys an den Home-Handler (Nav/Auswahl/Filter).
 	if m.view == viewHome {
 		return m.keyHome(msg)
@@ -130,7 +142,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		switch k {
 		case "esc":
-			m.view = viewColumns
+			m.view = viewTree // DD2-111: Ranger gesunset → Tree-Primat
 		case "s": // DD2-29: Issue-Status auch im Detail mutieren
 			if it := m.selIssue(); it != nil {
 				sid := 0
@@ -151,7 +163,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		switch k {
 		case "esc":
-			m.view = viewColumns
+			m.view = viewTree // DD2-111: Ranger gesunset → Tree-Primat
 		case "S":
 			return m.openMilestoneStatus()
 		case "a": // T03 Flow B: Sprints diesem Meilenstein zuweisen (Checkliste)
@@ -172,7 +184,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		switch k {
 		case "esc":
-			m.view = viewColumns
+			m.view = viewTree // DD2-111: Ranger gesunset → Tree-Primat
 		case "y":
 			return m.yankContext()
 		case "m": // T03 Flow A: diesen Sprint einem Meilenstein zuweisen

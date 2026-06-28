@@ -281,38 +281,112 @@ func (m model) reviewSummary() string {
 	return head + strings.Join(parts, "  ")
 }
 
+// reviewStandClip rendert den aktuellen Review-Stand des Sprints als Markdown
+// (DD2-121, US-53): Kopf + Verdikt-Zähler + Tabelle (Key/Title/Status/Verdict/
+// Result-vorhanden). Funktioniert auch vor Sprint-Abschluss — PO teilt den
+// Zwischenstand, ohne den Sprint zu schließen. Vorlage: sprintClip()-Stil.
+func (m model) reviewStandClip() string {
+	s := m.curSprint
+	var b strings.Builder
+	b.WriteString(fmt.Sprintf("# Review %s — %s\n", s.Key, s.Name))
+	b.WriteString(fmt.Sprintf("Status: %s · %d/%d done\n\n", s.Status, s.DoneCount, s.ItemCount))
+	var passed, rejected, pending int
+	for _, it := range s.Items {
+		switch deref(it.ReviewStatus) {
+		case "passed":
+			passed++
+		case "not_passed":
+			rejected++
+		default:
+			pending++
+		}
+	}
+	b.WriteString(fmt.Sprintf("Verdicts: %d passed · %d not_passed · %d open\n\n", passed, rejected, pending))
+	b.WriteString("| Key | Title | Status | Verdict | Result |\n")
+	b.WriteString("|-----|-------|--------|---------|--------|\n")
+	for _, it := range s.Items {
+		verdict := deref(it.ReviewStatus)
+		if verdict == "" {
+			verdict = "—"
+		}
+		result := "—"
+		if strings.TrimSpace(deref(it.Result)) != "" {
+			result = "yes"
+		}
+		b.WriteString(fmt.Sprintf("| %s | %s | %s | %s | %s |\n", it.Key, it.Title, it.Status, verdict, result))
+	}
+	return b.String()
+}
+
 // userStoryModal: schwebendes Abnahme-Modal (goal/background + US-Verdikte).
+// DD2-90/120: Goal/Background/Titel und User-Story-Titel werden auf die Modal-
+// Innenbreite UMGEBROCHEN (kein truncate), damit die PO alles vollständig liest.
 func (m model) userStoryModal() string {
 	var b strings.Builder
+	// DD2-90 Rework: das Abnahme-Modal skaliert mit der Terminalbreite. Die fixe
+	// 64er-Standardbox (modalBoxWidth) war auf breiten Terminals winzig und der
+	// 62-Spalten-Wrap quetschte Goal/Background (PO-Befund „klein/abgeschnitten").
+	boxW := m.termWidth() - 8
+	if boxW > 110 {
+		boxW = 110
+	}
+	if boxW < 50 {
+		boxW = 50
+	}
+	iw := boxW - 2 // Innenbreite (Box-Padding 0,1)
 	it := m.reviewItem()
 	title := "Issue-Abnahme"
 	if it != nil {
 		title = it.Key + " — " + it.Title
 	}
-	b.WriteString(theme.Header.Render(truncate(title, 56)) + "\n\n")
+	b.WriteString(theme.Header.Render(wrapText(title, iw)) + "\n\n")
 	if it != nil {
 		if g := deref(it.Goal); g != "" {
-			b.WriteString(theme.Accent.Render("Goal: ") + truncate(g, 56) + "\n")
+			b.WriteString(wrapText(theme.Accent.Render("Goal: ")+g, iw) + "\n")
 		}
 		if bg := deref(it.Background); bg != "" {
-			b.WriteString(theme.Accent.Render("Background: ") + truncate(bg, 56) + "\n")
+			b.WriteString(wrapText(theme.Accent.Render("Background: ")+bg, iw) + "\n")
 		}
 	}
 	b.WriteString("\n" + theme.Dim.Render(fmt.Sprintf("User-Stories (%d):", len(m.usList))) + "\n")
 	if len(m.usList) == 0 {
 		b.WriteString(theme.Dim.Render("(none — loading or none present)") + "\n")
 	}
+	// Story-Titel umbrechen; Prefix (Cursor 2 + Verdikt-Box 3 + Space 1 = 6 sichtbare
+	// Spalten) — Folgezeilen unter den Text einrücken (DD2-120), nicht unter Box/Cursor.
+	const usIndent = 6
 	for i, us := range m.usList {
+		sel := i == m.uslist.cursor
 		cursor := "  "
-		t := us.Title
-		if i == m.uslist.cursor {
+		if sel {
 			cursor = theme.Accent.Render("▸ ")
-			t = theme.Header.Render(t)
 		}
-		b.WriteString(cursor + usVerdictBox(us.Verdict) + " " + truncate(t, 50) + "\n")
+		lines := strings.Split(wrapText(us.Title, iw-usIndent), "\n")
+		for j, ln := range lines {
+			if sel {
+				ln = theme.Header.Render(ln)
+			}
+			if j == 0 {
+				b.WriteString(cursor + usVerdictBox(us.Verdict) + " " + ln + "\n")
+			} else {
+				b.WriteString(strings.Repeat(" ", usIndent) + ln + "\n")
+			}
+		}
 	}
-	b.WriteString("\n" + theme.Dim.Render("a:accept  r:reject  o:open  i/k:↑↓  enter/esc:close"))
-	return modalBox(b.String(), modalBoxWidth(m.width), theme.Mauve)
+	content := b.String()
+	footer := theme.Dim.Render("a:accept  r:reject  o:open  i/k:↑↓  enter/esc:close")
+	// DD2-90 Rework: Höhen-Guard — sehr lange Texte sollen das Modal nicht über den
+	// Schirm hinaus wachsen lassen (placeOverlay clippt sonst unten weg). Überlauf →
+	// Hinweis auf den Detail-Pane (dort voller, scrollbarer Text). Footer bleibt sichtbar.
+	if m.height > 8 {
+		maxH := m.height - 6 // Platz für Box-Border + Footer
+		lines := strings.Split(content, "\n")
+		if len(lines) > maxH {
+			lines = append(lines[:maxH], theme.Dim.Render("… (full text in detail pane — scroll ctrl+d/u)"))
+			content = strings.Join(lines, "\n")
+		}
+	}
+	return modalBox(content+"\n\n"+footer, boxW, theme.Mauve)
 }
 
 func usVerdictBox(v string) string {
@@ -328,7 +402,7 @@ func usVerdictBox(v string) string {
 
 // reviewHints zeigt nur die im aktuellen Zustand gültigen Aktionen.
 func (m model) reviewHints() string {
-	hints := []string{"i/k:↑↓", "1-n:Section", "ctrl+d/u:scroll", "enter:Abnahme", "s:status", "r:result", "a:pass", "x:reject"}
+	hints := []string{"i/k:↑↓", "1-n:Section", "ctrl+d/u:scroll", "enter:Abnahme", "s:status", "r:result", "a:pass", "x:reject", "y:copy→clipboard"}
 	if it := m.reviewItem(); it != nil {
 		if it.Status == "to_review" {
 			hints = append(hints, "o:reopen")

@@ -20,7 +20,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width, m.height = msg.Width, msg.Height
 		return m, nil
 	case createdMsg:
-		m.status = noticeText("Angelegt: " + msg.label)
+		// DD2-93: deutlicher Erfolgs-Toast, der den nachfolgenden Reload-Zyklus
+		// (loadMilestones→sprintMsg) übersteht (statusSticky), damit die PO sicher
+		// sieht, dass gespeichert wurde. Auto-Clear (2s) räumt ihn dann auf.
+		m.status = noticeText("✓ " + msg.label + " created")
+		m.statusSticky = true
 		m.statusSeq++ // DD2-35: Auto-Clear-Toast — Tick mit dieser Generation
 		clear := statusTimeout(m.statusSeq)
 		switch msg.kind {
@@ -42,6 +46,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case clearStatusMsg: // DD2-35: transienten Status nach Timeout löschen (Toast)
 		if msg.seq == m.statusSeq && !m.inputting {
 			m.status = ""
+			m.statusSticky = false // DD2-93: Sticky-Schutz endet mit dem Auto-Clear
 		}
 		return m, nil
 	case errMsg:
@@ -49,10 +54,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case statusMsg:
 		m.status = msg.text
+		m.statusSticky = false // DD2-93: neuer regulärer Status hebt den Sticky-Schutz auf
 		m.statusSeq++
 		return m, statusTimeout(m.statusSeq) // DD2-35: Auto-Clear
 	case noticeMsg:
 		m.status = noticeText(msg.text) // Sapphire-Hinweis (Aktions-Fehler/Info)
+		m.statusSticky = false // DD2-93: neuer regulärer Status hebt den Sticky-Schutz auf
 		m.statusSeq++
 		return m, statusTimeout(m.statusSeq) // DD2-35: Auto-Clear
 	case userStoriesMsg:
@@ -93,6 +100,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.ilist.setLen(len(m.visIssues()))
 		m.status = noticeText("Data reloaded")
+		m.statusSticky = false
 		m.statusSeq++
 		return m, statusTimeout(m.statusSeq)
 	case sprintMsg:
@@ -102,19 +110,29 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.treeIssues = map[int][]api.Issue{}
 			}
 			m.treeIssues[msg.sprint.ID] = msg.sprint.Items
-			m.status = ""
+			if !m.statusSticky { // DD2-93: Erfolgs-Toast nicht durch Reload clobbern
+				m.status = ""
+			}
 		}
 		if s := m.selSprint(); s != nil && m.curSprint != nil && s.ID == m.curSprint.ID {
 			m.ilist.setLen(len(m.visIssues()))
 		}
 		if m.view == viewReview && m.curSprint != nil {
 			m.rlist.setLen(len(m.curSprint.Items))
-			m.status = ""
+			if !m.statusSticky { // DD2-93: Erfolgs-Toast nicht durch Reload clobbern
+				m.status = ""
+			}
 		}
 		return m, nil
 	case backlogMsg:
 		m.backlog = msg.items
 		m.blist.setLen(len(m.backlog))
+		return m, nil
+	case depsMsg: // DD2-89: Milestone-/Sprint-Abhängigkeiten in den Lazy-Cache
+		if m.depsCache == nil {
+			m.depsCache = map[string]*api.Dependencies{}
+		}
+		m.depsCache[msg.key] = msg.deps
 		return m, nil
 	case issueUpdatedMsg: // DD2-77: Feld-Edit-Response → Cache in-place mergen (D05)
 		if msg.err != "" {
@@ -168,6 +186,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.treeFilterIssues = msg.items
 		m.treeIssuesLoaded = true
 		m.treeCursor = 0
+		if m.treeFilterOpen { // DD2-116 Rework: Filter war beim ERSTEN f offen, bevor die Issues (inkl. Tags) da waren → Facetten (Tags!) jetzt nachbauen statt erst beim Reopen
+			m.ffItems = m.buildFilterItems()
+			m.ffMenu.setLen(len(m.ffItems))
+		}
 		return m, nil
 	case reviewSprintsMsg:
 		m.reviewSprints = msg.items
@@ -207,7 +229,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Columns + ggf. Cockpit/Detail-Quelle frisch; zurück auf Columns-Sicht.
 		m.curSprint = nil
 		if m.view == viewMilestone || m.view == viewSprint {
-			m.view = viewColumns
+			m.view = viewTree // DD2-111: Ranger gesunset → Tree-Primat
 		}
 		return m, loadMilestones(m.client)
 	case reworkDoneMsg:
@@ -279,7 +301,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	// Modale/Picks sind tastaturgesteuert — Maus ignorieren (kein Fehlklick-Fokus).
 	if m.form != nil || m.paletteOpen || m.projPick || m.filtering || m.statusPick || m.sprintPick ||
-		m.msPick || m.smPick || m.maPick || m.tagPick || m.delConfirm || m.mcConfirm || m.usOpen ||
+		m.msPick || m.smPick || m.maPick || m.tagPick || m.delConfirm || m.mcConfirm || m.createConfirm || m.usOpen ||
 		m.treeSearching || m.inputting {
 		return m, nil
 	}
@@ -381,14 +403,9 @@ func (m model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		// alt+enter = speichern (terminal-taugliche Save-Taste, ersetzt ctrl+enter).
 		// Wird VOR huh abgefangen, damit es nicht als Newline im Textarea landet.
+		// DD2-93: submitForm öffnet für Create-Kinds erst den y/n-Confirm.
 		if k.String() == "alt+enter" {
-			createCmd := m.formCreateCmd()
-			m.form = nil
-			m.formKind = ""
-			m.formGroupIdx = 0
-			m.formGroupTitles = nil
-			m.formPartials = nil
-			return m, createCmd
+			return m.submitForm()
 		}
 	}
 
@@ -398,13 +415,7 @@ func (m model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	switch m.form.State {
 	case huh.StateCompleted:
-		createCmd := m.formCreateCmd()
-		m.form = nil
-		m.formKind = ""
-		m.formGroupIdx = 0
-		m.formGroupTitles = nil
-		m.formPartials = nil
-		return m, createCmd
+		return m.submitForm() // DD2-93: Create-Kinds → y/n-Confirm vor der Anlage
 	case huh.StateAborted:
 		m.form = nil
 		m.formKind = ""

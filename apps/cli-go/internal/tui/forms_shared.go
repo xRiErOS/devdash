@@ -130,6 +130,8 @@ func (m model) openForm(kind string) (tea.Model, tea.Cmd) {
 		f = buildMemoryForm()
 	case "result":
 		f = buildResultForm()
+	case "reject": // DD2-119: mehrzeiliges Reject-Kommentar-Modal
+		f = buildRejectForm()
 	case "settings": // DD2-125: User-Config bearbeiten
 		f = buildSettingsForm(m.cfg)
 	}
@@ -218,6 +220,8 @@ func (m model) formTitle() string {
 		return "New memory"
 	case "result":
 		return "Set result field"
+	case "reject":
+		return "Reject — comment"
 	case "settings":
 		return "Settings"
 	case "editField":
@@ -400,6 +404,12 @@ func (m *model) formCreateCmd() tea.Cmd {
 			m.resultIssueKey,
 		)
 		return doSetResult(m.client, m.resultIssueID, yaml, m.resultSprintID)
+	case "reject": // DD2-119: not_passed-Verdikt mit mehrzeiligem Kommentar
+		comment := get("comment")
+		if comment == "" {
+			return nil
+		}
+		return doVerdict(m.client, m.rejectIssueID, "not_passed", comment, m.rejectSprintID)
 	case "settings": // DD2-125: schreibt User-Config, lädt neu, wendet an (in-place)
 		accent := strings.TrimSpace(get("accent"))
 		tw, _ := strconv.Atoi(get("tree_width"))

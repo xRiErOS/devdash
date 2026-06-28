@@ -11,7 +11,7 @@ import (
 
 func newModel(client *api.Client, project *api.Project, global *api.Client) model {
 	m := model{client: client, project: project, global: global}
-	m.reviewReturn = viewColumns // Default-Rückkehr aus dem Cockpit
+	m.reviewReturn = viewTree // DD2-111: Default-Rückkehr aus dem Cockpit = Tree-Primat (Ranger gesunset)
 	m.topReturn = viewTree       // Tree ist Primat-Heimat (DD2-61)
 	m.treeExpMile = map[int]bool{}
 	m.treeExpSprint = map[int]bool{}
@@ -35,6 +35,8 @@ func newModel(client *api.Client, project *api.Project, global *api.Client) mode
 	m.fArt = map[treeKind]bool{}
 	m.fType = map[string]bool{}
 	m.fStatus = map[string]bool{}
+	m.fTags = map[string]bool{}
+	m.depsCache = map[string]*api.Dependencies{}
 	m.fMile = filterState{hidden: map[string]bool{"completed": true, "cancelled": true, deferredKey: true}}
 	m.fSprint = filterState{hidden: map[string]bool{"completed": true, "cancelled": true}}
 	m.fIssue = filterState{hidden: map[string]bool{"cancelled": true}}
