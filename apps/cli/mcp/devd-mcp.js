@@ -979,11 +979,11 @@ function okTextOrError(data) {
 
 server.tool(
   'devd_backlog_export',
-  'READ: Export the project backlog as Markdown (default) or CSV — full triage context in one call. Filters: status, search. GET /api/backlog-export. Read-only.',
+  'READ: Export the project backlog in an LLM-friendly format — md (default) | json | yaml. Default status filter is new,refined (sprint-bound status excluded); narrow further via status (single or comma-list). Full triage context in one call. GET /api/backlog-export. Read-only.',
   {
     project_id: PROJECT_ID_PARAM,
-    format: z.enum(['md', 'csv']).optional().describe('Export format (default md)'),
-    status: z.string().optional().describe('Status filter (single or comma-list)'),
+    format: z.enum(['md', 'json', 'yaml']).optional().describe('Export format (default md)'),
+    status: z.string().optional().describe('Status filter (single or comma-list); default new,refined'),
     search: z.string().optional().describe('Full-text filter'),
   },
   async ({ project_id, format, status, search }) => {

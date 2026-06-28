@@ -28,6 +28,7 @@ import { insertDependency, getDependenciesForMilestone } from './lib/milestoneDe
 import { insertDependency as insertSprintDependency, getDependenciesForSprint } from './lib/sprintDependencies.js'
 import { computeSprintCompleteness } from './lib/sprintCompleteness.js'
 import { buildSprintContextMarkdown } from './lib/sprintContext.js'
+import { serializeBacklog } from './lib/backlogExport.js'
 import { insertDodItem, patchDodItem, deleteDodItem, listDodItems, reorderDodItems } from './lib/milestoneDodItems.js'
 import { patchMilestoneStatus, cascadeCompleteMilestone } from './lib/milestoneLifecycle.js'
 import { getProjectWithCounts, listProjectsWithCounts } from './lib/projectCounts.js'
@@ -3673,8 +3674,15 @@ function backlogRowsForExport(projectId, { search, status, tags } = {}) {
     filters.push('(b.title LIKE ? OR b.context_notes LIKE ?)')
     const q = `%${search}%`; args.push(q, q)
   }
-  if (status) {
-    filters.push('b.status = ?'); args.push(status)
+  // DD2-123: Default-Statusfilter new,refined (sprintgebundene Status wie planned/
+  // in_progress gehören nicht in einen Backlog-Export). status kann komma-separiert
+  // weiter einengen (z.B. "new" oder "new,refined").
+  const statusList = (status && String(status).trim())
+    ? String(status).split(',').map(s => s.trim()).filter(Boolean)
+    : ['new', 'refined']
+  if (statusList.length) {
+    filters.push(`b.status IN (${statusList.map(() => '?').join(',')})`)
+    args.push(...statusList)
   }
   return db.prepare(`
     SELECT b.id, b.title, b.status, b.type, b.priority, b.milestone, b.assigned_sprint,
@@ -3780,39 +3788,16 @@ app.get('/api/sprints/:id/export', (req, res) => {
 app.get('/api/backlog-export', (req, res) => {
   const projectId = currentProjectId(req)
   const project = db.prepare('SELECT prefix FROM projects WHERE id = ?').get(projectId)
-  const format = (req.query.format || 'md').toLowerCase()
   const items = backlogRowsForExport(projectId, { search: req.query.search, status: req.query.status })
+  // DD2-123: Tags pro Item anhängen, damit der pure Serializer sie ohne DB sieht.
   const tagMap = tagsByBacklogId(items.map(i => i.id))
-  const filename = `${(project?.prefix || 'backlog').toLowerCase()}-backlog-${isoDate()}.${format === 'csv' ? 'csv' : 'md'}`
+  for (const it of items) it.tags = tagMap.get(it.id) || []
 
-  if (format === 'csv') {
-    const header = ['id','key','title','status','type','priority','sprint','milestone','tags','created_at','completed_at']
-    const lines = [header.join(',')]
-    for (const it of items) {
-      const key = it.prefix && it.project_number ? `${it.prefix}-${it.project_number}` : ''
-      const tags = (tagMap.get(it.id) || []).join(';')
-      lines.push([
-        it.id, key, it.title, it.status, it.type, it.priority,
-        it.sprint_name || '', it.milestone || '', tags,
-        it.created_at || '', it.completed_at || '',
-      ].map(csvEscape).join(','))
-    }
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8')
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
-    return res.send(lines.join('\n'))
-  }
-
-  // Markdown
-  const md = [`# Backlog`, '', `**Items:** ${items.length}  `, `**Stand:** ${new Date().toISOString().slice(0,10)}`, '']
-  for (const it of items) {
-    const key = it.prefix && it.project_number ? `${it.prefix}-${it.project_number}` : `#${it.id}`
-    const tags = tagMap.get(it.id) || []
-    const tagSuffix = tags.length ? ` · _${tags.join(', ')}_` : ''
-    md.push(`- **[${key}] ${it.title}** — ${it.status} · P${it.priority} · ${it.type}${it.sprint_name ? ` · ${it.sprint_name}` : ''}${tagSuffix}`)
-  }
-  res.setHeader('Content-Type', 'text/markdown; charset=utf-8')
+  const { body, contentType, ext } = serializeBacklog(items, req.query.format)
+  const filename = `${(project?.prefix || 'backlog').toLowerCase()}-backlog-${isoDate()}.${ext}`
+  res.setHeader('Content-Type', contentType)
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
-  res.send(md.join('\n'))
+  res.send(body)
 })
 
 // POST /api/sprints/:id/complete — Sprint abschliessen (PO-Button + Agent-API)
