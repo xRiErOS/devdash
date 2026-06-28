@@ -510,7 +510,7 @@ server.tool(
 
 server.tool(
   'devd_sprint_context',
-  'Get full sprint context bundle (all issue fields) formatted as Markdown. Ideal for AI agents before starting work. Read-only.',
+  'Get full sprint context bundle formatted as Markdown — all issue fields plus per-issue user-stories (incl. QA), result fields of already-worked issues, and issue/sprint dependencies. Ideal for AI agents before starting work, no extra calls needed. Read-only.',
   {
     project_id: PROJECT_ID_PARAM,
     sprint_key: z.string().describe('Sprint key (e.g. "DD#20") or numeric sprint id'),

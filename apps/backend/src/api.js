@@ -27,6 +27,7 @@ import { validateMilestonePayload, validateStatusFilter, sendValidationError, re
 import { insertDependency, getDependenciesForMilestone } from './lib/milestoneDependencies.js'
 import { insertDependency as insertSprintDependency, getDependenciesForSprint } from './lib/sprintDependencies.js'
 import { computeSprintCompleteness } from './lib/sprintCompleteness.js'
+import { buildSprintContextMarkdown } from './lib/sprintContext.js'
 import { insertDodItem, patchDodItem, deleteDodItem, listDodItems, reorderDodItems } from './lib/milestoneDodItems.js'
 import { patchMilestoneStatus, cascadeCompleteMilestone } from './lib/milestoneLifecycle.js'
 import { getProjectWithCounts, listProjectsWithCounts } from './lib/projectCounts.js'
@@ -1408,36 +1409,21 @@ app.get('/api/sprints/:id/context', (req, res) => {
     if (i.project_prefix && i.project_number != null) {
       i.key = `${i.project_prefix}-${i.project_number}`
     }
+    // DD2-141: Kontext-Payload additiv anreichern, damit der Coding-Agent
+    // ohne Extra-Calls arbeitet. DD2-96 user_stories (inkl. qa), DD2-92
+    // Issue-Dependencies (blockers/blocked_by). result (DD2-95) ist bereits
+    // via b.* in der Zeile enthalten.
+    i.user_stories = listUserStories(db, i.id)
+    i.dependencies = listIssueDependencies(db, i.id)
   }
   if (sprint.project_prefix && sprint.project_number != null) {
     sprint.key = `${sprint.project_prefix}#${sprint.project_number}`
   }
+  // DD2-92: Sprint-Dependencies (predecessors/successors).
+  sprint.dependencies = getDependenciesForSprint(db, sprint.id)
 
   if (req.query.format === 'markdown') {
-    const priorityLabel = { 1: 'critical', 2: 'high', 3: 'medium', 4: 'low', 5: 'trivial' }
-    const lines = []
-    lines.push(`# Sprint: ${sprint.key || sprint.id} — ${sprint.name}`)
-    lines.push(`**Status:** ${sprint.status}  **Dates:** ${sprint.start_date || '—'} → ${sprint.end_date || '—'}  **Capacity:** ${sprint.capacity || '—'}`)
-    if (sprint.goal) lines.push(`\n**Goal:** ${sprint.goal}`)
-    if (sprint.notes) lines.push(`\n**Notes:** ${sprint.notes}`)
-    lines.push(`\n## Issues (${items.length})`)
-    for (const i of items) {
-      lines.push(`\n### ${i.key || i.id}: ${i.title}`)
-      lines.push(`**Type:** ${i.type}  **Status:** ${i.status}  **Priority:** ${priorityLabel[i.priority] || i.priority}`)
-      if (i.goal) lines.push(`\n**Goal:** ${i.goal}`)
-      if (i.background) lines.push(`\n**Background:** ${i.background}`)
-      if (i.context_notes) lines.push(`\n**Context / Acceptance:**\n${i.context_notes}`)
-      if (i.relevant_files) lines.push(`\n**Relevant files:** ${i.relevant_files}`)
-      if (Array.isArray(i.user_stories) && i.user_stories.length) {
-        lines.push(`\n**User Stories (${i.user_stories.length}):**`)
-        for (const us of i.user_stories) {
-          lines.push(`- [${us.us_verdict}] ${us.key} ${us.title}${us.qa ? ` — QA: ${us.qa}` : ''}`)
-        }
-      }
-      if (i.review_status) lines.push(`\n**Review:** ${i.review_status}${i.review_comment ? ` — ${i.review_comment}` : ''}`)
-      if (i.po_notes) lines.push(`\n**PO notes:** ${i.po_notes}`)
-    }
-    return res.type('text/plain').send(lines.join('\n'))
+    return res.type('text/plain').send(buildSprintContextMarkdown(sprint, items))
   }
 
   res.json({ ...sprint, items })
