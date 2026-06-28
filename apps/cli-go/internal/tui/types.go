@@ -49,6 +49,7 @@ type model struct {
 	width, height int
 	err           error
 	status        string // Info/Meldungen (Footer-Zone 4 links, Blue)
+	statusSeq     int    // DD2-35: Generation des aktuellen Status — Auto-Clear-Tick feuert nur, wenn die Generation noch stimmt
 	errNote       string // transienter, nicht-fataler Fehler (Footer-Zone 4 rechts, Red) — DD2-60
 	scroll        int    // Scroll-Offset für statische Detail-Views (DD2-25/30 Chrome)
 

@@ -21,17 +21,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case createdMsg:
 		m.status = noticeText("Angelegt: " + msg.label)
+		m.statusSeq++ // DD2-35: Auto-Clear-Toast — Tick mit dieser Generation
+		clear := statusTimeout(m.statusSeq)
 		switch msg.kind {
 		case "milestone", "sprint":
-			return m, loadMilestones(m.client) // Columns neu (neue Spalten-Items)
+			return m, tea.Batch(loadMilestones(m.client), clear) // Columns neu (neue Spalten-Items)
 		case "issue":
 			if m.view == viewBacklog {
-				return m, loadBacklog(m.client)
+				return m, tea.Batch(loadBacklog(m.client), clear)
 			}
 		case "memory":
 			if m.view == viewMemory {
-				return m, loadMemories(m.client, m.memCat)
+				return m, tea.Batch(loadMemories(m.client, m.memCat), clear)
 			}
+		}
+		return m, clear
+	case clearStatusMsg: // DD2-35: transienten Status nach Timeout löschen (Toast)
+		if msg.seq == m.statusSeq && !m.inputting {
+			m.status = ""
 		}
 		return m, nil
 	case errMsg:
@@ -39,10 +46,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case statusMsg:
 		m.status = msg.text
-		return m, nil
+		m.statusSeq++
+		return m, statusTimeout(m.statusSeq) // DD2-35: Auto-Clear
 	case noticeMsg:
 		m.status = noticeText(msg.text) // Sapphire-Hinweis (Aktions-Fehler/Info)
-		return m, nil
+		m.statusSeq++
+		return m, statusTimeout(m.statusSeq) // DD2-35: Auto-Clear
 	case userStoriesMsg:
 		if msg.issueID == m.usIssueID {
 			m.usList = msg.items

@@ -3,11 +3,24 @@ package tui
 import (
 	"strconv"
 	"strings"
+	"time"
 
 	"devd-cli/internal/api"
 	"devd-cli/internal/clip"
 	tea "github.com/charmbracelet/bubbletea"
 )
+
+// clearStatusMsg löscht den transienten Status (DD2-35 Auto-Clear-Toast), aber nur
+// wenn seq noch der aktuellen Status-Generation entspricht (sonst hat eine neuere
+// Meldung den Status bereits ersetzt und der alte Tick darf nichts überschreiben).
+type clearStatusMsg struct{ seq int }
+
+// statusTimeout feuert nach 2s eine clearStatusMsg für die übergebene Generation.
+func statusTimeout(seq int) tea.Cmd {
+	return tea.Tick(2*time.Second, func(time.Time) tea.Msg {
+		return clearStatusMsg{seq}
+	})
+}
 
 // tea.Msg-Typen: async geladene Daten oder Aktions-Ergebnisse.
 type errMsg struct{ err error }      // fatal (Lade-Fehler) → Fehlerschirm

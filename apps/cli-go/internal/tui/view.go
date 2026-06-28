@@ -238,7 +238,14 @@ func (m model) statusBar(ind string) string {
 
 func (m model) footer() string {
 	if m.status != "" {
-		return theme.Dim.Render(m.status)
+		// DD2-35: transienter Toast — wie statusBar() einfärben (ungefärbter Text →
+		// Blau, noticeText liefert bereits Sapphire) statt unscheinbar Dim; auf die
+		// Terminalbreite umbrechen (analog Hint, DD2-73). Auto-Clear via clearStatusMsg.
+		st := m.status
+		if ansi.Strip(st) == st {
+			st = lipgloss.NewStyle().Foreground(theme.Blue).Render(st)
+		}
+		return wrapText(st, m.termWidth())
 	}
 	// DD2-29: Status-Taste depth-abhängig benennen — s wirkt je Ebene auf Sprint
 	// (depth 1) bzw. Issue (depth 2), S auf den Meilenstein (depth 0).
