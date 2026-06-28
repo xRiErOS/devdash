@@ -31,9 +31,32 @@ main.go     Entry (dünn)
 
 - **Modell = Value-Receiver.** `func (m model) Update/View` → `View()` ist reine Funktion ohne Seiteneffekt. Mutationen kopieren `m` und geben es zurück. Helper, die nur lesen, dürfen `*model` sein.
 - Ein File, eine Verantwortung. `app.go` (Modell+Update) und `view.go` (Render) sind die großen; neue Screens als eigenes File (`memory.go`, `assign.go`, `delete.go` …).
-- huh-Forms laufen **innerhalb** der Loop als Sub-Modell (kein eigenes `form.Run()`); Werte nach `StateCompleted` per keyed `GetString` lesen, nicht per Pointer-Binding (bricht am Value-Copy). Siehe `forms.go`.
+- huh-Forms laufen **innerhalb** der Loop als Sub-Modell (kein eigenes `form.Run()`); Werte nach `StateCompleted` per keyed `GetString` lesen, nicht per Pointer-Binding (bricht am Value-Copy). Siehe `form_*.go` (`form_issue.go` / `form_milestone.go` / `form_sprint.go` / `form_result.go` / `form_memory.go`) + `forms_shared.go` (Theme, Reset, Box-Chrome).
 
-## Design / Farben
+## Language (i18n-Konvention, DD2-37)
+
+**Alle user-facing TUI-Strings sind Englisch** — Labels, Placeholders, Footer-/Keymap-Hints, Form-Titel, Status-/Toast-Messages, Help-Text, Yank-/Kontext-Markdown. Kein deutsches Wort in gerenderter Ausgabe.
+
+- **Code-Kommentare dürfen Deutsch bleiben** (Projekt-Konvention) — nur Runtime-Strings sind betroffen.
+- Identifier, huh-`Key("…")`, Field-Keys, YAML-Feldnamen (`outcome_summary`, `commits:`) sind **keine** UI-Strings → unverändert lassen.
+- Neuer Screen/String: direkt Englisch schreiben, nicht erst Deutsch + später übersetzen.
+- Regressions-Check (vor Commit): kein `[äöüÄÖÜß]` und kein deutsches Wort in String-Literalen von `internal/tui/*.go` (Test-Fixture-Daten wie Milestone-Namen ausgenommen).
+- **Out-of-Scope (Stand DD2-37):** `cmd/*.go` (CLI-Output/Flags) und `internal/api/*.go` (Error-Strings) sind noch Deutsch — separate Schicht, separates Issue.
+
+## TUI File-Konvention
+
+`internal/tui/` folgt **one-file-one-screen**. Neuer Screen → eigenes File, nicht in `app.go`/`view.go` quetschen.
+
+| File | Verantwortung |
+|---|---|
+| `app.go` | nur `model` + `Update`-Dispatcher (Message-/Key-Routing). Keine Render-Logik. |
+| `view.go` | geteilte Render-Primitives: `framed`, `chrome`, `statusBar`/Footer, `header`, `col`/`cockpitRow`. |
+| `messages.go` | alle `tea.Msg`-Typen **+** ihre `tea.Cmd`-Producer (Daten-Fetch/Mutation, die diese Msg emittieren). Kein Update-Dispatch, kein Rendering. |
+| `keymap.go` | zentrale `keybind.Binding`-Keymap (Single-Source); Help + `docs/shortcuts.md` daraus generiert. |
+| Screen-Files | `memory.go` (Memory-Browser), `assign.go` (Sprint→Meilenstein-Overlay), `backlog_assign.go` (Issue→Sprint), `delete.go` (Delete-Confirm), `tags.go` (Tag-Manager), `palette.go` (Command-Center), `help.go`, `quit.go`, `tree.go`, `backlog.go`, `view_columns.go`/`view_review.go`, `accordion.go`/`detail*.go` (Detail-Edit). |
+| `form_*.go` | je ein huh-Formular; `forms_shared.go` = Theme/Reset/Chrome. |
+
+
 
 Visuelle Wahrheit = **`DESIGN.md`** (Wireframe-Rollen → Catppuccin-Macchiato-Token, Layout-Hülle, Accordion-/Filter-Farben, offene Token-Arbeit). Token-Single-Source bleibt `internal/theme/theme.go` — bei Konflikt gewinnt Code. Vor Layout-/Farb-Arbeit `DESIGN.md` lesen.
 
@@ -65,9 +88,19 @@ Der Skill truncatet mit `len(s)` + `s[:n]` (Byte-Slicing). Das ist **falsch für
 | Ebene | Womit |
 |---|---|
 | State/Verhalten | `Update`-Tests mit `tea.KeyMsg` (nav, status, assign, delete …) |
-| Layout-Snapshot | Golden der reinen `View()` → `testdata/*.golden`, Update: `go test ./internal/tui/ -run TestGolden -update-golden` |
+| Layout-Snapshot | Golden der reinen `View()` → `testdata/*.golden` |
 | Farb-abhängige Lage | **TrueColor-Guard** — `cockpit_align_test.go` forciert `lipgloss.SetColorProfile(termenv.TrueColor)` |
 | Kontrast/Terminal | Augenschein (irreduzibel) |
+
+**Golden-Update-Workflow:** Wenn sich `View()`-Ausgabe **absichtlich** ändert (z.B. i18n, Layout):
+
+```sh
+command go test ./internal/tui/ -run TestGolden -update-golden   # regeneriert testdata/*.golden + docs/shortcuts.md
+command go test ./internal/tui/ -run TestCockpit                 # TrueColor-Guard MUSS unabhängig grün sein
+```
+
+- **Nie stale Goldens committen** — nach jeder gewollten View-Änderung neu erzeugen, Diff prüfen (nur erwartete Strings dürfen wandern).
+- `-update-golden` regeneriert auch die aus der Keymap abgeleitete `docs/shortcuts.md` (TestShortcutDoc) — nicht von Hand editieren.
 
 **Golden-Falle:** `go test` hat keine TTY → lipgloss-Profil = Ascii → ANSI gestrippt → Golden sieht ausgerichtet aus und **verfehlt** Farb-Misalignment (B06). Darum der TrueColor-Test als zweites Netz; defer zurück auf Ascii (Golden erwarten Ascii).
 
