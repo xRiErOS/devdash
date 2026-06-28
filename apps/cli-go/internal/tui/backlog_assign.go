@@ -124,7 +124,12 @@ func (m model) assignSprintBlock(s api.Sprint, w int, sel bool) string {
 	indent := strings.Repeat(" ", lipgloss.Width(prefix))
 	count := fmt.Sprintf("%d Issues", s.ItemCount)
 
-	titleW := w - lipgloss.Width(prefix)
+	// Count steht rechtsbündig auf Zeile 1 → seine Breite (+1 Gap) muss beim
+	// Titel-Wrap reserviert sein, sonst füllt eine lange erste Titelzeile die
+	// volle Breite und der Count overflowt in die nächste Terminal-Zeile (PO-Bug:
+	// '4' am Zeilenende, 'Issues' auf Spalte 0). Reservierung gilt für ALLE Zeilen
+	// (konsistente Breite); Folgezeilen tragen keinen Count, bleiben so < w.
+	titleW := w - lipgloss.Width(prefix) - lipgloss.Width(count) - 1
 	if titleW < 8 {
 		titleW = 8
 	}

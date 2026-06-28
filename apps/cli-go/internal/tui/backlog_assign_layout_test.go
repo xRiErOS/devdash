@@ -50,6 +50,40 @@ func TestAssignSprintMenuBlockLayout(t *testing.T) {
 	}
 }
 
+// DD2-140 (PO-Screenshot): langer Titel darf den Count nicht in die nächste Zeile
+// drücken — '4 Issues' muss zusammen bleiben, keine Block-Zeile breiter als der
+// Modal-Innenraum (sonst terminal-wrap → 'Issues' auf Spalte 0).
+func TestAssignSprintMenuLongTitleNoCountOverflow(t *testing.T) {
+	lipgloss.SetColorProfile(termenv.TrueColor)
+	defer lipgloss.SetColorProfile(termenv.Ascii)
+
+	mn := "TUI M1: Weltklasse TUI steht zur Verfügung"
+	mid := 42
+	m := model{
+		width:  120,
+		asPick: true,
+		asSprints: []api.Sprint{
+			{ID: 24, Key: "DD2#24", Name: "Create-Form: PO-Notes statt description + description-Deprecation", Status: "planning", ItemCount: 4, MilestoneID: &mid, MilestoneName: &mn},
+		},
+		asMenu: listState{length: 1, cursor: 0},
+	}
+	// Block direkt rendern (ohne Modal-Chrome) und auf Breite prüfen.
+	cw := 67
+	out := ansi.Strip(m.assignSprintBlock(m.asSprints[0], cw, true))
+
+	// Count ungebrochen.
+	if !strings.Contains(out, "4 Issues") {
+		t.Errorf("Count '4 Issues' gebrochen oder fehlt: %q", out)
+	}
+	// Keine Block-Zeile breiter als cw+1 (cw Inhalt + 1 Cursor-Spalte). Vor dem Fix
+	// drückte der lange Titel den Count über cw → terminal-wrap.
+	for _, ln := range strings.Split(out, "\n") {
+		if w := lipgloss.Width(ln); w > cw+1 {
+			t.Errorf("Block-Zeile überläuft (%d > %d): %q", w, cw+1, ln)
+		}
+	}
+}
+
 // Cursor-Block ist markiert (Balken).
 func TestAssignSprintMenuCursorBar(t *testing.T) {
 	lipgloss.SetColorProfile(termenv.TrueColor)
