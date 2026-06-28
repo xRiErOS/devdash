@@ -1,8 +1,8 @@
 > devd2                                ctrl+k:Cmd  p:Projekt  b:Backlog  R:Reviews  q:Quit
 ╭────────────────────────────╮╭────────────────────────────╮╭────────────────────────────╮
-│Meilensteine                ││Sprints · Meilenstein Eins  ││Issues · DD2#9              │
+│Meilensteine                ││Sprints ∙ Meilenstein Eins  ││Issues ∙ DD2#9              │
 │──────────────              ││────────────────────────────││────────────────            │
-│▸ ● Meilenstein Eins  0/0   ││  DD2#9    review  0/0      ││  ◆ P1 DD2-99    Beispiel-I…│
+│▸ ◉ Meilenstein Eins  0/0   ││  DD2#9    review  0/0      ││  ⯁ P1 DD2-99    Beispiel-I…│
 │                            ││                            ││                            │
 │                            ││                            ││                            │
 │                            ││                            ││                            │

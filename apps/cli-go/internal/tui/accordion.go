@@ -18,7 +18,7 @@ import (
 
 // detailField = ein navigierbares, editierbares Feld einer Detail-Section (DD2-76
 // Fokus-Maschine, DD2-77 Edit-Ziel). key = Contract-Feldname (issueUpdateContract),
-// editor = Editor-Typ für die huh-Form: input (kurz) · text (lang) · select.
+// editor = Editor-Typ für die huh-Form: input (kurz) ∙ text (lang) ∙ select.
 type detailField struct {
 	key    string
 	label  string
@@ -82,7 +82,7 @@ func (m model) issueSections(it api.Issue, bodyW int) []accordionSection {
 		body := grid(bodyW, 2,
 			gridCell{weight: 3, content: strings.Join(left, "\n\n")},
 			gridCell{weight: 2, content: right})
-		secs = append(secs, accordionSection{"Goal / Beschreibung · PO-Notes", body, fields})
+		secs = append(secs, accordionSection{"Goal / Beschreibung ∙ PO-Notes", body, fields})
 	}
 
 	// Sektion 2: Background + Context Notes (einspaltig).

@@ -799,7 +799,7 @@ func (m model) keyTreeSearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // treeSearchLine rendert den Tree-Kopf (DESIGN „Such-/Filterbox"): Shield + Status.
 // Inaktiv = Hint, Eingabe aktiv = Suchfeld, Filter gesetzt = Shield+Query rot.
 func (m model) treeSearchLine(w int) string {
-	const shield = "⛨"
+	const shield = "⌕" // U+2315 Such-Glyph (neutral; war ⌕ U+26E8 = ambiguous, DD2-53)
 	if m.treeSearching {
 		return truncate(shield+" "+m.treeSearch.View(), w)
 	}
@@ -813,7 +813,7 @@ func (m model) treeSearchLine(w int) string {
 	if len(parts) > 0 { // aktiver Filter/Suche = rot (DESIGN „Filter aktiv")
 		return truncate(lipgloss.NewStyle().Foreground(theme.Red).Render(shield+" "+strings.Join(parts, " ")), w)
 	}
-	return truncate(theme.Muted.Render(shield+" Suchen mit /  ·  Filter f"), w)
+	return truncate(theme.Muted.Render(shield+" Suchen mit /  ∙  Filter f"), w)
 }
 
 // treeExpand klappt den Knoten unter dem Cursor auf; bei Sprints werden die

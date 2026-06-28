@@ -313,7 +313,7 @@ func TestTreeSearchLineActiveRed(t *testing.T) {
 
 	m := newModel(nil, &api.Project{Slug: "devd2", Prefix: "DD2"}, nil)
 	m.treeQuery = "bug"
-	if got, want := m.treeSearchLine(40), truncate(lipgloss.NewStyle().Foreground(theme.Red).Render("⛨ bug"), 40); got != want {
+	if got, want := m.treeSearchLine(40), truncate(lipgloss.NewStyle().Foreground(theme.Red).Render("⌕ bug"), 40); got != want {
 		t.Errorf("aktiver Filter nicht rot\n got: %q\nwant: %q", got, want)
 	}
 	m.treeQuery = ""

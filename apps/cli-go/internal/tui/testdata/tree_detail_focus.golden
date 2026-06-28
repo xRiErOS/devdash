@@ -1,11 +1,11 @@
 > devd2: Projekt-Browser               ctrl+k:Cmd  p:Projekt  b:Backlog  R:Reviews  q:Quit
 ╭────────────────────────────────────╮╭──────────────────────────────────────────────────╮
-│⛨ Suchen mit /  ·  Filter f         ││▌> DD2-99 Beispiel-Issue für den Snapshot         │
-│ ▾ ● Meilenstein Eins               ││P1 prio  ·  ◆ bug type                 to_review  │
+│⌕ Suchen mit /  ∙  Filter f         ││▌> DD2-99 Beispiel-Issue für den Snapshot         │
+│ ▾ ◉ Meilenstein Eins               ││P1 prio  ∙  ⯁ bug type                 to_review  │
 │   ▾ DD2#9 review                   ││Felder: ▌Titel  Typ  Priorität                    │
-│▌      ◆ DD2-99                     ││                                                  │
+│▌      ⯁ DD2-99                     ││                                                  │
 │                                    ││Sections: Ziffer [1..n] öffnet                    │
-│                                    ││> [1] Goal / Beschreibung · PO-Notes  ▸           │
+│                                    ││> [1] Goal / Beschreibung ∙ PO-Notes  ▸           │
 │                                    ││> [2] Background / Context  ▸                     │
 │                                    ││> [3] User-Stories (2)  ▸                         │
 │                                    ││                                                  │

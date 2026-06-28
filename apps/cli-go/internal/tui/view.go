@@ -369,7 +369,7 @@ func metaStrip(pairs []metaPair, status string, w int) string {
 		}
 		cells = append(cells, cell)
 	}
-	left := strings.Join(cells, theme.Muted.Render("  ·  "))
+	left := strings.Join(cells, theme.Muted.Render("  ∙  "))
 	if status == "" {
 		return truncate(left, w)
 	}
@@ -419,7 +419,7 @@ func (m model) viewPicker() string {
 	var b strings.Builder
 	for i, p := range m.projects {
 		cursor := "  "
-		line := fmt.Sprintf("%-10s %-26s %d Sprints · %d Backlog", p.Prefix, p.Name, p.SprintCount, p.BacklogCount)
+		line := fmt.Sprintf("%-10s %-26s %d Sprints ∙ %d Backlog", p.Prefix, p.Name, p.SprintCount, p.BacklogCount)
 		if i == m.plist.cursor {
 			cursor = theme.Accent.Render("▸ ")
 			line = theme.Header.Render(line)
@@ -557,7 +557,7 @@ func (m model) detailRows() []string {
 	}
 	rows := []string{
 		theme.Key.Render(it.Key),
-		fmt.Sprintf("%s %s · %s", theme.TypeIcon(it.Type), theme.TypeStyle(it.Type).Render(it.Type), theme.Priority(it.Priority)),
+		fmt.Sprintf("%s %s ∙ %s", theme.TypeIcon(it.Type), theme.TypeStyle(it.Type).Render(it.Type), theme.Priority(it.Priority)),
 		theme.StatusStyle(it.Status).Render(it.Status),
 		"",
 	}
@@ -704,7 +704,7 @@ func (m model) viewDetail() string {
 		stamp = append(stamp, "refined "+s)
 	}
 	if len(stamp) > 0 {
-		b.WriteString("\n" + theme.Dim.Render(strings.Join(stamp, " · ")) + "\n")
+		b.WriteString("\n" + theme.Dim.Render(strings.Join(stamp, " ∙ ")) + "\n")
 	}
 	return m.chrome("Issue "+it.Key, slots, b.String(),
 		"s: Status   j/k: scrollen   g/G: Anfang/Ende   esc/q: zurück")
@@ -915,9 +915,9 @@ func issueColHeader() string {
 // Fehlendes result blockt den Sprint-Abschluss (Backend-Gate), I01.
 func resultDot(it api.Issue) string {
 	if strings.TrimSpace(deref(it.Result)) != "" {
-		return lipgloss.NewStyle().Foreground(theme.Green).Render("●")
+		return lipgloss.NewStyle().Foreground(theme.Green).Render("◉") // U+25C9 (neutral; war ● U+25CF = ambiguous, DD2-53)
 	}
-	return lipgloss.NewStyle().Foreground(theme.Red).Render("●")
+	return lipgloss.NewStyle().Foreground(theme.Red).Render("◉")
 }
 
 // sprintStatusMenu: schwebendes Sprint-Status-Menü (Taste S), zeigt gültige Transitions.
@@ -958,7 +958,7 @@ func reviewBadge(it api.Issue) string {
 	case "not_passed":
 		return lipgloss.NewStyle().Foreground(theme.Red).Render("✗ not_passed")
 	default:
-		return theme.Dim.Render("· kein Verdikt")
+		return theme.Dim.Render("∙ kein Verdikt")
 	}
 }
 
@@ -984,7 +984,7 @@ func (m model) reviewSummary() string {
 	parts := []string{
 		lipgloss.NewStyle().Foreground(theme.Green).Render(fmt.Sprintf("✓ %d passed", passed)),
 		lipgloss.NewStyle().Foreground(theme.Red).Render(fmt.Sprintf("✗ %d not_passed", rejected)),
-		theme.Dim.Render(fmt.Sprintf("· %d offen", pending)),
+		theme.Dim.Render(fmt.Sprintf("∙ %d offen", pending)),
 	}
 	head := theme.Dim.Render("Review-Runden: ")
 	if pending == 0 && rejected == 0 && passed > 0 {
@@ -1077,7 +1077,7 @@ func (m model) statusMenu() string {
 		}
 		mark := "  "
 		if s == cur {
-			mark = theme.Dim.Render("• ")
+			mark = theme.Dim.Render("∙ ") // U+2219 (neutral; war • U+2022 = ambiguous, DD2-53)
 		}
 		b.WriteString(cursor + mark + label + "\n")
 	}
@@ -1100,7 +1100,7 @@ func noticeText(s string) string {
 func (m model) filterBox() string {
 	col := []string{"Meilensteine", "Sprints", "Issues"}[clampInt(m.ftarget, 0, 2)]
 	var b strings.Builder
-	b.WriteString(theme.Header.Render("Filter · "+col) + "\n")
+	b.WriteString(theme.Header.Render("Filter ∙ "+col) + "\n")
 	b.WriteString(theme.Dim.Render("space: an/aus   enter/esc: schließen") + "\n\n")
 	if len(m.fopts) == 0 {
 		b.WriteString(theme.Dim.Render("(keine Werte)") + "\n")
@@ -1131,7 +1131,7 @@ func (m model) filterBox() string {
 
 func (m model) ctxTitle(base string, ok bool, ctx string) string {
 	if ok && ctx != "" {
-		return base + " · " + ctx
+		return base + " ∙ " + ctx
 	}
 	return base
 }
@@ -1163,18 +1163,18 @@ func spKey(s *api.Sprint) string {
 	return s.Key
 }
 
-// statusDot codiert Status doppelt über Form + Farbe (D09): hohl ○ = geplant/
-// nicht-gestartet, ✗ = abgebrochen/abgelehnt, sonst gefüllt ● = aktive/laufende
-// Zustände. Farbe immer aus statusColor.
+// statusDot codiert Status doppelt über Form + Farbe (D09): hohl ◦ = geplant/
+// nicht-gestartet, ✗ = abgebrochen/abgelehnt, sonst gefüllt ◉ = aktive/laufende
+// Zustände. Farbe immer aus statusColor. Glyphen East-Asian-neutral (DD2-53).
 func statusDot(status string) string {
 	var glyph string
 	switch status {
 	case "planning", "planned", "new":
-		glyph = "○" // noch nicht gestartet
+		glyph = "◦" // U+25E6 noch nicht gestartet (neutral; war ○ U+25CB = ambiguous)
 	case "cancelled", "rejected":
-		glyph = "✗" // abgebrochen
+		glyph = "✗" // U+2717 abgebrochen (neutral)
 	default:
-		glyph = "●" // aktiv/laufend/terminal-done
+		glyph = "◉" // U+25C9 aktiv/laufend/terminal-done (neutral; war ● U+25CF = ambiguous)
 	}
 	return theme.StatusStyle(status).Render(glyph)
 }

@@ -215,7 +215,7 @@ func (m model) memListTitle() string {
 	if m.memCat != "" {
 		cat = memCatShort(m.memCat)
 	}
-	return fmt.Sprintf("Memories · %s (%d)", cat, len(m.memList))
+	return fmt.Sprintf("Memories ∙ %s (%d)", cat, len(m.memList))
 }
 
 func (m model) memRows() []string {

@@ -80,11 +80,18 @@ func StatusStyle(status string) lipgloss.Style {
 
 // --- Issue-Type Text-Icons (kein Emoji — Unicode-Geometrie, monospace-sicher) ---
 
+// DD2-53: ALLE Glyphen hier MÜSSEN East-Asian-Width = Neutral/Narrow sein (nie
+// Ambiguous). lipgloss.Width zählt sie via clipperhouse/displaywidth als 1; ein
+// ambiguous=wide-Terminal (tmux/CJK) rendert Ambiguous aber als 2 → Spalten
+// verrutschen (gleiche Klasse wie B06, nur terminalseitig). Da wir die Terminal-
+// Seite nicht steuern, ist die einzige robuste Wahl: unambiguous-narrow Glyphen
+// (runewidth.EastAsianWidth=false wirkt NICHT — lipgloss nutzt displaywidth, nicht
+// go-runewidth). Klassifikation: golang.org/x/text/width.LookupRune(r).Kind().
 var typeIcon = map[string]string{
-	"bug":         "◆",
-	"feature":     "✦",
-	"improvement": "▲",
-	"core":        "⬢",
+	"bug":         "⯁", // U+2BC1 BLACK MEDIUM DIAMOND (neutral; war ◆ U+25C6 = ambiguous)
+	"feature":     "✦", // U+2726 (neutral)
+	"improvement": "⯅", // U+2BC5 BLACK MEDIUM UP-POINTING TRIANGLE (neutral; war ▲ U+25B2 = ambiguous)
+	"core":        "⬢", // U+2B22 (neutral)
 }
 
 var typeColor = map[string]lipgloss.Color{
@@ -94,11 +101,11 @@ var typeColor = map[string]lipgloss.Color{
 	"core":        Peach,
 }
 
-// TypeIcon liefert das gefärbte Text-Icon eines Issue-Typs (Fallback: "•").
+// TypeIcon liefert das gefärbte Text-Icon eines Issue-Typs (Fallback: "∙").
 func TypeIcon(t string) string {
 	ic, ok := typeIcon[t]
 	if !ok {
-		ic = "•"
+		ic = "∙" // U+2219 (neutral; war • U+2022 = ambiguous)
 	}
 	col := typeColor[t]
 	if col == "" {

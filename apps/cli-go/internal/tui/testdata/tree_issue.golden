@@ -1,10 +1,10 @@
 > devd2: Projekt-Browser               ctrl+k:Cmd  p:Projekt  b:Backlog  R:Reviews  q:Quit
 ╭────────────────────────────────────╮╭──────────────────────────────────────────────────╮
-│⛨ Suchen mit /  ·  Filter f         ││> DD2-99 Beispiel-Issue für den Snapshot          │
-│ ▾ ● Meilenstein Eins               ││P1 prio  ·  ◆ bug type                 to_review  │
+│⌕ Suchen mit /  ∙  Filter f         ││> DD2-99 Beispiel-Issue für den Snapshot          │
+│ ▾ ◉ Meilenstein Eins               ││P1 prio  ∙  ⯁ bug type                 to_review  │
 │   ▾ DD2#9 review                   ││                                                  │
-│▌      ◆ DD2-99                     ││Sections: Ziffer [1..n] öffnet                    │
-│                                    ││> [1] Goal / Beschreibung · PO-Notes  ▾           │
+│▌      ⯁ DD2-99                     ││Sections: Ziffer [1..n] öffnet                    │
+│                                    ││> [1] Goal / Beschreibung ∙ PO-Notes  ▾           │
 │                                    ││╭──────────────────────────────────────────────╮  │
 │                                    │││Goal                                          │  │
 │                                    │││Detail soll scrollbar                         │  │

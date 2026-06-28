@@ -173,7 +173,7 @@ func buildForm(kind string, milestones []api.Milestone) *huh.Form {
 }
 
 // buildEditFieldForm baut die Single-Field-editForm (DD2-77) je Feldtyp: Input
-// (kurz) · Text (lang) · Select (type/priority). Mit dem aktuellen Wert vorbelegt
+// (kurz) ∙ Text (lang) ∙ Select (type/priority). Mit dem aktuellen Wert vorbelegt
 // (Value-Binding für den Initialwert; gelesen wird nach Abschluss per GetString).
 func buildEditFieldForm(f detailField, value string) *huh.Form {
 	v := value
