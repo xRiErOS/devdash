@@ -622,8 +622,6 @@ app.put('/api/settings/:key', (req, res) => {
   const newValue = (value === undefined || value === null || value === '') ? null : String(value)
   db.prepare('UPDATE settings SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE key = ?')
     .run(newValue, req.params.key)
-  // DD-83 R2: Prompt-Template-Cache invalidieren, sobald Setting geändert wird.
-  if (req.params.key === 'sprint_planning_prompt') invalidatePromptCache()
   auditLog('settings', 0, 'update',
     { key: req.params.key, has_value: !!existing.value },
     { key: req.params.key, has_value: !!newValue },
@@ -3815,123 +3813,6 @@ app.get('/api/backlog-export', (req, res) => {
   res.setHeader('Content-Type', 'text/markdown; charset=utf-8')
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
   res.send(md.join('\n'))
-})
-
-// DD-83 / DD-83 R2: Prompt-Template laden.
-// Reihenfolge: 1. settings.sprint_planning_prompt (UI-edit), 2. ENV DEVD_PROMPT_TEMPLATE_PATH,
-// 3. config/sprint-planning-prompt.md, 4. eingebauter Default. Cache 30s.
-import { readFileSync as _readFileSync, existsSync as _existsSync } from 'fs'
-const DEFAULT_TEMPLATE_PATH = path.join(__dirname, '..', 'config', 'sprint-planning-prompt.md')
-const promptTplCache = { mtime: 0, src: '', source: '' }
-function invalidatePromptCache() { promptTplCache.mtime = 0 }
-function loadPromptTemplate() {
-  const now = Date.now()
-  if (now - promptTplCache.mtime < 30_000 && promptTplCache.src) return promptTplCache.src
-  let src = ''
-  try {
-    const setting = db.prepare("SELECT value FROM settings WHERE key = 'sprint_planning_prompt'").get()
-    if (setting?.value && String(setting.value).trim()) src = setting.value
-  } catch {}
-  if (!src) {
-    const candidate = process.env.DEVD_PROMPT_TEMPLATE_PATH || DEFAULT_TEMPLATE_PATH
-    try {
-      if (_existsSync(candidate)) src = _readFileSync(candidate, 'utf8')
-    } catch (e) {
-      console.warn('[planning-prompt] Template laden fehlgeschlagen:', e.message)
-    }
-  }
-  if (!src) {
-    src = '# Sprint-Planung — {{project_name}}\n\n## Aufgabe\nSchlage einen sinnvollen Sprint aus den verfügbaren refined Issues vor. {{capacity_hint}}Berücksichtige Priorität, Abhängigkeiten und Milestone-Zugehörigkeit. Begründe deinen Vorschlag.\n\n## Output-Format\n1. Sprint-Name (z.B. "Sprint N — Thema")\n2. Liste der vorgeschlagenen Issues mit Begründung pro Item\n3. Optionale Sprint-Goal-Beschreibung (1-2 Sätze)\n4. Hinweise zu möglichen Risiken oder Blockern\n{{project_context_block}}\n{{dynamic_files_block}}\n## Verfügbare refined Issues ({{issue_count}})\n\n{{issues_list}}\n'
-  }
-  promptTplCache.mtime = now
-  promptTplCache.src = src
-  return src
-}
-
-// DD-84: Projektkontext-Datei einlesen (max 100 KB Sicherheit).
-function readContextFile(filePath) {
-  if (!filePath || !filePath.trim()) return ''
-  try {
-    if (!_existsSync(filePath)) return ''
-    const buf = _readFileSync(filePath, 'utf8')
-    return buf.length > 100_000 ? buf.slice(0, 100_000) + '\n\n_…(gekürzt)_' : buf
-  } catch (e) {
-    console.warn('[planning-prompt] Context-File fehlgeschlagen:', e.message)
-    return ''
-  }
-}
-
-// GET /api/planning-prompt — DD-21 / DD-83 / DD-84 / DD-85
-// Markdown-Prompt fuer Sprint-Planungs-Agent. Input: alle refined Issues
-// (assigned_sprint IS NULL, status='refined') + Capacity-Hint (?capacity=N).
-// DD-85: zusätzliche Files via ?files=path1,path2 (kommagetrennt) — werden als
-// Code-Blöcke in den Prompt eingebunden.
-app.get('/api/planning-prompt', (req, res) => {
-  const projectId = currentProjectId(req)
-  const capacity = Number(req.query.capacity) || null
-  const dynamicFilesParam = String(req.query.files || '').trim()
-  const refined = db.prepare(`
-    SELECT b.id, b.title, b.type, b.priority, b.goal, b.background, b.context_notes,
-           b.milestone, p.prefix, b.project_number,
-           (SELECT COUNT(*) FROM issue_dependencies WHERE issue_id = b.id) AS deps_count
-    FROM backlog b
-    LEFT JOIN projects p ON p.id = b.project_id
-    WHERE b.project_id = ? AND b.status = 'refined' AND b.assigned_sprint IS NULL
-    ORDER BY b.priority ASC, b.id ASC
-  `).all(projectId)
-
-  const project = db.prepare('SELECT name, prefix, context_file_path FROM projects WHERE id = ?').get(projectId)
-
-  // Issues-Liste als Markdown.
-  const issueLines = []
-  if (refined.length === 0) {
-    issueLines.push('_Keine refined Issues ohne Sprint-Zuweisung gefunden._')
-  } else {
-    for (const item of refined) {
-      const key = item.prefix && item.project_number ? `${item.prefix}-${item.project_number}` : `#${item.id}`
-      issueLines.push(`### ${key} — ${item.title}`)
-      issueLines.push(`- **Typ:** ${item.type} · **Priorität:** P${item.priority}${item.milestone ? ` · **Milestone:** ${item.milestone}` : ''}${item.deps_count ? ` · **Dependencies:** ${item.deps_count}` : ''}`)
-      if (item.goal) issueLines.push(`- **Goal:** ${item.goal.split('\n')[0]}`)
-      if (item.background) {
-        const bg = item.background.length > 240 ? item.background.slice(0, 240).trim() + '…' : item.background
-        issueLines.push(`- **Background:** ${bg}`)
-      }
-      issueLines.push('')
-    }
-  }
-
-  // DD-84: Projektkontext aus konfigurierter Datei.
-  const ctxContent = readContextFile(project?.context_file_path || '')
-  const projectContextBlock = ctxContent
-    ? `\n## Projektkontext\n\n\`\`\`\n${ctxContent}\n\`\`\`\n`
-    : ''
-
-  // DD-85: Dynamische Files aus Query-Parameter.
-  const dynamicFiles = dynamicFilesParam
-    ? dynamicFilesParam.split(',').map(s => s.trim()).filter(Boolean)
-    : []
-  const dynamicBlocks = []
-  for (const fp of dynamicFiles) {
-    const content = readContextFile(fp)
-    if (content) {
-      dynamicBlocks.push(`### \`${fp}\`\n\n\`\`\`\n${content}\n\`\`\`\n`)
-    }
-  }
-  const dynamicFilesBlock = dynamicBlocks.length
-    ? `\n## Zusätzliche Dateien\n\n${dynamicBlocks.join('\n')}`
-    : ''
-
-  // Template laden + Platzhalter ersetzen.
-  const tpl = loadPromptTemplate()
-  const out = tpl
-    .replace(/\{\{project_name\}\}/g, project?.name || 'Projekt')
-    .replace(/\{\{capacity_hint\}\}/g, capacity ? `Kapazität: ${capacity} Issues. ` : '')
-    .replace(/\{\{issue_count\}\}/g, String(refined.length))
-    .replace(/\{\{issues_list\}\}/g, issueLines.join('\n'))
-    .replace(/\{\{project_context_block\}\}/g, projectContextBlock)
-    .replace(/\{\{dynamic_files_block\}\}/g, dynamicFilesBlock)
-
-  res.type('text/markdown').send(out)
 })
 
 // POST /api/sprints/:id/complete — Sprint abschliessen (PO-Button + Agent-API)

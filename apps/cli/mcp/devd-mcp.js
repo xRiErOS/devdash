@@ -999,25 +999,6 @@ server.tool(
 )
 
 server.tool(
-  'devd_planning_prompt',
-  'READ: Render the sprint-planning prompt for a project (refined + unassigned issues, optional capacity + referenced files). Markdown. GET /api/planning-prompt. Read-only.',
-  {
-    project_id: PROJECT_ID_PARAM,
-    capacity: z.number().int().optional().describe('Target capacity to size the plan'),
-    files: z.string().optional().describe('Comma-list of file paths to inline as context'),
-  },
-  async ({ project_id, capacity, files }) => {
-    const pid = resolveProjectId(project_id)
-    if (typeof pid === 'object' && pid.error) return ok(pid)
-    const params = new URLSearchParams()
-    if (capacity !== undefined) params.set('capacity', String(capacity))
-    if (files) params.set('files', files)
-    const qs = params.toString() ? `?${params.toString()}` : ''
-    return okTextOrError(await apiRequest('GET', `/api/planning-prompt${qs}`, null, pid))
-  },
-)
-
-server.tool(
   'devd_dashboard_home',
   'READ: Global home dashboard — one tile row per non-archived project (open sprints/milestones/issues counts). GET /api/dashboard/home. Global, read-only.',
   {},
