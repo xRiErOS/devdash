@@ -420,6 +420,18 @@ server.tool(
 )
 
 server.tool(
+  'devd_sstd_slot_list',
+  'List all SSTD slots of a project (slot-key + raw content) in one call. Unlike devd_sstd_get (full reassembly incl. projections) this returns the raw editable slots as a list. Read-only (MEM-16/18, DD2-98).',
+  { id_or_slug: z.string().describe('Numeric project id or slug string (e.g. "devd", "2")') },
+  async ({ id_or_slug }) => {
+    let pid
+    try { pid = await resolveProjectNumericId(id_or_slug) } catch (e) { return ok({ error: true, message: e.message }) }
+    const data = await apiRequest('GET', `/api/projects/${pid}/sstd/slots`)
+    return ok(data)
+  },
+)
+
+server.tool(
   'devd_sstd_slot_set',
   'WRITE: Replace a whole SSTD slot (last-write-wins). Use for the initial fill or full rewrite of one slot; for line-level edits use devd_sstd_slot_edit (MEM-16/18).',
   {
@@ -510,7 +522,7 @@ server.tool(
 
 server.tool(
   'devd_sprint_context',
-  'Get full sprint context bundle (all issue fields) formatted as Markdown. Ideal for AI agents before starting work. Read-only.',
+  'Get full sprint context bundle formatted as Markdown — all issue fields plus per-issue user-stories (incl. QA), result fields of already-worked issues, and issue/sprint dependencies. Ideal for AI agents before starting work, no extra calls needed. Read-only.',
   {
     project_id: PROJECT_ID_PARAM,
     sprint_key: z.string().describe('Sprint key (e.g. "DD#20") or numeric sprint id'),
@@ -967,11 +979,11 @@ function okTextOrError(data) {
 
 server.tool(
   'devd_backlog_export',
-  'READ: Export the project backlog as Markdown (default) or CSV — full triage context in one call. Filters: status, search. GET /api/backlog-export. Read-only.',
+  'READ: Export the project backlog in an LLM-friendly format — md (default) | json | yaml. Default status filter is new,refined (sprint-bound status excluded); narrow further via status (single or comma-list). Full triage context in one call. GET /api/backlog-export. Read-only.',
   {
     project_id: PROJECT_ID_PARAM,
-    format: z.enum(['md', 'csv']).optional().describe('Export format (default md)'),
-    status: z.string().optional().describe('Status filter (single or comma-list)'),
+    format: z.enum(['md', 'json', 'yaml']).optional().describe('Export format (default md)'),
+    status: z.string().optional().describe('Status filter (single or comma-list); default new,refined'),
     search: z.string().optional().describe('Full-text filter'),
   },
   async ({ project_id, format, status, search }) => {
@@ -983,25 +995,6 @@ server.tool(
     if (search) params.set('search', search)
     const qs = params.toString() ? `?${params.toString()}` : ''
     return okTextOrError(await apiRequest('GET', `/api/backlog-export${qs}`, null, pid))
-  },
-)
-
-server.tool(
-  'devd_planning_prompt',
-  'READ: Render the sprint-planning prompt for a project (refined + unassigned issues, optional capacity + referenced files). Markdown. GET /api/planning-prompt. Read-only.',
-  {
-    project_id: PROJECT_ID_PARAM,
-    capacity: z.number().int().optional().describe('Target capacity to size the plan'),
-    files: z.string().optional().describe('Comma-list of file paths to inline as context'),
-  },
-  async ({ project_id, capacity, files }) => {
-    const pid = resolveProjectId(project_id)
-    if (typeof pid === 'object' && pid.error) return ok(pid)
-    const params = new URLSearchParams()
-    if (capacity !== undefined) params.set('capacity', String(capacity))
-    if (files) params.set('files', files)
-    const qs = params.toString() ? `?${params.toString()}` : ''
-    return okTextOrError(await apiRequest('GET', `/api/planning-prompt${qs}`, null, pid))
   },
 )
 

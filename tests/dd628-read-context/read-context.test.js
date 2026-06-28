@@ -8,14 +8,18 @@ import { readFileSync } from 'fs'
 const mcp = readFileSync('apps/cli/mcp/devd-mcp.js', 'utf8')
 
 describe('DD-628 — Read-Context-Tools', () => {
-  test('registers backlog_export/planning_prompt/dashboard_home/dependencies_graph', () => {
-    for (const t of ['devd_backlog_export', 'devd_planning_prompt', 'devd_dashboard_home', 'devd_dependencies_graph']) {
+  test('registers backlog_export/dashboard_home/dependencies_graph', () => {
+    for (const t of ['devd_backlog_export', 'devd_dashboard_home', 'devd_dependencies_graph']) {
       expect(mcp).toContain(`'${t}'`)
     }
   })
+  // DD2-109: devd_planning_prompt + /api/planning-prompt entfernt (Planning-Kette nach Clean-Cut abgeschafft).
+  test('devd_planning_prompt ist entfernt', () => {
+    expect(mcp).not.toContain("'devd_planning_prompt'")
+    expect(mcp).not.toMatch(/\/api\/planning-prompt/)
+  })
   test('treffen die richtigen Read-Endpoints', () => {
     expect(mcp).toMatch(/\/api\/backlog-export/)
-    expect(mcp).toMatch(/\/api\/planning-prompt/)
     expect(mcp).toMatch(/'GET', '\/api\/dashboard\/home'/)
     expect(mcp).toMatch(/\/api\/dependencies\/graph/)
   })

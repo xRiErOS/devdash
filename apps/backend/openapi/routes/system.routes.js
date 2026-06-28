@@ -141,19 +141,6 @@ register({
 
 register({
   method: 'GET',
-  path: '/api/planning-prompt',
-  tag: 'system',
-  summary: 'Sprint-Planning-Prompt als Markdown rendern (refined Issues + Projektkontext).',
-  query: z.object({
-    capacity: z.string().optional(),
-    files: z.string().optional(),
-    project_id: z.string().optional(),
-  }),
-  res: z.string(),
-});
-
-register({
-  method: 'GET',
   path: '/api/archon-runs',
   tag: 'system',
   summary: 'Archon-Runs auflisten, optional nach Sprint gefiltert.',

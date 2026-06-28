@@ -8,12 +8,20 @@ import { readFileSync } from 'fs'
 const mcp = readFileSync('apps/cli/mcp/devd-mcp.js', 'utf8')
 
 describe('MEM-18 — SSTD-Slots MCP tools', () => {
-  test('registers get / slot_get / slot_set / slot_edit / journal_add', () => {
+  test('registers get / slot_get / slot_list / slot_set / slot_edit / journal_add', () => {
     expect(mcp).toMatch(/'devd_sstd_get'/)
     expect(mcp).toMatch(/'devd_sstd_slot_get'/)
+    expect(mcp).toMatch(/'devd_sstd_slot_list'/)
     expect(mcp).toMatch(/'devd_sstd_slot_set'/)
     expect(mcp).toMatch(/'devd_sstd_slot_edit'/)
     expect(mcp).toMatch(/'devd_sstd_journal_add'/)
+  })
+
+  test('DD2-98: slot_list listet alle Slots ohne slot_key-Param, GET auf /sstd/slots', () => {
+    const block = mcp.slice(mcp.indexOf("'devd_sstd_slot_list'"), mcp.indexOf("'devd_sstd_slot_set'"))
+    expect(block).toMatch(/'GET', `\/api\/projects\/\$\{pid\}\/sstd\/slots`/)
+    expect(block).not.toMatch(/slot_key/)
+    expect(block).toMatch(/resolveProjectNumericId/)
   })
 
   test('slot tools target the slot REST routes (GET/PUT + PATCH line)', () => {
