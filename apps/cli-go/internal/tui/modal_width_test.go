@@ -11,8 +11,8 @@ func TestClampModalWidth(t *testing.T) {
 		{64, 200, 64}, // breit genug: Wunschbreite bleibt
 		{46, 200, 46},
 		{30, 200, 30},
-		{64, 40, 36},  // schmal: termW-4 (lässt Border/Luft)
-		{48, 50, 46},  // knapp: 50-4=46 < 48
+		{64, 40, 36}, // schmal: termW-4 (lässt Border/Luft)
+		{48, 50, 46}, // knapp: 50-4=46 < 48
 		{30, 28, 24}, // sehr schmal: Untergrenze 24
 		{64, 0, 64},  // Init/unbekannte Breite (termW<=4): nicht clampen, Wunsch bleibt
 	}

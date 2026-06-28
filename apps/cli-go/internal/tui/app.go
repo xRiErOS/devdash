@@ -216,12 +216,12 @@ type model struct {
 	// Tree-Filter (DD2-62 Rework): `f` öffnet ein Facetten-Menü (Art/Issue-Type/
 	// Status), kombinierbar mit der Textsuche. Bei aktivem Filter wird projektweit
 	// gefiltert → alle Issues werden einmal nach treeFilterIssues geladen.
-	treeFilterOpen  bool
-	fArt            map[treeKind]bool
-	fType           map[string]bool
-	fStatus         map[string]bool
-	ffMenu          listState
-	ffItems         []ffItem
+	treeFilterOpen   bool
+	fArt             map[treeKind]bool
+	fType            map[string]bool
+	fStatus          map[string]bool
+	ffMenu           listState
+	ffItems          []ffItem
 	treeFilterIssues []api.Issue
 	treeIssuesLoaded bool
 }
@@ -293,7 +293,7 @@ func newModel(client *api.Client, project *api.Project, global *api.Client) mode
 	m.treeExpMile = map[int]bool{}
 	m.treeExpSprint = map[int]bool{}
 	m.treeIssues = map[int][]api.Issue{}
-	m.accOpen = 1 // DD2-50: erste Accordion-Section default offen
+	m.accOpen = 1         // DD2-50: erste Accordion-Section default offen
 	ti := textinput.New() // DD2-62: Tree-Suchfeld
 	ti.Placeholder = "Suche nach Begriffen"
 	ti.Prompt = ""
