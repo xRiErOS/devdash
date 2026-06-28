@@ -10,7 +10,7 @@ import (
 func buildIssueForm(tags []api.Tag) *huh.Form {
 	fields := []huh.Field{
 		huh.NewInput().Key("title").Title("Titel").Validate(nonEmpty),
-		huh.NewText().Key("description").Title("Beschreibung (optional)"),
+		huh.NewText().Key("po_notes").Title("PO-Notes (optional)"),
 		huh.NewSelect[string]().Key("type").Title("Typ").Options(typeOptions()...),
 		huh.NewText().Key("user_stories").Title("User-Stories (optional, eine pro Zeile)"),
 	}

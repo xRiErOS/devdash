@@ -47,7 +47,7 @@ func RunIssueCreateForm() (*api.IssueCreateBody, []string, error) {
 					huh.NewOption("P4 — Niedrig", "4"),
 				).
 				Value(&prioStr),
-			huh.NewText().Title("Beschreibung (optional)").Value(&desc),
+			huh.NewText().Title("PO-Notes (optional)").Value(&desc),
 			huh.NewText().Title("User-Stories (eine pro Zeile, optional)").Value(&stories),
 		),
 	)
@@ -61,7 +61,7 @@ func RunIssueCreateForm() (*api.IssueCreateBody, []string, error) {
 		body.Priority = p
 	}
 	if desc != "" {
-		body.Description = &desc
+		body.PoNotes = &desc
 	}
 	return body, splitLines(stories), nil
 }

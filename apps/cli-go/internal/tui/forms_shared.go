@@ -353,8 +353,8 @@ func (m *model) formCreateCmd() tea.Cmd {
 			typ = "feature"
 		}
 		body := api.IssueCreateBody{Title: get("title"), Type: typ, Priority: 2}
-		if d := get("description"); d != "" {
-			body.Description = &d
+		if d := get("po_notes"); d != "" {
+			body.PoNotes = &d
 		}
 		body.TagIDs = m.selectedTagIDs()
 		return doCreateIssue(m.client, body, splitLines(get("user_stories")))
