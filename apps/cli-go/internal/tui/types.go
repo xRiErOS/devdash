@@ -72,9 +72,16 @@ type model struct {
 	fopts                  []filterOpt
 	ftarget                int // depth, dessen Filter editiert wird
 
-	// Backlog
-	backlog []api.Issue
-	blist   listState
+	// Backlog (Master-Detail, DD2-32): Liste links, read-only Detail-Preview rechts.
+	// blFocus = Detail-Pane fokussiert (D01-D03, analog detailFocus im Tree). blAccOpen
+	// = offene Accordion-Section (1-basiert, 0 = zu). blSec = Section-Cursor bei Detail-
+	// Fokus (0-basiert über issueSections; D08-Balken + Ziffer-Sprung). Der Inline-Edit
+	// (Feld-Ebene) folgt in DD2-74.
+	backlog   []api.Issue
+	blist     listState
+	blFocus   bool
+	blAccOpen int
+	blSec     int
 
 	// Review-Cockpit (über curSprint.Items)
 	rlist           listState

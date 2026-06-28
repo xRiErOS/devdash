@@ -394,15 +394,4 @@ func (m *model) keyScroll(k string) bool {
 	return true
 }
 
-func (m model) keyBacklog(k string) (tea.Model, tea.Cmd) {
-	switch navKey(k) {
-	case "up":
-		m.blist.move(-1)
-	case "down":
-		m.blist.move(1)
-	}
-	if k == "b" || k == "esc" {
-		m.view = m.topReturn // zurück zur Quell-View (Tree/Columns, DD2-61)
-	}
-	return m, nil
-}
+// keyBacklog → backlog.go (DD2-32 Master-Detail).

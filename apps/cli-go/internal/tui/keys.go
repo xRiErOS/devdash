@@ -212,6 +212,8 @@ func (m model) openBacklog() (tea.Model, tea.Cmd) {
 		m.topReturn = m.view
 	}
 	m.view = viewBacklog
+	m.blFocus = false      // DD2-32: Einstieg immer im Listen-Fokus
+	m.blSec, m.blAccOpen = 0, 1 // erste Section offen
 	return m, loadBacklog(m.client)
 }
 

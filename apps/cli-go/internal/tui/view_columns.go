@@ -342,25 +342,7 @@ func (m model) viewDetail() string {
 		"s: Status   i/k: scrollen   g/G: Anfang/Ende   esc/q: zurück")
 }
 
-// --- Backlog (#2 Rahmen) ---
-
-func (m model) viewBacklog() string {
-	var b strings.Builder
-	b.WriteString(theme.Dim.Render("(neu + geplant ohne Sprint)") + "\n\n")
-	if len(m.backlog) == 0 {
-		b.WriteString(theme.Dim.Render("(leer)") + "\n")
-	}
-	for i, it := range m.backlog {
-		cursor := "  "
-		if i == m.blist.cursor {
-			cursor = theme.Accent.Render("▸ ")
-		}
-		b.WriteString(cursor + fmt.Sprintf("%s %s %-9s %-46s %s",
-			theme.TypeIcon(it.Type), theme.Priority(it.Priority), it.Key,
-			truncate(it.Title, 46), statusText(it.Status)) + "\n")
-	}
-	return m.framed("Backlog", b.String(), "i/k:↑↓  b/esc:zurück  q:quit")
-}
+// --- Backlog (Master-Detail) → backlog.go (DD2-32) ---
 
 // --- Review-Cockpit ---
 
