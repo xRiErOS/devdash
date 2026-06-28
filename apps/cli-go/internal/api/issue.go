@@ -88,10 +88,12 @@ func (c *Client) AssignSprint(id int, sprintID *int) (*Issue, error) {
 	return &it, json.Unmarshal(data, &it)
 }
 
-// DeleteIssue löscht ein Issue dauerhaft (DD2-65). Issues haben keine Kinder →
-// kein Cascade, einfacher DELETE auf die Backlog-Zeile.
+// DeleteIssue löscht ein Issue dauerhaft (DD2-65/DD2-139). force=1 ist Pflicht:
+// das Backend lehnt DELETE /api/backlog/:id ohne force mit USE_CANCEL_STATUS ab
+// (DD-524 — status=cancelled ist der Default-Lifecycle). Der PO will explizit hart
+// löschen → force=1 (transaktionaler Hard-Delete inkl. deps/feedback + FK-Cascade).
 func (c *Client) DeleteIssue(id int) error {
-	_, err := c.Do("DELETE", fmt.Sprintf("/api/backlog/%d", id), nil)
+	_, err := c.Do("DELETE", fmt.Sprintf("/api/backlog/%d?force=1", id), nil)
 	return err
 }
 
