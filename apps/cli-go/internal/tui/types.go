@@ -130,6 +130,9 @@ type model struct {
 	maChecked     map[int]bool
 	maMenu        listState
 
+	// Quit-Bestätigung (DD2-49): q/ctrl+c auf einem Top-Level-View.
+	confirmQuit bool
+
 	// Cascade-Delete-Confirm (T02b): d auf Meilenstein/Sprint.
 	delConfirm bool
 	delKind    string // milestone | sprint

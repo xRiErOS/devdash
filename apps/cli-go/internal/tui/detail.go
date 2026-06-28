@@ -194,7 +194,7 @@ func (m model) keyDetailFocus(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	switch msg.String() {
 	case "ctrl+c", "q":
-		return m, tea.Quit
+		return m.requestQuit() // DD2-49
 	case "esc":
 		m.exitDetailFocus()
 		return m, nil

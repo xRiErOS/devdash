@@ -8,6 +8,10 @@ import (
 )
 
 func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// Beenden-Confirm (DD2-49) ist top-most: solange er offen ist, fängt er alles.
+	if m.confirmQuit {
+		return m.keyConfirmQuit(msg)
+	}
 	// Command-Center (T16) ist das globalste Modal — fängt vor allem anderen.
 	if m.paletteOpen {
 		return m.keyPalette(msg)
@@ -77,7 +81,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.view = viewColumns
 			return m, nil
 		}
-		return m, tea.Quit
+		return m.requestQuit() // DD2-49: Columns/Picker → Beenden-Confirm
 	case "p":
 		if m.global != nil {
 			m.view = viewPicker

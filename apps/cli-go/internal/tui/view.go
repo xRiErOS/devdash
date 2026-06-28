@@ -15,6 +15,9 @@ func (m model) View() string {
 		return fmt.Sprintf("\n  %s\n\n  q: quit\n", lipgloss.NewStyle().Foreground(theme.Red).Render("Fehler: "+m.err.Error()))
 	}
 	base := m.viewBase()
+	if m.confirmQuit { // DD2-49: Beenden-Confirm liegt top-most über allem
+		return placeOverlay(base, m.quitBox(), m.termWidth(), m.height)
+	}
 	// Command-Center (T16): Formular bzw. Palette schweben zentriert über dem Frame.
 	if m.form != nil {
 		return placeOverlay(base, m.formBox(), m.termWidth(), m.height)

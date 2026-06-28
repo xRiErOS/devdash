@@ -444,7 +444,7 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	nodes := m.treeNodes()
 	switch msg.String() {
 	case "ctrl+c", "q":
-		return m, tea.Quit
+		return m.requestQuit() // DD2-49
 	case "/": // DD2-62: Suchfeld öffnen, mit aktuellem Filter vorbelegen
 		m.treeSearching = true
 		m.treeSearch.SetValue(m.treeQuery)
