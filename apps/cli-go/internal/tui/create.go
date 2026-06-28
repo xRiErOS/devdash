@@ -10,10 +10,12 @@ import (
 	"github.com/charmbracelet/huh"
 )
 
-// RunIssueCreateForm zeigt ein interaktives Formular und liefert den Create-Body.
-func RunIssueCreateForm() (*api.IssueCreateBody, error) {
+// RunIssueCreateForm zeigt ein interaktives Formular und liefert den Create-Body
+// plus die optionalen User-Stories (eine pro Zeile, DD2-66) — der Aufrufer legt
+// sie nach dem Issue-Create per AddUserStory an.
+func RunIssueCreateForm() (*api.IssueCreateBody, []string, error) {
 	body := &api.IssueCreateBody{Type: "feature", Priority: 2}
-	var desc, typeStr, prioStr = "", "feature", "2"
+	var desc, typeStr, prioStr, stories = "", "feature", "2", ""
 
 	form := huh.NewForm(
 		huh.NewGroup(
@@ -46,11 +48,12 @@ func RunIssueCreateForm() (*api.IssueCreateBody, error) {
 				).
 				Value(&prioStr),
 			huh.NewText().Title("Beschreibung (optional)").Value(&desc),
+			huh.NewText().Title("User-Stories (eine pro Zeile, optional)").Value(&stories),
 		),
 	)
 
 	if err := form.Run(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	body.Type = typeStr
@@ -60,5 +63,5 @@ func RunIssueCreateForm() (*api.IssueCreateBody, error) {
 	if desc != "" {
 		body.Description = &desc
 	}
-	return body, nil
+	return body, splitLines(stories), nil
 }

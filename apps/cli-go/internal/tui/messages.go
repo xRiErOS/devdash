@@ -409,12 +409,20 @@ type createdMsg struct {
 	label string
 }
 
-// doCreateIssue legt ein Issue an (Command-Center). Fehler → Sapphire-Hinweis.
-func doCreateIssue(c *api.Client, body api.IssueCreateBody) tea.Cmd {
+// doCreateIssue legt ein Issue an (Command-Center). stories (optional, eine pro
+// Zeile) werden nach der Anlage sequenziell als User-Stories angehängt (DD2-66) —
+// so kann der Nutzer Akzeptanzkriterien direkt beim Erstellen definieren, ohne in
+// die Detail-Ansicht zu wechseln. Fehler → Sapphire-Hinweis.
+func doCreateIssue(c *api.Client, body api.IssueCreateBody, stories []string) tea.Cmd {
 	return func() tea.Msg {
 		it, err := c.CreateIssue(body)
 		if err != nil {
 			return noticeMsg{cleanAPIErr(err)}
+		}
+		for _, s := range stories {
+			if _, err := c.AddUserStory(it.ID, s, ""); err != nil {
+				return noticeMsg{it.Key + " angelegt, User-Story fehlgeschlagen: " + cleanAPIErr(err)}
+			}
 		}
 		return createdMsg{"issue", it.Key + " " + it.Title}
 	}

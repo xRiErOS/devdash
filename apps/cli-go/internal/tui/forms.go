@@ -25,6 +25,18 @@ func nonEmpty(s string) error {
 	return nil
 }
 
+// splitLines zerlegt einen Mehrzeilen-Text in getrimmte, nicht-leere Zeilen
+// (DD2-66: eine User-Story pro Zeile im Create-Formular).
+func splitLines(s string) []string {
+	var out []string
+	for _, ln := range strings.Split(s, "\n") {
+		if t := strings.TrimSpace(ln); t != "" {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
 // openMilestones liefert nur offene/aktive Meilensteine (planning|active) —
 // geschlossene/stornierte taugen nicht als Sprint-Ziel und verwässern nur das
 // Select bei der Sprint-Erstellung (DD2-27).
@@ -138,6 +150,7 @@ func buildForm(kind string, milestones []api.Milestone, tags []api.Tag) *huh.For
 			huh.NewSelect[string]().Key("type").Title("Typ").Options(typeOptions()...),
 			huh.NewSelect[string]().Key("priority").Title("Priorität").Options(priorityOptions()...),
 			huh.NewText().Key("description").Title("Beschreibung (optional)"),
+			huh.NewText().Key("user_stories").Title("User-Stories (eine pro Zeile, optional)"), // DD2-66
 		}
 		if len(tags) > 0 {
 			fields = append(fields, tagMultiSelect(tags))
@@ -260,7 +273,7 @@ func (m *model) formCreateCmd() tea.Cmd {
 			body.Description = &d
 		}
 		body.TagIDs = m.selectedTagIDs() // DD2-33: Tags beim Anlegen (Backend nativ)
-		return doCreateIssue(m.client, body)
+		return doCreateIssue(m.client, body, splitLines(get("user_stories"))) // DD2-66
 	case "milestone":
 		body := api.MilestoneCreateBody{Name: get("name")}
 		if d := get("description"); d != "" {

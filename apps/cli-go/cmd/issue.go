@@ -146,6 +146,7 @@ var issueCreateCmd = &cobra.Command{
 	Short: "Neues Issue erstellen (--title non-interaktiv, sonst Formular)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var body api.IssueCreateBody
+		var stories []string // DD2-66: optionale User-Stories aus dem interaktiven Formular
 		if title, _ := cmd.Flags().GetString("title"); title != "" {
 			issueType, _ := cmd.Flags().GetString("type")
 			priority, _ := cmd.Flags().GetInt("priority")
@@ -154,11 +155,12 @@ var issueCreateCmd = &cobra.Command{
 				body.Description = &desc
 			}
 		} else {
-			form, err := tui.RunIssueCreateForm()
+			form, us, err := tui.RunIssueCreateForm()
 			if err != nil {
 				return err
 			}
 			body = *form
+			stories = us
 		}
 		c, err := resolveClient()
 		if err != nil {
@@ -167,6 +169,11 @@ var issueCreateCmd = &cobra.Command{
 		it, err := c.CreateIssue(body)
 		if err != nil {
 			return err
+		}
+		for _, s := range stories { // DD2-66: User-Stories nach dem Create anhängen
+			if _, err := c.AddUserStory(it.ID, s, ""); err != nil {
+				return fmt.Errorf("Issue %s angelegt, User-Story fehlgeschlagen: %w", it.Key, err)
+			}
 		}
 		output.Print(cmd, it, func() {
 			fmt.Printf("  Erstellt: %s — %s\n", output.Key(it.Key), it.Title)
