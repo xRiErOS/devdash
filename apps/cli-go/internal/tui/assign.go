@@ -84,7 +84,7 @@ func (m model) sprintMilestoneMenu() string {
 		b.WriteString(cursor + label + "\n")
 	}
 	return lipgloss.NewStyle().
-		Width(48).
+		Width(clampModalWidth(48, m.width)). // DD2-55: auf Terminal clampen
 		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
 		Background(theme.Base).Padding(0, 1).
 		Render(b.String())
@@ -171,7 +171,7 @@ func (m model) milestoneAssignMenu() string {
 		b.WriteString(cursor + box + " " + label + "\n")
 	}
 	return lipgloss.NewStyle().
-		Width(50).
+		Width(clampModalWidth(50, m.width)). // DD2-55: auf Terminal clampen
 		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
 		Background(theme.Base).Padding(0, 1).
 		Render(b.String())

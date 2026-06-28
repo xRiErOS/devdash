@@ -39,10 +39,11 @@ func openMilestones(ms []api.Milestone) []api.Milestone {
 	return out
 }
 
-// modalBoxWidth begrenzt die Modal-Boxbreite auf die Terminalbreite (DD2-25):
-// max 64, schrumpft auf schmalen Views, Untergrenze 24.
-func modalBoxWidth(termW int) int {
-	w := 64
+// clampModalWidth begrenzt eine gewünschte Modal-Boxbreite auf die Terminalbreite
+// (DD2-55): schrumpft auf schmalen Views (termW-4 lässt je 2 Spalten Luft/Border),
+// Untergrenze 24. pref ist die Wunschbreite der jeweiligen Box.
+func clampModalWidth(pref, termW int) int {
+	w := pref
 	if termW > 4 && termW-4 < w {
 		w = termW - 4
 	}
@@ -50,6 +51,12 @@ func modalBoxWidth(termW int) int {
 		w = 24
 	}
 	return w
+}
+
+// modalBoxWidth begrenzt die Standard-Modal-Boxbreite auf die Terminalbreite
+// (DD2-25): max 64, schrumpft auf schmalen Views, Untergrenze 24.
+func modalBoxWidth(termW int) int {
+	return clampModalWidth(64, termW)
 }
 
 // formInnerWidth ist die huh-Formularbreite innerhalb der Box (Rahmen + Padding).

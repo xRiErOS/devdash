@@ -158,7 +158,7 @@ func (m model) paletteBox() string {
 	}
 	b.WriteString("\n" + theme.Dim.Render("tippen: filtern   ↑↓: wählen   enter: ausführen   esc: zu"))
 	return lipgloss.NewStyle().
-		Width(48).
+		Width(clampModalWidth(48, m.width)). // DD2-55: auf Terminal clampen
 		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
 		Background(theme.Base).Padding(0, 1).
 		Render(b.String())

@@ -66,7 +66,7 @@ func (m model) deleteBox() string {
 	}
 	b.WriteString("\n" + theme.Dim.Render("y: endgültig löschen   esc/n: abbrechen"))
 	return lipgloss.NewStyle().
-		Width(48).
+		Width(clampModalWidth(48, m.width)). // DD2-55: auf Terminal clampen
 		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Red).
 		Background(theme.Base).Padding(0, 1).
 		Render(b.String())

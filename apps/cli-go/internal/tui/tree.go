@@ -729,7 +729,7 @@ func (m model) treeFilterBox() string {
 		b.WriteString(cursor + box + " " + label + "\n")
 	}
 	return lipgloss.NewStyle().
-		Width(40).
+		Width(clampModalWidth(40, m.width)). // DD2-55: auf Terminal clampen
 		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
 		Background(theme.Base).Padding(0, 1).
 		Render(b.String())

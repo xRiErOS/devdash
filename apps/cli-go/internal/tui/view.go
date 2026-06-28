@@ -88,7 +88,7 @@ func (m model) milestoneStatusMenu() string {
 	}
 	b.WriteString("\n" + theme.Dim.Render("enter: setzen   esc: abbrechen"))
 	return lipgloss.NewStyle().
-		Width(46).
+		Width(clampModalWidth(46, m.width)). // DD2-55: auf Terminal clampen
 		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
 		Background(theme.Base).Padding(0, 1).
 		Render(b.String())
@@ -949,7 +949,7 @@ func (m model) sprintStatusMenu() string {
 	}
 	b.WriteString("\n" + theme.Dim.Render("enter: setzen   esc: abbrechen"))
 	return lipgloss.NewStyle().
-		Width(40).
+		Width(clampModalWidth(40, m.width)). // DD2-55: auf Terminal clampen
 		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
 		Background(theme.Base).Padding(0, 1).
 		Render(b.String())
@@ -1032,7 +1032,7 @@ func (m model) userStoryModal() string {
 	}
 	b.WriteString("\n" + theme.Dim.Render("a:accept  r:reject  o:open  j/k:↑↓  enter/esc:schließen"))
 	return lipgloss.NewStyle().
-		Width(64).
+		Width(modalBoxWidth(m.width)). // DD2-55: auf Terminal clampen (Standard-Modalbreite)
 		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
 		Background(theme.Base).Padding(0, 1).
 		Render(b.String())
@@ -1090,7 +1090,7 @@ func (m model) statusMenu() string {
 	}
 	b.WriteString("\n" + theme.Dim.Render("enter: setzen   esc: abbrechen"))
 	return lipgloss.NewStyle().
-		Width(30).
+		Width(clampModalWidth(30, m.width)). // DD2-55: auf Terminal clampen
 		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
 		Background(theme.Base).Padding(0, 1).
 		Render(b.String())
@@ -1127,7 +1127,7 @@ func (m model) filterBox() string {
 		b.WriteString(cursor + box + " " + label + "\n")
 	}
 	return lipgloss.NewStyle().
-		Width(38).
+		Width(clampModalWidth(38, m.width)). // DD2-55: auf Terminal clampen
 		Border(lipgloss.RoundedBorder()).BorderForeground(theme.Mauve).
 		Background(theme.Base).
 		Padding(0, 1).
