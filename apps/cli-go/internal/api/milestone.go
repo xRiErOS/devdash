@@ -53,6 +53,18 @@ func (c *Client) CompleteMilestoneCascade(id int) (*Milestone, error) {
 	return &ms, json.Unmarshal(data, &ms)
 }
 
+// UpdateMilestone editiert Meilenstein-Felder (name/description/target_date) via
+// PUT /api/milestones/:id (milestoneUpdateContract). Status läuft NICHT hierüber
+// (eigenes Lifecycle-Verb SetMilestoneStatus) — DD2-79.
+func (c *Client) UpdateMilestone(id int, fields map[string]any) (*Milestone, error) {
+	data, err := c.Do("PUT", fmt.Sprintf("/api/milestones/%d", id), fields)
+	if err != nil {
+		return nil, err
+	}
+	var ms Milestone
+	return &ms, json.Unmarshal(data, &ms)
+}
+
 // GetMilestone liefert einen Meilenstein inkl. Sprints.
 func (c *Client) GetMilestone(id int) (*Milestone, error) {
 	data, err := c.Do("GET", fmt.Sprintf("/api/milestones/%d", id), nil)

@@ -290,7 +290,7 @@ func buildEditFieldForm(f detailField, value string) *huh.Form {
 		field = huh.NewSelect[string]().Key("value").Title(f.label).Options(opts...).Value(&v)
 	case "input":
 		in := huh.NewInput().Key("value").Title(f.label).Value(&v)
-		if f.key == "title" {
+		if f.key == "title" || f.key == "name" { // Pflicht-Felder (issue.title, milestone/sprint.name)
 			in = in.Validate(nonEmpty)
 		}
 		field = in
@@ -298,6 +298,23 @@ func buildEditFieldForm(f detailField, value string) *huh.Form {
 		field = huh.NewText().Key("value").Title(f.label).Value(&v)
 	}
 	return huh.NewForm(huh.NewGroup(field)).WithShowHelp(true)
+}
+
+// openEditFieldGeneric öffnet die editField-Form für ein beliebiges Entity-Feld
+// (DD2-79). entity ∈ {issue, milestone, sprint} steuert den Submit-Dispatch in
+// formCreateCmd. Mit dem aktuellen Wert vorbelegt; der Detail-Fokus bleibt erhalten.
+// Single Source für Issue (openEditField) und Meilenstein/Sprint (editFlatField).
+func (m model) openEditFieldGeneric(entity string, id int, f detailField, value string) (tea.Model, tea.Cmd) {
+	m.editEntity = entity
+	m.editID = id
+	m.editField = f.key
+	m.editLabel = f.label
+	m.editEditor = f.editor
+	m.editValue = value
+	m.formKind = "editField"
+	m.form = m.styleForm(buildEditFieldForm(f, value))
+	m.status = ""
+	return m, m.form.Init()
 }
 
 // formCreateCmd liest die abgeschlossenen Formularwerte und liefert den
@@ -317,8 +334,15 @@ func (m *model) selectedTagIDs() []int {
 func (m *model) formCreateCmd() tea.Cmd {
 	get := func(k string) string { return strings.TrimSpace(m.form.GetString(k)) }
 	switch m.formKind {
-	case "editField": // DD2-77: ein editiertes Issue-Feld zurückschreiben
-		return doUpdateIssueField(m.client, m.editID, m.editField, get("value"))
+	case "editField": // DD2-77/79: ein editiertes Feld zurückschreiben — Dispatch per Entity
+		switch m.editEntity {
+		case "milestone":
+			return doUpdateMilestoneField(m.client, m.editID, m.editField, get("value"))
+		case "sprint":
+			return doUpdateSprintField(m.client, m.editID, m.editField, get("value"))
+		default:
+			return doUpdateIssueField(m.client, m.editID, m.editField, get("value"))
+		}
 	case "tagCreate": // DD2-75: neuen Tag anlegen
 		return doCreateTag(m.client, get("name"), m.form.GetString("color"))
 	case "tagEdit": // DD2-75: Tag umbenennen/umfärben

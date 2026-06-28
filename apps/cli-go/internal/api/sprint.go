@@ -42,6 +42,17 @@ func (c *Client) SetSprintMilestone(id int, milestoneID *int) (*Sprint, error) {
 	return &s, json.Unmarshal(data, &s)
 }
 
+// UpdateSprint editiert Sprint-Felder (name/goal) via PUT /api/sprints/:id
+// (sprintUpdateContract). Status/Meilenstein laufen über eigene Verben — DD2-79.
+func (c *Client) UpdateSprint(id int, fields map[string]any) (*Sprint, error) {
+	data, err := c.Do("PUT", fmt.Sprintf("/api/sprints/%d", id), fields)
+	if err != nil {
+		return nil, err
+	}
+	var s Sprint
+	return &s, json.Unmarshal(data, &s)
+}
+
 // GetSprint liefert einen Sprint inkl. eingebetteter items (Issues).
 func (c *Client) GetSprint(id int) (*Sprint, error) {
 	data, err := c.Do("GET", fmt.Sprintf("/api/sprints/%d", id), nil)

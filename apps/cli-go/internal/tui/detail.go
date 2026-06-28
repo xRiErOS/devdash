@@ -79,20 +79,11 @@ func currentFieldValue(it api.Issue, field string) string {
 	return ""
 }
 
-// openEditField öffnet die editField-huh-Form für das aktive Feld (D04), vorbelegt
-// mit dem aktuellen Wert. Der Detail-Fokus bleibt erhalten (Form schwebt darüber).
+// openEditField öffnet die editField-huh-Form für das aktive Issue-Feld (D04),
+// vorbelegt mit dem aktuellen Wert. Der Detail-Fokus bleibt erhalten (Form schwebt
+// darüber). Delegiert an openEditFieldGeneric (Single Source, geteilt mit DD2-79).
 func (m model) openEditField(it api.Issue, f detailField) (tea.Model, tea.Cmd) {
-	m.editEntity = "issue"
-	m.editID = it.ID
-	m.editField = f.key
-	m.editLabel = f.label
-	m.editEditor = f.editor
-	m.editValue = currentFieldValue(it, f.key)
-	m.formKind = "editField"
-	form := buildEditFieldForm(f, m.editValue)
-	m.form = m.styleForm(form)
-	m.status = ""
-	return m, m.form.Init()
+	return m.openEditFieldGeneric("issue", it.ID, f, currentFieldValue(it, f.key))
 }
 
 // mergeIssueCore überträgt nur die editierbaren Kern-Spalten von src nach dst und

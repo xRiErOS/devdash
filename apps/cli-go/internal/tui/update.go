@@ -117,6 +117,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.status = noticeText("Gespeichert: " + msg.issue.Key)
 		}
 		return m, nil
+	case milestoneUpdatedMsg: // DD2-79: Meilenstein-Feld-Edit → Cache in-place mergen (D05)
+		if msg.err != "" {
+			m.errNote = msg.err
+			return m, nil
+		}
+		if msg.ms != nil {
+			m.errNote = ""
+			m.mergeMilestoneIntoCache(msg.ms)
+			m.status = noticeText("Gespeichert: " + msg.ms.Name)
+		}
+		return m, nil
+	case sprintUpdatedMsg: // DD2-79: Sprint-Feld-Edit → Cache in-place mergen (D05)
+		if msg.err != "" {
+			m.errNote = msg.err
+			return m, nil
+		}
+		if msg.sp != nil {
+			m.errNote = ""
+			m.mergeSprintIntoCache(msg.sp)
+			m.status = noticeText("Gespeichert: " + msg.sp.Name)
+		}
+		return m, nil
 	case allIssuesMsg: // DD2-62: projektweite Issues für den Tree-Filter
 		m.treeFilterIssues = msg.items
 		m.treeIssuesLoaded = true

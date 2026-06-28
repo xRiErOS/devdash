@@ -152,11 +152,61 @@ func (m model) keyDetailFlat(msg tea.KeyMsg, fields []detailField) (tea.Model, t
 	return m, nil
 }
 
-// editFlatField öffnet die editField-Form für das aktive Meilenstein/Sprint-Feld.
-// DD2-78 stellt nur die flache Navigation bereit (read-only); DD2-79 verdrahtet den
-// Schreibpfad (UpdateMilestone/UpdateSprint) und ersetzt diesen No-op.
-func (m model) editFlatField(_ detailField) (tea.Model, tea.Cmd) {
+// editFlatField öffnet die editField-Form für das aktive Meilenstein/Sprint-Feld
+// (DD2-79), vorbelegt mit dem aktuellen Wert. Submit schreibt über UpdateMilestone/
+// UpdateSprint (formCreateCmd dispatcht per m.editEntity), die Response merged in-
+// place (D05). Status weiter über das Lifecycle-Menü, nicht hier (PO-Notes).
+func (m model) editFlatField(f detailField) (tea.Model, tea.Cmd) {
+	n := m.focusedNode()
+	if n == nil {
+		return m, nil
+	}
+	switch n.kind {
+	case tkMile:
+		ms := m.milestones[n.mileIdx]
+		return m.openEditFieldGeneric("milestone", ms.ID, f, milestoneFieldValue(ms, f.key))
+	case tkSprint:
+		sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
+		return m.openEditFieldGeneric("sprint", sp.ID, f, sprintFieldValue(sp, f.key))
+	}
 	return m, nil
+}
+
+// mergeMilestoneIntoCache merged die editierten Kern-Spalten (name/description/
+// target_date) der Update-Response in-place in die milestones-Slice, per ID (D05).
+// Anzeige-Joins (Sprints/Counts) bleiben unberührt — die PUT-Response trägt sie
+// nicht zwingend (Spiegel von mergeIssueCore).
+func (m *model) mergeMilestoneIntoCache(src *api.Milestone) {
+	if src == nil {
+		return
+	}
+	for i := range m.milestones {
+		if m.milestones[i].ID == src.ID {
+			m.milestones[i].Name = src.Name
+			m.milestones[i].Description = src.Description
+			m.milestones[i].TargetDate = src.TargetDate
+		}
+	}
+}
+
+// mergeSprintIntoCache merged name/goal der Update-Response in-place in jede
+// milestones[*].Sprints-Zeile (per ID) UND in curSprint, falls geladen (D05).
+func (m *model) mergeSprintIntoCache(src *api.Sprint) {
+	if src == nil {
+		return
+	}
+	for mi := range m.milestones {
+		for si := range m.milestones[mi].Sprints {
+			if m.milestones[mi].Sprints[si].ID == src.ID {
+				m.milestones[mi].Sprints[si].Name = src.Name
+				m.milestones[mi].Sprints[si].Goal = src.Goal
+			}
+		}
+	}
+	if m.curSprint != nil && m.curSprint.ID == src.ID {
+		m.curSprint.Name = src.Name
+		m.curSprint.Goal = src.Goal
+	}
 }
 
 // renderFlatFields rendert die Meilenstein/Sprint-Felder als flache, fokussierbare
