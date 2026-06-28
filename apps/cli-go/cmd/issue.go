@@ -151,8 +151,8 @@ var issueCreateCmd = &cobra.Command{
 			issueType, _ := cmd.Flags().GetString("type")
 			priority, _ := cmd.Flags().GetInt("priority")
 			body = api.IssueCreateBody{Title: title, Type: issueType, Priority: priority}
-			if desc, _ := cmd.Flags().GetString("description"); desc != "" {
-				body.Description = &desc
+			if po, _ := cmd.Flags().GetString("po-notes"); po != "" {
+				body.PoNotes = &po
 			}
 		} else {
 			form, us, err := tui.RunIssueCreateForm()
@@ -190,7 +190,7 @@ func init() {
 	issueCreateCmd.Flags().String("title", "", "Titel")
 	issueCreateCmd.Flags().String("type", "feature", "Typ")
 	issueCreateCmd.Flags().Int("priority", 2, "Priorität 1-4")
-	issueCreateCmd.Flags().String("description", "", "Beschreibung (optional)")
+	issueCreateCmd.Flags().String("po-notes", "", "PO-Notes (optional)")
 	issueCmd.AddCommand(issueListCmd, issueShowCmd, issueStatusCmd, issueAssignCmd, issueCreateCmd)
 	rootCmd.AddCommand(issueCmd)
 }

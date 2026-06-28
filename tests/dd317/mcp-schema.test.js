@@ -1,7 +1,9 @@
 // DD-317 / DD-45 D30 — MCP schema field guards.
 // E01/D09: per-issue acceptance_criteria + test_instruction are ABOLISHED (replaced by
-// user_stories[].qa). This test now asserts their absence from the issue tools and the
-// presence of the devd_user_story_* tools. description (D30) stays supported.
+// user_stories[].qa). This test asserts their absence from the issue tools and the
+// presence of the devd_user_story_* tools.
+// DD2-131/132: the legacy free-form `description` field is HARD-removed from all issue
+// write tools — po_notes is the only PO free-text channel.
 
 import { describe, expect, test } from 'vitest'
 import { readFileSync } from 'fs'
@@ -33,16 +35,20 @@ describe('DD-317 / E01 D09 — MCP issue field schema', () => {
     expect(src).toMatch(/us_verdict: z\.enum\(\['open', 'accepted', 'rejected'\]\)/)
   })
 
-  test('soft-deprecated description IS still part of issue create/update/full/bulk schemas (D30)', () => {
-    expect(src).toMatch(/description: z\.string\(\)\.optional\(\)/)
-    expect(src).toMatch(/soft-deprecated but still accepted per D30/)
+  test('legacy free-form description is removed from issue write schemas (DD2-131/132)', () => {
+    expect(src).not.toMatch(/soft-deprecated but still accepted per D30/)
+    expect(src).not.toMatch(/Free-form description \(legacy capture field/)
   })
 
-  test('issue_update tool description lists description as supported field (D30)', () => {
-    expect(src).toMatch(/title, description, goal, background/)
+  test('po_notes replaces description as the PO free-text field (DD2-131/132)', () => {
+    expect(src).toMatch(/replaces the removed description field/)
   })
 
-  test('issue_create_full tool description lists description as supported field (D30)', () => {
-    expect(src).toMatch(/description, goal, background, context_notes/)
+  test('issue_update tool description lists current editable fields (no description)', () => {
+    expect(src).toMatch(/title, goal, background, context_notes, relevant_files, priority, type, po_notes, result/)
+  })
+
+  test('issue_create_full tool description lists refinement fields (no description)', () => {
+    expect(src).toMatch(/refinement fields \(goal, background, context_notes, relevant_files, po_notes\)/)
   })
 })

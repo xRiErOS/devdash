@@ -81,9 +81,8 @@ type IssueCreateBody struct {
 	Title       string  `json:"title"`
 	Type        string  `json:"type"`
 	Priority    int     `json:"priority"`
-	Description *string `json:"description,omitempty"` // DEPRECATED (DD2-132 entfernt diesen Schreibpfad)
-	PoNotes     *string `json:"po_notes,omitempty"`    // DD2-129: PO-Freitext (ersetzt description)
-	TagIDs      []int   `json:"tag_ids,omitempty"`     // optionale Tag-Zuweisung beim Anlegen
+	PoNotes     *string `json:"po_notes,omitempty"` // DD2-129: PO-Freitext (ersetzt description)
+	TagIDs      []int   `json:"tag_ids,omitempty"`  // optionale Tag-Zuweisung beim Anlegen
 }
 
 // MilestoneCreateBody ist der POST-Body für CreateMilestone (name Pflicht;

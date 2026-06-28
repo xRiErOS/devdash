@@ -1402,16 +1402,16 @@ server.tool(
       .optional()
       .describe('Priority 1 (highest) to 5 (lowest)'),
     goal: z.string().optional().describe('Issue goal — primary refinement field'),
-    description: z.string().optional().describe('Free-form description (legacy capture field; backlog.description is soft-deprecated but still accepted per D30).'),
+    po_notes: z.string().optional().describe('PO free-text notes — the PO-facing free-text field (replaces the removed description field, DD2-131/132).'),
   },
-  async ({ project_id, title, type, priority, goal, description }) => {
+  async ({ project_id, title, type, priority, goal, po_notes }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
     const body = { title }
     if (type) body.type = type
     if (priority !== undefined) body.priority = priority
     if (goal) body.goal = goal
-    if (description) body.description = description
+    if (po_notes) body.po_notes = po_notes
     const data = await apiRequest('POST', '/api/backlog', body, pid)
     // DD-376: attach SOP text once per session (first issue:create call only).
     if (data && !data.error) {
@@ -1424,12 +1424,11 @@ server.tool(
 
 server.tool(
   'devd_issue_update',
-  'WRITE: Update editable fields of an issue (title, description, goal, background, context_notes, relevant_files, priority, type, po_notes, result). description is the legacy free-form field (soft-deprecated but still supported per D30). result documents the sprint outcome — required on done/passed issues before sprint complete. E01/D09: per-issue acceptance_criteria + test_instruction are replaced by user_stories[].qa — manage them via devd_user_story_*. Does NOT change status or sprint assignment — use devd_issue_status for status transitions.',
+  'WRITE: Update editable fields of an issue (title, goal, background, context_notes, relevant_files, priority, type, po_notes, result). po_notes is the PO-facing free-text field (replaces the removed description field, DD2-131/132). result documents the sprint outcome — required on done/passed issues before sprint complete. E01/D09: per-issue acceptance_criteria + test_instruction are replaced by user_stories[].qa — manage them via devd_user_story_*. Does NOT change status or sprint assignment — use devd_issue_status for status transitions.',
   {
     project_id: PROJECT_ID_PARAM,
     id_or_key: z.string().describe('Issue key (e.g. "DD-42") or numeric backlog id'),
     title: z.string().optional(),
-    description: z.string().optional().describe('Free-form description (legacy capture field; backlog.description is soft-deprecated but still accepted per D30).'),
     goal: z.string().optional(),
     background: z.string().optional(),
     context_notes: z.string().optional(),
@@ -1797,7 +1796,7 @@ server.tool(
 
 server.tool(
   'devd_issue_create_full',
-  'WRITE: Create an issue with refinement fields (description, goal, background, context_notes, relevant_files, po_notes), optional sprint-assign and target_status — in ONE atomic API call. description is the legacy free-form field (soft-deprecated but still supported per D30). E01/D09: per-issue acceptance_criteria + test_instruction are replaced by user_stories[].qa — add them after creation via devd_user_story_add.',
+  'WRITE: Create an issue with refinement fields (goal, background, context_notes, relevant_files, po_notes), optional sprint-assign and target_status — in ONE atomic API call. po_notes is the PO-facing free-text field (replaces the removed description field, DD2-131/132). E01/D09: per-issue acceptance_criteria + test_instruction are replaced by user_stories[].qa — add them after creation via devd_user_story_add.',
   {
     project_id: PROJECT_ID_PARAM,
     title: z.string().describe('Issue title (required)'),
@@ -1806,7 +1805,6 @@ server.tool(
       .optional()
       .describe('Issue type (default feature)'),
     priority: z.number().int().min(1).max(5).optional().describe('1 (highest) – 5 (lowest)'),
-    description: z.string().optional().describe('Free-form description (legacy capture field; backlog.description is soft-deprecated but still accepted per D30).'),
     goal: z.string().optional().describe('What outcome — pflicht für status=refined'),
     background: z.string().optional().describe('Why — pflicht für status=refined'),
     context_notes: z
@@ -1833,7 +1831,6 @@ server.tool(
     title,
     type,
     priority,
-    description,
     goal,
     background,
     context_notes,
@@ -1866,7 +1863,6 @@ server.tool(
     const createBody = { title }
     if (type) createBody.type = type
     if (priority !== undefined) createBody.priority = priority
-    if (description) createBody.description = description
     if (goal) createBody.goal = goal
     if (background) createBody.background = background
     if (context_notes) createBody.context_notes = context_notes
@@ -1903,7 +1899,6 @@ server.tool(
           title: z.string(),
           type: z.enum(ISSUE_TYPES).optional(),
           priority: z.number().int().min(1).max(5).optional(),
-          description: z.string().optional(),
           goal: z.string().optional(),
           background: z.string().optional(),
           context_notes: z.string().optional(),
@@ -1943,7 +1938,6 @@ server.tool(
         for (const f of [
           'type',
           'priority',
-          'description',
           'goal',
           'background',
           'context_notes',
