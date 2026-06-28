@@ -480,7 +480,7 @@ func (m model) keyBacklog(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.blist.cursor = 0
 			return m, nil
 		}
-		m.view = viewHome
+		return m.goHome()
 	}
 	return m, nil
 }

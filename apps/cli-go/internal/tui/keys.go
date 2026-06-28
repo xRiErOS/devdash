@@ -107,16 +107,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	k := msg.String()
 	// Globale Tasten
 	switch k {
-	case "ctrl+c", "q":
-		switch m.view {
-		case viewBacklog, viewReviewsList: // dual-entry → zur Quell-View (Tree/Columns)
-			m.view = m.topReturn
-			return m, nil
-		case viewDetail, viewMilestone, viewSprint: // nur aus Columns erreichbar
-			m.view = viewColumns
-			return m, nil
-		}
-		return m.requestQuit() // DD2-49: Columns/Picker → Beenden-Confirm
+	case "q": // DD2-124: q verlässt jede Projekt-View zur Lobby (immer Home)
+		return m.goHome()
+	case "ctrl+c": // harter Beenden-Pfad → Confirm (DD2-49)
+		return m.requestQuit()
 	case "p":
 		if m.global != nil {
 			return m.openProjPick() // DD2-124: Picker als Overlay (kein View-Wechsel)
@@ -301,9 +295,7 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 	}
 	switch k {
 	case "esc": // DD2-124: Esc aus Projekt-View → Lobby (Esc-Spine)
-		m.view = viewHome
-		m.status = ""
-		return m, nil
+		return m.goHome()
 	case "enter":
 		if m.depth == 0 && m.selMilestone() != nil {
 			m.view = viewMilestone

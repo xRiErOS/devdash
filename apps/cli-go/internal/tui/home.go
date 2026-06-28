@@ -27,33 +27,37 @@ var homeLogoLines = []string{
 	" |____/ \\___|\\_/ |____/ \\__,_|___/_| |_|",
 }
 
-// centerLine setzt s mittig auf w Spalten (ANSI-sichere Breite via lipgloss.Width).
-func centerLine(s string, w int) string {
+// centerInto setzt s exakt mittig in ein Feld der Breite w (links + rechts
+// gepaddet → Zeile ist genau w breit). ANSI-sichere Breite via lipgloss.Width.
+func centerInto(s string, w int) string {
 	sw := lipgloss.Width(s)
 	if sw >= w {
 		return s
 	}
-	return strings.Repeat(" ", (w-sw)/2) + s
+	left := (w - sw) / 2
+	return strings.Repeat(" ", left) + s + strings.Repeat(" ", w-sw-left)
 }
 
-// homeLogo rendert das zentrierte Mauve-Banner; auf schmalen Terminals fällt es
-// auf einen kompakten Titel zurück.
-func (m model) homeLogo(w int) string {
+// homeLogoBlock liefert das Mauve-Banner als Zeilen UNIFORMER Breite (jede Zeile
+// rechts auf die Logo-Maximalbreite gepaddet) — so bleibt das Banner intern bündig
+// (kein Zeilen-Drift). Schmales Terminal → kompakter Titel.
+func (m model) homeLogoBlock() []string {
 	lw := 0
 	for _, l := range homeLogoLines {
 		if x := lipgloss.Width(l); x > lw {
 			lw = x
 		}
 	}
-	if w < lw+2 {
-		return centerLine(theme.Header.Render("DevDashboard"), w)
+	if m.termWidth() < lw+2 {
+		return []string{theme.Header.Render("DevDashboard")}
 	}
 	style := lipgloss.NewStyle().Foreground(theme.Mauve)
 	out := make([]string, len(homeLogoLines))
 	for i, l := range homeLogoLines {
-		out[i] = centerLine(style.Render(l), w)
+		padded := l + strings.Repeat(" ", lw-lipgloss.Width(l))
+		out[i] = style.Render(padded)
 	}
-	return strings.Join(out, "\n")
+	return out
 }
 
 // projectPickerBody rendert Suchzeile + gefilterte Projektliste — geteilt von
@@ -86,46 +90,33 @@ func (m model) projectPickerBody() string {
 	return b.String()
 }
 
-// homeListBlock zentriert die Projektliste als Block unter dem Logo.
-func (m model) homeListBlock(w int) string {
-	lines := strings.Split(m.projectPickerBody(), "\n")
-	bw := 0
-	for _, l := range lines {
-		if x := lipgloss.Width(l); x > bw {
-			bw = x
-		}
-	}
-	if bw < 30 {
-		bw = 30
-	}
-	pad := 0
-	if w > bw {
-		pad = (w - bw) / 2
-	}
-	prefix := strings.Repeat(" ", pad)
-	for i := range lines {
-		if strings.TrimSpace(lines[i]) != "" {
-			lines[i] = prefix + lines[i]
-		}
-	}
-	return strings.Join(lines, "\n")
-}
-
-// viewHome rendert die Lobby: Logo zentriert oben, Projektliste darunter, mittig
-// im Frame platziert; Footer mit lokalen Tasten. ctrl+k/p sind global zugänglich.
+// viewHome rendert die Lobby: Logo + Untertitel + Projektliste als EIN zentrierter
+// Block (jede Zeile in die gemeinsame Inhaltsbreite zentriert → nichts verrutscht),
+// vertikal+horizontal im Frame platziert; Footer mit lokalen Tasten.
 func (m model) viewHome() string {
 	w := m.termWidth()
-	var b strings.Builder
-	b.WriteString(m.homeLogo(w) + "\n\n")
-	b.WriteString(centerLine(theme.Muted.Render("Sprint · Backlog · Review · Live-Cockpit"), w) + "\n\n")
-	b.WriteString(m.homeListBlock(w))
+	lines := append([]string{}, m.homeLogoBlock()...)
+	lines = append(lines, "",
+		theme.Muted.Render("Sprint · Backlog · Review · Live-Cockpit"), "")
+	lines = append(lines, strings.Split(m.projectPickerBody(), "\n")...)
 
-	hint := theme.Muted.Render(centerLine("i/k:↑↓   enter:Projekt öffnen   tippen:filtern   ctrl+k:Cmd   esc:beenden", w))
+	cw := 0 // Inhaltsbreite = breiteste Zeile (Logo oder Liste)
+	for _, l := range lines {
+		if x := lipgloss.Width(l); x > cw {
+			cw = x
+		}
+	}
+	for i := range lines {
+		lines[i] = centerInto(lines[i], cw)
+	}
+	body := strings.Join(lines, "\n")
+
+	hint := theme.Muted.Render(centerInto("i/k:↑↓   enter:Projekt öffnen   tippen:filtern   ctrl+k:Cmd   q/esc:beenden", w))
 	h := m.height
 	if h < 8 {
 		h = 24 // Höhe unbekannt (Init/Tests) → großzügiger Fallback
 	}
-	placed := lipgloss.Place(w, h-1, lipgloss.Center, lipgloss.Center, b.String())
+	placed := lipgloss.Place(w, h-1, lipgloss.Center, lipgloss.Center, body)
 	return placed + "\n" + hint
 }
 
@@ -137,6 +128,17 @@ func (m model) projPickBox() string {
 }
 
 // --- Handler ---
+
+// goHome verlässt eine Projekt-View in die Lobby (DD2-124, q/esc-Spine). Sind die
+// Projekte noch nicht geladen (Direkt-Start mit Projekt), werden sie nachgeladen.
+func (m model) goHome() (tea.Model, tea.Cmd) {
+	m.view = viewHome
+	m.status = ""
+	if len(m.projects) == 0 && m.global != nil {
+		return m, loadProjects(m.global)
+	}
+	return m, nil
+}
 
 // openProjPick öffnet das Projekt-Picker-Overlay (p von überall, DD2-124).
 func (m model) openProjPick() (tea.Model, tea.Cmd) {
@@ -201,7 +203,7 @@ func (m model) keyHome(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	switch msg.String() {
-	case "ctrl+c", "esc": // DD2-124: esc aus der Lobby → Beenden-Confirm (DD2-49)
+	case "ctrl+c", "esc", "q": // DD2-124: q/esc aus der Lobby → Beenden-Confirm (DD2-49)
 		return m.requestQuit()
 	}
 	nm, cmd := m.projFilterType(msg)

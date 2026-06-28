@@ -15,19 +15,26 @@ func isQuit(cmd tea.Cmd) bool {
 	return ok
 }
 
-// DD2-49: q auf einem Top-Level-View beendet NICHT sofort, sondern öffnet den
-// Confirm. Erst y/enter löst tea.Quit aus, n/esc bricht ab.
+// DD2-124: q aus einer Projekt-View landet in der Lobby (nicht Quit-Confirm). Erst
+// q/esc AUF der Lobby öffnet den Beenden-Confirm (DD2-49); y/enter beendet, n/esc bricht ab.
 func TestQuitConfirmFlow(t *testing.T) {
 	m := columnsModel()
 
-	// q → Confirm offen, kein Quit
+	// q in Columns → Lobby, kein Confirm/Quit
 	mi, cmd := m.Update(keyMsg("q"))
 	m = mi.(model)
-	if !m.confirmQuit {
-		t.Fatal("q sollte confirmQuit setzen")
+	if m.view != viewHome {
+		t.Fatalf("q in Columns → view=%d, want viewHome", m.view)
 	}
-	if isQuit(cmd) {
-		t.Fatal("q darf nicht sofort beenden")
+	if m.confirmQuit || isQuit(cmd) {
+		t.Fatal("q in Columns darf nicht beenden/confirmen")
+	}
+
+	// q in der Lobby → Confirm offen
+	mi, cmd = m.Update(keyMsg("q"))
+	m = mi.(model)
+	if !m.confirmQuit || isQuit(cmd) {
+		t.Fatalf("q in Lobby sollte Confirm öffnen (confirmQuit=%v)", m.confirmQuit)
 	}
 
 	// n → abbrechen
@@ -69,14 +76,22 @@ func TestQuitConfirmCtrlC(t *testing.T) {
 	}
 }
 
-// Auch im Tree-View (eigener Quit-Pfad) öffnet q den Confirm statt zu beenden.
+// DD2-124: q im Tree-View landet in der Lobby (q/esc-Spine). ctrl+c bleibt der
+// harte Beenden-Pfad (Confirm).
 func TestQuitConfirmFromTree(t *testing.T) {
 	m := treeModel()
 	m.view = viewTree
 	mi, cmd := m.Update(keyMsg("q"))
 	m = mi.(model)
-	if !m.confirmQuit || isQuit(cmd) {
-		t.Fatalf("q im Tree sollte Confirm öffnen (confirmQuit=%v)", m.confirmQuit)
+	if m.view != viewHome || m.confirmQuit || isQuit(cmd) {
+		t.Fatalf("q im Tree → Lobby erwartet (view=%d confirmQuit=%v)", m.view, m.confirmQuit)
+	}
+	// ctrl+c → Confirm
+	m2 := treeModel()
+	m2.view = viewTree
+	mi2, _ := m2.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
+	if !mi2.(model).confirmQuit {
+		t.Errorf("ctrl+c im Tree sollte Confirm öffnen")
 	}
 }
 
