@@ -60,6 +60,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.usList = msg.items
 			m.uslist.setLen(len(m.usList))
 		}
+		// DD2-67 #4: frische Stories ins Cockpit-Issue spiegeln, damit der summative
+		// User-Story-Dot LIVE umschlägt (grün sobald alle accepted) — ohne Sprint-Reload.
+		if m.curSprint != nil {
+			for i := range m.curSprint.Items {
+				if m.curSprint.Items[i].ID == msg.issueID {
+					m.curSprint.Items[i].UserStories = msg.items
+					break
+				}
+			}
+		}
 		return m, nil
 	case projectsMsg:
 		m.projects = msg.items

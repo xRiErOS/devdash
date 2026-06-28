@@ -60,12 +60,35 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.keySprintPick(msg)
 	}
 
+	// DD2-67 Rework #3: Ziffer toggelt die offene Accordion-Section im Detail-Pane
+	// (exklusiv, gleiche Logik wie der Tree-View). Scroll wird zurückgesetzt.
+	if k := msg.String(); len(k) == 1 && k[0] >= '1' && k[0] <= '9' {
+		d := int(k[0] - '0')
+		if m.accOpen == d {
+			m.accOpen = 0
+		} else {
+			m.accOpen = d
+		}
+		m.scroll = 0
+		return m, nil
+	}
+
+	// DD2-67: Detail-Pane scrollen (langes Issue) — seitenweise, ohne die
+	// Master-Selektion zu verschieben. i/k/↑↓ bleiben Listen-Navigation.
+	switch msg.String() {
+	case "ctrl+d", "ctrl+u", "pgdown", "pgup":
+		m.keyScroll(msg.String())
+		return m, nil
+	}
+
 	switch navKey(msg.String()) {
 	case "up":
 		m.rlist.move(-1)
+		m.scroll = 0 // frisch gewähltes Issue startet oben im Detail-Pane
 		return m, nil
 	case "down":
 		m.rlist.move(1)
+		m.scroll = 0
 		return m, nil
 	}
 
