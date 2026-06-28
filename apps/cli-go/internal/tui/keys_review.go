@@ -120,12 +120,14 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.inputting = true
 		m.input = ""
 		m.status = "Reject-Kommentar (enter=senden, esc=abbrechen): "
-	case "o": // Reopen — Backend verlangt to_review (öffnet frische Runde)
+	case "o": // Reopen — direkt aus to_review/passed/rejected (DD2-7). Löst den
+		// Deadlock (passed + letztes Verdikt not_passed) ohne den w:Rework-
+		// Mehrschritt; das Backend öffnet eine frische pending-Runde + Marker-Reset.
 		if it == nil {
 			return m, nil
 		}
-		if it.Status != "to_review" {
-			m.status = noticeText("Reopen nur bei to_review — sonst w (Rework) drücken")
+		if !reviewReopenable(it.Status) {
+			m.status = noticeText("Reopen nur aus to_review/passed/rejected — sonst w (Rework)")
 			return m, nil
 		}
 		m.status = "Reopen gesendet …"
@@ -142,6 +144,13 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.status = "Rework: " + it.Status + " → " + strings.Join(path, " → ") + " …"
 		return m, doRework(m.client, it.ID, path, m.curSprint.ID)
+	case "P": // DD2-44: Review-Pass markieren (review_submitted_at) — „Review-Durchgang
+		// fertig"-Marker. Backend ist idempotent; entsperrt keinen Auto-Close.
+		if m.curSprint == nil {
+			return m, nil
+		}
+		m.status = "Review-Pass wird markiert …"
+		return m, doReviewSubmit(m.client, m.curSprint.ID)
 	case "S": // Sprint-Status-Menü: zeigt gültige Sprint-Transitions
 		if m.curSprint == nil {
 			return m, nil
@@ -162,7 +171,9 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.confirmComplete = false
 		m.status = "Sprint wird abgeschlossen …"
-		return m, doSprintTo(m.client, m.curSprint.ID, "completed")
+		// DD2-45: nach dem Complete automatisch den Ergebnis-Handover (rev-results)
+		// in die Zwischenablage yanken — kein manueller Wechsel zur rev-results-Seite.
+		return m, doSprintComplete(m.client, m.curSprint.ID)
 	}
 	return m, nil
 }
@@ -224,6 +235,18 @@ func (m model) keyStatusPick(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, doStatus(m.client, m.stIssueID, target, m.stSprintID)
 	}
 	return m, nil
+}
+
+// reviewReopenable spiegelt das Backend-Set REOPENABLE_STATUSES (reviewMarker.js,
+// DD2-7): direkter review/reopen aus to_review/passed/rejected. Andere Status
+// haben keine sinnvolle Runde zum Wieder-Öffnen → erst w:Rework.
+func reviewReopenable(status string) bool {
+	switch status {
+	case "to_review", "passed", "rejected":
+		return true
+	default:
+		return false
+	}
 }
 
 // reworkPath liefert die Statuskette vom aktuellen Status nach to_review

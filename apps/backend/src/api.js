@@ -76,7 +76,7 @@ import { issueCreateContract } from '@devd/api-types/backlog.contracts.js'
 // DD-561: sprint-Payloads via geteiltem Zod-Contract (Single Source mit CLI + MCP).
 import { sprintCreateContract } from '@devd/api-types/milestone-sprint.contracts.js'
 import { coerceSprintPosition } from './lib/sprintFieldGuards.js'
-import { submitSprintReview, assertReviewEditable, maybeAutoOpenReworkRound, reopenReviewRound, ReviewEditLockedError, autoSetPassedOnReviewPass, autoSetRejectedOnReviewFail } from './lib/reviewMarker.js'
+import { submitSprintReview, assertReviewEditable, maybeAutoOpenReworkRound, reopenReviewRound, ReviewEditLockedError, autoSetPassedOnReviewPass, autoSetRejectedOnReviewFail, canReopenReview, REOPENABLE_STATUSES } from './lib/reviewMarker.js'
 import {
   SubtaskValidationError,
   listSubtasks,
@@ -4246,14 +4246,19 @@ app.post('/api/backlog/:id/reviews', (req, res) => {
   res.status(201).json(entry)
 })
 
-// POST /api/backlog/:id/review/reopen — Review wieder öffnen (DD-662).
+// POST /api/backlog/:id/review/reopen — Review wieder öffnen (DD-662, DD2-7).
 //
-// Öffnet eine frische pending-Runde auf einem to_review-Issue, dessen letzte
-// Runde bereits ein Verdict trägt, und setzt den Sprint-Review-Marker zurück —
-// damit `review create` danach wieder durchläuft (kein 409). Idempotent: ist die
-// letzte Runde bereits offen, wird keine neue angelegt (200). Schließt die
-// DD#81-Lücke, in der ein verdictloser Sprint-Review-Submit Issues unentrinnbar
-// im to_review gefangen hielt und nur der UI-Rework-Button half.
+// Öffnet eine frische pending-Runde auf einem Issue, dessen letzte Runde bereits
+// ein Verdict trägt, und setzt den Sprint-Review-Marker zurück — damit
+// `review create` danach wieder durchläuft (kein 409). Idempotent: ist die letzte
+// Runde bereits offen, wird keine neue angelegt (200). Schließt die DD#81-Lücke,
+// in der ein verdictloser Sprint-Review-Submit Issues unentrinnbar im to_review
+// gefangen hielt und nur der UI-Rework-Button half.
+//
+// DD2-7: Guard von strikt to_review auf REOPENABLE_STATUSES (to_review/passed/
+// rejected) geweitet — der Review-Deadlock (Status=passed, letztes Verdikt
+// not_passed, Sprint submitted) ist damit per direktem reopen lösbar, ohne den
+// Mehrschritt-Status-Tanz / w:Rework-Workaround.
 //
 // DD-186 unberührt: das Verb ändert keine Berechtigung, nur die API-Fläche;
 // das Setzen eines Verdicts bleibt PO-Aufgabe.
@@ -4261,9 +4266,9 @@ app.post('/api/backlog/:id/review/reopen', (req, res) => {
   const backlogId = Number(req.params.id)
   const item = db.prepare('SELECT id, status FROM backlog WHERE id = ?').get(backlogId)
   if (!item) return res.status(404).json({ error: 'Item not found' })
-  if (item.status !== 'to_review') {
+  if (!canReopenReview(item.status)) {
     return res.status(422).json({
-      error: `review reopen nur für to_review-Issues möglich (Issue ist '${item.status}')`,
+      error: `review reopen nur aus ${[...REOPENABLE_STATUSES].join('/')} möglich (Issue ist '${item.status}')`,
     })
   }
   const result = reopenReviewRound(db, backlogId, auditLog)

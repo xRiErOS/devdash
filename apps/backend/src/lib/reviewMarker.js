@@ -30,6 +30,21 @@ export class ReviewEditLockedError extends Error {
 export const REVIEW_EDIT_LOCKED_MESSAGE =
   'Review ist abgeschlossen — vor Bearbeitung neue Runde via Rework (to_review) öffnen'
 
+// DD2-7: Aus welchen Issue-Status ist ein direkter review/reopen erlaubt.
+// Der Deadlock (Status=passed, letztes Verdikt=not_passed, Sprint submitted) ließ
+// sich vorher nur über den Mehrschritt-Status-Tanz (passed→planned→in_progress→
+// to_review) lösen. reopenReviewRound arbeitet ohnehin statusunabhängig (öffnet
+// frische pending-Runde + resettet den Marker), deshalb wird der Endpoint-Guard
+// auf die post-Review-Status geweitet: to_review (Normalfall) plus passed/rejected
+// (decided-Verdikt-Zustände, in denen ein direkter Re-Review legitim ist). Andere
+// Status (new/refined/planned/in_progress/done/cancelled) bleiben gesperrt —
+// dort gibt es keine sinnvolle Review-Runde zum Wieder-Öffnen.
+export const REOPENABLE_STATUSES = new Set(['to_review', 'passed', 'rejected'])
+
+export function canReopenReview(status) {
+  return REOPENABLE_STATUSES.has(status)
+}
+
 // Hat der Sprint eine submitted Review-Iteration?
 export function isSprintReviewSubmitted(db, sprintId) {
   if (sprintId == null) return false
