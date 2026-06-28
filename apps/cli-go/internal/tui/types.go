@@ -172,6 +172,13 @@ type model struct {
 	form     *huh.Form
 	formKind string // issue | milestone | sprint | memory | result
 
+	// Multi-Tab-Forms (DD2-36): Tab-Strip für mehrblättrige Create-Formulare.
+	// formGroupTitles != nil → Tab-Strip sichtbar. formGroupIdx = aktiver Tab (0-basiert).
+	// formPartials speichert Werte der abgeschlossenen Tabs bis zum letzten Submit.
+	formGroupIdx    int
+	formGroupTitles []string
+	formPartials    map[string]string
+
 	// Ziel des result-Formulars (I02): r im Cockpit füllt das Ergebnisfeld.
 	resultIssueID  int
 	resultIssueKey string

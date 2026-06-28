@@ -105,6 +105,14 @@ func formInnerHeight(termH int) int {
 // der Terminalbreite (DD2-25), damit Formulare auf schmalen Views nicht ausbrechen.
 func (m model) openForm(kind string) (tea.Model, tea.Cmd) {
 	m.formKind = kind
+	// Reset Multi-Tab-State; Issue-Form hat 2 Tabs (DD2-36).
+	m.formGroupIdx = 0
+	m.formGroupTitles = nil
+	m.formPartials = nil
+	if kind == "issue" {
+		m.formGroupTitles = []string{"Basis", "Inhalt"}
+		m.formPartials = make(map[string]string)
+	}
 	f := buildForm(kind, m.milestones, m.tags)
 	if f != nil {
 		f = f.WithWidth(formInnerWidth(m.width)).
@@ -146,18 +154,13 @@ func priorityOptions() []huh.Option[string] {
 func buildForm(kind string, milestones []api.Milestone, tags []api.Tag) *huh.Form {
 	switch kind {
 	case "issue":
-		fields := []huh.Field{
+		// Tab 0 „Basis": Titel, Typ, Priorität. Tab 1 „Inhalt" folgt nach Abschluss (DD2-36).
+		return huh.NewForm(huh.NewGroup(
 			huh.NewInput().Key("title").Title("Titel").
 				Placeholder("Kurze Beschreibung des Issues").Validate(nonEmpty),
 			huh.NewSelect[string]().Key("type").Title("Typ").Options(typeOptions()...),
 			huh.NewSelect[string]().Key("priority").Title("Priorität").Options(priorityOptions()...),
-			huh.NewText().Key("description").Title("Beschreibung (optional)"),
-			huh.NewText().Key("user_stories").Title("User-Stories (eine pro Zeile, optional)"), // DD2-66
-		}
-		if len(tags) > 0 {
-			fields = append(fields, tagMultiSelect(tags))
-		}
-		return huh.NewForm(huh.NewGroup(fields...)).WithWidth(58).WithShowHelp(true)
+		)).WithWidth(58).WithShowHelp(true)
 	case "milestone":
 		fields := []huh.Field{
 			huh.NewInput().Key("name").Title("Name").Validate(nonEmpty),
@@ -211,6 +214,36 @@ func buildForm(kind string, milestones []api.Milestone, tags []api.Tag) *huh.For
 		)).WithWidth(58).WithShowHelp(true)
 	}
 	return nil
+}
+
+// buildFormIssueTab1 baut Tab 1 „Inhalt" (Beschreibung, User-Stories, Tags) des
+// zweistufigen Issue-Create-Flows (DD2-36). Wird nach Tab-0-Abschluss aufgerufen.
+func buildFormIssueTab1(tags []api.Tag) *huh.Form {
+	fields := []huh.Field{
+		huh.NewText().Key("description").Title("Beschreibung (optional)"),
+		huh.NewText().Key("user_stories").Title("User-Stories (eine pro Zeile, optional)"),
+	}
+	if len(tags) > 0 {
+		fields = append(fields, tagMultiSelect(tags))
+	}
+	return huh.NewForm(huh.NewGroup(fields...)).WithWidth(58).WithShowHelp(true)
+}
+
+// formTabStrip renders den Tab-Strip für mehrblättrige Forms (DD2-36).
+// Aktiver Tab: Mauve bold; inaktive Tabs: Hint. Strip-BG: Mantle.
+func formTabStrip(titles []string, active int, width int) string {
+	var parts []string
+	for i, t := range titles {
+		if i == active {
+			parts = append(parts, lipgloss.NewStyle().Foreground(theme.Mauve).Bold(true).Render(t))
+		} else {
+			parts = append(parts, lipgloss.NewStyle().Foreground(theme.Hint).Render(t))
+		}
+	}
+	return lipgloss.NewStyle().
+		Width(width).Background(theme.Mantle).
+		PaddingLeft(1).
+		Render(strings.Join(parts, "  "))
 }
 
 // buildEditFieldForm baut die Single-Field-editForm (DD2-77) je Feldtyp: Input
@@ -267,8 +300,21 @@ func (m *model) formCreateCmd() tea.Cmd {
 	case "tagEdit": // DD2-75: Tag umbenennen/umfärben
 		return doUpdateTag(m.client, m.tagEditID, get("name"), m.form.GetString("color"))
 	case "issue":
-		body := api.IssueCreateBody{Title: get("title"), Type: m.form.GetString("type"), Priority: 2}
-		if p, err := strconv.Atoi(m.form.GetString("priority")); err == nil {
+		// Tab 1 (Inhalt): Partials aus Tab 0 + aktuelle Felder kombinieren (DD2-36).
+		title := strings.TrimSpace(m.formPartials["title"])
+		if title == "" {
+			title = get("title")
+		}
+		typ := m.formPartials["type"]
+		if typ == "" {
+			typ = m.form.GetString("type")
+		}
+		prioStr := m.formPartials["priority"]
+		if prioStr == "" {
+			prioStr = m.form.GetString("priority")
+		}
+		body := api.IssueCreateBody{Title: title, Type: typ, Priority: 2}
+		if p, err := strconv.Atoi(prioStr); err == nil {
 			body.Priority = p
 		}
 		if d := get("description"); d != "" {
@@ -345,12 +391,21 @@ func (m model) formBox() string {
 		Bold(true).Foreground(theme.Mauve).
 		Render(titles[m.formKind])
 
+	// Tab-Strip: nur bei mehrblättrigen Forms (DD2-36)
+	var sections []string
+	sections = append(sections, header)
+	if len(m.formGroupTitles) > 1 {
+		sections = append(sections, formTabStrip(m.formGroupTitles, m.formGroupIdx, innerW))
+	}
+	sections = append(sections, m.form.View())
+
 	// Footer: form-spezifische Keybindings (DD2-64)
 	footer := lipgloss.NewStyle().
 		Width(innerW).Foreground(theme.Hint).
 		Render(formFooterKeys(m.formKind))
+	sections = append(sections, footer)
 
-	inner := lipgloss.JoinVertical(lipgloss.Left, header, m.form.View(), footer)
+	inner := lipgloss.JoinVertical(lipgloss.Left, sections...)
 
 	return lipgloss.NewStyle().
 		Width(boxW).
