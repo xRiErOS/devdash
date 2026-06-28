@@ -19,6 +19,7 @@ uploads/
 devd-result-*.md
 
 # Worktree + Session-Cache
+.worktrees/
 .claude/worktrees/
 .claude/scheduled_tasks.lock
 .session-cache/
