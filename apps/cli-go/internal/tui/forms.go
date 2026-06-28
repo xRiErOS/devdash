@@ -53,10 +53,14 @@ func clampModalWidth(pref, termW int) int {
 	return w
 }
 
+// defaultModalWidth = Wunschbreite der Standard-Modal-Box. DD2-40: per YAML-
+// Config (layout.modal_width) in Run() überschreibbar; Default = bisherige 64.
+var defaultModalWidth = 64
+
 // modalBoxWidth begrenzt die Standard-Modal-Boxbreite auf die Terminalbreite
-// (DD2-25): max 64, schrumpft auf schmalen Views, Untergrenze 24.
+// (DD2-25): max defaultModalWidth, schrumpft auf schmalen Views, Untergrenze 24.
 func modalBoxWidth(termW int) int {
-	return clampModalWidth(64, termW)
+	return clampModalWidth(defaultModalWidth, termW)
 }
 
 // formInnerWidth ist die huh-Formularbreite innerhalb der Box (Rahmen + Padding).

@@ -196,7 +196,10 @@ func (m model) treeLayout() (head, localKeys string, lw, rw, innerH int) {
 	if avail < 4 {
 		avail = m.bodyHeight() // Höhe unbekannt (Init/Tests) → großzügiger Fallback
 	}
-	lw = 36 // schmale Baum-Spalte
+	lw = m.cfg.Layout.TreeWidth // DD2-40: konfigurierbar (layout.tree_width)
+	if lw <= 0 {
+		lw = 36 // Default / zero-Config (Tests ohne geladene Settings)
+	}
 	if cap := w * 2 / 5; lw > cap {
 		lw = cap
 	}

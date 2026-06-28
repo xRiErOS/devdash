@@ -45,6 +45,7 @@ var (
 	Header = lipgloss.NewStyle().Bold(true).Foreground(Mauve)
 	Key    = lipgloss.NewStyle().Foreground(Sapphire) // IDs/Keys = Sapphire (D-Mapping Wireframe)
 	Accent = lipgloss.NewStyle().Foreground(Mauve)
+
 	Dim    = lipgloss.NewStyle().Foreground(Overlay)
 	// Muted = Hinweis/Erklärung (D01): Shortcuts, Sub-Label, Placeholder.
 	// Bewusst Hint #7c7c7c, nicht Overlay (= Feld-Border).
@@ -52,6 +53,15 @@ var (
 	// Chevron = struktureller Marker `>`/`o` (D03), Peach.
 	Chevron = lipgloss.NewStyle().Foreground(Peach)
 )
+
+// SetAccent überschreibt den Akzentstil (Cursor/Header) mit einer User-Farbe
+// (DD2-40: theme.accent aus der YAML-Config). hex muss bereits validiert sein
+// (#rrggbb). Globale Theme-Mutation — nur einmal beim TUI-Start aufrufen.
+func SetAccent(hex string) {
+	c := lipgloss.Color(hex)
+	Accent = lipgloss.NewStyle().Foreground(c)
+	Header = lipgloss.NewStyle().Bold(true).Foreground(c)
+}
 
 var statusColor = map[string]lipgloss.Color{
 	"planning":    Yellow,

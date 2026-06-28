@@ -7,6 +7,7 @@ import (
 	"devd-cli/internal/api"
 	"devd-cli/internal/clip"
 	"devd-cli/internal/config"
+	"devd-cli/internal/theme"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
@@ -47,6 +48,8 @@ type model struct {
 	client  *api.Client // projekt-gescopt (nil bis Picker-Wahl)
 	global  *api.Client // projekt-los (ListProjects)
 	project *api.Project
+
+	cfg config.Settings // DD2-40: TUI-Settings (YAML), in Run() geladen/angewendet
 
 	view          viewID
 	width, height int
@@ -317,8 +320,18 @@ func Run(client *api.Client, project *api.Project, global *api.Client) error {
 	// OSC-11-Abfrage eine helle Farbe → Forms rendern helles Theme (leuchtender BG).
 	// Detection hart auf dunkel zwingen → terminal-unabhängig, app ist durchweg dunkel.
 	lipgloss.SetHasDarkBackground(true)
+	// DD2-40: TUI-Settings laden (User-Config + lokaler Override) und anwenden.
+	// Bewusst HIER (nicht in newModel), damit Tests FS-frei/deterministisch bleiben.
+	m := newModel(client, project, global)
+	cfg, _ := config.LoadSettings()
+	m.cfg = cfg
+	if cfg.Theme.Accent != "" {
+		theme.SetAccent(cfg.Theme.Accent) // globaler Akzent (Cursor/Header)
+	}
+	defaultModalWidth = cfg.Layout.ModalWidth // Standard-Modalbreite (DD2-55-Clamp greift weiter)
+
 	// DD2-51: Maus aktivieren (CellMotion = Klick + Wheel + Move-Tracking).
-	_, err := tea.NewProgram(newModel(client, project, global),
+	_, err := tea.NewProgram(m,
 		tea.WithAltScreen(), tea.WithMouseCellMotion()).Run()
 	return err
 }
