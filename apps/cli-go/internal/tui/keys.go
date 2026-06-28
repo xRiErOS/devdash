@@ -53,6 +53,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.tagPick {
 		return m.keyTagPicker(msg)
 	}
+	// Create-Confirm (DD2-93) fängt vor View-Tasten.
+	if m.createConfirm {
+		return m.keyCreateConfirm(msg)
+	}
 	// Cascade-Delete-Confirm (T02b) fängt vor View-Tasten.
 	if m.delConfirm {
 		return m.keyDelete(msg)

@@ -301,7 +301,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	// Modale/Picks sind tastaturgesteuert — Maus ignorieren (kein Fehlklick-Fokus).
 	if m.form != nil || m.paletteOpen || m.projPick || m.filtering || m.statusPick || m.sprintPick ||
-		m.msPick || m.smPick || m.maPick || m.tagPick || m.delConfirm || m.mcConfirm || m.usOpen ||
+		m.msPick || m.smPick || m.maPick || m.tagPick || m.delConfirm || m.mcConfirm || m.createConfirm || m.usOpen ||
 		m.treeSearching || m.inputting {
 		return m, nil
 	}
@@ -403,14 +403,9 @@ func (m model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		// alt+enter = speichern (terminal-taugliche Save-Taste, ersetzt ctrl+enter).
 		// Wird VOR huh abgefangen, damit es nicht als Newline im Textarea landet.
+		// DD2-93: submitForm öffnet für Create-Kinds erst den y/n-Confirm.
 		if k.String() == "alt+enter" {
-			createCmd := m.formCreateCmd()
-			m.form = nil
-			m.formKind = ""
-			m.formGroupIdx = 0
-			m.formGroupTitles = nil
-			m.formPartials = nil
-			return m, createCmd
+			return m.submitForm()
 		}
 	}
 
@@ -420,13 +415,7 @@ func (m model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	switch m.form.State {
 	case huh.StateCompleted:
-		createCmd := m.formCreateCmd()
-		m.form = nil
-		m.formKind = ""
-		m.formGroupIdx = 0
-		m.formGroupTitles = nil
-		m.formPartials = nil
-		return m, createCmd
+		return m.submitForm() // DD2-93: Create-Kinds → y/n-Confirm vor der Anlage
 	case huh.StateAborted:
 		m.form = nil
 		m.formKind = ""

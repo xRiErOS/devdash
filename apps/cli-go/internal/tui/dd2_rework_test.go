@@ -6,10 +6,13 @@ import (
 
 	"devd-cli/internal/api"
 	"devd-cli/internal/theme"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/muesli/termenv"
 )
+
+func runeKey(s string) tea.KeyMsg { return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)} }
 
 // DD2-133 Rework (Review-Reject): abgebrochene Sprints sollen im Tree die ID/Key
 // WEISS lassen (wie completed) und NUR den Status-Text grau dimmen — vorher war die
@@ -88,5 +91,55 @@ func TestReviewHintsNamesClipboard(t *testing.T) {
 	m := reviewModel()
 	if !strings.Contains(m.reviewHints(), "clipboard") {
 		t.Errorf("reviewHints soll 'clipboard' benennen:\n%s", m.reviewHints())
+	}
+}
+
+// DD2-93 Rework (Review-Reject): vor der Anlage neuer Entitäten kommt ein y/n-Prompt.
+// Create-Kinds gaten, Edit-Kinds nicht; y feuert exakt den geparkten Cmd, n verwirft.
+func TestCreateConfirmGatesCreation(t *testing.T) {
+	for _, k := range []string{"issue", "sprint", "milestone", "memory", "tagCreate"} {
+		if !isCreateKind(k) {
+			t.Errorf("%q soll ein Create-Kind sein (Confirm-Prompt)", k)
+		}
+	}
+	for _, k := range []string{"editField", "tagEdit", "result"} {
+		if isCreateKind(k) {
+			t.Errorf("%q ist Edit/Update — darf KEINEN Create-Confirm auslösen", k)
+		}
+	}
+
+	// y feuert exakt den geparkten pendingCreate-Cmd und schließt den Confirm.
+	fired := false
+	m := model{createConfirm: true, createLabel: "Issue (bug): x",
+		pendingCreate: func() tea.Msg { fired = true; return nil }}
+	mm, cmd := m.keyCreateConfirm(runeKey("y"))
+	if mm.(model).createConfirm {
+		t.Error("y soll den Confirm schließen")
+	}
+	if cmd == nil {
+		t.Fatal("y soll den geparkten Create-Cmd feuern")
+	}
+	cmd()
+	if !fired {
+		t.Error("y soll exakt pendingCreate auslösen")
+	}
+
+	// n bricht ab, ohne anzulegen.
+	m2 := model{createConfirm: true, pendingCreate: func() tea.Msg { return nil }}
+	mm2, cmd2 := m2.keyCreateConfirm(runeKey("n"))
+	if mm2.(model).createConfirm {
+		t.Error("n soll den Confirm schließen")
+	}
+	if cmd2 != nil {
+		t.Error("n soll KEINEN Create-Cmd feuern")
+	}
+}
+
+// Das Confirm-Modal zeigt Label + Anlegen-Hinweis.
+func TestCreateConfirmBoxShowsLabel(t *testing.T) {
+	m := model{createConfirm: true, createLabel: "Sprint: Sprint 9", width: 100}
+	out := ansi.Strip(m.createConfirmBox())
+	if !strings.Contains(out, "Sprint: Sprint 9") || !strings.Contains(out, "anlegen") {
+		t.Errorf("Confirm-Box ohne Label/Hint:\n%s", out)
 	}
 }

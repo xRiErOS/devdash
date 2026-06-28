@@ -4,6 +4,7 @@ import (
 	"devd-cli/internal/api"
 	"devd-cli/internal/config"
 	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 )
 
@@ -179,6 +180,13 @@ type model struct {
 	mcID      int
 	mcName    string
 	mcSprints int
+
+	// Create-Confirm (DD2-93): nach dem Ausfüllen eines Create-Formulars (Issue/
+	// Sprint/Meilenstein/…) erst ein y/n-Prompt, bevor die Anlage feuert. Der bereits
+	// aus den Formularwerten gebaute Cmd wird zwischengeparkt.
+	createConfirm bool
+	pendingCreate tea.Cmd
+	createLabel   string
 
 	// Memory-Browser (T18): Master-Detail über project_memories.
 	memList      []api.ProjectMemory

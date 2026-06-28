@@ -61,6 +61,9 @@ func (m model) View() string {
 	if m.tagPick { // DD2-33: Tag-Zuweisungs-Picker
 		return placeOverlay(base, m.tagPickerMenu(), m.termWidth(), m.height)
 	}
+	if m.createConfirm { // DD2-93: y/n-Confirm vor der Anlage neuer Entitäten
+		return placeOverlay(base, m.createConfirmBox(), m.termWidth(), m.height)
+	}
 	if m.delConfirm { // T02b: Cascade-Delete-Confirm
 		return placeOverlay(base, m.deleteBox(), m.termWidth(), m.height)
 	}
