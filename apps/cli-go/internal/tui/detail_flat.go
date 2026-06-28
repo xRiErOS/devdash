@@ -63,6 +63,14 @@ func sprintFieldValue(sp api.Sprint, key string) string {
 // Bounds-Liste). Der Cursor friert bei Detail-Fokus (D03), darum ist der gerenderte
 // Detail-Knoten immer der fokussierte.
 func (m model) focusedNode() *treeNode {
+	// DD2-138: Der Backlog ist eine Liste, KEIN Baum — dort gibt es keinen treeNode.
+	// Ohne diesen Guard läse focusedNode treeNodes()[treeCursor] (= erster Meilenstein,
+	// da treeCursor=0) → detailFlatFields lieferte Milestone-Felder → die Backlog-
+	// Detail-Tasten landeten fälschlich im Flat-Handler (Detail nicht navigierbar,
+	// PO-Test #3). Im Backlog entscheidet allein focusedIssue() (Listen-Selektion).
+	if m.view == viewBacklog {
+		return nil
+	}
 	nodes := m.treeNodes()
 	if m.treeCursor < 0 || m.treeCursor >= len(nodes) {
 		return nil
