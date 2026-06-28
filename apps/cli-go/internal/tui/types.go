@@ -258,6 +258,7 @@ type model struct {
 	fArt             map[treeKind]bool
 	fType            map[string]bool
 	fStatus          map[string]bool
+	fTags            map[string]bool // DD2-116: Tag-Facette (Issue-Tag-Namen)
 	ffMenu           listState
 	ffItems          []ffItem
 	treeFilterIssues []api.Issue

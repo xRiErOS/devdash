@@ -35,6 +35,7 @@ func newModel(client *api.Client, project *api.Project, global *api.Client) mode
 	m.fArt = map[treeKind]bool{}
 	m.fType = map[string]bool{}
 	m.fStatus = map[string]bool{}
+	m.fTags = map[string]bool{}
 	m.fMile = filterState{hidden: map[string]bool{"completed": true, "cancelled": true, deferredKey: true}}
 	m.fSprint = filterState{hidden: map[string]bool{"completed": true, "cancelled": true}}
 	m.fIssue = filterState{hidden: map[string]bool{"cancelled": true}}

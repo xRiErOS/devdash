@@ -52,6 +52,15 @@ type ffItem struct {
 	label string
 }
 
+// mileDisplayName liefert den Anzeige-Namen eines Meilensteins; der synthetische
+// No-Milestone-Sammelknoten (leerer Name) bekommt ein klares Label (DD2-115).
+func mileDisplayName(name string) string {
+	if strings.TrimSpace(name) == "" {
+		return "(no milestone)"
+	}
+	return name
+}
+
 // kindOf übersetzt einen Art-Facetten-Wert in das treeKind.
 func kindOf(v string) treeKind {
 	switch v {
@@ -66,7 +75,7 @@ func kindOf(v string) treeKind {
 
 // treeFilterActive = mindestens eine Filter-Facette gesetzt (Art/Type/Status).
 func (m *model) treeFilterActive() bool {
-	return len(m.fArt)+len(m.fType)+len(m.fStatus) > 0
+	return len(m.fArt)+len(m.fType)+len(m.fStatus)+len(m.fTags) > 0
 }
 
 // treeActive = Filter ODER Textsuche aktiv → gefilterte Flachung statt Expansions-Baum.
@@ -126,6 +135,17 @@ func (m *model) treeNodesFiltered() []treeNode {
 	typeOK := func(t string) bool { return len(m.fType) == 0 || m.fType[t] }
 	statusOK := func(s string) bool { return len(m.fStatus) == 0 || m.fStatus[s] }
 	matchText := func(s string) bool { return q == "" || strings.Contains(strings.ToLower(s), q) }
+	tagOK := func(tags []api.Tag) bool { // DD2-116: Issue hat ≥1 gewähltes Tag (sonst alle ok)
+		if len(m.fTags) == 0 {
+			return true
+		}
+		for _, t := range tags {
+			if m.fTags[t.Name] {
+				return true
+			}
+		}
+		return false
+	}
 
 	// Gruppierung nach Sprint-ID; stabile Slices, damit &items[ii]-Pointer halten.
 	bySprint := map[int][]api.Issue{}
@@ -153,7 +173,7 @@ func (m *model) treeNodesFiltered() []treeNode {
 			var iss []treeNode
 			for ii := range items {
 				it := &items[ii]
-				if showKind(tkIssue) && typeOK(it.Type) && statusOK(it.Status) && matchText(it.Key+" "+it.Title) {
+				if showKind(tkIssue) && typeOK(it.Type) && statusOK(it.Status) && tagOK(it.Tags) && matchText(it.Key+" "+it.Title) {
 					iss = append(iss, treeNode{kind: tkIssue, mileIdx: mi, sprIdx: si,
 						sprintID: sp.ID, issIdx: ii, depth: 2, issue: it})
 				}
@@ -290,10 +310,14 @@ func (m model) treeLeftLines(nodes []treeNode, w int, active bool) []string {
 		switch n.kind {
 		case tkMile:
 			ms := m.milestones[n.mileIdx]
-			label = statusDot(ms.Status) + " " + ms.Name
+			label = statusDot(ms.Status) + " " + mileDisplayName(ms.Name)
 		case tkSprint:
 			sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
-			label = sp.Key + " " + statusText(sp.Status)
+			if sp.Status == "cancelled" { // DD2-133: abgebrochene Sprints dezent grau
+				label = theme.Dim.Render(sp.Key + " " + sp.Status)
+			} else {
+				label = sp.Key + " " + statusText(sp.Status)
+			}
 		case tkIssue:
 			if n.issue != nil { // aufgelöst (Lazy-Cache ODER Filter-Quelle)
 				label = theme.TypeIcon(n.issue.Type) + " " + theme.Key.Render(n.issue.Key)
@@ -334,7 +358,7 @@ func (m model) treeDetail(n treeNode, w int) string {
 		}
 		ms := m.milestones[n.mileIdx]
 		// Meilenstein hat keinen Key → Titel ohne Key; Meta-Strip Fortschritt/Status.
-		b.WriteString(detailTitle("", ms.Name, w) + "\n")
+		b.WriteString(detailTitle("", mileDisplayName(ms.Name), w) + "\n")
 		b.WriteString(metaStrip([]metaPair{
 			{fmt.Sprintf("%d/%d", ms.Done, ms.Total), "Progress"},
 		}, statusText(ms.Status), w) + "\n\n")
@@ -490,6 +514,7 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.fArt = map[treeKind]bool{}
 			m.fType = map[string]bool{}
 			m.fStatus = map[string]bool{}
+			m.fTags = map[string]bool{}
 			m.treeCursor = 0
 			return m, nil
 		}
@@ -657,7 +682,26 @@ func (m model) buildFilterItems() []ffItem {
 	for _, s := range m.filterStatusOptions() {
 		items = append(items, ffItem{"status", s, s})
 	}
+	for _, t := range m.tagFilterOptions() { // DD2-116: dynamische Tag-Facette
+		items = append(items, ffItem{"tags", t, t})
+	}
 	return items
+}
+
+// tagFilterOptions sammelt distinkte Issue-Tag-Namen (projektweit geladen), in
+// stabiler Reihenfolge (Datenreihenfolge), für die Tag-Facette (DD2-116).
+func (m model) tagFilterOptions() []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, it := range m.treeFilterIssues {
+		for _, t := range it.Tags {
+			if t.Name != "" && !seen[t.Name] {
+				seen[t.Name] = true
+				out = append(out, t.Name)
+			}
+		}
+	}
+	return out
 }
 
 // filterStatusOptions sammelt distinkte Status-Werte (Meilenstein/Sprint/Issue),
@@ -706,6 +750,7 @@ func (m model) keyTreeFilter(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.fArt = map[treeKind]bool{}
 		m.fType = map[string]bool{}
 		m.fStatus = map[string]bool{}
+		m.fTags = map[string]bool{}
 		return m, nil
 	case " ", "x":
 		if m.ffMenu.cursor < 0 || m.ffMenu.cursor >= len(m.ffItems) {
@@ -732,6 +777,12 @@ func (m model) keyTreeFilter(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			} else {
 				m.fStatus[it.value] = true
 			}
+		case "tags":
+			if m.fTags[it.value] {
+				delete(m.fTags, it.value)
+			} else {
+				m.fTags[it.value] = true
+			}
 		}
 		return m, nil
 	}
@@ -743,7 +794,7 @@ func (m model) treeFilterBox() string {
 	var b strings.Builder
 	b.WriteString(theme.Muted.Render("space:toggle  c:clear  enter/esc:done") + "\n")
 	lastFacet := ""
-	facetHead := map[string]string{"art": "Art", "type": "Issue-Type", "status": "Status"}
+	facetHead := map[string]string{"art": "Art", "type": "Issue-Type", "status": "Status", "tags": "Tags"}
 	for i, it := range m.ffItems {
 		if it.facet != lastFacet {
 			b.WriteString("\n" + theme.Dim.Render(facetHead[it.facet]) + "\n")
@@ -757,6 +808,8 @@ func (m model) treeFilterBox() string {
 			on = m.fType[it.value]
 		case "status":
 			on = m.fStatus[it.value]
+		case "tags":
+			on = m.fTags[it.value]
 		}
 		box := theme.Dim.Render("[ ]")
 		if on {
@@ -793,6 +846,9 @@ func (m model) filterSummary() string {
 	}
 	if len(m.fStatus) > 0 {
 		p = append(p, "St:"+joinFilterKeys(m.fStatus))
+	}
+	if len(m.fTags) > 0 {
+		p = append(p, "Tags:"+joinFilterKeys(m.fTags))
 	}
 	return strings.Join(p, " ")
 }
