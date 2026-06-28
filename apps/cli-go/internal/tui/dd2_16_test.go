@@ -215,6 +215,22 @@ func TestUsSummaryDot(t *testing.T) {
 	}
 }
 
+// DD2-67 (#4): nach einem User-Story-Verdikt (userStoriesMsg) spiegelt das Cockpit
+// die frischen Stories ins Issue von curSprint → der summative US-Dot färbt sich
+// LIVE (grün sobald alle accepted), ohne Sprint-Reload.
+func TestUserStoriesMsgSyncsCurSprint(t *testing.T) {
+	m := reviewModel()
+	m.curSprint.Items[0].UserStories = []api.UserStory{{ID: 1, Verdict: "open"}}
+	id := m.curSprint.Items[0].ID
+
+	mi, _ := m.Update(userStoriesMsg{issueID: id, items: []api.UserStory{{ID: 1, Verdict: "accepted"}}})
+	m = mi.(model)
+
+	if !usAllAccepted(m.curSprint.Items[0]) {
+		t.Error("userStoriesMsg sollte die frischen Stories ins curSprint-Issue spiegeln (Live-Dot)")
+	}
+}
+
 // DD2-67 (Rework): das Detail-Pane nutzt die Tree-Accordion — Ziffer toggelt die
 // offene Section (m.accOpen), exklusiv (zweite gleiche Ziffer schließt).
 func TestReviewAccordionToggle(t *testing.T) {
