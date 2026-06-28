@@ -73,6 +73,8 @@ Der Skill truncatet mit `len(s)` + `s[:n]` (Byte-Slicing). Das ist **falsch für
 
 ## Build / Run
 
-- **`go` ist als Shell-Funktion geshadowed** (Fake). IMMER `command go …` oder `/opt/homebrew/bin/go …`.
-- Build: `make build` → `bin/dd`. Alle Tests: `make test` (`go test ./...`).
+**PFLICHT-READ für Build/Install (auch aus Worktree): [`docs/cli-go-build.md`](../../docs/cli-go-build.md)** — verlässliche Befehle, `go`-Shadow-Falle, Worktree-Hinweis.
+
+- **`go` ist als Shell-Funktion geshadowed** (Fake). IMMER `command go …` oder `/opt/homebrew/bin/go …`. `make build` meiden (ruft bare `go`) → stattdessen `command go build -o bin/dd .`.
+- Build: `command go build -o bin/dd .` → `bin/dd`. Alle Tests: `command go test ./...`.
 - Install fürs Cockpit: `command go install .` → `~/go/bin/devd-cli` (Alias `dd-tui`). Nach Code-Änderung neu installieren, sonst testet man ein stale Binary (war B01-Fehldiagnose-Quelle).
