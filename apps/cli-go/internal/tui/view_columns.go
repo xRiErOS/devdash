@@ -454,8 +454,7 @@ func (m model) reviewDetailPane(it *api.Issue, w, h int) string {
 		truncate(theme.Header.Render(it.Key+" — "+it.Title), w),
 		truncate(theme.StatusStyle(it.Status).Render(it.Status)+"  "+
 			theme.TypeIcon(it.Type)+" "+it.Type+"  "+theme.Priority(it.Priority)+"  "+reviewBadge(*it), w),
-		truncate(theme.Dim.Render("Ergebnis ")+resultDot(*it)+theme.Dim.Render("   User-Stories ")+usSummaryDot(*it)+
-			theme.Dim.Render("   ∙ 1–n:Section  ctrl+d/u:scroll"), w),
+		truncate(theme.Dim.Render("Ergebnis ")+resultDot(*it)+theme.Dim.Render("   User-Stories ")+usSummaryDot(*it), w),
 		theme.Dim.Render(strings.Repeat("─", min(w, 24))),
 	}
 	acc := renderAccordion(m.issueSections(*it, w-2), m.accOpen, w, detailFocusView{})
