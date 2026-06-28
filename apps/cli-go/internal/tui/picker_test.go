@@ -19,7 +19,7 @@ func pickerModel() model {
 			{ID: 2, Name: "My Baby Tracker", Prefix: "MBT", Slug: "mybaby"},
 			{ID: 3, Name: "Home Dashboard", Prefix: "HD", Slug: "home"},
 		},
-		view:          viewPicker,
+		view:          viewHome,
 		projectSearch: ti,
 	}
 	m.plist.setLen(len(m.projects))
@@ -70,39 +70,57 @@ func TestPickerArrowNav(t *testing.T) {
 	down := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("k")} // k = Down (Keymap)
 	up := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("i")}   // i = Up (Keymap)
 
-	m2, _ := m.updatePickerMsg(down)
+	m2, _ := m.keyHome(down)
 	if m2.(model).plist.cursor != 1 {
 		t.Errorf("k → cursor=%d, want 1", m2.(model).plist.cursor)
 	}
-	m3, _ := m2.(model).updatePickerMsg(up)
+	m3, _ := m2.(model).keyHome(up)
 	if m3.(model).plist.cursor != 0 {
 		t.Errorf("i → cursor=%d, want 0", m3.(model).plist.cursor)
 	}
 }
 
-// esc schließt Picker, kehrt zu viewTree zurück wenn Projekt gesetzt (DD2-41).
-func TestPickerEscWithProject(t *testing.T) {
+// DD2-124: esc aus der Lobby (viewHome) → Beenden-Confirm (Esc-Spine-Ende).
+func TestHomeEscQuits(t *testing.T) {
 	m := pickerModel()
-	proj := m.projects[0]
-	m.project = &proj
 	esc := tea.KeyMsg{Type: tea.KeyEsc}
-	m2, _ := m.updatePickerMsg(esc)
-	if m2.(model).view != viewTree {
-		t.Errorf("esc mit Projekt → view=%d, want viewTree", m2.(model).view)
-	}
-	if m2.(model).projectQuery != "" {
-		t.Errorf("esc → query sollte leer sein, got %q", m2.(model).projectQuery)
+	m2, _ := m.keyHome(esc)
+	if !m2.(model).confirmQuit {
+		t.Errorf("esc aus Lobby sollte Beenden-Confirm öffnen, confirmQuit=%v", m2.(model).confirmQuit)
 	}
 }
 
-// esc ohne Projekt (startup) bleibt im Picker (DD2-41).
-func TestPickerEscWithoutProject(t *testing.T) {
+// DD2-124: esc im projPick-Overlay schließt nur das Overlay (kein View-Wechsel).
+func TestProjPickEscCloses(t *testing.T) {
 	m := pickerModel()
-	m.project = nil
+	m.view = viewTree
+	m.projPick = true
 	esc := tea.KeyMsg{Type: tea.KeyEsc}
-	m2, _ := m.updatePickerMsg(esc)
-	if m2.(model).view != viewPicker {
-		t.Errorf("esc ohne Projekt → view=%d, want viewPicker", m2.(model).view)
+	m2, _ := m.keyProjPick(esc)
+	if m2.(model).projPick {
+		t.Errorf("esc sollte projPick schließen")
+	}
+	if m2.(model).view != viewTree {
+		t.Errorf("esc im Overlay → view=%d, want viewTree (unverändert)", m2.(model).view)
+	}
+}
+
+// DD2-124: enter im projPick-Overlay wählt das Projekt und springt in den Tree.
+func TestProjPickEnterSelects(t *testing.T) {
+	m := pickerModel()
+	m.view = viewTree
+	m.projPick = true
+	m.plist.cursor = 1 // My Baby Tracker
+	m2, _ := m.keyProjPick(tea.KeyMsg{Type: tea.KeyEnter})
+	m2m := m2.(model)
+	if m2m.projPick {
+		t.Errorf("enter sollte das Overlay schließen")
+	}
+	if m2m.view != viewTree {
+		t.Errorf("enter → view=%d, want viewTree", m2m.view)
+	}
+	if m2m.project == nil || m2m.project.ID != 2 {
+		t.Errorf("falsches Projekt gewählt: %+v", m2m.project)
 	}
 }
 
@@ -111,7 +129,7 @@ func TestPickerTypingFilters(t *testing.T) {
 	m := pickerModel()
 	m.plist.cursor = 2 // irgendwo hin setzen
 	typeH := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("h")}
-	m2, _ := m.updatePickerMsg(typeH)
+	m2, _ := m.keyHome(typeH)
 	m2m := m2.(model)
 	// "h" matcht "Home Dashboard" + "My Baby Tracker" (Slug: mybaby, enthält kein h)
 	// → "Home Dashboard" (HD, home slug)
@@ -123,8 +141,8 @@ func TestPickerTypingFilters(t *testing.T) {
 	}
 }
 
-// openProjectPicker setzt view + leert query (DD2-41).
-func TestOpenProjectPickerSetsState(t *testing.T) {
+// openProjPick öffnet das Overlay (kein View-Wechsel) + leert query (DD2-124).
+func TestOpenProjPickSetsState(t *testing.T) {
 	m := model{
 		view:         viewTree,
 		projectQuery: "old",
@@ -132,10 +150,13 @@ func TestOpenProjectPickerSetsState(t *testing.T) {
 	}
 	m.projects = []api.Project{{ID: 1, Name: "DD", Prefix: "DD", Slug: "dd"}}
 	m.plist.cursor = 2
-	m2, cmd := m.openProjectPicker()
+	m2, cmd := m.openProjPick()
 	m2m := m2.(model)
-	if m2m.view != viewPicker {
-		t.Errorf("view=%d, want viewPicker", m2m.view)
+	if !m2m.projPick {
+		t.Errorf("projPick=%v, want true", m2m.projPick)
+	}
+	if m2m.view != viewTree {
+		t.Errorf("view=%d, want viewTree (kein Wechsel)", m2m.view)
 	}
 	if m2m.projectQuery != "" {
 		t.Errorf("query=%q, want leer", m2m.projectQuery)
@@ -144,6 +165,6 @@ func TestOpenProjectPickerSetsState(t *testing.T) {
 		t.Errorf("cursor=%d, want 0", m2m.plist.cursor)
 	}
 	if cmd == nil {
-		t.Errorf("openProjectPicker liefert keinen loadProjects-Cmd")
+		t.Errorf("openProjPick liefert keinen loadProjects-Cmd")
 	}
 }

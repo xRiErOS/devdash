@@ -472,14 +472,15 @@ func (m model) keyBacklog(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "b":
 		m.view = m.topReturn // zurück zur Quell-View (Tree/Columns, DD2-61)
 	case "esc":
-		// esc räumt zuerst aktive Suche/Filter ab, sonst zurück zur Quell-View.
+		// esc räumt zuerst aktive Suche/Filter ab, sonst → Lobby (Esc-Spine, DD2-124).
+		// b bleibt der „zurück zur Quell-View"-Pfad (topReturn).
 		if m.blQuery != "" || m.backlogFilterActive() {
 			m.blQuery, m.blfType, m.blfStatus = "", nil, nil
 			m.blSearch.SetValue("")
 			m.blist.cursor = 0
 			return m, nil
 		}
-		m.view = m.topReturn
+		m.view = viewHome
 	}
 	return m, nil
 }

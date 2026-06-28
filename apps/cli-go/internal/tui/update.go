@@ -278,7 +278,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // #3: Tree ist vertikal → msg.Y; Ranger-Columns sind horizontal → msg.X.
 func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	// Modale/Picks sind tastaturgesteuert — Maus ignorieren (kein Fehlklick-Fokus).
-	if m.form != nil || m.paletteOpen || m.filtering || m.statusPick || m.sprintPick ||
+	if m.form != nil || m.paletteOpen || m.projPick || m.filtering || m.statusPick || m.sprintPick ||
 		m.msPick || m.smPick || m.maPick || m.tagPick || m.delConfirm || m.mcConfirm || m.usOpen ||
 		m.treeSearching || m.inputting {
 		return m, nil

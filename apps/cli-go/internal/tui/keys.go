@@ -2,8 +2,6 @@ package tui
 
 import (
 	"devd-cli/internal/api"
-	"devd-cli/internal/config"
-	"fmt"
 	"strings"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -21,6 +19,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Command-Center (T16) ist das globalste Modal — fängt vor allem anderen.
 	if m.paletteOpen {
 		return m.keyPalette(msg)
+	}
+	// Projekt-Picker-Overlay (DD2-124): schwebt über jeder View, fängt voll.
+	if m.projPick {
+		return m.keyProjPick(msg)
 	}
 	// ctrl+k / shift+k öffnet das Command-Center von überall (außer in Text-Eingabe).
 	if k := msg.String(); k == "ctrl+k" || k == "K" {
@@ -93,9 +95,9 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.view == viewTree {
 		return m.keyTree(msg)
 	}
-	// Project-Switch-Picker (DD2-41): alle Keys direkt ans Suchfeld leiten.
-	if m.view == viewPicker {
-		return m.updatePickerMsg(msg)
+	// Lobby (DD2-124): alle Keys an den Home-Handler (Nav/Auswahl/Filter).
+	if m.view == viewHome {
+		return m.keyHome(msg)
 	}
 	// Backlog mit aktivem Eingabe-/Menü-Overlay (DD2-46): alle Tasten direkt an den
 	// Backlog-Handler, bevor die globalen Shortcuts (p/q/R/T) sie abfangen.
@@ -117,7 +119,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.requestQuit() // DD2-49: Columns/Picker → Beenden-Confirm
 	case "p":
 		if m.global != nil {
-			return m.openProjectPicker()
+			return m.openProjPick() // DD2-124: Picker als Overlay (kein View-Wechsel)
 		}
 	case "R": // T17: R öffnet von überall die Liste offener Review-Sprints
 		return m.openReviewsList()
@@ -254,15 +256,6 @@ func (m model) keyReviewsList(k string) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// openProjectPicker öffnet den Such-Picker (DD2-41).
-func (m model) openProjectPicker() (tea.Model, tea.Cmd) {
-	m.view = viewPicker
-	m.projectQuery = ""
-	m.projectSearch.SetValue("")
-	m.plist.cursor = 0
-	return m, loadProjects(m.global)
-}
-
 // filteredProjects filtert m.projects nach dem aktuellen projectQuery (Name/Prefix/Slug).
 func (m model) filteredProjects() []api.Project {
 	q := strings.ToLower(strings.TrimSpace(m.projectQuery))
@@ -278,57 +271,6 @@ func (m model) filteredProjects() []api.Project {
 		}
 	}
 	return out
-}
-
-// updatePickerMsg verarbeitet alle Key-Messages im viewPicker (DD2-41).
-func (m model) updatePickerMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch navKey(msg.String()) {
-	case "up":
-		m.plist.move(-1)
-		return m, nil
-	case "down":
-		m.plist.setLen(len(m.filteredProjects()))
-		m.plist.move(1)
-		return m, nil
-	case "enter":
-		filtered := m.filteredProjects()
-		if m.plist.cursor < len(filtered) {
-			p := filtered[m.plist.cursor]
-			m.project = &p
-			m.client = api.NewClient(fmt.Sprintf("%d", p.ID))
-			_ = config.Save(config.State{LastProject: p.Slug})
-			m.view = viewTree // DD2-61: nach Projektwahl direkt in den Primat-View
-			m.treeCursor = 0
-			m.milestones = nil
-			m.depth = 0
-			m.mlist = listState{}
-			m.slist = listState{}
-			m.ilist = listState{}
-			m.curSprint = nil
-			m.projectQuery = ""
-			m.projectSearch.SetValue("")
-			return m, tea.Batch(loadMilestones(m.client), loadTags(m.client))
-		}
-		return m, nil
-	case "esc":
-		if m.project != nil {
-			m.view = viewTree
-		}
-		m.projectQuery = ""
-		m.projectSearch.SetValue("")
-		return m, nil
-	}
-	// Alle anderen Keys → Suchfeld (Focus sicherstellen, damit Update Runes verarbeitet)
-	m.projectSearch.Focus()
-	var cmd tea.Cmd
-	m.projectSearch, cmd = m.projectSearch.Update(msg)
-	prevQuery := m.projectQuery
-	m.projectQuery = strings.TrimSpace(m.projectSearch.Value())
-	if m.projectQuery != prevQuery {
-		m.plist.cursor = 0
-		m.plist.setLen(len(m.filteredProjects()))
-	}
-	return m, cmd
 }
 
 func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
@@ -358,6 +300,10 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 		return m, doRefresh(m.client, ids)
 	}
 	switch k {
+	case "esc": // DD2-124: Esc aus Projekt-View → Lobby (Esc-Spine)
+		m.view = viewHome
+		m.status = ""
+		return m, nil
 	case "enter":
 		if m.depth == 0 && m.selMilestone() != nil {
 			m.view = viewMilestone

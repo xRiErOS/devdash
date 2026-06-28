@@ -94,8 +94,8 @@ func TestMilestoneMoveResetsSprintCursor(t *testing.T) {
 
 func TestPickerSelectSwitchesView(t *testing.T) {
 	m := newModel(nil, nil, api.NewClient(""))
-	if m.view != viewPicker {
-		t.Fatal("Start nicht im Picker")
+	if m.view != viewHome {
+		t.Fatal("Start nicht in der Lobby (viewHome)")
 	}
 	mi, _ := m.Update(projectsMsg{[]api.Project{{ID: 9, Slug: "sprout", Prefix: "SPF"}}})
 	m = mi.(model)

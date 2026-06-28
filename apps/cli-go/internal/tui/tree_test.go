@@ -34,13 +34,17 @@ func TestTreeGlobalKeysReachable(t *testing.T) {
 	if mr, _ := base().keyTree(key("R")); mr.(model).view != viewReviewsList {
 		t.Errorf("R → view=%d, want viewReviewsList", mr.(model).view)
 	}
-	if mp, _ := base().keyTree(key("p")); mp.(model).view != viewPicker {
-		t.Errorf("p → view=%d, want viewPicker", mp.(model).view)
+	// DD2-124: p öffnet den Picker als Overlay (projPick), kein View-Wechsel.
+	if mp, _ := base().keyTree(key("p")); !mp.(model).projPick || mp.(model).view != viewTree {
+		t.Errorf("p → projPick=%v view=%d, want projPick=true view=viewTree", mp.(model).projPick, mp.(model).view)
 	}
-	// Rückkehr aus Backlog landet wieder im Tree (topReturn), nicht in Columns.
+	// DD2-124: Esc aus Backlog → Lobby (Esc-Spine). b bleibt der topReturn-Pfad.
 	mb, _ := base().keyTree(key("b"))
-	if back, _ := mb.(model).keyBacklog(key("esc")); back.(model).view != viewTree {
-		t.Errorf("Backlog esc → view=%d, want viewTree (topReturn)", back.(model).view)
+	if back, _ := mb.(model).keyBacklog(key("esc")); back.(model).view != viewHome {
+		t.Errorf("Backlog esc → view=%d, want viewHome (Esc-Spine)", back.(model).view)
+	}
+	if bk, _ := mb.(model).keyBacklog(key("b")); bk.(model).view != viewTree {
+		t.Errorf("Backlog b → view=%d, want viewTree (topReturn)", bk.(model).view)
 	}
 }
 

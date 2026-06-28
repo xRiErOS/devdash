@@ -491,12 +491,12 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.treeCursor = 0
 			return m, nil
 		}
-		m.view = viewColumns
+		m.view = viewHome // DD2-124: Esc aus dem Primat-View → Lobby (Esc-Spine)
 		m.status = ""
 		return m, nil
-	case "p": // Projekt-Switch — keyTree fängt vor dem globalen Switch, drum hier wiren
+	case "p": // Projekt-Switch-Overlay (DD2-124) — keyTree fängt vor dem globalen Switch
 		if m.global != nil {
-			return m.openProjectPicker()
+			return m.openProjPick()
 		}
 		return m, nil
 	case "R": // Reviews-Liste — analog, sonst im Tree verschluckt

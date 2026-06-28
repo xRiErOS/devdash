@@ -135,8 +135,7 @@ func (m model) dispatchPalette(id string) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "go_project":
 		if m.global != nil {
-			m.view = viewPicker
-			return m, loadProjects(m.global)
+			return m.openProjPick() // DD2-124: Picker-Overlay
 		}
 	case "create_issue":
 		return m.openForm("issue")

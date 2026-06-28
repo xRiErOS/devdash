@@ -9,36 +9,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-func (m model) viewPicker() string {
-	// Suchfeld — TextStyle rot wenn Filter aktiv (DD2-41)
-	ti := m.projectSearch
-	if m.projectQuery != "" {
-		ti.TextStyle = lipgloss.NewStyle().Foreground(theme.Red)
-	} else {
-		ti.TextStyle = lipgloss.NewStyle().Foreground(theme.Text)
-	}
-	searchLine := lipgloss.NewStyle().Foreground(theme.Hint).Render("[switch] Project  ") + ti.View()
-
-	// Gefilterte Projektliste
-	filtered := m.filteredProjects()
-	var b strings.Builder
-	b.WriteString(searchLine + "\n\n")
-	for i, p := range filtered {
-		cursor := "  "
-		name := lipgloss.NewStyle().Foreground(theme.Text).Render(p.Name)
-		hint := lipgloss.NewStyle().Foreground(theme.Hint).Render(fmt.Sprintf("(%s | %s)", p.Prefix, p.Slug))
-		if i == m.plist.cursor {
-			cursor = theme.Accent.Render("▸ ")
-			name = theme.Header.Render(p.Name)
-		}
-		b.WriteString(cursor + name + "  " + hint + "\n")
-	}
-	if len(filtered) == 0 && len(m.projects) > 0 {
-		b.WriteString(lipgloss.NewStyle().Foreground(theme.Hint).Render("  (keine Treffer)") + "\n")
-	}
-	return m.framed("[switch] Project", b.String(), "↑↓:navigieren  enter:wählen  esc:schließen  tippen:filtern")
-}
-
 // --- Miller-Columns ---
 
 type pane struct {
