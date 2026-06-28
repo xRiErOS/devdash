@@ -333,16 +333,16 @@ func (m model) treeDetail(n treeNode, w int) string {
 			return theme.Dim.Render("(nichts gewählt)")
 		}
 		ms := m.milestones[n.mileIdx]
-		// Meilenstein hat keinen Key → Titel ohne Key; Meta-Strip Fortschritt/Ziel.
+		// Meilenstein hat keinen Key → Titel ohne Key; Meta-Strip Fortschritt/Status.
 		b.WriteString(detailTitle("", ms.Name, w) + "\n")
 		b.WriteString(metaStrip([]metaPair{
 			{fmt.Sprintf("%d/%d", ms.Done, ms.Total), "Fortschritt"},
-			{deref(ms.TargetDate), "Ziel"},
-		}, statusText(ms.Status), w) + "\n")
-		if d := deref(ms.Description); d != "" {
-			b.WriteString("\n" + d + "\n")
-		}
-		b.WriteString("\n" + theme.Dim.Render(fmt.Sprintf("Sprints (%d)", len(ms.Sprints))) + "\n")
+		}, statusText(ms.Status), w) + "\n\n")
+		// DD2-78: editierbare Felder als flache, fokussierbare Liste (kein Accordion,
+		// D09). Bei Detail-Fokus auf diesem Knoten trägt das aktive Feld den D08-Balken.
+		fields := milestoneFields()
+		b.WriteString(renderFlatFields(fields, milestoneFieldValues(ms, fields), m.fieldCursor, m.detailFocus, w))
+		b.WriteString("\n\n" + theme.Dim.Render(fmt.Sprintf("Sprints (%d)", len(ms.Sprints))) + "\n")
 	case tkSprint:
 		if n.mileIdx < 0 || n.mileIdx >= len(m.milestones) ||
 			n.sprIdx < 0 || n.sprIdx >= len(m.milestones[n.mileIdx].Sprints) {
@@ -354,10 +354,10 @@ func (m model) treeDetail(n treeNode, w int) string {
 		b.WriteString(metaStrip([]metaPair{
 			{sprintMilestoneName(&sp, &ms), "Meilenstein"},
 			{fmt.Sprintf("%d/%d", sp.DoneCount, sp.ItemCount), "Fortschritt"},
-		}, statusText(sp.Status), w) + "\n")
-		if g := deref(sp.Goal); g != "" {
-			b.WriteString("\n" + theme.Accent.Render("Goal:") + "\n" + g + "\n")
-		}
+		}, statusText(sp.Status), w) + "\n\n")
+		// DD2-78: name/goal als flache, fokussierbare Feldliste (D09, kein Accordion).
+		fields := sprintFields()
+		b.WriteString(renderFlatFields(fields, sprintFieldValues(sp, fields), m.fieldCursor, m.detailFocus, w))
 	case tkIssue:
 		if n.issue == nil {
 			return theme.Dim.Render("(nichts gewählt)")
@@ -580,6 +580,16 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.treeCollapse(nodes)
 	}
 	if msg.String() == "enter" {
+		// DD2-78: enter „geht ins Detail" — auf Meilenstein/Sprint verlagert es den
+		// Fokus in die Detail-Pane (flache Feldliste), statt nur aufzuklappen (l/→
+		// bleibt das Tree-Expand). Auf einem Issue (Blatt) ist es ohnehin der Detail-
+		// Fokus (treeExpand → enterDetailFocus).
+		if m.treeCursor < len(nodes) {
+			switch nodes[m.treeCursor].kind {
+			case tkMile, tkSprint:
+				return m.enterDetailFocus()
+			}
+		}
 		return m.treeExpand(nodes)
 	}
 	return m, nil

@@ -60,6 +60,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.usList = msg.items
 			m.uslist.setLen(len(m.usList))
 		}
+		// DD2-67 #4: frische Stories ins Cockpit-Issue spiegeln, damit der summative
+		// User-Story-Dot LIVE umschlägt (grün sobald alle accepted) — ohne Sprint-Reload.
+		if m.curSprint != nil {
+			for i := range m.curSprint.Items {
+				if m.curSprint.Items[i].ID == msg.issueID {
+					m.curSprint.Items[i].UserStories = msg.items
+					break
+				}
+			}
+		}
 		return m, nil
 	case projectsMsg:
 		m.projects = msg.items
@@ -115,6 +125,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.errNote = ""
 			m.mergeIssueIntoCache(msg.issue)
 			m.status = noticeText("Gespeichert: " + msg.issue.Key)
+		}
+		return m, nil
+	case milestoneUpdatedMsg: // DD2-79: Meilenstein-Feld-Edit → Cache in-place mergen (D05)
+		if msg.err != "" {
+			m.errNote = msg.err
+			return m, nil
+		}
+		if msg.ms != nil {
+			m.errNote = ""
+			m.mergeMilestoneIntoCache(msg.ms)
+			m.status = noticeText("Gespeichert: " + msg.ms.Name)
+		}
+		return m, nil
+	case sprintUpdatedMsg: // DD2-79: Sprint-Feld-Edit → Cache in-place mergen (D05)
+		if msg.err != "" {
+			m.errNote = msg.err
+			return m, nil
+		}
+		if msg.sp != nil {
+			m.errNote = ""
+			m.mergeSprintIntoCache(msg.sp)
+			m.status = noticeText("Gespeichert: " + msg.sp.Name)
 		}
 		return m, nil
 	case allIssuesMsg: // DD2-62: projektweite Issues für den Tree-Filter

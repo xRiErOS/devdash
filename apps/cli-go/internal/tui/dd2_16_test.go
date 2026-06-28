@@ -5,6 +5,9 @@ import (
 	"testing"
 
 	"devd-cli/internal/api"
+	"devd-cli/internal/theme"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/muesli/termenv"
 )
 
 func strptr(s string) *string { return &s }
@@ -117,5 +120,155 @@ func TestIssueFieldsRendersFull(t *testing.T) {
 	// leere Felder erzeugen keine Sektion
 	if strings.Contains(issueFields(&api.Issue{}), "Goal") {
 		t.Error("leeres Issue darf keine Goal-Sektion rendern")
+	}
+}
+
+// DD2-67: viewReview rendert ein echtes Master-Detail — Issue-Liste links, volle
+// Felder des selektierten Issues rechts, horizontal NEBENEINANDER (nicht linear
+// untereinander gestapelt). Strukturanker: mind. eine Body-Zeile trägt zwei
+// bordered Panes nebeneinander (≥3 vertikale Border-Glyphen). Das alte lineare
+// Layout (chrome ohne Border) erfüllt das nicht.
+func TestReviewMasterDetailLayout(t *testing.T) {
+	m := reviewModel()
+	m.width, m.height = 120, 40
+	m.curSprint.Items[0].Title = "LISTENMARKER"
+	m.curSprint.Items[0].Goal = strptr("ZIELMARKER")
+	m.rlist.setLen(len(m.curSprint.Items))
+
+	out := m.viewReview()
+
+	if !strings.Contains(out, "LISTENMARKER") {
+		t.Error("Master-Liste (links) sollte den Issue-Titel zeigen")
+	}
+	if !strings.Contains(out, "ZIELMARKER") {
+		t.Error("Detail-Pane (rechts) sollte das Goal des selektierten Issues zeigen")
+	}
+	twoPane := false
+	for _, ln := range strings.Split(out, "\n") {
+		if strings.Count(ln, "│") >= 3 {
+			twoPane = true
+			break
+		}
+	}
+	if !twoPane {
+		t.Error("viewReview sollte horizontales Master-Detail rendern (zwei Panes nebeneinander), nicht linear gestapelt")
+	}
+}
+
+// DD2-67 (Rework): der lange Issue-Titel wird in der Master-Liste umgebrochen
+// (nicht horizontal abgeschnitten) — sonst unlesbar in der schmalen Pane.
+func TestReviewMasterWrapsLongTitle(t *testing.T) {
+	m := reviewModel()
+	m.width, m.height = 100, 40
+	m.curSprint.Items[0].Title = "Dies ist ein sehr langer Issue Titel der breiter ist als die schmale Master Pane und umgebrochen werden muss"
+	m.rlist.setLen(len(m.curSprint.Items))
+
+	out := m.viewReview()
+	for _, word := range []string{"sehr", "schmale", "umgebrochen", "werden", "muss"} {
+		if !strings.Contains(out, word) {
+			t.Errorf("Master-Liste sollte langen Titel umbrechen — Wort %q fehlt (truncatet?)", word)
+		}
+	}
+}
+
+// DD2-67 (Rework #2): Verdikt-Dot der Master-Liste — grün passed, rot not_passed,
+// orange (Peach) kein Verdikt / noch im Review.
+func TestVerdictDotColors(t *testing.T) {
+	lipgloss.SetColorProfile(termenv.TrueColor)
+	defer lipgloss.SetColorProfile(termenv.Ascii)
+	cases := []struct {
+		rs   string
+		want lipgloss.Color
+	}{
+		{"passed", theme.Green},
+		{"not_passed", theme.Red},
+		{"", theme.Peach},
+		{"irgendwas", theme.Peach},
+	}
+	for _, c := range cases {
+		rs := c.rs
+		got := verdictDot(api.Issue{ReviewStatus: &rs})
+		want := lipgloss.NewStyle().Foreground(c.want).Render("◉")
+		if got != want {
+			t.Errorf("verdictDot(%q): falsche Farbe", c.rs)
+		}
+	}
+}
+
+// DD2-67 (Rework #4): summativer User-Story-Dot — grün alle accepted, rot mind.
+// eine offen/rejected, neutral ohne Stories.
+func TestUsSummaryDot(t *testing.T) {
+	lipgloss.SetColorProfile(termenv.TrueColor)
+	defer lipgloss.SetColorProfile(termenv.Ascii)
+	green := lipgloss.NewStyle().Foreground(theme.Green).Render("◉")
+	red := lipgloss.NewStyle().Foreground(theme.Red).Render("◉")
+	allAcc := api.Issue{UserStories: []api.UserStory{{Verdict: "accepted"}, {Verdict: "accepted"}}}
+	if usSummaryDot(allAcc) != green {
+		t.Error("alle accepted → grün")
+	}
+	mixed := api.Issue{UserStories: []api.UserStory{{Verdict: "accepted"}, {Verdict: "open"}}}
+	if usSummaryDot(mixed) != red {
+		t.Error("mind. eine offen → rot")
+	}
+	if none := usSummaryDot(api.Issue{}); none == green || none == red {
+		t.Error("ohne Stories → neutral, nicht grün/rot")
+	}
+}
+
+// DD2-67 (#4): nach einem User-Story-Verdikt (userStoriesMsg) spiegelt das Cockpit
+// die frischen Stories ins Issue von curSprint → der summative US-Dot färbt sich
+// LIVE (grün sobald alle accepted), ohne Sprint-Reload.
+func TestUserStoriesMsgSyncsCurSprint(t *testing.T) {
+	m := reviewModel()
+	m.curSprint.Items[0].UserStories = []api.UserStory{{ID: 1, Verdict: "open"}}
+	id := m.curSprint.Items[0].ID
+
+	mi, _ := m.Update(userStoriesMsg{issueID: id, items: []api.UserStory{{ID: 1, Verdict: "accepted"}}})
+	m = mi.(model)
+
+	if !usAllAccepted(m.curSprint.Items[0]) {
+		t.Error("userStoriesMsg sollte die frischen Stories ins curSprint-Issue spiegeln (Live-Dot)")
+	}
+}
+
+// DD2-67 (Rework): das Detail-Pane nutzt die Tree-Accordion — Ziffer toggelt die
+// offene Section (m.accOpen), exklusiv (zweite gleiche Ziffer schließt).
+func TestReviewAccordionToggle(t *testing.T) {
+	m := reviewModel()
+	m.width, m.height = 100, 40
+	m.curSprint.Items[0].Goal = strptr("G")
+	m.curSprint.Items[0].Background = strptr("B")
+	m.accOpen = 1
+
+	mi, _ := m.Update(keyMsg("2"))
+	m = mi.(model)
+	if m.accOpen != 2 {
+		t.Errorf("Ziffer 2 sollte Section 2 öffnen, accOpen=%d", m.accOpen)
+	}
+	mi2, _ := m.Update(keyMsg("2"))
+	m = mi2.(model)
+	if m.accOpen != 0 {
+		t.Errorf("Ziffer 2 erneut sollte die Section schließen, accOpen=%d", m.accOpen)
+	}
+}
+
+// DD2-67: das Detail-Pane ist scrollbar (ctrl+d), und ein Selektionswechsel setzt
+// den Detail-Scroll zurück (frisch gewähltes Issue startet oben).
+func TestReviewDetailScroll(t *testing.T) {
+	m := reviewModel()
+	m.width, m.height = 100, 24
+	m.curSprint.Items = append(m.curSprint.Items, api.Issue{Key: "SPF-2", Title: "B", Status: "to_review"})
+	m.rlist.setLen(len(m.curSprint.Items))
+
+	mi, _ := m.Update(keyMsg("ctrl+d"))
+	m = mi.(model)
+	if m.scroll == 0 {
+		t.Error("ctrl+d sollte das Detail-Pane scrollen (m.scroll > 0)")
+	}
+
+	mi2, _ := m.Update(keyMsg("k")) // Selektion runter
+	m = mi2.(model)
+	if m.scroll != 0 {
+		t.Error("Selektionswechsel sollte den Detail-Scroll zurücksetzen")
 	}
 }

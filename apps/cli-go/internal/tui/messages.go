@@ -389,6 +389,42 @@ func doUpdateIssueField(c *api.Client, id int, field, value string) tea.Cmd {
 	}
 }
 
+// milestoneUpdatedMsg / sprintUpdatedMsg tragen die Antwort eines Feld-Edits auf
+// Meilenstein/Sprint (DD2-79). Gefülltes Objekt = Erfolg (Cache-Merge); err =
+// Aktions-Fehler (→ errNote rot, D05). Spiegel von issueUpdatedMsg.
+type milestoneUpdatedMsg struct {
+	ms  *api.Milestone
+	err string
+}
+type sprintUpdatedMsg struct {
+	sp  *api.Sprint
+	err string
+}
+
+// doUpdateMilestoneField schreibt EIN editiertes Meilenstein-Feld via UpdateMilestone
+// (D04/D05). Die Response trägt die neuen Kern-Spalten zurück; der Update-Handler
+// merged sie in-place (kein Refetch).
+func doUpdateMilestoneField(c *api.Client, id int, field, value string) tea.Cmd {
+	return func() tea.Msg {
+		ms, err := c.UpdateMilestone(id, map[string]any{field: value})
+		if err != nil {
+			return milestoneUpdatedMsg{err: cleanAPIErr(err)}
+		}
+		return milestoneUpdatedMsg{ms: ms}
+	}
+}
+
+// doUpdateSprintField schreibt EIN editiertes Sprint-Feld via UpdateSprint (D04/D05).
+func doUpdateSprintField(c *api.Client, id int, field, value string) tea.Cmd {
+	return func() tea.Msg {
+		sp, err := c.UpdateSprint(id, map[string]any{field: value})
+		if err != nil {
+			return sprintUpdatedMsg{err: cleanAPIErr(err)}
+		}
+		return sprintUpdatedMsg{sp: sp}
+	}
+}
+
 // loadUserStories holt die User-Stories eines Issues (für das Abnahme-Modal).
 func loadUserStories(c *api.Client, issueID int) tea.Cmd {
 	return func() tea.Msg {
