@@ -55,6 +55,9 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.delConfirm {
 		return m.keyDelete(msg)
 	}
+	if m.asPick { // DD2-136: Issue→Sprint-Picker (view-übergreifend, wie delConfirm)
+		return m.keyAssignSprint(msg)
+	}
 	// Meilenstein-Cascade-Complete-Confirm (DD2-28).
 	if m.mcConfirm {
 		return m.keyMilestoneCascade(msg)

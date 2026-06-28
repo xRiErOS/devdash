@@ -465,6 +465,10 @@ func (m model) keyBacklog(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if it := m.backlogSelected(); it != nil {
 			return m.openDelete("issue", it.ID, it.Key+" "+it.Title)
 		}
+	case "S": // DD2-136: selektiertes Issue einem Sprint zuweisen
+		if it := m.backlogSelected(); it != nil {
+			return m.openAssignSprint(it.ID)
+		}
 	case "b":
 		m.view = m.topReturn // zurück zur Quell-View (Tree/Columns, DD2-61)
 	case "esc":

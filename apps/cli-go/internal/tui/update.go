@@ -149,6 +149,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.status = noticeText("Gespeichert: " + msg.sp.Name)
 		}
 		return m, nil
+	case assignSprintsMsg: // DD2-136: Ziel-Sprints für den Issue→Sprint-Picker
+		m.asSprints = msg.items
+		m.asMenu.setLen(len(m.asSprints))
+		return m, nil
+	case issueAssignedMsg: // DD2-136: Issue zugewiesen → verlässt das Backlog
+		if msg.err != "" {
+			m.errNote = msg.err
+			return m, nil
+		}
+		m.errNote = ""
+		m.removeIssueFromCaches(msg.issueID)
+		m.detailFocus = false
+		m.blist.setLen(len(m.backlogVisible()))
+		m.status = noticeText("Zugewiesen → " + msg.sprintKey)
+		return m, loadMilestones(m.client) // Sprint-Counts auffrischen
 	case allIssuesMsg: // DD2-62: projektweite Issues für den Tree-Filter
 		m.treeFilterIssues = msg.items
 		m.treeIssuesLoaded = true

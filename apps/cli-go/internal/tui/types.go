@@ -92,6 +92,12 @@ type model struct {
 	blSortOpen   bool
 	blSortMenu   listState
 	blSort       string
+	// Issue→Sprint-Zuweisung (DD2-136): S öffnet einen Single-Select-Picker über die
+	// nicht-finalen Sprints (planning/active). Global dispatcht (wie delConfirm).
+	asPick    bool
+	asIssueID int
+	asSprints []api.Sprint
+	asMenu    listState
 
 	// Review-Cockpit (über curSprint.Items)
 	rlist           listState

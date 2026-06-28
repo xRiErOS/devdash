@@ -46,6 +46,9 @@ func (m model) View() string {
 	if m.blSortOpen { // DD2-46: Backlog-Sortier-Picker
 		return placeOverlay(base, m.backlogSortBox(), m.termWidth(), m.height)
 	}
+	if m.asPick { // DD2-136: Issue→Sprint-Picker
+		return placeOverlay(base, m.assignSprintMenu(), m.termWidth(), m.height)
+	}
 	if m.smPick { // T03 Flow A: Sprint→Meilenstein-Picker
 		return placeOverlay(base, m.sprintMilestoneMenu(), m.termWidth(), m.height)
 	}

@@ -218,6 +218,11 @@ func (m model) keyDetailFocus(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m.openDelete("issue", it.ID, it.Key+" "+it.Title)
 		}
 		return m, nil
+	case "S": // DD2-136: fokussiertes Issue einem Sprint zuweisen
+		if it := m.focusedIssue(); it != nil {
+			return m.openAssignSprint(it.ID)
+		}
+		return m, nil
 	case "enter":
 		// Section-Ebene → in die Section rein (wie l/→); Feld-Ebene → editField-Form
 		// für das aktive Feld öffnen (D04).
