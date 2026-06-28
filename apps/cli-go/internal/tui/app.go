@@ -22,6 +22,11 @@ func newModel(client *api.Client, project *api.Project, global *api.Client) mode
 	ti.Prompt = ""
 	ti.CharLimit = 60
 	m.treeSearch = ti
+	ps := textinput.New() // DD2-41: Projekt-Suchfeld
+	ps.Placeholder = "Suche nach Projekt…"
+	ps.Prompt = ""
+	ps.CharLimit = 40
+	m.projectSearch = ps
 	m.fArt = map[treeKind]bool{}
 	m.fType = map[string]bool{}
 	m.fStatus = map[string]bool{}

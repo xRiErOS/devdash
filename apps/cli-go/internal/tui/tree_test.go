@@ -8,6 +8,7 @@ import (
 
 	"devd-cli/internal/api"
 	"devd-cli/internal/theme"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
@@ -148,6 +149,7 @@ func treeModel() model {
 		treeExpMile:   map[int]bool{},
 		treeExpSprint: map[int]bool{},
 		treeIssues:    map[int][]api.Issue{},
+		projectSearch: textinput.New(), // DD2-41: für openProjectPicker (Focus-Aufruf)
 	}
 }
 

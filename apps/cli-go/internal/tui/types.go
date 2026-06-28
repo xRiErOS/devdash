@@ -221,6 +221,11 @@ type model struct {
 	treeSearching bool
 	treeQuery     string
 
+	// Project-Switch-Picker (DD2-41): p öffnet eine suchbare Projektliste aus jedem View.
+	// projectSearch ist immer fokussiert, solange viewPicker aktiv ist.
+	projectSearch textinput.Model
+	projectQuery  string
+
 	// Tree-Filter (DD2-62 Rework): `f` öffnet ein Facetten-Menü (Art/Issue-Type/
 	// Status), kombinierbar mit der Textsuche. Bei aktivem Filter wird projektweit
 	// gefiltert → alle Issues werden einmal nach treeFilterIssues geladen.
