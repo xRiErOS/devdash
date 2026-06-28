@@ -365,10 +365,9 @@ func (m model) viewBacklog() string {
 // --- Review-Cockpit ---
 
 // viewReview ist das Review-Cockpit als echtes Master-Detail (DD2-67): links die
-// Issue-Liste (Master), rechts die VOLLEN Felder des selektierten Issues (Detail),
-// horizontal nebeneinander. Der Detail-Inhalt wird auf die Pane-Innenbreite
-// umgebrochen (vollständig lesbar, kein horizontales Truncaten) und ist via
-// m.scroll fensterbar. Kopf: globaler Header + Sprint-Titel + Review-Summary
+// Issue-Liste (Master) mit umgebrochenem Titel + Verdikt-Dot, rechts das Detail
+// des selektierten Issues als Tree-Accordion (Ziffern-Toggle) mit Status- und
+// User-Story-Dots im Header. Kopf: globaler Header + Sprint-Titel + Review-Summary
 // (★ DD2-70 Abschluss-Bereitschaft); Footer: reviewHints + Status.
 func (m model) viewReview() string {
 	if m.curSprint == nil {
@@ -386,10 +385,11 @@ func (m model) viewReview() string {
 		statusLine = theme.Key.Render(m.status) + m.input + "▏"
 	}
 
-	// Pane-Innenhöhe = Gesamthöhe minus Kopf/Summary/Footer/Status (+ 3 Trennzeilen).
+	// Pane-Innenhöhe = Gesamthöhe minus Kopf/Summary/Footer/Status/Trennzeilen,
+	// minus 2 für den Pane-Border (der außen wächst → Gesamthöhe = innerH+2).
 	chromeH := lipgloss.Height(head) + lipgloss.Height(summary) +
 		lipgloss.Height(foot) + lipgloss.Height(statusLine) + 3
-	h := m.height - chromeH
+	h := m.height - chromeH - 2
 	if h < 6 {
 		h = m.bodyHeight() // Höhe unbekannt (Init/Tests) → großzügiger Fallback
 	}
@@ -404,39 +404,8 @@ func (m model) viewReview() string {
 		rightW = 24
 	}
 
-	listP := pane{
-		title:  fmt.Sprintf("Issues (%d)", len(s.Items)),
-		rows:   m.reviewRows(),
-		cursor: m.rlist.cursor,
-		isList: true,
-	}
-
-	detTitle := "Detail"
-	detRows := []string{theme.Dim.Render("(kein Issue gewählt)")}
-	if it := m.reviewItem(); it != nil {
-		detTitle = truncate(it.Key+" — "+it.Title, rightW-2)
-		// Status/Typ/Prio/Verdikt als Meta-Zeile, dann die vollen Felder; alles auf
-		// die Pane-Innenbreite umgebrochen → nichts wird horizontal abgeschnitten.
-		meta := theme.StatusStyle(it.Status).Render(it.Status) + "  " +
-			theme.TypeIcon(it.Type) + " " + it.Type + "  " + theme.Priority(it.Priority) +
-			"  " + reviewBadge(*it)
-		content := meta + "\n" + issueFields(it)
-		lines := strings.Split(strings.TrimRight(wrapText(content, rightW-2), "\n"), "\n")
-		inner := h - 2
-		if inner < 1 {
-			inner = 1
-		}
-		off := clampInt(m.scroll, 0, maxInt(len(lines)-inner, 0))
-		if off > 0 || off+inner < len(lines) { // Scroll-Indikator nur wenn nötig
-			detTitle = truncate(it.Key+" — "+it.Title, rightW-14) +
-				theme.Dim.Render(fmt.Sprintf("  [%d–%d/%d]", off+1, min(off+inner, len(lines)), len(lines)))
-		}
-		detRows = lines[off:]
-	}
-	detP := pane{title: detTitle, rows: detRows, isList: false}
-
-	left := renderPane(listP, leftW, h, true)
-	right := renderPane(detP, rightW, h, false)
+	left := m.reviewMasterPane(leftW, h)
+	right := m.reviewDetailPane(m.reviewItem(), rightW, h)
 	body := lipgloss.JoinHorizontal(lipgloss.Top, left, right)
 
 	frame := head + "\n" + summary + "\n" + body + "\n" + foot + "\n" + statusLine
@@ -446,30 +415,73 @@ func (m model) viewReview() string {
 	return frame
 }
 
-// reviewRows baut die kompakten Master-Listenzeilen: result-Dot + Verdikt-Glyph +
-// Key + Titel. renderPane setzt Cursor-Präfix und truncatet auf die Pane-Breite.
-func (m model) reviewRows() []string {
-	if m.curSprint == nil {
-		return nil
-	}
-	rows := make([]string, len(m.curSprint.Items))
+// reviewMasterPane rendert die Master-Liste (DD2-67 Rework #1/#2): je Issue ein
+// Verdikt-Dot + Key, darunter der auf Pane-Breite UMGEBROCHENE Titel (kein
+// horizontales Truncaten). Die Selektion hebt den ganzen Block akzentuiert hervor.
+func (m model) reviewMasterPane(w, h int) string {
+	lines := make([]string, 0, h)
+	lines = append(lines, theme.Header.Render(truncate(fmt.Sprintf("Issues (%d)", len(m.curSprint.Items)), w)))
+	lines = append(lines, theme.Dim.Render(strings.Repeat("─", min(w, 14))))
 	for i, it := range m.curSprint.Items {
-		rows[i] = resultDot(it) + " " + reviewGlyph(it) + " " + theme.Key.Render(it.Key) + " " + it.Title
+		sel := i == m.rlist.cursor
+		cur := "  "
+		key := theme.Key.Render(it.Key)
+		if sel {
+			cur = theme.Accent.Render("▸ ")
+			key = theme.Header.Render(it.Key)
+		}
+		lines = append(lines, truncate(cur+verdictDot(it)+" "+key, w))
+		for _, tl := range strings.Split(wrapText(it.Title, w-4), "\n") {
+			styled := theme.Dim.Render(tl)
+			if sel {
+				styled = tl
+			}
+			lines = append(lines, "    "+styled)
+		}
 	}
-	return rows
+	return borderedPane(lines, w, h, theme.Mauve)
 }
 
-// reviewGlyph ist die schmale Verdikt-Markierung für die Master-Liste (volle
-// Badge-Form via reviewBadge bleibt der Detail-Pane vorbehalten).
-func reviewGlyph(it api.Issue) string {
-	switch deref(it.ReviewStatus) {
-	case "passed":
-		return lipgloss.NewStyle().Foreground(theme.Green).Render("✓")
-	case "not_passed":
-		return lipgloss.NewStyle().Foreground(theme.Red).Render("✗")
-	default:
-		return theme.Dim.Render("∙")
+// reviewDetailPane rendert das Detail des selektierten Issues als Tree-Accordion
+// (DD2-67 Rework #3): Header mit Issue-Key + Result-/User-Story-Dot (#4) + Meta-
+// Zeile, darunter die ziffern-toggelbaren Sektionen (issueSections/renderAccordion),
+// via m.scroll fensterbar.
+func (m model) reviewDetailPane(it *api.Issue, w, h int) string {
+	if it == nil {
+		return borderedPane([]string{theme.Dim.Render("(kein Issue gewählt)")}, w, h, theme.Overlay)
 	}
+	header := []string{
+		truncate(theme.Header.Render(it.Key+" — "+it.Title), w),
+		truncate(theme.StatusStyle(it.Status).Render(it.Status)+"  "+
+			theme.TypeIcon(it.Type)+" "+it.Type+"  "+theme.Priority(it.Priority)+"  "+reviewBadge(*it), w),
+		truncate(theme.Dim.Render("Ergebnis ")+resultDot(*it)+theme.Dim.Render("   User-Stories ")+usSummaryDot(*it)+
+			theme.Dim.Render("   ∙ 1–n:Section  ctrl+d/u:scroll"), w),
+		theme.Dim.Render(strings.Repeat("─", min(w, 24))),
+	}
+	acc := renderAccordion(m.issueSections(*it, w-2), m.accOpen, w, detailFocusView{})
+	accLines := strings.Split(acc, "\n")
+	bodyH := h - len(header)
+	if bodyH < 1 {
+		bodyH = 1
+	}
+	off := clampInt(m.scroll, 0, maxInt(len(accLines)-bodyH, 0))
+	lines := append(header, accLines[off:]...)
+	return borderedPane(lines, w, h, theme.Overlay)
+}
+
+// borderedPane füllt/cappt content auf h Innenzeilen und legt den RoundedBorder
+// außen an (Golden Rule #1: kein Height() auf bordered Style). Gesamthöhe = h+2.
+func borderedPane(lines []string, w, h int, border lipgloss.Color) string {
+	out := append([]string{}, lines...)
+	if len(out) > h {
+		out = out[:h]
+	}
+	for len(out) < h {
+		out = append(out, "")
+	}
+	return lipgloss.NewStyle().Width(w).
+		Border(lipgloss.RoundedBorder()).BorderForeground(border).
+		Render(strings.Join(out, "\n"))
 }
 
 // Cockpit-Spaltenbreiten (sichtbare Breite). Header UND Datenzeile bauen aus

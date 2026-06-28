@@ -5,6 +5,9 @@ import (
 	"testing"
 
 	"devd-cli/internal/api"
+	"devd-cli/internal/theme"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/muesli/termenv"
 )
 
 func strptr(s string) *string { return &s }
@@ -149,6 +152,87 @@ func TestReviewMasterDetailLayout(t *testing.T) {
 	}
 	if !twoPane {
 		t.Error("viewReview sollte horizontales Master-Detail rendern (zwei Panes nebeneinander), nicht linear gestapelt")
+	}
+}
+
+// DD2-67 (Rework): der lange Issue-Titel wird in der Master-Liste umgebrochen
+// (nicht horizontal abgeschnitten) — sonst unlesbar in der schmalen Pane.
+func TestReviewMasterWrapsLongTitle(t *testing.T) {
+	m := reviewModel()
+	m.width, m.height = 100, 40
+	m.curSprint.Items[0].Title = "Dies ist ein sehr langer Issue Titel der breiter ist als die schmale Master Pane und umgebrochen werden muss"
+	m.rlist.setLen(len(m.curSprint.Items))
+
+	out := m.viewReview()
+	for _, word := range []string{"sehr", "schmale", "umgebrochen", "werden", "muss"} {
+		if !strings.Contains(out, word) {
+			t.Errorf("Master-Liste sollte langen Titel umbrechen — Wort %q fehlt (truncatet?)", word)
+		}
+	}
+}
+
+// DD2-67 (Rework #2): Verdikt-Dot der Master-Liste — grün passed, rot not_passed,
+// orange (Peach) kein Verdikt / noch im Review.
+func TestVerdictDotColors(t *testing.T) {
+	lipgloss.SetColorProfile(termenv.TrueColor)
+	defer lipgloss.SetColorProfile(termenv.Ascii)
+	cases := []struct {
+		rs   string
+		want lipgloss.Color
+	}{
+		{"passed", theme.Green},
+		{"not_passed", theme.Red},
+		{"", theme.Peach},
+		{"irgendwas", theme.Peach},
+	}
+	for _, c := range cases {
+		rs := c.rs
+		got := verdictDot(api.Issue{ReviewStatus: &rs})
+		want := lipgloss.NewStyle().Foreground(c.want).Render("◉")
+		if got != want {
+			t.Errorf("verdictDot(%q): falsche Farbe", c.rs)
+		}
+	}
+}
+
+// DD2-67 (Rework #4): summativer User-Story-Dot — grün alle accepted, rot mind.
+// eine offen/rejected, neutral ohne Stories.
+func TestUsSummaryDot(t *testing.T) {
+	lipgloss.SetColorProfile(termenv.TrueColor)
+	defer lipgloss.SetColorProfile(termenv.Ascii)
+	green := lipgloss.NewStyle().Foreground(theme.Green).Render("◉")
+	red := lipgloss.NewStyle().Foreground(theme.Red).Render("◉")
+	allAcc := api.Issue{UserStories: []api.UserStory{{Verdict: "accepted"}, {Verdict: "accepted"}}}
+	if usSummaryDot(allAcc) != green {
+		t.Error("alle accepted → grün")
+	}
+	mixed := api.Issue{UserStories: []api.UserStory{{Verdict: "accepted"}, {Verdict: "open"}}}
+	if usSummaryDot(mixed) != red {
+		t.Error("mind. eine offen → rot")
+	}
+	if none := usSummaryDot(api.Issue{}); none == green || none == red {
+		t.Error("ohne Stories → neutral, nicht grün/rot")
+	}
+}
+
+// DD2-67 (Rework): das Detail-Pane nutzt die Tree-Accordion — Ziffer toggelt die
+// offene Section (m.accOpen), exklusiv (zweite gleiche Ziffer schließt).
+func TestReviewAccordionToggle(t *testing.T) {
+	m := reviewModel()
+	m.width, m.height = 100, 40
+	m.curSprint.Items[0].Goal = strptr("G")
+	m.curSprint.Items[0].Background = strptr("B")
+	m.accOpen = 1
+
+	mi, _ := m.Update(keyMsg("2"))
+	m = mi.(model)
+	if m.accOpen != 2 {
+		t.Errorf("Ziffer 2 sollte Section 2 öffnen, accOpen=%d", m.accOpen)
+	}
+	mi2, _ := m.Update(keyMsg("2"))
+	m = mi2.(model)
+	if m.accOpen != 0 {
+		t.Errorf("Ziffer 2 erneut sollte die Section schließen, accOpen=%d", m.accOpen)
 	}
 }
 

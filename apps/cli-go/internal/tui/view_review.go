@@ -177,6 +177,46 @@ func reviewBadge(it api.Issue) string {
 	}
 }
 
+// verdictDot ist der farbige Verdikt-Indikator der Master-Liste (DD2-67 Rework #2):
+// grün=passed, rot=not_passed, orange (Peach)=noch im Review / kein Verdikt.
+func verdictDot(it api.Issue) string {
+	c := theme.Peach
+	switch deref(it.ReviewStatus) {
+	case "passed":
+		c = theme.Green
+	case "not_passed":
+		c = theme.Red
+	}
+	return lipgloss.NewStyle().Foreground(c).Render("◉")
+}
+
+// usAllAccepted = alle User-Stories des Issues tragen Verdikt accepted (summativ).
+// Ohne Stories: false (nichts geprüft → nicht „grün").
+func usAllAccepted(it api.Issue) bool {
+	if len(it.UserStories) == 0 {
+		return false
+	}
+	for _, us := range it.UserStories {
+		if us.Verdict != "accepted" {
+			return false
+		}
+	}
+	return true
+}
+
+// usSummaryDot fasst die User-Story-Abnahme summativ als Dot (DD2-67 Rework #4):
+// grün=alle accepted, rot=mind. eine offen/rejected, neutral=keine Stories.
+func usSummaryDot(it api.Issue) string {
+	if len(it.UserStories) == 0 {
+		return theme.Dim.Render("◉")
+	}
+	c := theme.Red
+	if usAllAccepted(it) {
+		c = theme.Green
+	}
+	return lipgloss.NewStyle().Foreground(c).Render("◉")
+}
+
 // sprintReviewReady prüft den lokalen Abschluss-Zustand (DD2-70): jedes
 // nicht-stornierte Issue trägt ein passed-Verdikt UND ein gepflegtes result-Feld.
 // Spiegelt das serverseitige completeness-Gate (api.js:2241) ohne Roundtrip, damit
