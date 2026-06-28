@@ -245,30 +245,12 @@ func (m model) viewSprint() string {
 
 // --- Issue-Detail (#5 Rahmen, #6 alle Felder, #9 Titel) ---
 
-func (m model) viewDetail() string {
-	it := m.selIssue()
-	if it == nil {
-		return "\n  (kein Issue)\n"
-	}
-	tags := ""
-	if len(it.Tags) > 0 {
-		names := make([]string, len(it.Tags))
-		for i, t := range it.Tags {
-			names[i] = t.Name
-		}
-		tags = strings.Join(names, ", ")
-	}
-	slots := []hslot{
-		{"Status", statusText(it.Status)},
-		{"Typ", theme.TypeIcon(it.Type) + " " + theme.TypeStyle(it.Type).Render(it.Type)},
-		{"Prio", theme.Priority(it.Priority)},
-		{"Meilenstein", deref(it.Milestone)},
-		{"Sprint", deref(it.SprintKey)},
-		{"Tags", tags},
-	}
+// issueFields rendert die vollen, untruncated Issue-Felder (Goal, Background,
+// …, Result, Review) plus User-Stories+QA als scrollbaren Detail-Block. Single
+// Source für viewDetail (Tree/Columns) UND das Review-Cockpit (DD2-67) — eine
+// Kopie, kann nicht driften (Fix-in-Root). chrome() bricht den Block um.
+func issueFields(it *api.Issue) string {
 	var b strings.Builder
-	b.WriteString(theme.Header.Render(it.Title) + "\n")
-
 	field := func(label, val string) {
 		if strings.TrimSpace(val) == "" {
 			return
@@ -296,6 +278,33 @@ func (m model) viewDetail() string {
 			}
 		}
 	}
+	return b.String()
+}
+
+func (m model) viewDetail() string {
+	it := m.selIssue()
+	if it == nil {
+		return "\n  (kein Issue)\n"
+	}
+	tags := ""
+	if len(it.Tags) > 0 {
+		names := make([]string, len(it.Tags))
+		for i, t := range it.Tags {
+			names[i] = t.Name
+		}
+		tags = strings.Join(names, ", ")
+	}
+	slots := []hslot{
+		{"Status", statusText(it.Status)},
+		{"Typ", theme.TypeIcon(it.Type) + " " + theme.TypeStyle(it.Type).Render(it.Type)},
+		{"Prio", theme.Priority(it.Priority)},
+		{"Meilenstein", deref(it.Milestone)},
+		{"Sprint", deref(it.SprintKey)},
+		{"Tags", tags},
+	}
+	var b strings.Builder
+	b.WriteString(theme.Header.Render(it.Title) + "\n")
+	b.WriteString(issueFields(it))
 
 	stamp := []string{}
 	if s := deref(it.CreatedAt); s != "" {
@@ -362,14 +371,12 @@ func (m model) viewReview() string {
 	// Review-Ergebnisse (Runden-Übersicht) unten.
 	b.WriteString("\n" + m.reviewSummary() + "\n")
 
+	// DD2-67: Master-Detail — unter der Liste die VOLLEN Felder des selektierten
+	// Issues (Goal/Background/PO-Notes/Context/Result + User-Stories+QA), untruncated
+	// und scrollbar (chrome bricht um), damit der PO das Verdikt fundiert fällt.
 	if it := m.reviewItem(); it != nil {
-		b.WriteString("\n" + theme.Header.Render(truncate(it.Key+" — "+it.Title, m.termWidth()-6)) + "\n")
-		if g := deref(it.Goal); g != "" {
-			b.WriteString(theme.Dim.Render("Goal: "+truncate(g, maxInt(20, m.termWidth()-16))) + "\n")
-		}
-		if c := deref(it.ReviewComment); c != "" {
-			b.WriteString(theme.Dim.Render("Review: "+truncate(c, maxInt(20, m.termWidth()-16))) + "\n")
-		}
+		b.WriteString("\n" + theme.Header.Render(truncate("▸ "+it.Key+" — "+it.Title, m.termWidth()-6)) + "\n")
+		b.WriteString(issueFields(it))
 	}
 	if m.inputting {
 		b.WriteString("\n" + theme.Key.Render(m.status) + m.input + "▏\n")

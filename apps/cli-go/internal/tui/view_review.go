@@ -185,12 +185,39 @@ func reviewBadge(it api.Issue) string {
 	}
 }
 
+// sprintReviewReady prüft den lokalen Abschluss-Zustand (DD2-70): jedes
+// nicht-stornierte Issue trägt ein passed-Verdikt UND ein gepflegtes result-Feld.
+// Spiegelt das serverseitige completeness-Gate (api.js:2241) ohne Roundtrip, damit
+// das Cockpit die Abschluss-Bereitschaft prominent signalisieren kann.
+func sprintReviewReady(s *api.Sprint) bool {
+	if s == nil {
+		return false
+	}
+	any := false
+	for _, it := range s.Items {
+		if it.Status == "cancelled" {
+			continue
+		}
+		any = true
+		if deref(it.ReviewStatus) != "passed" {
+			return false
+		}
+		if strings.TrimSpace(deref(it.Result)) == "" {
+			return false
+		}
+	}
+	return any
+}
+
 // reviewSummary fasst die Review-Runden zusammen (für Sprint-Abschluss-Readiness).
+// DD2-70: result-Lücken bei passed-Issues werden mitgezählt, und die Abschluss-
+// Bereitschaft prüft Verdikt UND result (nicht nur Verdikte) — erst dann der
+// prominente „Abschluss-bereit"-Hinweis Richtung C.
 func (m model) reviewSummary() string {
 	if m.curSprint == nil {
 		return ""
 	}
-	var passed, rejected, pending int
+	var passed, rejected, pending, missingResult int
 	for _, it := range m.curSprint.Items {
 		if it.Status == "cancelled" {
 			continue
@@ -203,15 +230,21 @@ func (m model) reviewSummary() string {
 		default:
 			pending++
 		}
+		if strings.TrimSpace(deref(it.Result)) == "" {
+			missingResult++
+		}
 	}
 	parts := []string{
 		lipgloss.NewStyle().Foreground(theme.Green).Render(fmt.Sprintf("✓ %d passed", passed)),
 		lipgloss.NewStyle().Foreground(theme.Red).Render(fmt.Sprintf("✗ %d not_passed", rejected)),
 		theme.Dim.Render(fmt.Sprintf("∙ %d offen", pending)),
 	}
+	if missingResult > 0 {
+		parts = append(parts, lipgloss.NewStyle().Foreground(theme.Red).Render(fmt.Sprintf("◉ %d ohne Ergebnis", missingResult)))
+	}
 	head := theme.Dim.Render("Review-Runden: ")
-	if pending == 0 && rejected == 0 && passed > 0 {
-		head = lipgloss.NewStyle().Foreground(theme.Green).Render("Abschluss-bereit: ")
+	if sprintReviewReady(m.curSprint) {
+		head = lipgloss.NewStyle().Foreground(theme.Green).Bold(true).Render("★ Abschluss-bereit (C: PO) — ")
 	}
 	return head + strings.Join(parts, "  ")
 }
@@ -276,9 +309,13 @@ func (m model) reviewHints() string {
 		}
 	}
 	if m.curSprint != nil {
-		hints = append(hints, "S:Sprint-Status")
+		hints = append(hints, "P:Review-Pass", "S:Sprint-Status")
 		if m.curSprint.Status == "review" {
-			hints = append(hints, "C:abschließen(PO)")
+			c := "C:abschließen(PO)"
+			if sprintReviewReady(m.curSprint) { // DD2-70: bereit → prominent
+				c = "★C:abschließen(PO)"
+			}
+			hints = append(hints, c)
 		}
 	}
 	hints = append(hints, "q:zurück")
