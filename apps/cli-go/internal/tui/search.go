@@ -104,7 +104,8 @@ func (m model) viewSearch() string {
 	if m.status != "" {
 		footer = m.status
 	}
-	return head + "\n" + body + "\n" + footer
+	// DD2-91 Rework: in den App-Außenrahmen wrappen (Chrome-Parität zu Tree/Columns/Backlog).
+	return m.outerBorder(head + "\n" + body + "\n" + footer)
 }
 
 func (m model) searchRows(results []api.Issue) []string {

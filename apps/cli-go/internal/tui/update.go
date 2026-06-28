@@ -186,6 +186,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.treeFilterIssues = msg.items
 		m.treeIssuesLoaded = true
 		m.treeCursor = 0
+		if m.treeFilterOpen { // DD2-116 Rework: Filter war beim ERSTEN f offen, bevor die Issues (inkl. Tags) da waren → Facetten (Tags!) jetzt nachbauen statt erst beim Reopen
+			m.ffItems = m.buildFilterItems()
+			m.ffMenu.setLen(len(m.ffItems))
+		}
 		return m, nil
 	case reviewSprintsMsg:
 		m.reviewSprints = msg.items

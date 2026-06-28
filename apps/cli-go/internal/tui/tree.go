@@ -313,8 +313,8 @@ func (m model) treeLeftLines(nodes []treeNode, w int, active bool) []string {
 			label = statusDot(ms.Status) + " " + mileDisplayName(ms.Name)
 		case tkSprint:
 			sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
-			if sp.Status == "cancelled" { // DD2-133: abgebrochene Sprints dezent grau
-				label = theme.Dim.Render(sp.Key + " " + sp.Status)
+			if sp.Status == "cancelled" { // DD2-133 Rework: ID/Key bleibt weiß (wie completed), NUR der Status-Text grau
+				label = sp.Key + " " + theme.Dim.Render(sp.Status)
 			} else {
 				label = sp.Key + " " + statusText(sp.Status)
 			}
