@@ -134,7 +134,7 @@ func (m model) openBacklogSort() (tea.Model, tea.Cmd) {
 func (m model) backlogLayout() (head, localKeys string, lw, rw, innerH int) {
 	w := m.termWidth()
 	head = m.breadcrumb("Backlog")
-	hint := "i/k:↑↓  l/→/enter:Detail  /:Suche  f:Filter  s:Sortierung  t:Tags  b/esc:zurück"
+	hint := "i/k:↑↓  l/→/enter:Detail  /:Suche  f:Filter  s:Sortierung  S:Sprint  d:löschen  t:Tags  b/esc:zurück"
 	switch {
 	case m.blSearching:
 		hint = "tippen: filtern   enter: übernehmen   esc: abbrechen"
