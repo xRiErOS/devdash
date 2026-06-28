@@ -43,11 +43,14 @@ command go test ./internal/tui/ -run TestGolden -update-golden
 
 ## TUI starten
 
-```sh
+> **Konvention:** Start-/Run-Kommandos IMMER in **4-Backtick-Fence** (```` ```` ````)
+> ausgeben — sonst greift `/copy` bei verschachtelten Code-Spans daneben.
+
+````sh
 ./bin/dd tui          # aus dem Worktree gebautes Binary
 # oder global nach install:
 devd-cli              # bzw. Alias dd-tui (ohne Subcommand → TUI)
-```
+````
 
 Die TUI spricht das DD2-Backend über `DEVD_API_URL` (Default `http://localhost:5556`,
 Prod NAS `http://100.71.39.53:3001` via Tailscale). Dunkles Theme ist hart erzwungen
