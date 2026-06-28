@@ -63,7 +63,7 @@ func loadMilestones(c *api.Client) tea.Cmd {
 // /api/backlog ohne Filter liefert sämtliche Issues inkl. sprint-zugewiesener.
 func loadAllIssues(c *api.Client) tea.Cmd {
 	return func() tea.Msg {
-		items, err := c.ListIssues(api.IssueListOpts{})
+		items, err := c.ListIssues(api.IssueListOpts{Fields: "full"}) // DD2-147: po_notes/goal nur mit fields=full (compact lässt sie weg)
 		if err != nil {
 			return noticeMsg{cleanAPIErr(err)}
 		}
@@ -654,11 +654,11 @@ func loadReviewSprints(c *api.Client) tea.Cmd {
 // kein Sprint). Zwei Queries, gemerged + nach id dedupliziert.
 func loadBacklog(c *api.Client) tea.Cmd {
 	return func() tea.Msg {
-		neu, err := c.ListIssues(api.IssueListOpts{Status: "new"})
+		neu, err := c.ListIssues(api.IssueListOpts{Status: "new", Fields: "full"}) // DD2-147: po_notes/goal im Detail
 		if err != nil {
 			return errMsg{err}
 		}
-		planned, err := c.ListIssues(api.IssueListOpts{Status: "planned", SprintID: "null"})
+		planned, err := c.ListIssues(api.IssueListOpts{Status: "planned", SprintID: "null", Fields: "full"}) // DD2-147: po_notes/goal im Detail
 		if err != nil {
 			return errMsg{err}
 		}
