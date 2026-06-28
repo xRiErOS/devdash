@@ -23,6 +23,9 @@ func (m model) View() string {
 	}
 	// Command-Center (T16): Formular bzw. Palette schweben zentriert über dem Frame.
 	if m.form != nil {
+		if m.formKind == "testform" { // Styling-Sandbox: palette-gerahmt
+			return placeOverlay(base, m.sandboxFormBox(), m.termWidth(), m.height)
+		}
 		return m.form.View()
 	}
 	if m.paletteOpen {

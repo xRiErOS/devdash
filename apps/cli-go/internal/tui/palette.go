@@ -31,6 +31,7 @@ func paletteActions(m *model) []paletteAction {
 		{"go_backlog", "Gehe zu: Backlog"},
 		{"go_tags", "Gehe zu: Tag-Manager"},
 		{"toggle_ranger", "Layout wechseln: Ranger ↔ Tree"},
+		{"test_form", "Test Form"}, // Styling-Sandbox (kein Persist)
 	}
 	if m.global != nil {
 		acts = append(acts, paletteAction{"go_project", "Projekt wechseln"})
@@ -146,6 +147,8 @@ func (m model) dispatchPalette(id string) (tea.Model, tea.Cmd) {
 		return m.openForm("sprint")
 	case "create_memory":
 		return m.openForm("memory")
+	case "test_form":
+		return m.openForm("testform")
 	}
 	return m, nil
 }

@@ -116,6 +116,8 @@ func (m model) openForm(kind string) (tea.Model, tea.Cmd) {
 
 	var f *huh.Form
 	switch kind {
+	case "testform": // Styling-Sandbox (Palette-Action "Test Form"), kein Persist
+		f = buildTestForm()
 	case "issue":
 		f = buildIssueForm(m.tags)
 	case "milestone":
