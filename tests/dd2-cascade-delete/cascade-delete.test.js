@@ -7,9 +7,9 @@ import { createTestDb } from '../_fixtures/in-memory-db.js'
 import { cascadeDeleteSprints, milestoneDeletePreview } from '../../apps/backend/src/lib/cascadeDelete.js'
 
 function seed(db) {
-  // archon_runs wird erst nach dem Baseline-Snapshot (028) angelegt — in Prod
-  // vorhanden, hier als Stub, damit cascadeDeleteSprints es räumen kann.
-  db.exec('CREATE TABLE IF NOT EXISTS archon_runs (id INTEGER PRIMARY KEY, sprint_id INTEGER)')
+  // DD2-156: KEIN archon_runs-Stub. Migration 006 hat die Tabelle dauerhaft
+  // gedroppt (Archon deferred) — Prod hat sie nicht. cascadeDeleteSprints darf
+  // sie deshalb nicht referenzieren; diese Test-DB spiegelt die Prod-Realität.
   // DD2-21: documents-Tabelle (Migration 067) — als Stub, damit milestoneDeletePreview
   // sie zählen kann (Snapshot ist 028, vor 067). Genau ein Owner via CHECK.
   db.exec(`CREATE TABLE IF NOT EXISTS documents (

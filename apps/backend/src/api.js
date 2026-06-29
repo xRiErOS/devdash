@@ -3673,8 +3673,9 @@ app.delete('/api/sprints/:id', (req, res) => {
   }
 
   db.transaction(() => {
-    // cascadeDeleteSprints räumt Issues (inkl. Kinder) + archon_runs + Sprint.
-    // Bei itemCount=0 ist das identisch zum alten Pfad (nur archon_runs + Sprint).
+    // cascadeDeleteSprints räumt Issues (inkl. Kinder) + Sprint (DD2-156: kein
+    // archon_runs mehr — Tabelle in Migration 006 gedroppt). Bei itemCount=0
+    // identisch zum alten Pfad (nur Sprint).
     cascadeDeleteSprints(db, [Number(req.params.id)])
     db.prepare(`INSERT INTO audit_log (agent_id, action, table_name, record_id, old_value, new_value)
                 VALUES (?, ?, ?, ?, ?, ?)`).run(
