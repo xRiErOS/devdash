@@ -1684,17 +1684,24 @@ ${vorgehenText}
 // ---------------------------------------------------------------------------
 // DD-565 (Triplet 6/6): bewusst KEIN Import aus contracts/subtask.contracts.js. Die
 // devd_subtask_*-Tools tragen kein dedupbares Enum/Konstanten-Literal — Status ist als fixes
-// `{ status: 'done' }` im done-Handler hartkodiert, title/qa_criteria/position sind reine
-// z.-Param-Typen. tests/sma-mcp-parity/subtasks.test.js ist zudem ein Source-Shape-Guard, der den
-// Klartext dieses Blocks (title/qa_criteria/done/id_or_key + Route-Strings) assertet. Die Single
-// Source der Subtask-Werte liegt in contracts/subtask.contracts.js + server/lib/subtasks.js.
+// `{ status: 'done' }` im done-Handler hartkodiert. tests/sma-mcp-parity/subtasks.test.js ist
+// zudem ein Source-Shape-Guard, der den Klartext dieses Blocks (title/qa_criteria/done/id_or_key
+// + Route-Strings) assertet. Die Single Source der Subtask-Werte liegt in
+// contracts/subtask.contracts.js + server/lib/subtasks.js.
+//
+// DD2-97: Input-Boundary gehärtet (klare Fehler an der MCP-Grenze statt Round-Trip): id_or_key
+// non-empty, title non-empty (trim+min(1), spiegelt 'title ist Pflichtfeld'), subtask_id positive
+// Ganzzahl. Bewusst inline (Contract-Entscheidung DD-562/563/564: kein Contract-Import in MCP) —
+// und KEINE künstlichen Längen-Caps, da die REST-Lib keine hat (sonst MCP/REST-Drift). Die
+// werfende Business-Autorität (qa_criteria-auf-done 422, status-nur-open-beim-Anlegen 400,
+// Parent-Existenz 404) bleibt in server/lib/subtasks.js.
 
 server.tool(
   'devd_subtask_list',
   'READ: List all subtasks for an issue. Returns id, title, qa_criteria, status, position.',
   {
     project_id: PROJECT_ID_PARAM,
-    id_or_key: z.string().describe('Issue key (e.g. "DD-42") or numeric backlog id'),
+    id_or_key: z.string({ error: 'id_or_key ist Pflichtfeld' }).trim().min(1, { error: 'id_or_key darf nicht leer sein' }).describe('Issue key (e.g. "DD-42") or numeric backlog id'),
   },
   async ({ project_id, id_or_key }) => {
     const pid = resolveProjectId(project_id)
@@ -1710,10 +1717,10 @@ server.tool(
   'WRITE: Add a subtask to an issue. title is required. qa_criteria is recommended (required before marking done).',
   {
     project_id: PROJECT_ID_PARAM,
-    id_or_key: z.string().describe('Issue key (e.g. "DD-42") or numeric backlog id'),
-    title: z.string().describe('Subtask title (required)'),
+    id_or_key: z.string({ error: 'id_or_key ist Pflichtfeld' }).trim().min(1, { error: 'id_or_key darf nicht leer sein' }).describe('Issue key (e.g. "DD-42") or numeric backlog id'),
+    title: z.string({ error: 'title ist Pflichtfeld' }).trim().min(1, { error: 'title ist Pflichtfeld' }).describe('Subtask title (required)'),
     qa_criteria: z.string().optional().describe('Acceptance / QA criteria — required before marking done'),
-    position: z.number().int().optional().describe('Sort position (default appended at end)'),
+    position: z.number().int({ error: 'position muss eine Ganzzahl sein' }).optional().describe('Sort position (default appended at end)'),
   },
   async ({ project_id, id_or_key, title, qa_criteria, position }) => {
     const pid = resolveProjectId(project_id)
@@ -1732,7 +1739,7 @@ server.tool(
   'WRITE: Mark a subtask as done. The subtask must have qa_criteria set (enforced server-side).',
   {
     project_id: PROJECT_ID_PARAM,
-    subtask_id: z.number().int().describe('Numeric subtask id (ST-<id>)'),
+    subtask_id: z.number().int().positive({ error: 'subtask_id muss eine positive Ganzzahl sein' }).describe('Numeric subtask id (ST-<id>)'),
   },
   async ({ project_id, subtask_id }) => {
     const pid = resolveProjectId(project_id)
@@ -1747,10 +1754,10 @@ server.tool(
   'WRITE: Update title, qa_criteria, or position of a subtask.',
   {
     project_id: PROJECT_ID_PARAM,
-    subtask_id: z.number().int().describe('Numeric subtask id (ST-<id>)'),
-    title: z.string().optional().describe('New title'),
+    subtask_id: z.number().int().positive({ error: 'subtask_id muss eine positive Ganzzahl sein' }).describe('Numeric subtask id (ST-<id>)'),
+    title: z.string().trim().min(1, { error: 'title darf nicht leer sein' }).optional().describe('New title'),
     qa_criteria: z.string().optional().describe('New QA criteria'),
-    position: z.number().int().optional().describe('New sort position'),
+    position: z.number().int({ error: 'position muss eine Ganzzahl sein' }).optional().describe('New sort position'),
   },
   async ({ project_id, subtask_id, title, qa_criteria, position }) => {
     const pid = resolveProjectId(project_id)
@@ -1769,7 +1776,7 @@ server.tool(
   'WRITE: Delete a subtask permanently.',
   {
     project_id: PROJECT_ID_PARAM,
-    subtask_id: z.number().int().describe('Numeric subtask id (ST-<id>)'),
+    subtask_id: z.number().int().positive({ error: 'subtask_id muss eine positive Ganzzahl sein' }).describe('Numeric subtask id (ST-<id>)'),
   },
   async ({ project_id, subtask_id }) => {
     const pid = resolveProjectId(project_id)
