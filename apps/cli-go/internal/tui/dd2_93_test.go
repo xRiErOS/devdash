@@ -19,7 +19,7 @@ func TestCreatedToastSurvivesReload(t *testing.T) {
 	before := m.status
 
 	// Reload-Zyklus: ein sprintMsg darf den Sticky-Toast nicht löschen.
-	m.view = viewReview
+	m.view = viewReviewSprint
 	m.curSprint = &api.Sprint{ID: 1, Items: []api.Issue{{ID: 1, Key: "X-1"}}}
 	mi, _ = m.Update(sprintMsg{&api.Sprint{ID: 1, Items: []api.Issue{{ID: 1, Key: "X-1"}}}})
 	m = mi.(model)

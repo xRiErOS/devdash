@@ -1,6 +1,6 @@
 package tui
 
-// form_settings.go — DD2-125: Settings-Form. Bearbeitet die User-Config
+// form_edit_settings.go — DD2-125: Settings-Form. Bearbeitet die User-Config
 // (~/.config/devd-cli/config.yaml) direkt aus der TUI (Aufruf via Command
 // Palette → "Einstellungen"). Felder: theme.accent, layout.tree_width,
 // layout.modal_width. Keybindings = read-only Placeholder (→ DD2-34). Nach Save

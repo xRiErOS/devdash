@@ -48,7 +48,7 @@ func TestSection1DescriptionOnlyWhenSet(t *testing.T) {
 // po_notes-Feld öffnet die editField-Form (auch wenn der Wert leer ist).
 func TestBacklogEditEmptyPoNotes(t *testing.T) {
 	m := model{
-		view:    viewBacklog,
+		view:    viewBrowseBacklog,
 		backlog: []api.Issue{{ID: 5, Key: "DD2-5", Title: "Ohne Notes", Type: "bug", Priority: 1, Status: "new"}},
 		blist:   listState{length: 1, cursor: 0},
 		accOpen: 1,

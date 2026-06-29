@@ -31,21 +31,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "milestone", "sprint":
 			return m, tea.Batch(loadMilestones(m.client), clear) // Columns neu (neue Spalten-Items)
 		case "issue":
-			if m.view == viewBacklog {
+			if m.view == viewBrowseBacklog {
 				return m, tea.Batch(loadBacklog(m.client), clear)
 			}
 			// DD2-153: im Review die Ursprungs-Sprint-Review gezielt neu laden. Sonst
 			// reloadt loadMilestones→syncSprint() den columns-SELEKTIERTEN (default
 			// ersten) Sprint und clobbert m.curSprint → Redirect auf das erste Review
 			// der Liste statt das, von dem die PO startete.
-			if m.view == viewReview && m.curSprint != nil {
+			if m.view == viewReviewSprint && m.curSprint != nil {
 				return m, tea.Batch(loadSprint(m.client, m.curSprint.ID), clear)
 			}
 			// DD2-72: im Tree/Columns nach Issue-Anlage die Spalten/Counts auffrischen,
 			// sonst hängt die Ansicht auf veralteten Fortschrittszahlen.
 			return m, tea.Batch(loadMilestones(m.client), clear)
 		case "memory":
-			if m.view == viewMemory {
+			if m.view == viewManageMemory {
 				return m, tea.Batch(loadMemories(m.client, m.memCat), clear)
 			}
 		}
@@ -117,7 +117,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if s := m.selSprint(); s != nil && m.curSprint != nil && s.ID == m.curSprint.ID {
 			m.ilist.setLen(len(m.visIssues()))
 		}
-		if m.view == viewReview && m.curSprint != nil {
+		if m.view == viewReviewSprint && m.curSprint != nil {
 			m.rlist.setLen(len(m.curSprint.Items))
 			if !m.statusSticky { // DD2-93: Erfolgs-Toast nicht durch Reload clobbern
 				m.status = ""
@@ -228,8 +228,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		// Columns + ggf. Cockpit/Detail-Quelle frisch; zurück auf Columns-Sicht.
 		m.curSprint = nil
-		if m.view == viewMilestone || m.view == viewSprint {
-			m.view = viewTree // DD2-111: Ranger gesunset → Tree-Primat
+		if m.view == viewDetailMilestone || m.view == viewDetailSprint {
+			m.view = viewBrowseProject // DD2-111: Ranger gesunset → Tree-Primat
 		}
 		return m, loadMilestones(m.client)
 	case reworkDoneMsg:
@@ -263,7 +263,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case tagMutatedMsg: // DD2-75: create/update/delete → Liste neu laden
 		m.status = noticeText(msg.label)
-		if m.view == viewTags {
+		if m.view == viewManageTags {
 			return m, loadTags(m.client)
 		}
 		return m, nil
@@ -307,7 +307,7 @@ func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	}
 	switch msg.Button {
 	case tea.MouseButtonWheelUp:
-		if m.view == viewTree {
+		if m.view == viewBrowseProject {
 			if m.treeCursor > 0 {
 				m.treeCursor--
 			}
@@ -319,7 +319,7 @@ func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	case tea.MouseButtonWheelDown:
-		if m.view == viewTree {
+		if m.view == viewBrowseProject {
 			if n := len(m.treeNodes()); m.treeCursor < n-1 {
 				m.treeCursor++
 			}
@@ -332,7 +332,7 @@ func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		switch m.view {
-		case viewTree:
+		case viewBrowseProject:
 			return m.mouseTreeClick(msg)
 		}
 	}

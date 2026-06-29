@@ -93,22 +93,22 @@ func TestHomeEscQuits(t *testing.T) {
 // DD2-124: esc im projPick-Overlay schließt nur das Overlay (kein View-Wechsel).
 func TestProjPickEscCloses(t *testing.T) {
 	m := pickerModel()
-	m.view = viewTree
+	m.view = viewBrowseProject
 	m.projPick = true
 	esc := tea.KeyMsg{Type: tea.KeyEsc}
 	m2, _ := m.keyProjPick(esc)
 	if m2.(model).projPick {
 		t.Errorf("esc sollte projPick schließen")
 	}
-	if m2.(model).view != viewTree {
-		t.Errorf("esc im Overlay → view=%d, want viewTree (unverändert)", m2.(model).view)
+	if m2.(model).view != viewBrowseProject {
+		t.Errorf("esc im Overlay → view=%d, want viewBrowseProject (unverändert)", m2.(model).view)
 	}
 }
 
 // DD2-124: enter im projPick-Overlay wählt das Projekt und springt in den Tree.
 func TestProjPickEnterSelects(t *testing.T) {
 	m := pickerModel()
-	m.view = viewTree
+	m.view = viewBrowseProject
 	m.projPick = true
 	m.plist.cursor = 1 // My Baby Tracker
 	m2, _ := m.keyProjPick(tea.KeyMsg{Type: tea.KeyEnter})
@@ -116,8 +116,8 @@ func TestProjPickEnterSelects(t *testing.T) {
 	if m2m.projPick {
 		t.Errorf("enter sollte das Overlay schließen")
 	}
-	if m2m.view != viewTree {
-		t.Errorf("enter → view=%d, want viewTree", m2m.view)
+	if m2m.view != viewBrowseProject {
+		t.Errorf("enter → view=%d, want viewBrowseProject", m2m.view)
 	}
 	if m2m.project == nil || m2m.project.ID != 2 {
 		t.Errorf("falsches Projekt gewählt: %+v", m2m.project)
@@ -144,7 +144,7 @@ func TestPickerTypingFilters(t *testing.T) {
 // openProjPick öffnet das Overlay (kein View-Wechsel) + leert query (DD2-124).
 func TestOpenProjPickSetsState(t *testing.T) {
 	m := model{
-		view:         viewTree,
+		view:         viewBrowseProject,
 		projectQuery: "old",
 		global:       api.NewClient(""),
 	}
@@ -155,8 +155,8 @@ func TestOpenProjPickSetsState(t *testing.T) {
 	if !m2m.projPick {
 		t.Errorf("projPick=%v, want true", m2m.projPick)
 	}
-	if m2m.view != viewTree {
-		t.Errorf("view=%d, want viewTree (kein Wechsel)", m2m.view)
+	if m2m.view != viewBrowseProject {
+		t.Errorf("view=%d, want viewBrowseProject (kein Wechsel)", m2m.view)
 	}
 	if m2m.projectQuery != "" {
 		t.Errorf("query=%q, want leer", m2m.projectQuery)

@@ -1,7 +1,7 @@
 package tui
 
-// tags.go — Tag-Manager (DD2-75) + Tag-Zuweisungs-Picker (DD2-33).
-//   DD2-75: T öffnet viewTags (projektweite CRUD-Liste). n/e öffnen die huh-Form
+// view_manage_tags.go — Tag-Manager (DD2-75) + Tag-Zuweisungs-Picker (DD2-33).
+//   DD2-75: T öffnet viewManageTags (projektweite CRUD-Liste). n/e öffnen die huh-Form
 //           (Name + Farb-Select), d löscht nach Confirm.
 //   DD2-33: g öffnet ein Checkbox-Overlay über die Projekt-Tags für das fokussierte
 //           Issue/Sprint/Meilenstein; enter ruft den vollständigen Replace.
@@ -81,10 +81,10 @@ func buildTagForm(name, color string) *huh.Form {
 
 // openTagManager öffnet die Tag-Verwaltung (T) und merkt die Quell-View für esc/q.
 func (m model) openTagManager() (tea.Model, tea.Cmd) {
-	if m.view != viewTags {
+	if m.view != viewManageTags {
 		m.tagReturn = m.view
 	}
-	m.view = viewTags
+	m.view = viewManageTags
 	m.taglist = listState{}
 	m.status = ""
 	return m, loadTags(m.client)
@@ -163,8 +163,8 @@ func (m model) keyTagDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// viewTags rendert die Tag-Verwaltungs-Liste (DD2-75).
-func (m model) viewTags() string {
+// viewManageTags rendert die Tag-Verwaltungs-Liste (DD2-75).
+func (m model) viewManageTags() string {
 	var b strings.Builder
 	b.WriteString(theme.Dim.Render("project-wide tags — c:new  e:edit  d:delete") + "\n\n")
 	if len(m.tags) == 0 {

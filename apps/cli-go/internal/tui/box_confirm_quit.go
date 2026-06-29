@@ -1,6 +1,6 @@
 package tui
 
-// quit.go — Beenden-Bestätigung (DD2-49). q/ctrl+c auf einem Top-Level-View
+// box_confirm_quit.go — Beenden-Bestätigung (DD2-49). q/ctrl+c auf einem Top-Level-View
 // (Columns, Tree, Detail-Fokus, Picker) öffnet keinen sofortigen tea.Quit mehr,
 // sondern einen kleinen Confirm-Prompt: enter beendet, n/esc bricht ab (DD2-174:
 // Dialoge nur noch enter=confirm, esc/n=cancel — y/Y/q raus).

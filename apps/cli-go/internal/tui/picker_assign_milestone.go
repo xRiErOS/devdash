@@ -1,6 +1,6 @@
 package tui
 
-// assign.go — Sprint↔Meilenstein-Zuweisung (T03).
+// picker_assign_milestone.go — Sprint↔Meilenstein-Zuweisung (T03).
 //   Flow A: a in Sprint-Details → Single-Select-Picker (Meilenstein wählen / lösen).
 //   Flow B: a in Meilenstein-Detail → Checkliste der Sprints ohne Meilenstein,
 //           mehrere ankreuzen, enter hängt alle an den Meilenstein.

@@ -123,7 +123,7 @@ func TestIssueFieldsRendersFull(t *testing.T) {
 	}
 }
 
-// DD2-67: viewReview rendert ein echtes Master-Detail — Issue-Liste links, volle
+// DD2-67: viewReviewSprint rendert ein echtes Master-Detail — Issue-Liste links, volle
 // Felder des selektierten Issues rechts, horizontal NEBENEINANDER (nicht linear
 // untereinander gestapelt). Strukturanker: mind. eine Body-Zeile trägt zwei
 // bordered Panes nebeneinander (≥3 vertikale Border-Glyphen). Das alte lineare
@@ -135,7 +135,7 @@ func TestReviewMasterDetailLayout(t *testing.T) {
 	m.curSprint.Items[0].Goal = strptr("ZIELMARKER")
 	m.rlist.setLen(len(m.curSprint.Items))
 
-	out := m.viewReview()
+	out := m.viewReviewSprint()
 
 	if !strings.Contains(out, "LISTENMARKER") {
 		t.Error("Master-Liste (links) sollte den Issue-Titel zeigen")
@@ -151,7 +151,7 @@ func TestReviewMasterDetailLayout(t *testing.T) {
 		}
 	}
 	if !twoPane {
-		t.Error("viewReview sollte horizontales Master-Detail rendern (zwei Panes nebeneinander), nicht linear gestapelt")
+		t.Error("viewReviewSprint sollte horizontales Master-Detail rendern (zwei Panes nebeneinander), nicht linear gestapelt")
 	}
 }
 
@@ -163,7 +163,7 @@ func TestReviewMasterWrapsLongTitle(t *testing.T) {
 	m.curSprint.Items[0].Title = "Dies ist ein sehr langer Issue Titel der breiter ist als die schmale Master Pane und umgebrochen werden muss"
 	m.rlist.setLen(len(m.curSprint.Items))
 
-	out := m.viewReview()
+	out := m.viewReviewSprint()
 	for _, word := range []string{"sehr", "schmale", "umgebrochen", "werden", "muss"} {
 		if !strings.Contains(out, word) {
 			t.Errorf("Master-Liste sollte langen Titel umbrechen — Wort %q fehlt (truncatet?)", word)

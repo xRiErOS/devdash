@@ -38,8 +38,8 @@ func TestDD2153_CreatedIssueInReviewKeepsContext(t *testing.T) {
 
 	mi, cmd := m.Update(createdMsg{kind: "issue", label: "new"})
 	got := mi.(model)
-	if got.view != viewReview {
-		t.Errorf("view=%d, want viewReview (kein Redirect)", got.view)
+	if got.view != viewReviewSprint {
+		t.Errorf("view=%d, want viewReviewSprint (kein Redirect)", got.view)
 	}
 	if got.curSprint == nil || got.curSprint.ID != 20 {
 		t.Errorf("curSprint=%v, want unverändert ID 20", got.curSprint)

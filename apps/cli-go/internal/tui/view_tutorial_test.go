@@ -11,7 +11,7 @@ import (
 // mit esc in die Heimat-View zurück. Seiten speisen sich aus der Keymap.
 func TestTutorialPagesAndNav(t *testing.T) {
 	m := columnsModel()
-	m.view = viewTree
+	m.view = viewBrowseProject
 	mi, _ := m.openTutorial()
 	m = mi.(model)
 	if m.view != viewTutorial {
@@ -37,8 +37,8 @@ func TestTutorialPagesAndNav(t *testing.T) {
 	}
 
 	mi, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
-	if mi.(model).view != viewTree {
-		t.Errorf("esc → view=%d, want viewTree (topReturn)", mi.(model).view)
+	if mi.(model).view != viewBrowseProject {
+		t.Errorf("esc → view=%d, want viewBrowseProject (topReturn)", mi.(model).view)
 	}
 }
 

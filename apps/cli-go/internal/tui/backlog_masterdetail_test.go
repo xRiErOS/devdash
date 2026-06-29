@@ -20,7 +20,7 @@ import (
 func backlogMDModel() model {
 	g, bg := "Target", "Hintergrund"
 	return model{
-		view: viewBacklog,
+		view: viewBrowseBacklog,
 		backlog: []api.Issue{
 			{ID: 1, Key: "DD2-1", Title: "A", Type: "bug", Priority: 1, Status: "new", Goal: &g, Background: &bg},
 			{ID: 2, Key: "DD2-2", Title: "B", Type: "feature", Priority: 2, Status: "planned"},
@@ -140,7 +140,7 @@ func TestBacklogViewRendersDetail(t *testing.T) {
 
 	m := backlogMDModel()
 	m.width, m.height = 120, 30
-	out := ansi.Strip(m.viewBacklog())
+	out := ansi.Strip(m.viewBrowseBacklog())
 	if !strings.Contains(out, "DD2-1") {
 		t.Errorf("Detail-Pane zeigt das selektierte Issue nicht: %q", out)
 	}

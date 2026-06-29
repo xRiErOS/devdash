@@ -1,6 +1,6 @@
 package tui
 
-// delete.go — Cascade-Delete mit Confirm (T02b). d auf einem Meilenstein/Sprint
+// box_confirm_delete.go — Cascade-Delete mit Confirm (T02b). d auf einem Meilenstein/Sprint
 // holt erst die Preview-Counts (was mitgelöscht wird) und zeigt einen
 // Bestätigungs-Dialog; y/enter löst den transaktionalen Cascade-Delete (T02a)
 // aus, esc/n bricht ab.

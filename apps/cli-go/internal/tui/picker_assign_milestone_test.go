@@ -11,7 +11,7 @@ import (
 
 func TestSprintDetailMOpensPicker(t *testing.T) {
 	m := columnsModel()
-	m.view = viewSprint
+	m.view = viewDetailSprint
 	mi, _ := m.Update(keyMsg("a")) // DD2-174: Assign=a (war m)
 	m = mi.(model)
 	if !m.smPick {
@@ -30,7 +30,7 @@ func TestSprintDetailMOpensPicker(t *testing.T) {
 
 func TestSprintMilestonePickerEnterDispatches(t *testing.T) {
 	m := columnsModel()
-	m.view = viewSprint
+	m.view = viewDetailSprint
 	mi, _ := m.Update(keyMsg("a")) // DD2-174: Assign=a (war m)
 	m = mi.(model)
 	mi, _ = m.Update(keyMsg("k")) // auf erste echte Meilenstein-Option
@@ -68,7 +68,7 @@ func TestMilestonePickerFiltersClosed(t *testing.T) {
 
 func TestMilestoneAssignChecklistFlow(t *testing.T) {
 	m := columnsModel()
-	m.view = viewMilestone
+	m.view = viewDetailMilestone
 	mi, cmd := m.Update(keyMsg("a"))
 	m = mi.(model)
 	if !m.maPick {
@@ -107,7 +107,7 @@ func TestMilestoneAssignChecklistFlow(t *testing.T) {
 
 func TestMilestoneAssignEnterNoChecksNotice(t *testing.T) {
 	m := columnsModel()
-	m.view = viewMilestone
+	m.view = viewDetailMilestone
 	mi, _ := m.Update(keyMsg("a"))
 	m = mi.(model)
 	mi, _ = m.Update(unassignedSprintsMsg{[]api.Sprint{{ID: 50, Key: "S", Name: "X"}}})

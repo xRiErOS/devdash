@@ -1,6 +1,6 @@
 package tui
 
-// tutorial.go — geführtes, seitenweises Onboarding (DD2-122). Speist sich aus
+// view_tutorial.go — geführtes, seitenweises Onboarding (DD2-122). Speist sich aus
 // derselben zentralen Keymap wie Help (keys.helpGroups(), DD2-31/47) — kein
 // Doppelpflege-Content. v1 = statische, blätterbare Seiten (kein interaktives
 // Overlay-Onboarding, DECISION). Erreichbar über das Command-Center.
@@ -50,7 +50,7 @@ func (m model) tutorialPages() []tutorialPage {
 
 // openTutorial öffnet das Tutorial auf Seite 1 und merkt sich die Heimat-View.
 func (m model) openTutorial() (tea.Model, tea.Cmd) {
-	if m.view == viewTree {
+	if m.view == viewBrowseProject {
 		m.topReturn = m.view
 	}
 	m.tutorialPage = 0

@@ -23,7 +23,7 @@ func TestHelpOverlayToggle(t *testing.T) {
 // Während der Tree-Suche tippt ? als Zeichen — kein Hilfe-Overlay.
 func TestHelpNotOpenedDuringSearch(t *testing.T) {
 	m := treeModel()
-	m.view = viewTree
+	m.view = viewBrowseProject
 	m.treeSearching = true
 	mi, _ := m.Update(keyMsg("?"))
 	m = mi.(model)

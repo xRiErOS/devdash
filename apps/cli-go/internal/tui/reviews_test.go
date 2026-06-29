@@ -11,8 +11,8 @@ func TestReviewsListOpensViaR(t *testing.T) {
 	m := columnsModel()
 	mi, cmd := m.Update(keyMsg("R"))
 	m = mi.(model)
-	if m.view != viewReviewsList {
-		t.Errorf("R → view=%d, want viewReviewsList", m.view)
+	if m.view != viewNavigateReviews {
+		t.Errorf("R → view=%d, want viewNavigateReviews", m.view)
 	}
 	if cmd == nil {
 		t.Error("R sollte loadReviewSprints dispatchen")
@@ -35,15 +35,15 @@ func TestReviewsListMsgPopulates(t *testing.T) {
 
 func TestReviewsListEnterOpensCockpit(t *testing.T) {
 	m := columnsModel()
-	m.view = viewReviewsList
+	m.view = viewNavigateReviews
 	m.reviewSprints = []api.Sprint{{ID: 42, Key: "SPF#5", Name: "S5", Status: "to_review"}}
 	m.rvlist.setLen(1)
 	mi, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = mi.(model)
-	if m.view != viewReview {
-		t.Errorf("enter → view=%d, want viewReview", m.view)
+	if m.view != viewReviewSprint {
+		t.Errorf("enter → view=%d, want viewReviewSprint", m.view)
 	}
-	if m.reviewReturn != viewReviewsList {
+	if m.reviewReturn != viewNavigateReviews {
 		t.Error("reviewReturn nicht auf Liste gesetzt (q/esc kehrt sonst nicht zurück)")
 	}
 	if cmd == nil {
@@ -52,11 +52,11 @@ func TestReviewsListEnterOpensCockpit(t *testing.T) {
 }
 
 func TestCockpitEscReturnsToList(t *testing.T) {
-	m := reviewModel() // reviewReturn=viewReviewsList
+	m := reviewModel() // reviewReturn=viewNavigateReviews
 	mi, cmd := m.Update(keyMsg("q"))
 	m = mi.(model)
-	if m.view != viewReviewsList {
-		t.Errorf("q im Cockpit → view=%d, want viewReviewsList", m.view)
+	if m.view != viewNavigateReviews {
+		t.Errorf("q im Cockpit → view=%d, want viewNavigateReviews", m.view)
 	}
 	if cmd == nil {
 		t.Error("Rückkehr zur Liste sollte sie neu laden")

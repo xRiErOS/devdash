@@ -28,7 +28,7 @@ func detailFocusModel() model {
 		Goal: &g, Description: &d, PoNotes: &po, Background: &bg,
 	}}
 	m.treeExpSprint[10] = true
-	m.view = viewTree
+	m.view = viewBrowseProject
 	m.treeCursor = 2 // [mile, s10, issue, s11] → Issue an Index 2
 	return m
 }
@@ -205,7 +205,7 @@ func TestDetailFocusReadOnlySectionNoFieldEntry(t *testing.T) {
 		Result: &r,
 	}}
 	m.treeExpSprint[10] = true
-	m.view = viewTree
+	m.view = viewBrowseProject
 	m.treeCursor = 2
 	// focusSections (full): [Overview, Goal/PO, Background/Context, Relevant Files,
 	// User-Stories, Result(read-only)]. enter → Overview; auf die letzte (Result-)

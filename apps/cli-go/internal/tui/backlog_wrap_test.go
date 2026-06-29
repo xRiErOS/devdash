@@ -15,7 +15,7 @@ import (
 
 func backlogWrapModel() model {
 	return model{
-		view: viewBacklog,
+		view: viewBrowseBacklog,
 		backlog: []api.Issue{
 			{ID: 1, Key: "DD2-1", Title: "Ein sehr langer Titel der definitiv über die schmale Listenspalte hinausgeht und umgebrochen werden muss", Type: "bug", Priority: 1, Status: "new"},
 			{ID: 2, Key: "DD2-2", Title: "Kurz", Type: "feature", Priority: 2, Status: "new"},

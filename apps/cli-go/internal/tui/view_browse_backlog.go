@@ -1,6 +1,6 @@
 package tui
 
-// backlog.go — Backlog als Master-Detail (DD2-32) mit Suche/Filter/Sortierung
+// view_browse_backlog.go — Backlog als Master-Detail (DD2-32) mit Suche/Filter/Sortierung
 // (DD2-46). Liste links (neu + geplant ohne Sprint), read-only Detail-Preview
 // rechts. Zwei-Pane-Fokus (Liste↔Detail) mit Border-Tausch (D03) und Section-
 // Navigation — dieselben Primitive wie der Tree-Detail (detailTitle/metaStrip/
@@ -308,9 +308,9 @@ func (m model) backlogDetail(it api.Issue, w int) string {
 	return b.String()
 }
 
-// viewBacklog rendert das Master-Detail-Backlog: Such-/Filterbox + Liste links,
+// viewBrowseBacklog rendert das Master-Detail-Backlog: Such-/Filterbox + Liste links,
 // Detail-Preview rechts, fokussierter Pane Mauve-umrandet (D03).
-func (m model) viewBacklog() string {
+func (m model) viewBrowseBacklog() string {
 	head, localKeys, lw, rw, innerH := m.backlogLayout()
 	vis := m.backlogVisible()
 	m.blist.setLen(len(vis)) // Cursor an die gefilterte Länge klemmen
@@ -581,5 +581,5 @@ func (m model) keyBacklogSort(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 // Hinweis: Die Detail-Pane im Fokus läuft über die geteilte keyDetailFocus-Maschine
-// (detail.go) — Section/Feld-Nav, Ziffer-Sprung, enter→editField, esc/links raus.
+// (view_detail_issue.go) — Section/Feld-Nav, Ziffer-Sprung, enter→editField, esc/links raus.
 // focusedIssue() liefert dort im Backlog-View die Listen-Selektion (DD2-74).

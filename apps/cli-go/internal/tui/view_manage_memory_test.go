@@ -34,7 +34,7 @@ func TestMemCatShort(t *testing.T) {
 
 func memModel() model {
 	m := columnsModel()
-	m.view = viewMemory
+	m.view = viewManageMemory
 	return m
 }
 
@@ -42,8 +42,8 @@ func TestOpenMemorySetsView(t *testing.T) {
 	m := columnsModel()
 	mi, cmd := m.openMemory()
 	m = mi.(model)
-	if m.view != viewMemory {
-		t.Errorf("openMemory → view=%d, want viewMemory", m.view)
+	if m.view != viewManageMemory {
+		t.Errorf("openMemory → view=%d, want viewManageMemory", m.view)
 	}
 	if cmd == nil {
 		t.Error("openMemory sollte loadMemories dispatchen")
@@ -124,19 +124,19 @@ func TestMemoryYankEmpty(t *testing.T) {
 }
 
 func TestMemoryExitReturnsToTopReturn(t *testing.T) {
-	// DD2-126: esc/q verlässt den Memory-Browser in die Primat-Heimat (viewTree),
+	// DD2-126: esc/q verlässt den Memory-Browser in die Primat-Heimat (viewBrowseProject),
 	// nicht in das sekundäre Ranger/Columns-Layout.
 	m := memModel()
-	m.topReturn = viewTree
+	m.topReturn = viewBrowseProject
 	mi, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
-	if mi.(model).view != viewTree {
-		t.Errorf("esc → view=%d, want viewTree (DD2-126)", mi.(model).view)
+	if mi.(model).view != viewBrowseProject {
+		t.Errorf("esc → view=%d, want viewBrowseProject (DD2-126)", mi.(model).view)
 	}
 	m2 := memModel()
-	m2.topReturn = viewTree
+	m2.topReturn = viewBrowseProject
 	mi, _ = m2.Update(keyMsg("q"))
-	if mi.(model).view != viewTree {
-		t.Errorf("q → view=%d, want viewTree (DD2-126)", mi.(model).view)
+	if mi.(model).view != viewBrowseProject {
+		t.Errorf("q → view=%d, want viewBrowseProject (DD2-126)", mi.(model).view)
 	}
 }
 
@@ -144,8 +144,8 @@ func TestPaletteDispatchMemory(t *testing.T) {
 	m := paletteModel()
 	mi, _ := m.dispatchPalette("go_memory")
 	m = mi.(model)
-	if m.view != viewMemory {
-		t.Errorf("go_memory → view=%d, want viewMemory", m.view)
+	if m.view != viewManageMemory {
+		t.Errorf("go_memory → view=%d, want viewManageMemory", m.view)
 	}
 	m2 := paletteModel()
 	mi, _ = m2.dispatchPalette("create_memory")

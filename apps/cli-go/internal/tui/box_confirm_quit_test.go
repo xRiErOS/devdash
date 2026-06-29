@@ -80,7 +80,7 @@ func TestQuitConfirmCtrlC(t *testing.T) {
 // harte Beenden-Pfad (Confirm).
 func TestQuitConfirmFromTree(t *testing.T) {
 	m := treeModel()
-	m.view = viewTree
+	m.view = viewBrowseProject
 	mi, cmd := m.Update(keyMsg("q"))
 	m = mi.(model)
 	if m.view != viewHome || m.confirmQuit || isQuit(cmd) {
@@ -88,7 +88,7 @@ func TestQuitConfirmFromTree(t *testing.T) {
 	}
 	// ctrl+c → Confirm
 	m2 := treeModel()
-	m2.view = viewTree
+	m2.view = viewBrowseProject
 	mi2, _ := m2.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
 	if !mi2.(model).confirmQuit {
 		t.Errorf("ctrl+c im Tree sollte Confirm öffnen")

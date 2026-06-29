@@ -20,7 +20,7 @@ func click(x, y int) tea.MouseMsg {
 func TestMouseWheelMovesTreeCursor(t *testing.T) {
 	m := treeModel()
 	m.treeExpMile[1] = true // 3 Knoten: M1, S1, S2
-	m.view = viewTree
+	m.view = viewBrowseProject
 
 	down, _ := m.handleMouse(wheel(tea.MouseButtonWheelDown))
 	m = down.(model)
@@ -35,7 +35,7 @@ func TestMouseWheelMovesTreeCursor(t *testing.T) {
 
 func TestMouseWheelScrollsDetailBody(t *testing.T) {
 	m := treeModel()
-	m.view = viewDetail
+	m.view = viewDetailIssue
 
 	down, _ := m.handleMouse(wheel(tea.MouseButtonWheelDown))
 	m = down.(model)
@@ -52,7 +52,7 @@ func TestMouseWheelScrollsDetailBody(t *testing.T) {
 func TestMouseClickSetsTreeCursor(t *testing.T) {
 	m := treeModel()
 	m.treeExpMile[1] = true
-	m.view = viewTree
+	m.view = viewBrowseProject
 	m.width, m.height = 90, 22
 
 	head, _, _, _, _ := m.treeLayout()
@@ -67,7 +67,7 @@ func TestMouseClickSetsTreeCursor(t *testing.T) {
 func TestMouseClickRightPaneIgnored(t *testing.T) {
 	m := treeModel()
 	m.treeExpMile[1] = true
-	m.view = viewTree
+	m.view = viewBrowseProject
 	m.width, m.height = 90, 22
 	_, _, lw, _, _ := m.treeLayout()
 
@@ -80,7 +80,7 @@ func TestMouseClickRightPaneIgnored(t *testing.T) {
 func TestMouseIgnoredWhenSearching(t *testing.T) {
 	m := treeModel()
 	m.treeExpMile[1] = true
-	m.view = viewTree
+	m.view = viewBrowseProject
 	m.treeSearching = true // Suche aktiv → Maus inert
 
 	mi, _ := m.handleMouse(wheel(tea.MouseButtonWheelDown))

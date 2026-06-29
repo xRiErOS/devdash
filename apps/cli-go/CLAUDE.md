@@ -45,16 +45,17 @@ main.go     Entry (dünn)
 
 ## TUI File-Konvention
 
-`internal/tui/` folgt **one-file-one-screen**. Neuer Screen → eigenes File, nicht in `app.go`/`view.go` quetschen.
+`internal/tui/` folgt **Datei = Verantwortung** mit dem Namens-Schema
+`<art>_<verb>_<entität>.go` (`view_`/`form_`/`box_`/`picker_`/`overlay_`).
+**Single Source der Konvention + vollständige Datei-Map: [`internal/tui/CLAUDE.md`](internal/tui/CLAUDE.md)** — dort die art-Klassen, das Verb-Vokabular, die Screen-Tabelle und die Infrastruktur-Ausnahmen. Hier nur die großen Querschnitts-Files:
 
 | File | Verantwortung |
 |---|---|
 | `app.go` | nur `model` + `Update`-Dispatcher (Message-/Key-Routing). Keine Render-Logik. |
-| `view.go` | geteilte Render-Primitives: `framed`, `chrome`, `statusBar`/Footer, `header`, `col`/`cockpitRow`. |
+| `view.go` | `viewBase`-Dispatcher + geteilte Render-Primitives (`framed`, `chrome`, `statusBar`/Footer, `header`). |
 | `messages.go` | alle `tea.Msg`-Typen **+** ihre `tea.Cmd`-Producer (Daten-Fetch/Mutation, die diese Msg emittieren). Kein Update-Dispatch, kein Rendering. |
 | `keymap.go` | zentrale `keybind.Binding`-Keymap (Single-Source); Help + `docs/shortcuts.md` daraus generiert. |
-| Screen-Files | `memory.go` (Memory-Browser), `assign.go` (Sprint→Meilenstein-Overlay), `backlog_assign.go` (Issue→Sprint), `delete.go` (Delete-Confirm), `tags.go` (Tag-Manager), `palette.go` (Command-Center), `help.go`, `quit.go`, `tree.go`, `backlog.go`, `view_columns.go`/`view_review.go`, `accordion.go`/`detail*.go` (Detail-Edit). |
-| `form_*.go` | je ein huh-Formular; `forms_shared.go` = Theme/Reset/Chrome. |
+| `render_shared.go` / `forms_shared.go` / `modal.go` / `overlay.go` | geteilte Render-/Form-/Overlay-Primitive (Single Source, Fix-in-Root). |
 
 
 

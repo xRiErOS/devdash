@@ -74,9 +74,9 @@ func TestTagFacetAppearsAfterAsyncLoadWhileFilterOpen(t *testing.T) {
 // (Chrome-Parität) und nutzt echtes 1fr:2fr statt der auf 36 gepinnten Fixbreite.
 func TestSearchIsBorderedAndMasterIsOneThird(t *testing.T) {
 	m := reviewModel()
-	m.view = viewSearch
+	m.view = viewCommandCenter
 	if !m.viewBordered() {
-		t.Error("viewSearch soll den App-Außenrahmen tragen (viewBordered)")
+		t.Error("viewCommandCenter soll den App-Außenrahmen tragen (viewBordered)")
 	}
 	// Breites Terminal: links ~ w/3, NICHT bei 36 gepinnt.
 	lw, _ := m.masterDetailWidths(150)

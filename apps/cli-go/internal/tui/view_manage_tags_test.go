@@ -27,14 +27,14 @@ func TestTagKeymapBindings(t *testing.T) {
 // --- DD2-75: Manager ---
 
 func TestOpenTagManagerSetsView(t *testing.T) {
-	m := model{view: viewTree}
+	m := model{view: viewBrowseProject}
 	mi, cmd := m.openTagManager()
 	m = mi.(model)
-	if m.view != viewTags {
-		t.Fatalf("view=%d, want viewTags", m.view)
+	if m.view != viewManageTags {
+		t.Fatalf("view=%d, want viewManageTags", m.view)
 	}
-	if m.tagReturn != viewTree {
-		t.Errorf("tagReturn=%d, want viewTree (Quell-View gemerkt)", m.tagReturn)
+	if m.tagReturn != viewBrowseProject {
+		t.Errorf("tagReturn=%d, want viewBrowseProject (Quell-View gemerkt)", m.tagReturn)
 	}
 	if cmd == nil {
 		t.Errorf("openTagManager liefert keinen loadTags-Cmd")
@@ -42,7 +42,7 @@ func TestOpenTagManagerSetsView(t *testing.T) {
 }
 
 func TestTagManagerNewOpensCreateForm(t *testing.T) {
-	m := model{view: viewTags}
+	m := model{view: viewManageTags}
 	mi, _ := m.keyTags(runes("c")) // DD2-174: Create ist global c (war n)
 	m = mi.(model)
 	if m.form == nil || m.formKind != "tagCreate" {
@@ -54,7 +54,7 @@ func TestTagManagerNewOpensCreateForm(t *testing.T) {
 }
 
 func TestTagManagerEditOpensPresetForm(t *testing.T) {
-	m := model{view: viewTags, tags: []api.Tag{{ID: 5, Name: "infra", Color: "blue"}}}
+	m := model{view: viewManageTags, tags: []api.Tag{{ID: 5, Name: "infra", Color: "blue"}}}
 	m.taglist.setLen(1)
 	mi, _ := m.keyTags(runes("e"))
 	m = mi.(model)
@@ -67,7 +67,7 @@ func TestTagManagerEditOpensPresetForm(t *testing.T) {
 }
 
 func TestTagManagerDeleteConfirmFlow(t *testing.T) {
-	m := model{view: viewTags, tags: []api.Tag{{ID: 7, Name: "spike", Color: "peach", UsageCount: 3}}}
+	m := model{view: viewManageTags, tags: []api.Tag{{ID: 7, Name: "spike", Color: "peach", UsageCount: 3}}}
 	m.taglist.setLen(1)
 	mi, _ := m.keyTags(runes("d"))
 	m = mi.(model)
@@ -83,11 +83,11 @@ func TestTagManagerDeleteConfirmFlow(t *testing.T) {
 }
 
 func TestTagManagerEscReturnsToSource(t *testing.T) {
-	m := model{view: viewTags, tagReturn: viewTree}
+	m := model{view: viewManageTags, tagReturn: viewBrowseProject}
 	mi, _ := m.keyTags(tea.KeyMsg{Type: tea.KeyEsc})
 	m = mi.(model)
-	if m.view != viewTree {
-		t.Errorf("esc → view=%d, want viewTree (tagReturn)", m.view)
+	if m.view != viewBrowseProject {
+		t.Errorf("esc → view=%d, want viewBrowseProject (tagReturn)", m.view)
 	}
 }
 
@@ -227,7 +227,7 @@ func TestSelectedTagIDsEmptyWhenNothingPicked(t *testing.T) {
 
 // tagMutatedMsg im Manager triggert einen Reload (loadTags-Cmd).
 func TestTagMutatedReloadsInManager(t *testing.T) {
-	m := model{view: viewTags, client: api.NewClient("10")}
+	m := model{view: viewManageTags, client: api.NewClient("10")}
 	mi, cmd := m.Update(tagMutatedMsg{label: "Tag angelegt: x"})
 	_ = mi
 	if cmd == nil {

@@ -1,6 +1,6 @@
 package tui
 
-// help.go — In-App-Shortcut-Übersicht (DD2-31). ? öffnet ein Overlay, das die
+// overlay_shortcuts.go — In-App-Shortcut-Übersicht (DD2-31). ? öffnet ein Overlay, das die
 // zentrale Keymap (DD2-47) gruppiert rendert. Die Tasten-Labels und Texte kommen
 // aus key.Binding.Help() — Single-Source, driftet nicht gegen die echten Bindings.
 

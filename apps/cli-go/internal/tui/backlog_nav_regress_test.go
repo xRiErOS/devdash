@@ -14,7 +14,7 @@ import (
 func TestBacklogDetailNavWithMilestonesLoaded(t *testing.T) {
 	g, po := "Target", "PO-Text"
 	m := model{
-		view:       viewBacklog,
+		view:       viewBrowseBacklog,
 		milestones: []api.Milestone{{ID: 1, Name: "M1", Status: "in_progress"}}, // triggert focusedNode-Bug
 		backlog: []api.Issue{
 			{ID: 1, Key: "DD2-1", Title: "A", Type: "bug", Priority: 1, Status: "new", Goal: &g, PoNotes: &po},

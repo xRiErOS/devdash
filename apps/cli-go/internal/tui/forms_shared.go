@@ -7,8 +7,8 @@ package tui
 // StateCompleted per keyed GetString aus dem Formular gelesen.
 //
 // Die kind-spezifischen Form-Builder liegen je in eigener Datei
-// (form_issue.go, form_milestone.go, form_sprint.go, form_memory.go,
-// form_result.go) — alle vanilla huh. Hier nur das geteilte Gerüst: openForm,
+// (form_create_issue.go, form_create_milestone.go, form_create_sprint.go, form_create_memory.go,
+// form_capture_result.go) — alle vanilla huh. Hier nur das geteilte Gerüst: openForm,
 // formCreateCmd, editField-Form, Helpers.
 
 import (
@@ -144,7 +144,7 @@ func (m model) openForm(kind string) (tea.Model, tea.Cmd) {
 
 // styleForm finalisiert jede embedded huh-Form einheitlich: Palette-Theme +
 // Terminal-Maße + huh-Eigen-Help aus (Footer kommt aus formChrome). Single-Source
-// für openForm, editField (detail.go) und Tag-Forms (tags.go).
+// für openForm, editField (view_detail_issue.go) und Tag-Forms (view_manage_tags.go).
 func (m model) styleForm(f *huh.Form) *huh.Form {
 	return f.WithWidth(formInnerWidth(m.width)).
 		WithHeight(formInnerHeight(m.height)).

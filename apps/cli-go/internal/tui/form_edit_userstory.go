@@ -1,6 +1,6 @@
 package tui
 
-// form_userstory.go — huh-Form zum Anlegen/Bearbeiten einer User-Story aus dem
+// form_edit_userstory.go — huh-Form zum Anlegen/Bearbeiten einer User-Story aus dem
 // Detail-Fokus (DD2-144). Zwei Felder: Title (Pflicht) + QA (Akzeptanzkriterium,
 // D09). Vanilla huh, Werte werden nach StateCompleted keyed gelesen (us_title/us_qa),
 // nicht per Pointer (Value-Copy-Bruch) — Preset-Binding nur für den Initialwert.

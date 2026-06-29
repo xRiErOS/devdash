@@ -564,12 +564,12 @@ func (m model) filterBox() string {
 
 // --- Review-Cockpit (Vollbild-Render) ---
 
-// viewReview ist das Review-Cockpit als echtes Master-Detail (DD2-67): links die
+// viewReviewSprint ist das Review-Cockpit als echtes Master-Detail (DD2-67): links die
 // Issue-Liste (Master) mit umgebrochenem Titel + Verdikt-Dot, rechts das Detail
 // des selektierten Issues als Tree-Accordion (Ziffern-Toggle) mit Status- und
 // User-Story-Dots im Header. Kopf: globaler Header + Sprint-Titel + Review-Summary
 // (★ DD2-70 Abschluss-Bereitschaft); Footer: reviewHints + Status.
-func (m model) viewReview() string {
+func (m model) viewReviewSprint() string {
 	if m.curSprint == nil {
 		return m.framed("Review", theme.Dim.Render("(loading …)"), "esc/q: back")
 	}

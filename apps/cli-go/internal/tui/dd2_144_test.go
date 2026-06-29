@@ -69,7 +69,7 @@ func usDetailModel(stories []api.UserStory) model {
 		UserStories: stories,
 	}}
 	m.treeExpSprint[10] = true
-	m.view = viewTree
+	m.view = viewBrowseProject
 	m.treeCursor = 2
 	return m
 }

@@ -3,7 +3,7 @@ package tui
 import keybind "github.com/charmbracelet/bubbles/key"
 
 // keyMap ist die zentrale, typisierte Single-Source aller TUI-Keybindings (DD2-47).
-// Vorher lagen die Tasten als Roh-String-Literale über app.go/tree.go/detail.go/…
+// Vorher lagen die Tasten als Roh-String-Literale über app.go/view_browse_project.go/view_detail_issue.go/…
 // verstreut, dazu eine separate navKey()-Normalisierung. Jetzt gilt:
 //
 //   - navKey() leitet die Richtungs-Normalisierung aus Up/Down/Left/Right ab,

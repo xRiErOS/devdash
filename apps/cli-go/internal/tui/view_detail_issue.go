@@ -1,6 +1,6 @@
 package tui
 
-// detail.go — Detail-Fokus-Maschine (DD2-76). Macht die rechte Detail-Pane aus
+// view_detail_issue.go — Detail-Fokus-Maschine (DD2-76). Macht die rechte Detail-Pane aus
 // einem read-only Anzeigeblock zur fokussierbaren, zwei-stufig navigierbaren
 // Arbeitsfläche. Tree bleibt Navigator (D01); enter/l auf einem Issue-Knoten
 // verlagert den Fokus, j/← bzw. esc geben ihn zurück. Reine Navigation — der
@@ -21,7 +21,7 @@ import (
 // Backlog-Screen (DD2-74) ist das die Listen-Selektion; im Tree der Knoten unter
 // dem Cursor, falls er ein Issue ist (nur dort gilt der Detail-Fokus, D01).
 func (m model) focusedIssue() *api.Issue {
-	if m.view == viewBacklog {
+	if m.view == viewBrowseBacklog {
 		return m.backlogSelected()
 	}
 	nodes := m.treeNodes()
@@ -329,7 +329,7 @@ func paneBorderColors(detailFocus bool) (left, right lipgloss.Color) {
 
 // --- Issue-Detail (Vollbild, #5 Rahmen, #6 alle Felder, #9 Titel) ---
 
-func (m model) viewDetail() string {
+func (m model) viewDetailIssue() string {
 	it := m.selIssue()
 	if it == nil {
 		return "\n  (no issue)\n"

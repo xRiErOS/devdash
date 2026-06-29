@@ -1,6 +1,6 @@
 package tui
 
-// memory.go — Memory-Browser (T18): PO-Sicht auf project_memories. Master-Detail
+// view_manage_memory.go — Memory-Browser (T18): PO-Sicht auf project_memories. Master-Detail
 // (links Compact-Liste, rechts Detail mit content), Volltext-Suche (/),
 // Kategorie-Filter (c-Zyklus), Clipboard-Export für Agenten (y).
 
@@ -82,7 +82,7 @@ func (m *model) syncMemDetail() tea.Cmd {
 
 // openMemory öffnet den Memory-Browser (lädt die Compact-Liste).
 func (m model) openMemory() (tea.Model, tea.Cmd) {
-	m.view = viewMemory
+	m.view = viewManageMemory
 	m.memlist = listState{}
 	m.memCat = ""
 	m.memQuery = ""
@@ -109,7 +109,7 @@ func (m model) keyMemory(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 	switch msg.String() {
 	case "esc", "q":
-		m.view = m.topReturn // DD2-126: zurück in die Primat-Heimat (Default viewTree), nicht Ranger
+		m.view = m.topReturn // DD2-126: zurück in die Primat-Heimat (Default viewBrowseProject), nicht Ranger
 		m.status = ""
 		return m, nil
 	case "/":
@@ -183,7 +183,7 @@ func (m model) yankMemories() (tea.Model, tea.Cmd) {
 
 // --- View ---
 
-func (m model) viewMemory() string {
+func (m model) viewManageMemory() string {
 	w := m.termWidth()
 	h := m.bodyHeight()
 	// DD2-127: gemeinsames 1fr:2fr-MasterDetail-Verhältnis (wie Tree/Backlog) statt 50/50.

@@ -1,6 +1,6 @@
 package tui
 
-// tree.go — Tree+Detail-Layout-Prototyp (DD2-57). Vergleichs-Kandidat zum
+// view_browse_project.go — Tree+Detail-Layout-Prototyp (DD2-57). Vergleichs-Kandidat zum
 // Ranger-Columns-Layout: EINE schmale linke Baum-Spalte (Meilenstein→Sprint→
 // Issue, kollabierbar, Pfeiltasten-Nav) zeigt die ganze Hierarchie auf einmal;
 // rechts bleibt breite Detail-Fläche. Umschalten aus den Columns mit 't'.
@@ -195,7 +195,7 @@ func (m *model) treeNodesFiltered() []treeNode {
 }
 
 // treeLayout liefert Header, lokale Shortcuts und die Pane-Geometrie des Primat-
-// Views (DD2-61). Single Source für Render (viewTree) UND Maus-Klick-Mapping
+// Views (DD2-61). Single Source für Render (viewBrowseProject) UND Maus-Klick-Mapping
 // (handleMouse, DD2-51) — sonst driften Render-Zeilen und Klick-Y auseinander.
 func (m model) treeLayout() (head, localKeys string, lw, rw, innerH int) {
 	w := m.termWidth()
@@ -238,7 +238,7 @@ func (m model) treeLayout() (head, localKeys string, lw, rw, innerH int) {
 	return
 }
 
-func (m model) viewTree() string {
+func (m model) viewBrowseProject() string {
 	nodes := m.treeNodes()
 	if m.treeCursor >= len(nodes) {
 		m.treeCursor = len(nodes) - 1
@@ -259,7 +259,7 @@ func (m model) viewTree() string {
 	}
 
 	// Rechte Spalte: Detail des selektierten Knotens. Bei leerer Knotenliste
-	// (Daten noch nicht geladen, da viewTree Primat-Default ist) NICHT auf die
+	// (Daten noch nicht geladen, da viewBrowseProject Primat-Default ist) NICHT auf die
 	// Zero-treeNode{} fallen — die wäre kind=tkMile/mileIdx=0 und würde
 	// m.milestones[0] auf leerer Slice greifen (Panic). Platzhalter stattdessen.
 	var detailStr string

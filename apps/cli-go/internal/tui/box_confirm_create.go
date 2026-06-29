@@ -1,6 +1,6 @@
 package tui
 
-// confirm_create.go — DD2-93: y/n-Bestätigung VOR der Anlage neuer Entitäten.
+// box_confirm_create.go — DD2-93: y/n-Bestätigung VOR der Anlage neuer Entitäten.
 // Nach dem Ausfüllen eines Create-Formulars (Issue/Sprint/Meilenstein/Memory/Tag)
 // öffnet sich ein Confirm-Modal statt sofort anzulegen; erst y feuert den bereits
 // aus den Formularwerten gebauten Cmd. Edit-/Update-Formulare (editField/tagEdit/

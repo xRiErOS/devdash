@@ -79,7 +79,7 @@ Wahrheit: `packages/api-types/backlog.contracts.js` (`issueUpdateContract`) +
 
 - `view.go`: `grid()/gridColWidths`, `metaStrip()/metaPair`, `detailTitle()`, `chrome()`.
 - `accordion.go`: `issueSections()`, `renderAccordion()`, model-Feld `accOpen`.
-- `forms.go`: `buildForm()`, `openForm()`, `formBox()`, `formCreateCmd()`, `updateForm()` (huh-Sub-Modell, `formKind`-Dispatch, esc=cancel).
+- `forms_shared.go`: `buildForm()`, `openForm()`, `formBox()`, `formCreateCmd()`, `updateForm()` (huh-Sub-Modell, `formKind`-Dispatch, esc=cancel).
 - `internal/api`: `UpdateIssue(id, fields)` existiert; **`UpdateMilestone`/`UpdateSprint` fehlen** → in S9 ergänzen (Backend-PUT `/api/milestones/:id` + `/api/sprints/:id` existiert).
 
 ## Prozess-Leitplanken (Repo-weit)

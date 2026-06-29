@@ -16,7 +16,7 @@ func TestEscSpineToHome(t *testing.T) {
 
 	// Tree (kein Filter/Detail-Fokus) → Home
 	mt := columnsModel()
-	mt.view = viewTree
+	mt.view = viewBrowseProject
 	if got, _ := mt.keyTree(key("esc")); got.(model).view != viewHome {
 		t.Errorf("Tree esc → view=%d, want viewHome", got.(model).view)
 	}
@@ -28,8 +28,8 @@ func TestHomeEnterSelectsProject(t *testing.T) {
 	m.plist.cursor = 0
 	m2, _ := m.keyHome(tea.KeyMsg{Type: tea.KeyEnter})
 	m2m := m2.(model)
-	if m2m.view != viewTree {
-		t.Errorf("enter → view=%d, want viewTree", m2m.view)
+	if m2m.view != viewBrowseProject {
+		t.Errorf("enter → view=%d, want viewBrowseProject", m2m.view)
 	}
 	if m2m.project == nil || m2m.project.ID != 1 {
 		t.Errorf("Projekt nicht gesetzt: %+v", m2m.project)
@@ -53,7 +53,7 @@ func TestViewHomeRenders(t *testing.T) {
 func TestProjPickBoxRenders(t *testing.T) {
 	m := pickerModel()
 	m.width, m.height = 100, 30
-	m.view = viewTree
+	m.view = viewBrowseProject
 	m.projPick = true
 	m.project = &api.Project{ID: 9, Slug: "x", Prefix: "X"}
 	m.milestones = nil

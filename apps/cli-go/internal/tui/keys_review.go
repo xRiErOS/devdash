@@ -98,11 +98,11 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.status = ""
 		// B01: Columns nach Review immer neu laden — Verdikte/Status-Mutationen
 		// im Cockpit ändern m.curSprint, aber m.milestones (Columns) blieb stale.
-		if m.reviewReturn == viewReviewsList {
-			m.view = viewReviewsList
+		if m.reviewReturn == viewNavigateReviews {
+			m.view = viewNavigateReviews
 			return m, tea.Batch(loadReviewSprints(m.client), loadMilestones(m.client))
 		}
-		m.view = viewTree // DD2-111: Cockpit-q/esc → Tree-Primat (Ranger gesunset)
+		m.view = viewBrowseProject // DD2-111: Cockpit-q/esc → Tree-Primat (Ranger gesunset)
 		return m, loadMilestones(m.client)
 	case keybind.Matches(msg, keys.Enter): // Issue-Abnahme-Modal: goal/background/User-Stories abhaken
 		if it == nil {
@@ -385,4 +385,4 @@ func (m *model) keyScroll(k string) bool {
 	return true
 }
 
-// keyBacklog → backlog.go (DD2-32 Master-Detail).
+// keyBacklog → view_browse_backlog.go (DD2-32 Master-Detail).

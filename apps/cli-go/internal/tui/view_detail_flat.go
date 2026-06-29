@@ -1,6 +1,6 @@
 package tui
 
-// detail_flat.go — Meilenstein/Sprint-Detail als flache, fokussierbare Feldliste
+// view_detail_flat.go — Meilenstein/Sprint-Detail als flache, fokussierbare Feldliste
 // (DD2-78, Decision D09). Anders als das Issue-Detail (zweistufiges Accordion) haben
 // Meilenstein und Sprint wenige Felder (name/description/target_date bzw. name/goal)
 // → ein Accordion wäre Overkill. Das Detail zeigt sie als flache Liste; der Feld-
@@ -70,7 +70,7 @@ func (m model) focusedNode() *treeNode {
 	// da treeCursor=0) → detailFlatFields lieferte Milestone-Felder → die Backlog-
 	// Detail-Tasten landeten fälschlich im Flat-Handler (Detail nicht navigierbar,
 	// PO-Test #3). Im Backlog entscheidet allein focusedIssue() (Listen-Selektion).
-	if m.view == viewBacklog {
+	if m.view == viewBrowseBacklog {
 		return nil
 	}
 	nodes := m.treeNodes()
@@ -261,7 +261,7 @@ func sprintFieldValues(sp api.Sprint, fields []detailField) []string {
 
 // --- Meilenstein-Detail (Vollbild, #1) ---
 
-func (m model) viewMilestone() string {
+func (m model) viewDetailMilestone() string {
 	ms := m.selMilestone()
 	if ms == nil {
 		return "\n  (no milestone)\n"
@@ -294,7 +294,7 @@ func (m model) viewMilestone() string {
 
 // --- Sprint-Detail (Vollbild) ---
 
-func (m model) viewSprint() string {
+func (m model) viewDetailSprint() string {
 	s := m.selSprint()
 	if s == nil {
 		return "\n  (no sprint)\n"

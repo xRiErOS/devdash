@@ -20,31 +20,31 @@ import (
 func TestTreeGlobalKeysReachable(t *testing.T) {
 	base := func() model {
 		m := treeModel()
-		m.view = viewTree
+		m.view = viewBrowseProject
 		m.global = api.NewClient("")
 		m.client = api.NewClient("")
-		m.topReturn = viewTree
+		m.topReturn = viewBrowseProject
 		return m
 	}
 	key := func(s string) tea.KeyMsg { return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)} }
 
-	if mb, _ := base().keyTree(key("b")); mb.(model).view != viewBacklog {
-		t.Errorf("b → view=%d, want viewBacklog", mb.(model).view)
+	if mb, _ := base().keyTree(key("b")); mb.(model).view != viewBrowseBacklog {
+		t.Errorf("b → view=%d, want viewBrowseBacklog", mb.(model).view)
 	}
-	if mr, _ := base().keyTree(key("R")); mr.(model).view != viewReviewsList {
-		t.Errorf("R → view=%d, want viewReviewsList", mr.(model).view)
+	if mr, _ := base().keyTree(key("R")); mr.(model).view != viewNavigateReviews {
+		t.Errorf("R → view=%d, want viewNavigateReviews", mr.(model).view)
 	}
 	// DD2-124: p öffnet den Picker als Overlay (projPick), kein View-Wechsel.
-	if mp, _ := base().keyTree(key("p")); !mp.(model).projPick || mp.(model).view != viewTree {
-		t.Errorf("p → projPick=%v view=%d, want projPick=true view=viewTree", mp.(model).projPick, mp.(model).view)
+	if mp, _ := base().keyTree(key("p")); !mp.(model).projPick || mp.(model).view != viewBrowseProject {
+		t.Errorf("p → projPick=%v view=%d, want projPick=true view=viewBrowseProject", mp.(model).projPick, mp.(model).view)
 	}
 	// DD2-124: Esc aus Backlog → Lobby (Esc-Spine). b bleibt der topReturn-Pfad.
 	mb, _ := base().keyTree(key("b"))
 	if back, _ := mb.(model).keyBacklog(key("esc")); back.(model).view != viewHome {
 		t.Errorf("Backlog esc → view=%d, want viewHome (Esc-Spine)", back.(model).view)
 	}
-	if bk, _ := mb.(model).keyBacklog(key("b")); bk.(model).view != viewTree {
-		t.Errorf("Backlog b → view=%d, want viewTree (topReturn)", bk.(model).view)
+	if bk, _ := mb.(model).keyBacklog(key("b")); bk.(model).view != viewBrowseProject {
+		t.Errorf("Backlog b → view=%d, want viewBrowseProject (topReturn)", bk.(model).view)
 	}
 }
 
@@ -57,7 +57,7 @@ func TestTreeStatusShortcuts(t *testing.T) {
 		m.treeExpMile[1] = true
 		m.treeIssues[10] = []api.Issue{{Key: "DD2-1", Title: "A", Type: "bug", Priority: 1, Status: "in_progress"}}
 		m.treeExpSprint[10] = true
-		m.view = viewTree
+		m.view = viewBrowseProject
 		m.treeCursor = cursor
 		return m
 	}
@@ -96,12 +96,12 @@ func TestTreeStatusShortcuts(t *testing.T) {
 // direkt im Tree-View (Ranger-Columns nur noch via t erreichbar).
 func TestNewModelDefaultsToTree(t *testing.T) {
 	m := newModel(nil, &api.Project{Slug: "devd2", Prefix: "DD2"}, nil)
-	if m.view != viewTree {
-		t.Errorf("Default-View = %d, want viewTree (%d)", m.view, viewTree)
+	if m.view != viewBrowseProject {
+		t.Errorf("Default-View = %d, want viewBrowseProject (%d)", m.view, viewBrowseProject)
 	}
 }
 
-// Regression: viewTree ist Primat-Default → erster Render passiert VOR dem
+// Regression: viewBrowseProject ist Primat-Default → erster Render passiert VOR dem
 // Milestone-Load (leere Knotenliste). Darf nicht paniken (Zero-treeNode{} würde
 // sonst m.milestones[0] auf leerer Slice greifen).
 func TestViewTreeEmptyNoPanic(t *testing.T) {
@@ -247,7 +247,7 @@ func TestTreeSearchFlow(t *testing.T) {
 	src := treeFilterModel()
 	m := newModel(nil, &api.Project{Slug: "devd2", Prefix: "DD2"}, nil)
 	m.milestones, m.treeIssues = src.milestones, src.treeIssues
-	m.view = viewTree
+	m.view = viewBrowseProject
 	key := func(s string) tea.KeyMsg { return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)} }
 
 	mi, _ := m.keyTree(key("/"))
@@ -279,7 +279,7 @@ func TestTreeSearchFlow(t *testing.T) {
 func TestTreeFilterMenuFlow(t *testing.T) {
 	key := func(s string) tea.KeyMsg { return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)} }
 	m := newModel(nil, &api.Project{Slug: "devd2", Prefix: "DD2"}, nil)
-	m.view = viewTree
+	m.view = viewBrowseProject
 
 	mi, _ := m.keyTree(key("f"))
 	m = mi.(model)

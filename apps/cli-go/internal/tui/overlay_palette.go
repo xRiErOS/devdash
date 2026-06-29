@@ -1,6 +1,6 @@
 package tui
 
-// palette.go — Command-Center (T16): globales Action-Palette-Modal, von überall
+// overlay_palette.go — Command-Center (T16): globales Action-Palette-Modal, von überall
 // per ctrl+k / shift+k öffenbar. Fuzzy-Filter über die Aktionsliste, Auswahl
 // dispatcht entweder einen View-Wechsel oder öffnet ein huh-Create-Formular.
 
@@ -126,7 +126,7 @@ func (m model) dispatchPalette(id string) (tea.Model, tea.Cmd) {
 	case "go_tutorial": // DD2-122: geführtes Onboarding
 		return m.openTutorial()
 	case "go_backlog":
-		m.view = viewBacklog
+		m.view = viewBrowseBacklog
 		return m, loadBacklog(m.client)
 	case "go_tags":
 		return m.openTagManager()

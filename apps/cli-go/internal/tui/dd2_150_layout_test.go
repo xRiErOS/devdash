@@ -10,7 +10,7 @@ import (
 // Terminalbreite. backlogLayout delegiert an den geteilten masterDetailWidths-Helper
 // (vorher: auf layout.tree_width gepinnte fixe schmale Spalte).
 func TestDD2150_BacklogPaneRatio(t *testing.T) {
-	m := model{view: viewBacklog, width: 120, height: 30, project: &api.Project{Slug: "devd2", Prefix: "DD2"}}
+	m := model{view: viewBrowseBacklog, width: 120, height: 30, project: &api.Project{Slug: "devd2", Prefix: "DD2"}}
 	_, _, lw, rw, _ := m.backlogLayout()
 
 	// Delegation: identisch zu masterDetailWidths (Single-Source mit Memory/Search).
@@ -27,8 +27,8 @@ func TestDD2150_BacklogPaneRatio(t *testing.T) {
 
 // Dynamik: breiteres Terminal → breitere Issue-Pane (kein fixes Pinning mehr).
 func TestDD2150_BacklogPaneScales(t *testing.T) {
-	narrow := model{view: viewBacklog, width: 90, height: 30, project: &api.Project{Slug: "devd2", Prefix: "DD2"}}
-	wide := model{view: viewBacklog, width: 180, height: 30, project: &api.Project{Slug: "devd2", Prefix: "DD2"}}
+	narrow := model{view: viewBrowseBacklog, width: 90, height: 30, project: &api.Project{Slug: "devd2", Prefix: "DD2"}}
+	wide := model{view: viewBrowseBacklog, width: 180, height: 30, project: &api.Project{Slug: "devd2", Prefix: "DD2"}}
 	_, _, lwN, _, _ := narrow.backlogLayout()
 	_, _, lwW, _, _ := wide.backlogLayout()
 	if lwW <= lwN {

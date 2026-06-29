@@ -1,6 +1,6 @@
 package tui
 
-// search.go — projektweite Issue-Such-Ansicht (DD2-91). Eigene Ansicht (DECISION:
+// view_command_center.go — projektweite Issue-Such-Ansicht (DD2-91). Eigene Ansicht (DECISION:
 // nicht die Tree-/Backlog-Suche erweitern): volltextet über ALLE Issues
 // (treeFilterIssues, einmal projektweit geladen) — unabhängig vom aufgeklappten
 // Tree. Master-Detail: links flache Trefferliste (Key/Title/Status), rechts Detail
@@ -19,10 +19,10 @@ import (
 // openSearch öffnet die Such-Ansicht und lädt projektweit alle Issues nach,
 // falls noch nicht geschehen (sonst nur der Lazy-Tree-Cache).
 func (m model) openSearch() (tea.Model, tea.Cmd) {
-	if m.view == viewTree {
+	if m.view == viewBrowseProject {
 		m.topReturn = m.view
 	}
-	m.view = viewSearch
+	m.view = viewCommandCenter
 	m.searchQuery = ""
 	m.searchList = listState{}
 	m.status = ""
@@ -51,7 +51,7 @@ func (m model) searchResults() []api.Issue {
 func (m model) keySearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.Type {
 	case tea.KeyEsc:
-		m.view = m.topReturn // DD2-91: zurück in die Heimat-View (Default viewTree)
+		m.view = m.topReturn // DD2-91: zurück in die Heimat-View (Default viewBrowseProject)
 		m.status = ""
 		return m, nil
 	case tea.KeyUp:
@@ -77,7 +77,7 @@ func (m model) keySearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m model) viewSearch() string {
+func (m model) viewCommandCenter() string {
 	w := m.termWidth()
 	h := m.bodyHeight()
 	results := m.searchResults()

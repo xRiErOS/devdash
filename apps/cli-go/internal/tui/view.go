@@ -109,55 +109,31 @@ func (m model) viewBase() string {
 	switch m.view {
 	case viewHome:
 		return m.viewHome() // DD2-124: Lobby (Logo + Projektauswahl)
-	case viewBacklog:
-		return m.viewBacklog()
-	case viewDetail:
-		return m.viewDetail()
-	case viewMilestone:
-		return m.viewMilestone()
-	case viewSprint:
-		return m.viewSprint()
-	case viewReview:
-		return m.viewReview()
-	case viewReviewsList:
-		return m.viewReviewsList()
-	case viewMemory:
-		return m.viewMemory()
-	case viewTree:
-		return m.viewTree() // DD2-57: Tree+Detail-Prototyp
-	case viewTags:
-		return m.viewTags() // DD2-75: Tag-Manager
-	case viewSearch:
-		return m.viewSearch() // DD2-91: projektweite Suche
+	case viewBrowseBacklog:
+		return m.viewBrowseBacklog()
+	case viewDetailIssue:
+		return m.viewDetailIssue()
+	case viewDetailMilestone:
+		return m.viewDetailMilestone()
+	case viewDetailSprint:
+		return m.viewDetailSprint()
+	case viewReviewSprint:
+		return m.viewReviewSprint()
+	case viewNavigateReviews:
+		return m.viewNavigateReviews()
+	case viewManageMemory:
+		return m.viewManageMemory()
+	case viewBrowseProject:
+		return m.viewBrowseProject() // DD2-57: Tree+Detail-Prototyp
+	case viewManageTags:
+		return m.viewManageTags() // DD2-75: Tag-Manager
+	case viewCommandCenter:
+		return m.viewCommandCenter() // DD2-91: projektweite Suche
 	case viewTutorial:
 		return m.viewTutorial() // DD2-122: Onboarding
 	default:
-		return m.viewTree() // DD2-111: Columns gesunset → Tree-Primat als Fallback
+		return m.viewBrowseProject() // DD2-111: Columns gesunset → Tree-Primat als Fallback
 	}
-}
-
-// --- Reviews-Page (T17): Liste offener Review-Sprints ---
-
-func (m model) viewReviewsList() string {
-	var b strings.Builder
-	b.WriteString(theme.Dim.Render("(sprints in status review)") + "\n\n")
-	if len(m.reviewSprints) == 0 {
-		b.WriteString(theme.Dim.Render("(no sprints in review — S in cockpit sets active→review)") + "\n")
-	}
-	for i, s := range m.reviewSprints {
-		cursor := "  "
-		if i == m.rvlist.cursor {
-			cursor = theme.Accent.Render("▸ ")
-		}
-		ms := ""
-		if s.MilestoneName != nil && *s.MilestoneName != "" {
-			ms = theme.Dim.Render("  — " + truncate(*s.MilestoneName, 24))
-		}
-		b.WriteString(cursor + fmt.Sprintf("%-9s %-30s %s%s",
-			s.Key, truncate(s.Name, 30), statusText(s.Status),
-			theme.Dim.Render(fmt.Sprintf("  %d/%d", s.DoneCount, s.ItemCount))) + ms + "\n")
-	}
-	return m.framed("Offene Reviews", b.String(), "i/k:↑↓  enter:cockpit  esc/q:back")
 }
 
 // --- Header / Footer ---
@@ -333,9 +309,9 @@ func (m model) masterDetailWidths(w int) (lw, rw int) {
 // Innen-Reservierung in termWidth()/frameH() — Rahmen-Wrap und Maß bleiben synchron.
 func (m model) viewBordered() bool {
 	switch m.view {
-	case viewDetail, viewMilestone, viewSprint, viewReviewsList, viewTags, // DD2-68 chrome-Subset
-		viewHome, viewBacklog, viewReview, viewTree, // DD2-84 vollständiger Satz
-		viewSearch: // DD2-91 Rework: Such-Ansicht trägt den App-Außenrahmen (Chrome-Parität)
+	case viewDetailIssue, viewDetailMilestone, viewDetailSprint, viewNavigateReviews, viewManageTags, // DD2-68 chrome-Subset
+		viewHome, viewBrowseBacklog, viewReviewSprint, viewBrowseProject, // DD2-84 vollständiger Satz
+		viewCommandCenter: // DD2-91 Rework: Such-Ansicht trägt den App-Außenrahmen (Chrome-Parität)
 		return true
 	}
 	return false

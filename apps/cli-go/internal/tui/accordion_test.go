@@ -23,7 +23,7 @@ func TestAccordionDefaultOpenOne(t *testing.T) {
 func TestTreeDigitTogglesAccordion(t *testing.T) {
 	key := func(s string) tea.KeyMsg { return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)} }
 	m := treeModel()
-	m.view = viewTree
+	m.view = viewBrowseProject
 	m.accOpen = 1
 
 	if mm, _ := m.keyTree(key("2")); mm.(model).accOpen != 2 {

@@ -77,10 +77,10 @@ func TestDeleteEscCancels(t *testing.T) {
 
 func TestDeleteDoneReloads(t *testing.T) {
 	m := columnsModel()
-	m.view = viewMilestone
+	m.view = viewDetailMilestone
 	mi, cmd := m.Update(deleteDoneMsg{"milestone", 1, "M1"})
 	m = mi.(model)
-	if m.view != viewTree { // DD2-111: Ranger gesunset → Tree-Primat
+	if m.view != viewBrowseProject { // DD2-111: Ranger gesunset → Tree-Primat
 		t.Errorf("nach Delete zurück auf Tree, got view=%d", m.view)
 	}
 	if cmd == nil {

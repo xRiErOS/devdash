@@ -25,7 +25,7 @@ func step(m model, msg tea.KeyMsg) model {
 // Tree (Primat-View): ↓/↑ bewegen den Knoten-Cursor, → expandiert, ← kollabiert.
 func TestArrowTreeNav(t *testing.T) {
 	m := treeModel()
-	m.view = viewTree
+	m.view = viewBrowseProject
 	m.treeExpMile[1] = true // [mile, s10, s11] → 3 Knoten
 	m = step(m, down())
 	if m.treeCursor != 1 {

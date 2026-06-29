@@ -1,10 +1,10 @@
 package tui
 
-// backlog_assign.go — Issue→Sprint-Zuweisung aus dem Backlog (DD2-136, Review-
+// picker_assign_sprint.go — Issue→Sprint-Zuweisung aus dem Backlog (DD2-136, Review-
 // Befund #4). S öffnet einen Single-Select-Picker über die NICHT-finalen Sprints
 // (new/in_progress); enter weist zu (PATCH /api/backlog/:id/sprint). Danach verlässt
 // das Issue das Backlog (= neu/geplant ohne Sprint) → in-place aus dem Cache. Muster
-// gespiegelt von assign.go (Flow A, Sprint→Meilenstein).
+// gespiegelt von picker_assign_milestone.go (Flow A, Sprint→Meilenstein).
 
 import (
 	"fmt"

@@ -28,7 +28,7 @@ func TestFuzzyMatch(t *testing.T) {
 
 func paletteModel() model {
 	m := newModel(api.NewClient("9"), &api.Project{ID: 9, Slug: "sprout", Prefix: "SPF"}, api.NewClient(""))
-	m.view = viewTree
+	m.view = viewBrowseProject
 	return m
 }
 
@@ -71,8 +71,8 @@ func TestPaletteDispatchBacklog(t *testing.T) {
 	m := paletteModel()
 	mi, _ := m.dispatchPalette("go_backlog")
 	m = mi.(model)
-	if m.view != viewBacklog {
-		t.Errorf("dispatch go_backlog → view=%d, want viewBacklog", m.view)
+	if m.view != viewBrowseBacklog {
+		t.Errorf("dispatch go_backlog → view=%d, want viewBrowseBacklog", m.view)
 	}
 }
 

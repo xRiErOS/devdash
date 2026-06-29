@@ -16,12 +16,12 @@ func TestSearchFiltersAndExits(t *testing.T) {
 		{Key: "DD2-2", Title: "Search view", Type: "feature", Status: "planned"},
 	}
 	m.treeIssuesLoaded = true
-	m.view = viewTree // openSearch merkt sich die Heimat-View als topReturn
+	m.view = viewBrowseProject // openSearch merkt sich die Heimat-View als topReturn
 
 	mi, _ := m.openSearch()
 	m = mi.(model)
-	if m.view != viewSearch {
-		t.Fatalf("openSearch → view=%d, want viewSearch", m.view)
+	if m.view != viewCommandCenter {
+		t.Fatalf("openSearch → view=%d, want viewCommandCenter", m.view)
 	}
 	if len(m.searchResults()) != 2 {
 		t.Fatalf("leere Query → alle (2), got %d", len(m.searchResults()))
@@ -38,15 +38,15 @@ func TestSearchFiltersAndExits(t *testing.T) {
 	}
 
 	mi, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
-	if mi.(model).view != viewTree {
-		t.Errorf("esc → view=%d, want viewTree (topReturn)", mi.(model).view)
+	if mi.(model).view != viewBrowseProject {
+		t.Errorf("esc → view=%d, want viewBrowseProject (topReturn)", mi.(model).view)
 	}
 }
 
 func TestPaletteDispatchSearch(t *testing.T) {
 	m := paletteModel()
 	mi, _ := m.dispatchPalette("go_search")
-	if mi.(model).view != viewSearch {
-		t.Errorf("go_search → view=%d, want viewSearch", mi.(model).view)
+	if mi.(model).view != viewCommandCenter {
+		t.Errorf("go_search → view=%d, want viewCommandCenter", mi.(model).view)
 	}
 }

@@ -14,7 +14,7 @@ import (
 func backlogFilterModel() model {
 	c1, c2, c3 := "2026-06-01", "2026-06-20", "2026-06-10"
 	m := model{
-		view: viewBacklog,
+		view: viewBrowseBacklog,
 		backlog: []api.Issue{
 			{ID: 1, Key: "DD2-1", Title: "Login bauen", Type: "feature", Priority: 3, Status: "new", CreatedAt: &c1},
 			{ID: 2, Key: "DD2-2", Title: "Crash beheben", Type: "bug", Priority: 1, Status: "planned", CreatedAt: &c2},

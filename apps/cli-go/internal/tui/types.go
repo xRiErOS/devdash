@@ -12,17 +12,17 @@ type viewID int
 
 const (
 	viewHome viewID = iota // DD2-124: Startschirm/Lobby (ASCII-Logo + Projektauswahl)
-	viewDetail
-	viewBacklog
-	viewReview
-	viewMilestone
-	viewSprint
-	viewReviewsList
-	viewMemory
-	viewTree     // DD2-57: Tree+Detail-Layout-Prototyp
-	viewTags     // DD2-75: Tag-Manager (projektweite Tag-CRUD)
-	viewSearch   // DD2-91: projektweite Issue-Such-Ansicht (Command-Center)
-	viewTutorial // DD2-122: geführtes, seitenweises Onboarding
+	viewDetailIssue
+	viewBrowseBacklog
+	viewReviewSprint
+	viewDetailMilestone
+	viewDetailSprint
+	viewNavigateReviews
+	viewManageMemory
+	viewBrowseProject // DD2-57: Tree+Detail-Layout-Prototyp
+	viewManageTags    // DD2-75: Tag-Manager (projektweite Tag-CRUD)
+	viewCommandCenter // DD2-91: projektweite Issue-Such-Ansicht (Command-Center)
+	viewTutorial      // DD2-122: geführtes, seitenweises Onboarding
 )
 
 // filterState hält pro Spalte, welche Werte ausgeblendet sind.
@@ -291,18 +291,18 @@ type model struct {
 	// read-only im Detail angezeigt. Schlüssel "m:<id>"/"s:<id>" (depCacheKey).
 	depsCache map[string]*api.Dependencies
 
-	// DD2-91: projektweite Such-Ansicht (viewSearch). Quelle = treeFilterIssues.
+	// DD2-91: projektweite Such-Ansicht (viewCommandCenter). Quelle = treeFilterIssues.
 	searchQuery string
 	searchList  listState
 
 	// DD2-122: aktuelle Tutorial-Seite (viewTutorial).
 	tutorialPage int
 
-	// Tag-Manager (DD2-75): T öffnet viewTags — projektweite Tag-CRUD-Liste.
+	// Tag-Manager (DD2-75): T öffnet viewManageTags — projektweite Tag-CRUD-Liste.
 	// n=neu, e=edit, d=löschen (Confirm), esc/q zurück zur Quell-View (tagReturn).
 	tags         []api.Tag
 	taglist      listState
-	tagReturn    viewID // Heimat-View für viewTags-esc/q
+	tagReturn    viewID // Heimat-View für viewManageTags-esc/q
 	tagEditID    int    // Ziel-Tag des edit-Formulars (0 = create)
 	tagDelID     int    // Ziel-Tag des Lösch-Confirms
 	tagDelName   string

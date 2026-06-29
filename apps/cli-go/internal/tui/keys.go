@@ -86,23 +86,23 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	// Review-Cockpit hat eigenen Eingabemodus.
-	if m.view == viewReview {
+	if m.view == viewReviewSprint {
 		return m.keyReview(msg)
 	}
 	// Memory-Browser fängt voll (Suche tippt q/R/p als Text).
-	if m.view == viewMemory {
+	if m.view == viewManageMemory {
 		return m.keyMemory(msg)
 	}
 	// Tag-Manager (DD2-75) fängt voll (n/e/d + esc/q zurück).
-	if m.view == viewTags {
+	if m.view == viewManageTags {
 		return m.keyTags(msg)
 	}
 	// Tree+Detail-Prototyp (DD2-57) fängt voll (eigene Nav + t/esc zurück).
-	if m.view == viewTree {
+	if m.view == viewBrowseProject {
 		return m.keyTree(msg)
 	}
 	// Such-Ansicht (DD2-91) fängt voll (tippen filtert, esc zurück).
-	if m.view == viewSearch {
+	if m.view == viewCommandCenter {
 		return m.keySearch(msg)
 	}
 	// Tutorial (DD2-122) fängt voll (blättern, esc zurück).
@@ -115,7 +115,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 	// Backlog mit aktivem Eingabe-/Menü-Overlay (DD2-46): alle Tasten direkt an den
 	// Backlog-Handler, bevor die globalen Shortcuts (p/q/R/T) sie abfangen.
-	if m.view == viewBacklog && (m.blSearching || m.blFilterOpen || m.blSortOpen) {
+	if m.view == viewBrowseBacklog && (m.blSearching || m.blFilterOpen || m.blSortOpen) {
 		return m.keyBacklog(msg)
 	}
 	k := msg.String()
@@ -136,13 +136,13 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	switch m.view {
-	case viewDetail:
+	case viewDetailIssue:
 		if m.keyScroll(k) { // DD2-30: scrollbarer Detail-Body
 			return m, nil
 		}
 		switch {
 		case keybind.Matches(msg, keys.Back):
-			m.view = viewTree // DD2-111: Ranger gesunset → Tree-Primat
+			m.view = viewBrowseProject // DD2-111: Ranger gesunset → Tree-Primat
 		case keybind.Matches(msg, keys.Status): // DD2-29: Issue-Status auch im Detail mutieren
 			if it := m.selIssue(); it != nil {
 				sid := 0
@@ -157,13 +157,13 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 		return m, nil
-	case viewMilestone:
+	case viewDetailMilestone:
 		if m.keyScroll(k) {
 			return m, nil
 		}
 		switch {
 		case keybind.Matches(msg, keys.Back):
-			m.view = viewTree // DD2-111: Ranger gesunset → Tree-Primat
+			m.view = viewBrowseProject // DD2-111: Ranger gesunset → Tree-Primat
 		case keybind.Matches(msg, keys.Status): // DD2-174: s (war S) — Meilenstein-Status
 			return m.openMilestoneStatus()
 		case keybind.Matches(msg, keys.Assign): // T03 Flow B: Sprints diesem Meilenstein zuweisen (Checkliste)
@@ -178,13 +178,13 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 		return m, nil
-	case viewSprint:
+	case viewDetailSprint:
 		if m.keyScroll(k) {
 			return m, nil
 		}
 		switch {
 		case keybind.Matches(msg, keys.Back):
-			m.view = viewTree // DD2-111: Ranger gesunset → Tree-Primat
+			m.view = viewBrowseProject // DD2-111: Ranger gesunset → Tree-Primat
 		case keybind.Matches(msg, keys.Yank):
 			return m.yankContext()
 		case keybind.Matches(msg, keys.Assign): // DD2-174: a (war m) — diesen Sprint einem Meilenstein zuweisen
@@ -201,9 +201,9 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 		return m, nil
-	case viewReviewsList:
+	case viewNavigateReviews:
 		return m.keyReviewsList(msg)
-	case viewBacklog:
+	case viewBrowseBacklog:
 		return m.keyBacklog(msg)
 	}
 	return m, nil
@@ -212,10 +212,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // openReviewsList öffnet die Liste offener Review-Sprints (T17). Merkt die
 // Quell-View (Tree/Columns), damit q/esc dorthin zurückkehrt (DD2-61 Primat).
 func (m model) openReviewsList() (tea.Model, tea.Cmd) {
-	if m.view == viewTree {
+	if m.view == viewBrowseProject {
 		m.topReturn = m.view
 	}
-	m.view = viewReviewsList
+	m.view = viewNavigateReviews
 	m.rvlist = listState{}
 	m.status = ""
 	return m, loadReviewSprints(m.client)
@@ -224,10 +224,10 @@ func (m model) openReviewsList() (tea.Model, tea.Cmd) {
 // openBacklog öffnet die Backlog-Liste und merkt die Quell-View (Tree/Columns)
 // für die Rückkehr (DD2-61 Primat) — geteilt von keyTree und Backlog-Einstiegen.
 func (m model) openBacklog() (tea.Model, tea.Cmd) {
-	if m.view == viewTree {
+	if m.view == viewBrowseProject {
 		m.topReturn = m.view
 	}
-	m.view = viewBacklog
+	m.view = viewBrowseBacklog
 	m.detailFocus = false         // DD2-32: Einstieg immer im Listen-Fokus
 	m.secCursor, m.accOpen = 0, 1 // Detail-Preview: erste Content-Section offen
 	m.detailLevel, m.fieldCursor = 0, 0
@@ -251,8 +251,8 @@ func (m model) keyReviewsList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case keybind.Matches(msg, keys.Enter):
 		if m.rvlist.cursor >= 0 && m.rvlist.cursor < len(m.reviewSprints) {
 			s := m.reviewSprints[m.rvlist.cursor]
-			m.view = viewReview
-			m.reviewReturn = viewReviewsList // q/esc kehrt zur Liste zurück
+			m.view = viewReviewSprint
+			m.reviewReturn = viewNavigateReviews // q/esc kehrt zur Liste zurück
 			m.rlist.reset()
 			m.confirmComplete = false
 			m.curSprint = nil

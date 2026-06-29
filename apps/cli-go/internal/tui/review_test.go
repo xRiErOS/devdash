@@ -15,16 +15,16 @@ func reviewModel() model {
 	}}
 	// T17: R öffnet jetzt erst die Reviews-Liste; Cockpit wird wie nach
 	// Listen-Auswahl direkt betreten (Cockpit-Logik selbst unverändert).
-	m.view = viewReview
-	m.reviewReturn = viewReviewsList
+	m.view = viewReviewSprint
+	m.reviewReturn = viewNavigateReviews
 	m.rlist.setLen(len(m.curSprint.Items))
 	return m
 }
 
 func TestReviewEnter(t *testing.T) {
 	m := reviewModel()
-	if m.view != viewReview {
-		t.Fatalf("view=%d, want viewReview", m.view)
+	if m.view != viewReviewSprint {
+		t.Fatalf("view=%d, want viewReviewSprint", m.view)
 	}
 	if m.rlist.length != 1 {
 		t.Errorf("rlist.length=%d, want 1", m.rlist.length)

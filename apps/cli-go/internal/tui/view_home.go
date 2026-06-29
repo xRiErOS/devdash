@@ -1,6 +1,6 @@
 package tui
 
-// home.go — DD2-124: viewHome (Startschirm/Lobby) + projPick-Overlay.
+// view_home.go — DD2-124: viewHome (Startschirm/Lobby) + projPick-Overlay.
 // viewHome ist der Einstieg der TUI: ASCII-Logo oben, navigierbare Projektliste
 // darunter (Lobby). Der p-Shortcut öffnet denselben Picker als schwebendes
 // Overlay (projPick) über der aktuellen View — KEIN View-Wechsel mehr.
@@ -203,7 +203,7 @@ func (m model) selectProject(p api.Project) (tea.Model, tea.Cmd) {
 	m.project = &p
 	m.client = api.NewClient(fmt.Sprintf("%d", p.ID))
 	_ = config.Save(config.State{LastProject: p.Slug})
-	m.view = viewTree
+	m.view = viewBrowseProject
 	m.projPick = false
 	m.treeCursor = 0
 	m.milestones = nil
@@ -256,7 +256,7 @@ func (m model) keyHome(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return nm, cmd
 }
 
-// keyProjPick steuert das projPick-Overlay: Nav + Auswahl (→ viewTree), esc schließt.
+// keyProjPick steuert das projPick-Overlay: Nav + Auswahl (→ viewBrowseProject), esc schließt.
 func (m model) keyProjPick(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch navKey(msg.String()) {
 	case "up":

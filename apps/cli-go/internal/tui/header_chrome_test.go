@@ -38,7 +38,7 @@ func TestMetaGridOrderAndDropsEmpty(t *testing.T) {
 // Memory-Browser ist eigenständig (Zwei-Pane), trägt aber denselben Präfix-Titel.
 func TestMemoryBrowserHasPrefixTitle(t *testing.T) {
 	m := model{project: &api.Project{Prefix: "DD2", Slug: "devd2"}, width: 100, height: 30}
-	out := ansi.Strip(m.viewMemory())
+	out := ansi.Strip(m.viewManageMemory())
 	if !strings.Contains(out, "dd2 — Memory-Browser") {
 		t.Errorf("Memory-Browser ohne Präfix-Titel:\n%s", out)
 	}
