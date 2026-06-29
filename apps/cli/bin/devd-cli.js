@@ -2040,44 +2040,44 @@ related_issues:
     process.stdout.write((typeof md === 'string' ? md : JSON.stringify(md)) + '\n')
   },
 
-  // ---- Session-Notes (ProjectPages T-be1, D-D Modell B) — project-gescopt (X-Project-Id) ----
-  async 'session-note:list'(flags) {
+  // ---- User-Notes (ProjectPages T-be1, D-D Modell B) — project-gescopt (X-Project-Id) ----
+  async 'user-note:list'(flags) {
     const projectId = flags.project ? flags.project : PROJECT_ID
     const qs = flags.search ? `?search=${encodeURIComponent(String(flags.search))}` : ''
-    const rows = await api('GET', `/api/session-notes${qs}`, null, projectId)
+    const rows = await api('GET', `/api/user-notes${qs}`, null, projectId)
     console.log(pad('ID', 5), pad('TITLE', 42), 'SPRINTS/ISSUES')
     console.log('─'.repeat(80))
     for (const n of rows) console.log(pad(n.id, 5), pad(trunc(n.title, 40), 42), [...(n.sprints || []), ...(n.issues || [])].join(','))
-    console.log(`\n${rows.length} Session-Notes (project ${projectId})`)
+    console.log(`\n${rows.length} User-Notes (project ${projectId})`)
   },
-  async 'session-note:show'(flags) {
+  async 'user-note:show'(flags) {
     const id = Number(flags._[0])
-    if (!id) { console.error('Usage: devd-cli session-note show <id> [--project <id|slug>]'); process.exit(2) }
+    if (!id) { console.error('Usage: devd-cli user-note show <id> [--project <id|slug>]'); process.exit(2) }
     const projectId = flags.project ? flags.project : PROJECT_ID
-    const n = await api('GET', `/api/session-notes/${id}`, null, projectId)
+    const n = await api('GET', `/api/user-notes/${id}`, null, projectId)
     console.log(`#${n.id} ${n.title}`)
     if (n.pr_url) console.log(`  PR: ${n.pr_url}`)
     if ((n.sprints || []).length) console.log(`  Sprints: ${n.sprints.join(', ')}`)
     if ((n.issues || []).length) console.log(`  Issues:  ${n.issues.join(', ')}`)
     if (n.details) console.log(`\n${n.details}`)
   },
-  async 'session-note:create'(flags) {
+  async 'user-note:create'(flags) {
     const projectId = flags.project ? flags.project : PROJECT_ID
-    if (typeof flags.title !== 'string') { console.error('Usage: devd-cli session-note create --title "<text>" [--details <text>] [--pr <url>] [--sprints a,b] [--issues a,b] [--project <id|slug>]'); process.exit(2) }
+    if (typeof flags.title !== 'string') { console.error('Usage: devd-cli user-note create --title "<text>" [--details <text>] [--pr <url>] [--sprints a,b] [--issues a,b] [--project <id|slug>]'); process.exit(2) }
     const body = { title: flags.title }
     if (typeof flags.details === 'string') body.details = flags.details
     if (typeof flags.pr === 'string') body.pr_url = flags.pr
     if (typeof flags.sprints === 'string') body.sprints = flags.sprints.split(',').map(s => s.trim()).filter(Boolean)
     if (typeof flags.issues === 'string') body.issues = flags.issues.split(',').map(s => s.trim()).filter(Boolean)
-    const n = await api('POST', '/api/session-notes', body, projectId)
-    console.log(`✓ Session-Note #${n.id} angelegt`)
+    const n = await api('POST', '/api/user-notes', body, projectId)
+    console.log(`✓ User-Note #${n.id} angelegt`)
   },
-  async 'session-note:delete'(flags) {
+  async 'user-note:delete'(flags) {
     const id = Number(flags._[0])
-    if (!id) { console.error('Usage: devd-cli session-note delete <id> [--project <id|slug>]'); process.exit(2) }
+    if (!id) { console.error('Usage: devd-cli user-note delete <id> [--project <id|slug>]'); process.exit(2) }
     const projectId = flags.project ? flags.project : PROJECT_ID
-    await api('DELETE', `/api/session-notes/${id}`, null, projectId)
-    console.log(`✓ Session-Note #${id} gelöscht`)
+    await api('DELETE', `/api/user-notes/${id}`, null, projectId)
+    console.log(`✓ User-Note #${id} gelöscht`)
   },
 
   // ---- Component-Notes (DD-629) — projekt-pfad-gescopt (numerische project_id); spiegelt REST ----
@@ -2255,7 +2255,7 @@ ToDos (Project-Home, DD-308 — kein Bezug zur Issue-Lifecycle):
   devd-cli todo delete <id> --confirm
 
 Project-Memory (MEM-10 — projektgebundenes Wissen, FTS5, project-scoped):
-  devd-cli memory add "<summary>" --category <architecture_decision|dead_end|bug_pattern|convention|external_constraint|session_note>
+  devd-cli memory add "<summary>" --category <architecture_decision|dead_end|bug_pattern|convention|external_constraint|session_log|knowledge>
                                   [--content <text>] [--tags a,b] [--importance 1-3]
                                   [--anchor <code>] [--stability stable|volatile]
                                   [--source-type <t>] [--source-ref <r>] [--project <id|slug>]
@@ -2288,7 +2288,7 @@ SSTD-Slots (MEM-17 — adressierbare SSTD-Slots, gezielte Per-Slot/Per-Line-Ops)
   devd-cli sstd set <id|slug> <slot_key> [--content <text> | --file <pfad>]   # Slot komplett neu (sonst: $EDITOR)
   devd-cli sstd edit <id|slug> <slot_key> --op patch|insert_after|insert_before|delete --line <n>
                                           [--content <text>] [--expect <line-content>]
-  devd-cli sstd journal <id|slug> [--add "<text>"]     # Journal lesen / session_note-Eintrag anhängen
+  devd-cli sstd journal <id|slug> [--add "<text>"]     # Session-Log lesen / session_log-Eintrag anhängen
        Slots: architecture | conventions | sprint_state | roadmap | cross_refs | misc
        (project sstd <id|slug> bleibt als Read-All-Alias erhalten)
 

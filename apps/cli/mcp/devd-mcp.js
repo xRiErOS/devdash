@@ -836,35 +836,35 @@ server.tool(
     ok(await apiRequest('PUT', `/api/sop-collections/${encodeURIComponent(key)}/items`, { sopKeys })),
 )
 
-// ProjectPages T-be1 (D-D, Modell B): session_notes — NEUE separate Rich-Entity (user-verfasste
-// Notizen, SessionNotesWidget). KEIN Ersatz des SSTD-Auto-Journals (devd_sstd_journal_add bleibt
+// ProjectPages T-be1 (D-D, Modell B): user_notes — NEUE separate Rich-Entity (user-verfasste
+// Notizen, UserNotesWidget). KEIN Ersatz des SSTD-Auto-Journals (devd_sstd_journal_add bleibt
 // project_memories). project-gescopt (X-Project-Id via project_id).
 server.tool(
-  'devd_session_note_list',
-  'List session-notes of a project (id DESC). Optional FTS search over title+details. Read-only.',
+  'devd_user_note_list',
+  'List user-notes of a project (id DESC). Optional FTS search over title+details. Read-only.',
   { project_id: PROJECT_ID_PARAM, search: z.string().optional().describe('FTS query over title+details') },
   async ({ project_id, search }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
     const qs = search ? `?search=${encodeURIComponent(search)}` : ''
-    return ok(await apiRequest('GET', `/api/session-notes${qs}`, null, pid))
+    return ok(await apiRequest('GET', `/api/user-notes${qs}`, null, pid))
   },
 )
 
 server.tool(
-  'devd_session_note_get',
-  'Get one session-note by id (project-scoped, with parsed sprints[]/issues[]). Read-only.',
+  'devd_user_note_get',
+  'Get one user-note by id (project-scoped, with parsed sprints[]/issues[]). Read-only.',
   { project_id: PROJECT_ID_PARAM, id: z.number().int().positive() },
   async ({ project_id, id }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    return ok(await apiRequest('GET', `/api/session-notes/${id}`, null, pid))
+    return ok(await apiRequest('GET', `/api/user-notes/${id}`, null, pid))
   },
 )
 
 server.tool(
-  'devd_session_note_create',
-  'WRITE: Create a session-note (rich entity for SessionNotesWidget — NOT the SSTD auto-journal). title required; details (≤500), pr_url, sprints[], issues[] optional.',
+  'devd_user_note_create',
+  'WRITE: Create a user-note (rich entity for UserNotesWidget — NOT the SSTD auto-journal). title required; details (≤500), pr_url, sprints[], issues[] optional.',
   {
     project_id: PROJECT_ID_PARAM,
     title: z.string().describe('Note title'),
@@ -876,13 +876,13 @@ server.tool(
   async ({ project_id, title, details, pr_url, sprints, issues }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    return ok(await apiRequest('POST', '/api/session-notes', { title, details, pr_url, sprints, issues }, pid))
+    return ok(await apiRequest('POST', '/api/user-notes', { title, details, pr_url, sprints, issues }, pid))
   },
 )
 
 server.tool(
-  'devd_session_note_update',
-  'WRITE: Partial update of a session-note (at least one field). PUT /api/session-notes/:id.',
+  'devd_user_note_update',
+  'WRITE: Partial update of a user-note (at least one field). PUT /api/user-notes/:id.',
   {
     project_id: PROJECT_ID_PARAM,
     id: z.number().int().positive(),
@@ -895,18 +895,18 @@ server.tool(
   async ({ project_id, id, ...patch }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    return ok(await apiRequest('PUT', `/api/session-notes/${id}`, patch, pid))
+    return ok(await apiRequest('PUT', `/api/user-notes/${id}`, patch, pid))
   },
 )
 
 server.tool(
-  'devd_session_note_delete',
-  'WRITE: Delete a session-note by id (project-scoped). DELETE /api/session-notes/:id.',
+  'devd_user_note_delete',
+  'WRITE: Delete a user-note by id (project-scoped). DELETE /api/user-notes/:id.',
   { project_id: PROJECT_ID_PARAM, id: z.number().int().positive() },
   async ({ project_id, id }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    return ok(await apiRequest('DELETE', `/api/session-notes/${id}`, null, pid))
+    return ok(await apiRequest('DELETE', `/api/user-notes/${id}`, null, pid))
   },
 )
 

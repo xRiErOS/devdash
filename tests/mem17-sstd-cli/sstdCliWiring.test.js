@@ -28,9 +28,9 @@ describe('MEM-17 — SSTD-Slots CLI', () => {
     expect(block).toMatch(/expect/)
   })
 
-  test('journal --add aliasiert eine session_note Project-Memory', () => {
+  test('journal --add aliasiert eine session_log Project-Memory', () => {
     const block = cli.slice(cli.indexOf("'sstd:journal'"))
-    expect(block).toMatch(/session_note/)
+    expect(block).toMatch(/session_log/)
     expect(block).toMatch(/\/api\/project-memories/)
   })
 

@@ -42,9 +42,9 @@ describe('MEM-18 — SSTD-Slots MCP tools', () => {
     }
   })
 
-  test('journal_add aliasiert eine session_note Project-Memory', () => {
+  test('journal_add aliasiert eine session_log Project-Memory', () => {
     const block = mcp.slice(mcp.indexOf("'devd_sstd_journal_add'"))
-    expect(block).toMatch(/session_note/)
+    expect(block).toMatch(/session_log/)
     expect(block).toMatch(/\/api\/project-memories/)
   })
 

@@ -29,9 +29,6 @@
       "name": "projects"
     },
     {
-      "name": "session-notes"
-    },
-    {
       "name": "sops"
     },
     {
@@ -42,6 +39,9 @@
     },
     {
       "name": "tags"
+    },
+    {
+      "name": "user-notes"
     }
   ],
   "paths": {
@@ -9070,12 +9070,12 @@
         }
       }
     },
-    "/api/session-notes": {
+    "/api/user-notes": {
       "get": {
         "tags": [
-          "session-notes"
+          "user-notes"
         ],
-        "summary": "Listet Session-Notes des Projekts (optional Volltext-Filter)",
+        "summary": "Listet User-Notes des Projekts (optional Volltext-Filter)",
         "parameters": [
           {
             "name": "search",
@@ -9108,9 +9108,9 @@
       },
       "post": {
         "tags": [
-          "session-notes"
+          "user-notes"
         ],
-        "summary": "Session-Note anlegen",
+        "summary": "User-Note anlegen",
         "requestBody": {
           "required": true,
           "content": {
@@ -9177,12 +9177,12 @@
         }
       }
     },
-    "/api/session-notes/{id}": {
+    "/api/user-notes/{id}": {
       "get": {
         "tags": [
-          "session-notes"
+          "user-notes"
         ],
-        "summary": "Einzelne Session-Note per id (404 wenn fehlt)",
+        "summary": "Einzelne User-Note per id (404 wenn fehlt)",
         "parameters": [
           {
             "name": "id",
@@ -9212,9 +9212,9 @@
       },
       "put": {
         "tags": [
-          "session-notes"
+          "user-notes"
         ],
-        "summary": "Session-Note bearbeiten (partielles Update)",
+        "summary": "User-Note bearbeiten (partielles Update)",
         "parameters": [
           {
             "name": "id",
@@ -9289,9 +9289,9 @@
       },
       "delete": {
         "tags": [
-          "session-notes"
+          "user-notes"
         ],
-        "summary": "Session-Note löschen",
+        "summary": "User-Note löschen",
         "parameters": [
           {
             "name": "id",

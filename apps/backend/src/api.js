@@ -113,9 +113,9 @@ import {
   exportCollection as exportSopCollection,
 } from './lib/sopCollections.js'
 import {
-  SessionNoteError,
-  createSessionNote, listSessionNotes, getSessionNote, updateSessionNote, deleteSessionNote,
-} from './lib/sessionNotes.js'
+  UserNoteError,
+  createUserNote, listUserNotes, getUserNote, updateUserNote, deleteUserNote,
+} from './lib/userNotes.js'
 
 // ============================================================
 // Feature-Flags (ADR 2026-04-26: Archon + Live-Preview deferred)
@@ -981,7 +981,7 @@ function _sendProjectSlotError(res, e) {
 
 // DD-213 / MEM-16: SSTD — pro Projekt genau ein Markdown-Dokument, Master-Quelle ist die DB.
 // GET reassembliert seit MEM-16 (D07) aus den 6 Slots (project_sstd_slots) + zwei Projektionen
-// (Nächste Schritte ← offene project_todos; Journal ← letzte 40 session_notes). Solange alle Slots
+// (Nächste Schritte ← offene project_todos; Session-Log ← letzte 40 session_log-Memories). Solange alle Slots
 // leer sind, fällt renderReadAll auf den Legacy-Blob projects.sstd_content zurück.
 app.get('/api/projects/:id/sstd', (req, res) => {
   const project = db.prepare('SELECT id, sstd_updated_at FROM projects WHERE id = ?').get(req.params.id)
@@ -1207,45 +1207,45 @@ app.put('/api/sop-collections/:key/items', (req, res) => {
   }
 })
 
-// --- session_notes (ProjectPages T-be1, D-D Modell B) — project-gescopt (currentProjectId),
-// NEUE Rich-Entity (kein SSTD-Journal-Ersatz). Speist SessionNotesWidget. ---
-function _sendSessionNoteError(res, e) {
-  if (e instanceof SessionNoteError) {
+// --- user_notes (DD2-161, ehem. session_notes/ProjectPages T-be1) — project-gescopt
+// (currentProjectId), separate Rich-Entity (kein SSTD-Session-Log-Ersatz). Speist UserNotesWidget. ---
+function _sendUserNoteError(res, e) {
+  if (e instanceof UserNoteError) {
     return res.status(e.statusCode).json({ error: e.message, code: e.code, field: e.field })
   }
-  console.error('[session-notes] unexpected error', e)
+  console.error('[user-notes] unexpected error', e)
   return res.status(500).json({ error: 'Internal server error' })
 }
 
-app.get('/api/session-notes', (req, res) => {
-  res.json(listSessionNotes(db, currentProjectId(req), { search: req.query.search }))
+app.get('/api/user-notes', (req, res) => {
+  res.json(listUserNotes(db, currentProjectId(req), { search: req.query.search }))
 })
 
-app.get('/api/session-notes/:id', (req, res) => {
-  const note = getSessionNote(db, currentProjectId(req), Number(req.params.id))
-  if (!note) return res.status(404).json({ error: 'session_note nicht gefunden', code: 'NOTE_NOT_FOUND' })
+app.get('/api/user-notes/:id', (req, res) => {
+  const note = getUserNote(db, currentProjectId(req), Number(req.params.id))
+  if (!note) return res.status(404).json({ error: 'user_note nicht gefunden', code: 'NOTE_NOT_FOUND' })
   res.json(note)
 })
 
-app.post('/api/session-notes', (req, res) => {
+app.post('/api/user-notes', (req, res) => {
   try {
-    res.status(201).json(createSessionNote(db, currentProjectId(req), req.body || {}))
+    res.status(201).json(createUserNote(db, currentProjectId(req), req.body || {}))
   } catch (e) {
-    return _sendSessionNoteError(res, e)
+    return _sendUserNoteError(res, e)
   }
 })
 
-app.put('/api/session-notes/:id', (req, res) => {
+app.put('/api/user-notes/:id', (req, res) => {
   try {
-    res.json(updateSessionNote(db, currentProjectId(req), Number(req.params.id), req.body || {}))
+    res.json(updateUserNote(db, currentProjectId(req), Number(req.params.id), req.body || {}))
   } catch (e) {
-    return _sendSessionNoteError(res, e)
+    return _sendUserNoteError(res, e)
   }
 })
 
-app.delete('/api/session-notes/:id', (req, res) => {
-  const ok = deleteSessionNote(db, currentProjectId(req), Number(req.params.id))
-  if (!ok) return res.status(404).json({ error: 'session_note nicht gefunden', code: 'NOTE_NOT_FOUND' })
+app.delete('/api/user-notes/:id', (req, res) => {
+  const ok = deleteUserNote(db, currentProjectId(req), Number(req.params.id))
+  if (!ok) return res.status(404).json({ error: 'user_note nicht gefunden', code: 'NOTE_NOT_FOUND' })
   res.status(204).end()
 })
 
