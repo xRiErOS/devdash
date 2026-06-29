@@ -28,6 +28,7 @@ Direction cross: **jkli** — `i`=up, `j`=left/back, `k`=down, `l`=right/in (DD2
 | `T` | Tag-Manager |
 | `/` | Search |
 | `f` | Filter |
+| `X` | Clear filters |
 | `ctrl+r` | Reload data |
 | `ctrl+k` | Command-Center |
 | `?` | help |
@@ -37,17 +38,29 @@ Direction cross: **jkli** — `i`=up, `j`=left/back, `k`=down, `l`=right/in (DD2
 
 | Key | Action |
 |-------|--------|
-| `s` | Status (Issue/Sprint) |
-| `S` | Milestone status |
-| `m` | Sprint → milestone |
-| `a` | Assign sprints |
+| `s` | Status (all) |
+| `S` | Sort |
+| `a` | Assign |
+| `c` | Create |
 | `t` | Assign tags |
 | `d` | delete (cascade) |
 | `y` | Copy context |
 | `space/x` | Toggle facet |
 
+## Review
+
+| Key | Action |
+|-------|--------|
+| `a` | Pass verdict |
+| `x` | Reject + comment |
+| `o` | Reopen issue |
+| `w` | Rework issue |
+| `r` | Set result |
+| `P` | Mark review pass |
+| `C` | Complete sprint |
+
 ## Context notes
 
-- `s` / `S` / `d` / `m` / `a` act on the **focused node** (milestone / sprint / issue) — depending on depth or tree selection.
+- `s` / `a` / `c` / `d` act on the **focused node** (milestone / sprint / issue) — depending on depth or tree selection.
 - `q` / `ctrl+c` open the quit confirm at top level (DD2-49); in sub-forms/modals they cancel directly.
 - In search fields (tree `/`, memory `/`) and the command center, typing letters as text — the navigation bindings do not apply there.
