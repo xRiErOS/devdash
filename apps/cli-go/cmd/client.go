@@ -30,5 +30,5 @@ func resolveClient() (*api.Client, error) {
 			return api.NewClient(strconv.Itoa(p.ID)), nil
 		}
 	}
-	return nil, fmt.Errorf("kein Projekt gewählt — nutze --project <slug|prefix|id> oder setze DEVD_PROJECT_ID")
+	return nil, fmt.Errorf("no project selected — use --project <slug|prefix|id> or set DEVD_PROJECT_ID")
 }

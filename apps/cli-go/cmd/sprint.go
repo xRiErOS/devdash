@@ -8,11 +8,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var sprintCmd = &cobra.Command{Use: "sprint", Short: "Sprint-Kommandos"}
+var sprintCmd = &cobra.Command{Use: "sprint", Short: "Sprint commands"}
 
 var sprintListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "Sprints auflisten",
+	Short: "List sprints",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c, err := resolveClient()
 		if err != nil {
@@ -43,7 +43,7 @@ var sprintListCmd = &cobra.Command{
 
 var sprintShowCmd = &cobra.Command{
 	Use:   "show <key|id>",
-	Short: "Sprint-Details anzeigen",
+	Short: "Show sprint details",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c, err := resolveClient()
@@ -70,7 +70,7 @@ var sprintShowCmd = &cobra.Command{
 				for i, it := range s.Items {
 					rows[i] = []string{output.Key(it.Key), it.Title, output.ColorStatus(it.Status), it.Type}
 				}
-				output.SimpleTable([]string{"Key", "Titel", "Status", "Typ"}, rows)
+				output.SimpleTable([]string{"Key", "Title", "Status", "Type"}, rows)
 			}
 			fmt.Println()
 		})
@@ -80,7 +80,7 @@ var sprintShowCmd = &cobra.Command{
 
 var sprintContextCmd = &cobra.Command{
 	Use:   "context <key|id>",
-	Short: "Sprint-Kontext abrufen",
+	Short: "Fetch sprint context",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c, err := resolveClient()
@@ -112,8 +112,8 @@ var sprintContextCmd = &cobra.Command{
 }
 
 func init() {
-	sprintListCmd.Flags().String("status", "", "Filter nach Status (active, planning, review, completed)")
-	sprintContextCmd.Flags().String("format", "markdown", "Kontext-Format (json|markdown)")
+	sprintListCmd.Flags().String("status", "", "Filter by status (active, planning, review, completed)")
+	sprintContextCmd.Flags().String("format", "markdown", "Context format (json|markdown)")
 	sprintCmd.AddCommand(sprintListCmd, sprintShowCmd, sprintContextCmd)
 	rootCmd.AddCommand(sprintCmd)
 }
