@@ -226,6 +226,10 @@ func (m model) formTitle() string {
 		return "Settings"
 	case "editField":
 		return "Edit: " + m.editLabel
+	case "userStoryAdd":
+		return "Add user story"
+	case "userStoryEdit":
+		return "Edit user story"
 	case "tagCreate":
 		return "New tag"
 	case "tagEdit":
@@ -351,6 +355,10 @@ func (m *model) formCreateCmd() tea.Cmd {
 		default:
 			return doUpdateIssueField(m.client, m.editID, m.editField, get("value"))
 		}
+	case "userStoryAdd": // DD2-144: neue User-Story am Issue anlegen
+		return doAddUserStory(m.client, m.usFormIssueID, get("us_title"), get("us_qa"))
+	case "userStoryEdit": // DD2-144: bestehende User-Story (Titel/QA) bearbeiten
+		return doEditUserStory(m.client, m.usFormID, m.usFormIssueID, get("us_title"), get("us_qa"))
 	case "tagCreate": // DD2-75: neuen Tag anlegen
 		return doCreateTag(m.client, get("name"), m.form.GetString("color"))
 	case "tagEdit": // DD2-75: Tag umbenennen/umfärben

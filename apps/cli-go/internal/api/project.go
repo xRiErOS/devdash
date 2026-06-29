@@ -22,7 +22,7 @@ func (c *Client) ListProjects() ([]Project, error) {
 func (c *Client) ResolveProject(token string) (*Project, error) {
 	t := strings.TrimSpace(token)
 	if t == "" {
-		return nil, fmt.Errorf("kein Projekt angegeben")
+		return nil, fmt.Errorf("no project given")
 	}
 	list, err := c.ListProjects()
 	if err != nil {
@@ -39,5 +39,5 @@ func (c *Client) ResolveProject(token string) (*Project, error) {
 			return p, nil
 		}
 	}
-	return nil, fmt.Errorf("projekt %q nicht gefunden (slug, prefix oder id)", token)
+	return nil, fmt.Errorf("project %q not found (slug, prefix or id)", token)
 }

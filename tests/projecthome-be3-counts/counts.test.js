@@ -20,7 +20,7 @@ function seedIssue(db, projectId, title) {
       .run(projectId, title).lastInsertRowid,
   )
 }
-function seedMemory(db, projectId, category = 'session_note') {
+function seedMemory(db, projectId, category = 'session_log') {
   return Number(
     db.prepare("INSERT INTO project_memories (project_id, category, summary) VALUES (?, ?, 'm')")
       .run(projectId, category).lastInsertRowid,
@@ -30,7 +30,7 @@ function seedMemory(db, projectId, category = 'session_note') {
 describe('T-be3 — getProjectWithCounts', () => {
   let db
   beforeEach(() => {
-    db = createTestDb({ upToVersion: '065_v3_dd2_155_status_unify.sql' })
+    db = createTestDb({ upToVersion: '069_v3_dd2_155_status_unify.sql' })
     seedProject(db) // id=2 'devd'
   })
   afterEach(() => db.close())

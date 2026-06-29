@@ -33,15 +33,33 @@ type keyMap struct {
 	Refresh keybind.Binding // ctrl+r (DD2-72: manueller Daten-Reload)
 	Section keybind.Binding // 1…9 (Accordion-Section)
 
-	// Kontext-Aktionen (Status/Zuweisung/Löschen/Toggle).
-	Status       keybind.Binding // s (Issue-/Sprint-Status)
-	MileStatus   keybind.Binding // S (Meilenstein-Status)
-	AssignMile   keybind.Binding // m (Sprint → Meilenstein)
-	AssignSprint keybind.Binding // a (Sprints → Meilenstein)
-	Delete       keybind.Binding // d (Cascade-Delete)
-	Toggle       keybind.Binding // space / x (Facette an/aus)
-	Tags         keybind.Binding // T (Tag-Manager, DD2-75)
-	TagAssign    keybind.Binding // g (Tags zuweisen, DD2-33)
+	// Kontext-Aktionen (DD2-173). s ist global (alle Node-Typen), S=Sort,
+	// a=global Assign (m entfällt), c=global Create, X=Filter-Clear.
+	// MileStatus/AssignMile sind in Status/Assign aufgegangen.
+	Status      keybind.Binding // s (Status — alle Node-Typen)
+	Sort        keybind.Binding // S (Sortierung)
+	Assign      keybind.Binding // a (Assign — global)
+	Create      keybind.Binding // c (Create — global)
+	Delete      keybind.Binding // d (Cascade-Delete)
+	Toggle      keybind.Binding // space / x (Facette an/aus)
+	FilterClear keybind.Binding // X (Filter zurücksetzen)
+	Tags        keybind.Binding // T (Tag-Manager, DD2-75)
+	TagAssign   keybind.Binding // t (Tags zuweisen)
+
+	// Review-Cockpit (DD2-173). Vorher rohe String-Literale in keys_review.go —
+	// jetzt Teil der Single-Source.
+	ReviewPass     keybind.Binding // a — pass verdict
+	ReviewReject   keybind.Binding // x — reject + comment
+	ReviewReopen   keybind.Binding // o — reopen issue
+	ReviewRework   keybind.Binding // w — rework issue
+	ReviewResult   keybind.Binding // r — set result field
+	ReviewPass2    keybind.Binding // P — mark review pass
+	SprintComplete keybind.Binding // C — complete sprint
+
+	// User-Story (DD2-173). Reject auf x (aligned mit ReviewReject, statt r).
+	StoryAccept keybind.Binding // a — accept story
+	StoryReject keybind.Binding // x — reject story
+	StoryReset  keybind.Binding // o — reset story
 }
 
 // newKeyMap liefert die aktuell aktive Tastenbelegung. Das Richtungskreuz nutzt
@@ -70,14 +88,29 @@ func newKeyMap() keyMap {
 		Refresh: keybind.NewBinding(keybind.WithKeys("ctrl+r"), keybind.WithHelp("ctrl+r", "Reload data")),
 		Section: keybind.NewBinding(keybind.WithKeys("1", "2", "3", "4", "5", "6", "7", "8", "9"), keybind.WithHelp("1…9", "Section")),
 
-		Status:       keybind.NewBinding(keybind.WithKeys("s"), keybind.WithHelp("s", "Status (Issue/Sprint)")),
-		MileStatus:   keybind.NewBinding(keybind.WithKeys("S"), keybind.WithHelp("S", "Milestone status")),
-		AssignMile:   keybind.NewBinding(keybind.WithKeys("m"), keybind.WithHelp("m", "Sprint → milestone")),
-		AssignSprint: keybind.NewBinding(keybind.WithKeys("a"), keybind.WithHelp("a", "Assign sprints")),
-		Delete:       keybind.NewBinding(keybind.WithKeys("d"), keybind.WithHelp("d", "delete (cascade)")),
-		Toggle:       keybind.NewBinding(keybind.WithKeys(" ", "x"), keybind.WithHelp("space/x", "Toggle facet")),
-		Tags:         keybind.NewBinding(keybind.WithKeys("T"), keybind.WithHelp("T", "Tag-Manager")),
-		TagAssign:    keybind.NewBinding(keybind.WithKeys("t"), keybind.WithHelp("t", "Assign tags")),
+		Status:      keybind.NewBinding(keybind.WithKeys("s"), keybind.WithHelp("s", "Status (all)")),
+		Sort:        keybind.NewBinding(keybind.WithKeys("S"), keybind.WithHelp("S", "Sort")),
+		Assign:      keybind.NewBinding(keybind.WithKeys("a"), keybind.WithHelp("a", "Assign")),
+		Create:      keybind.NewBinding(keybind.WithKeys("c"), keybind.WithHelp("c", "Create")),
+		Delete:      keybind.NewBinding(keybind.WithKeys("d"), keybind.WithHelp("d", "delete (cascade)")),
+		Toggle:      keybind.NewBinding(keybind.WithKeys(" ", "x"), keybind.WithHelp("space/x", "Toggle facet")),
+		FilterClear: keybind.NewBinding(keybind.WithKeys("X"), keybind.WithHelp("X", "Clear filters")),
+		Tags:        keybind.NewBinding(keybind.WithKeys("T"), keybind.WithHelp("T", "Tag-Manager")),
+		TagAssign:   keybind.NewBinding(keybind.WithKeys("t"), keybind.WithHelp("t", "Assign tags")),
+
+		// Review-Cockpit (DD2-173).
+		ReviewPass:     keybind.NewBinding(keybind.WithKeys("a"), keybind.WithHelp("a", "Pass verdict")),
+		ReviewReject:   keybind.NewBinding(keybind.WithKeys("x"), keybind.WithHelp("x", "Reject + comment")),
+		ReviewReopen:   keybind.NewBinding(keybind.WithKeys("o"), keybind.WithHelp("o", "Reopen issue")),
+		ReviewRework:   keybind.NewBinding(keybind.WithKeys("w"), keybind.WithHelp("w", "Rework issue")),
+		ReviewResult:   keybind.NewBinding(keybind.WithKeys("r"), keybind.WithHelp("r", "Set result")),
+		ReviewPass2:    keybind.NewBinding(keybind.WithKeys("P"), keybind.WithHelp("P", "Mark review pass")),
+		SprintComplete: keybind.NewBinding(keybind.WithKeys("C"), keybind.WithHelp("C", "Complete sprint")),
+
+		// User-Story (DD2-173).
+		StoryAccept: keybind.NewBinding(keybind.WithKeys("a"), keybind.WithHelp("a", "Accept story")),
+		StoryReject: keybind.NewBinding(keybind.WithKeys("x"), keybind.WithHelp("x", "Reject story")),
+		StoryReset:  keybind.NewBinding(keybind.WithKeys("o"), keybind.WithHelp("o", "Reset story")),
 	}
 }
 
@@ -97,8 +130,9 @@ type helpGroup struct {
 func (k keyMap) helpGroups() []helpGroup {
 	return []helpGroup{
 		{"Navigation", []keybind.Binding{k.Up, k.Down, k.Left, k.Right, k.Enter, k.Back, k.Section}},
-		{"Views & Global", []keybind.Binding{k.Backlog, k.Reviews, k.Picker, k.Tags, k.Search, k.Filter, k.Refresh, k.Palette, k.Help, k.Quit}},
-		{"Actions", []keybind.Binding{k.Status, k.MileStatus, k.AssignMile, k.AssignSprint, k.TagAssign, k.Delete, k.Yank, k.Toggle}},
+		{"Views & Global", []keybind.Binding{k.Backlog, k.Reviews, k.Picker, k.Tags, k.Search, k.Filter, k.FilterClear, k.Refresh, k.Palette, k.Help, k.Quit}},
+		{"Actions", []keybind.Binding{k.Status, k.Sort, k.Assign, k.Create, k.TagAssign, k.Delete, k.Yank, k.Toggle}},
+		{"Review", []keybind.Binding{k.ReviewPass, k.ReviewReject, k.ReviewReopen, k.ReviewRework, k.ReviewResult, k.ReviewPass2, k.SprintComplete}},
 	}
 }
 

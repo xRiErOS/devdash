@@ -20,16 +20,19 @@
 import { z } from 'zod'
 
 // Spiegel von server/lib/projectMemories.js CATEGORIES (frozen array) und der
-// Migration-041-CHECK-Constraint. Reihenfolge ist load-bearing: die Lib baut ihre
-// `category muss eine von: ${CATEGORIES.join(', ')}`-Message aus exakt diesem Array,
-// und die MCP-Inline-Enum (mcp/devd-mcp.js) spiegelt dieselbe Reihenfolge.
+// CHECK-Constraint (Migration 041, erweitert durch 065). Reihenfolge ist load-bearing:
+// die Lib baut ihre `category muss eine von: ${CATEGORIES.join(', ')}`-Message aus exakt
+// diesem Array, und die MCP-Inline-Enum (mcp/devd-mcp.js) spiegelt dieselbe Reihenfolge.
+// DD2-19: session_note -> session_log (KI-Logbuch; abgegrenzt von der user_notes-Tabelle,
+// DD2-161) + knowledge (generisch) ergänzt.
 export const MEMORY_CATEGORIES = [
   'architecture_decision',
   'dead_end',
   'bug_pattern',
   'convention',
   'external_constraint',
-  'session_note',
+  'session_log',
+  'knowledge',
 ]
 
 const SUMMARY_MAX = 500

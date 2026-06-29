@@ -20,7 +20,7 @@ func TestColumnsIssueDeleteConfirm(t *testing.T) {
 		{ID: 7, Key: "SPF-7", Title: "Crash", Status: "new", Type: "bug"},
 	}}
 	m.ilist.setLen(1)
-	mi, _ := m.keyColumns("d")
+	mi, _ := m.keyColumns(key("d"))
 	mm := mi.(model)
 	if !mm.delConfirm || mm.delKind != "issue" || mm.delID != 7 {
 		t.Fatalf("Columns d@depth2 → delConfirm=%v kind=%q id=%d, want true/issue/7",

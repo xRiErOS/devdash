@@ -24,7 +24,7 @@ const MIG_038 = '038_v3_milestones_status_lifecycle.sql'
 // DD2-155: spec_path (039) ist Voraussetzung für den milestones-Recreate in 065,
 // 065 vereinheitlicht das Status-Vokabular (planning→new, active→in_progress, …).
 const MIG_039 = '039_v3_milestones_spec_path.sql'
-const MIG_065 = '065_v3_dd2_155_status_unify.sql'
+const MIG_069 = '069_v3_dd2_155_status_unify.sql'
 
 // ---------------------------------------------------------------------------
 // Part A — canMilestoneTransition pure-function unit tests (DD-512)
@@ -105,7 +105,7 @@ describe('DD-512 — patchMilestoneStatus: sprint-precondition integration', () 
     applyMigration(db, MIG_033, { logDir })
     applyMigration(db, MIG_038, { logDir })
     applyMigration(db, MIG_039, { logDir })
-    applyMigration(db, MIG_065, { logDir })
+    applyMigration(db, MIG_069, { logDir })
     auditCalls = []
   }
 

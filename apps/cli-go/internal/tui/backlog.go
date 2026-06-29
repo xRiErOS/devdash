@@ -14,6 +14,7 @@ import (
 
 	"devd-cli/internal/api"
 	"devd-cli/internal/theme"
+	keybind "github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
@@ -139,7 +140,7 @@ func (m model) openBacklogSort() (tea.Model, tea.Cmd) {
 func (m model) backlogLayout() (head, localKeys string, lw, rw, innerH int) {
 	w := m.termWidth()
 	head = m.breadcrumb("Backlog")
-	hint := "i/k:↑↓  l/→/enter:detail  /:search  f:filter  s:sort  S:sprint  d:delete  t:tags  b/esc:back"
+	hint := "i/k:↑↓  l/→/enter:detail  /:search  f:filter  S:sort  a:sprint  d:delete  t:tags  b/esc:back"
 	switch {
 	case m.blSearching:
 		hint = "type: filter   enter: apply   esc: cancel"
@@ -152,20 +153,10 @@ func (m model) backlogLayout() (head, localKeys string, lw, rw, innerH int) {
 	if avail < 4 {
 		avail = m.bodyHeight() // Höhe unbekannt (Init/Tests) → großzügiger Fallback
 	}
-	lw = m.cfg.Layout.TreeWidth // DD2-40: konfigurierbar (layout.tree_width)
-	if lw <= 0 {
-		lw = 36
-	}
-	if cap := w * 2 / 5; lw > cap {
-		lw = cap
-	}
-	if lw < 24 {
-		lw = 24
-	}
-	rw = w - lw - 4 // je Pane 2 Border-Spalten
-	if rw < 20 {
-		rw = 20
-	}
+	// DD2-150: Issue-Pane 1fr, Detail-Pane 2fr (dynamisch an Terminalbreite) — geteilte
+	// Single-Source mit Memory-Browser/Such-Ansicht. layout.tree_width gilt nur noch als
+	// Mindestbreite, nicht als Fixbreite (löst die alte gepinnte 36er-Spalte).
+	lw, rw = m.masterDetailWidths(w)
 	innerH = avail - 2 // Border oben/unten — NICHT via Height() (Golden Rule #1)
 	if innerH < 3 {
 		innerH = 3
@@ -190,7 +181,7 @@ func (m model) backlogSearchLine(w int) string {
 	if len(parts) > 0 {
 		return truncate(lipgloss.NewStyle().Foreground(theme.Red).Render(shield+" "+strings.Join(parts, " ")), w)
 	}
-	return truncate(theme.Dim.Render(shield+" /:search  f:filter  s:sort"), w)
+	return truncate(theme.Dim.Render(shield+" /:search  f:filter  S:sort"), w)
 }
 
 // backlogFilterSummary fasst die aktiven Facetten + Nicht-Default-Sortierung kurz.
@@ -313,7 +304,7 @@ func (m model) backlogDetail(it api.Issue, w int) string {
 	// ≥ 1); sec = secCursor-1 (Übersicht ist Index 0). Wie treeDetail (DD2-76/77).
 	focus := detailFocusView{active: m.detailFocus && m.secCursor >= 1,
 		level: m.detailLevel, sec: m.secCursor - 1, field: m.fieldCursor}
-	b.WriteString(renderAccordion(m.issueSections(it, w-2), m.accOpen, w, focus))
+	b.WriteString(renderAccordion(m.issueSections(it, w-2, true), m.accOpen, w, focus)) // full (DD2-144)
 	return b.String()
 }
 
@@ -367,7 +358,7 @@ func (m model) viewBacklog() string {
 // backlogFilterBox rendert das schwebende Facetten-Menü (Checkboxen je Facette).
 func (m model) backlogFilterBox() string {
 	var b strings.Builder
-	b.WriteString(theme.Muted.Render("space:toggle  c:clear  enter/esc:done") + "\n")
+	b.WriteString(theme.Muted.Render("space:toggle  X:clear  enter/esc:done") + "\n")
 	lastFacet := ""
 	facetHead := map[string]string{"type": "Issue-Type", "status": "Status"}
 	for i, it := range m.blfItems {
@@ -448,35 +439,35 @@ func (m model) keyBacklog(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	}
-	switch k {
-	case "enter":
+	switch { // DD2-174: key.Matches statt raw strings; Sort=S, Assign=a (war s/S)
+	case keybind.Matches(msg, keys.Enter):
 		if m.backlogSelected() != nil {
 			return m.enterDetailFocus()
 		}
-	case "/": // DD2-46 S1: Freitext-Suche
+	case keybind.Matches(msg, keys.Search): // DD2-46 S1: Freitext-Suche
 		m.blSearching = true
 		m.blSearch.SetValue(m.blQuery)
 		m.blSearch.CursorEnd()
 		m.blSearch.Focus()
-	case "f": // DD2-46 S2: Facetten-Filter
+	case keybind.Matches(msg, keys.Filter): // DD2-46 S2: Facetten-Filter
 		return m.openBacklogFilter()
-	case "s": // DD2-46 S3: Sortier-Picker
+	case keybind.Matches(msg, keys.Sort): // DD2-46 S3: Sortier-Picker (S, war s)
 		return m.openBacklogSort()
-	case "t": // DD2-33: Tag-Picker fürs selektierte Issue
+	case keybind.Matches(msg, keys.TagAssign): // DD2-33: Tag-Picker fürs selektierte Issue
 		if it := m.backlogSelected(); it != nil {
 			return m.openTagPicker("issue", it.ID, it.Key+" "+it.Title, it.Tags)
 		}
-	case "d": // DD2-65: selektiertes Issue löschen (Confirm)
+	case keybind.Matches(msg, keys.Delete): // DD2-65: selektiertes Issue löschen (Confirm)
 		if it := m.backlogSelected(); it != nil {
 			return m.openDelete("issue", it.ID, it.Key+" "+it.Title)
 		}
-	case "S": // DD2-136: selektiertes Issue einem Sprint zuweisen
+	case keybind.Matches(msg, keys.Assign): // DD2-136/174: selektiertes Issue einem Sprint zuweisen (a, war S)
 		if it := m.backlogSelected(); it != nil {
 			return m.openAssignSprint(it.ID)
 		}
-	case "b":
+	case keybind.Matches(msg, keys.Backlog):
 		m.view = m.topReturn // zurück zur Quell-View (Tree/Columns, DD2-61)
-	case "esc":
+	case keybind.Matches(msg, keys.Back):
 		// esc räumt zuerst aktive Suche/Filter ab, sonst → Lobby (Esc-Spine, DD2-124).
 		// b bleibt der „zurück zur Quell-View"-Pfad (topReturn).
 		if m.blQuery != "" || m.backlogFilterActive() {
@@ -515,7 +506,7 @@ func (m model) keyBacklogSearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-// keyBacklogFilter steuert das Facetten-Menü: space toggelt, c leert, enter/esc schließt.
+// keyBacklogFilter steuert das Facetten-Menü: space/x toggelt, X leert, enter/esc/f schließt.
 func (m model) keyBacklogFilter(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch navKey(msg.String()) {
 	case "up":
@@ -525,15 +516,15 @@ func (m model) keyBacklogFilter(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.blfMenu.move(1)
 		return m, nil
 	}
-	switch msg.String() {
-	case "esc", "q", "f", "enter":
+	switch { // DD2-174: X = FilterClear (war c); key.Matches statt raw strings
+	case keybind.Matches(msg, keys.Back), keybind.Matches(msg, keys.Filter), keybind.Matches(msg, keys.Enter), msg.String() == "q":
 		m.blFilterOpen = false
 		m.blist.cursor = 0
 		return m, nil
-	case "c":
+	case keybind.Matches(msg, keys.FilterClear): // X — alle Facetten leeren (war c)
 		m.blfType, m.blfStatus = nil, nil
 		return m, nil
-	case " ", "x":
+	case keybind.Matches(msg, keys.Toggle):
 		if m.blfMenu.cursor < 0 || m.blfMenu.cursor >= len(m.blfItems) {
 			return m, nil
 		}

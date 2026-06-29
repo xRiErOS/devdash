@@ -10,13 +10,14 @@ import (
 	"strings"
 
 	"devd-cli/internal/theme"
+	keybind "github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 // isCreateKind meldet, ob ein Formular-Kind eine NEUE Entität anlegt (→ Confirm).
 func isCreateKind(kind string) bool {
 	switch kind {
-	case "issue", "milestone", "sprint", "memory", "tagCreate":
+	case "issue", "milestone", "sprint", "memory", "tagCreate", "userStoryAdd":
 		return true
 	}
 	return false
@@ -62,21 +63,23 @@ func (m *model) createConfirmLabel() string {
 		return "Memory: " + get("summary")
 	case "tagCreate":
 		return "Tag: " + get("name")
+	case "userStoryAdd":
+		return "User story: " + get("us_title")
 	}
 	return "new entity"
 }
 
-// keyCreateConfirm steuert den y/n-Prompt: y/enter legt an, n/esc/q verwirft.
+// keyCreateConfirm steuert den Prompt: enter legt an, n/esc verwirft (DD2-174).
 func (m model) keyCreateConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "y", "enter":
+	switch {
+	case keybind.Matches(msg, keys.Enter):
 		cmd := m.pendingCreate
 		m.createConfirm = false
 		m.pendingCreate = nil
 		m.createLabel = ""
 		m.status = noticeText("Creating …")
 		return m, cmd
-	case "n", "esc", "q":
+	case keybind.Matches(msg, keys.Back), msg.String() == "n":
 		m.createConfirm = false
 		m.pendingCreate = nil
 		m.createLabel = ""
@@ -91,6 +94,6 @@ func (m model) createConfirmBox() string {
 	var b strings.Builder
 	b.WriteString(theme.Header.Render("Anlegen?") + "\n\n")
 	b.WriteString(theme.Accent.Render(truncate(m.createLabel, 60)) + "\n\n")
-	b.WriteString(theme.Dim.Render("y/enter: anlegen   n/esc: zurück"))
+	b.WriteString(theme.Dim.Render("enter: anlegen   esc/n: zurück"))
 	return modalBox(b.String(), clampModalWidth(54, m.width), theme.Mauve)
 }

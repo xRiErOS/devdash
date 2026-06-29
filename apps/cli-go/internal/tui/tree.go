@@ -14,6 +14,7 @@ import (
 	"devd-cli/internal/api"
 	"devd-cli/internal/clip"
 	"devd-cli/internal/theme"
+	keybind "github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -311,6 +312,9 @@ func (m model) treeLeftLines(nodes []treeNode, w int, active bool) []string {
 		case tkMile:
 			ms := m.milestones[n.mileIdx]
 			label = statusDot(ms.Status) + " " + mileDisplayName(ms.Name)
+			if t := tagsInline(ms.Tags); t != "" { // DD2-143: Tags am Meilenstein-Knoten
+				label += "  " + t
+			}
 		case tkSprint:
 			sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
 			if sp.Status == "cancelled" { // DD2-133 Rework: ID/Key bleibt weiß (wie completed), NUR der Status-Text grau
@@ -416,6 +420,7 @@ func (m model) treeDetail(n treeNode, w int) string {
 		b.WriteString(detailTitle("", mileDisplayName(ms.Name), w) + "\n")
 		b.WriteString(metaStrip([]metaPair{
 			{fmt.Sprintf("%d/%d", ms.Done, ms.Total), "Progress"},
+			{tagsInline(ms.Tags), "tags"}, // DD2-143
 		}, statusText(ms.Status), w) + "\n\n")
 		// DD2-78: editierbare Felder als flache, fokussierbare Liste (kein Accordion,
 		// D09). Bei Detail-Fokus auf diesem Knoten trägt das aktive Feld den D08-Balken.
@@ -479,7 +484,7 @@ func (m model) treeDetail(n treeNode, w int) string {
 		// steht (secCursor ≥ 1); sec = secCursor-1 (Übersicht ist Index 0).
 		focus := detailFocusView{active: m.detailFocus && m.secCursor >= 1,
 			level: m.detailLevel, sec: m.secCursor - 1, field: m.fieldCursor}
-		b.WriteString(renderAccordion(m.issueSections(it, w-2), m.accOpen, w, focus))
+		b.WriteString(renderAccordion(m.issueSections(it, w-2, true), m.accOpen, w, focus)) // full (DD2-144)
 	default:
 		b.WriteString(theme.Dim.Render("(nothing selected — l/→ expands)"))
 	}
@@ -523,12 +528,12 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.keyDetailFocus(msg)
 	}
 	nodes := m.treeNodes()
-	switch msg.String() {
-	case "q": // DD2-124: q → Lobby (immer Home)
+	switch { // DD2-174: key.Matches statt raw strings
+	case msg.String() == "q": // DD2-124: q → Lobby (immer Home), kein Quit
 		return m.goHome()
-	case "ctrl+c":
-		return m.requestQuit() // DD2-49
-	case "/": // DD2-62: Suchfeld öffnen, mit aktuellem Filter vorbelegen
+	case keybind.Matches(msg, keys.Quit): // ctrl+c (q ist oben abgefangen) — DD2-49
+		return m.requestQuit()
+	case keybind.Matches(msg, keys.Search): // DD2-62: Suchfeld öffnen, mit aktuellem Filter vorbelegen
 		m.treeSearching = true
 		m.treeSearch.SetValue(m.treeQuery)
 		m.treeSearch.CursorEnd()
@@ -539,7 +544,7 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			cmd = loadAllIssues(m.client)
 		}
 		return m, tea.Batch(textinput.Blink, cmd)
-	case "ctrl+r": // DD2-72: manueller Daten-Reload — Meilensteine + alle expandierten Sprints (atomar, Toast bleibt)
+	case keybind.Matches(msg, keys.Refresh): // DD2-72: manueller Daten-Reload — Meilensteine + alle expandierten Sprints (atomar, Toast bleibt)
 		var ids []int
 		for sid, open := range m.treeExpSprint {
 			if open {
@@ -551,9 +556,9 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			extra = loadAllIssues(m.client)
 		}
 		return m, tea.Batch(doRefresh(m.client, ids), extra)
-	case "f": // DD2-62 Rework: Filter-Facetten-Menü (Art/Issue-Type/Status)
+	case keybind.Matches(msg, keys.Filter): // DD2-62 Rework: Filter-Facetten-Menü (Art/Issue-Type/Status)
 		return m.openTreeFilter()
-	case "1", "2", "3", "4", "5", "6", "7", "8", "9":
+	case keybind.Matches(msg, keys.Section):
 		// DD2-50: Ziffer toggelt die Accordion-Section im Issue-Detail (exklusiv —
 		// gleiche Ziffer schließt, andere wechselt). Nur sinnvoll auf Issue-Knoten,
 		// schadet aber sonst nicht (Meilenstein/Sprint rendern kein Accordion).
@@ -564,7 +569,7 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.accOpen = d
 		}
 		return m, nil
-	case "esc":
+	case keybind.Matches(msg, keys.Back):
 		if m.treeActive() { // erst Filter + Suche löschen, dann Ranger
 			m.treeQuery = ""
 			m.treeSearch.SetValue("")
@@ -576,26 +581,23 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		return m.goHome() // DD2-124: Esc aus dem Primat-View → Lobby (Esc-Spine)
-	case "p": // Projekt-Switch-Overlay (DD2-124) — keyTree fängt vor dem globalen Switch
+	case keybind.Matches(msg, keys.Picker): // Projekt-Switch-Overlay (DD2-124) — keyTree fängt vor dem globalen Switch
 		if m.global != nil {
 			return m.openProjPick()
 		}
 		return m, nil
-	case "R": // Reviews-Liste — analog, sonst im Tree verschluckt
+	case keybind.Matches(msg, keys.Reviews): // Reviews-Liste — analog, sonst im Tree verschluckt
 		return m.openReviewsList()
-	case "b": // Backlog — analog
+	case keybind.Matches(msg, keys.Backlog): // Backlog — analog
 		return m.openBacklog()
-	case "S": // Meilenstein-Status (1:1 Ranger) — nur auf Meilenstein-Knoten
-		if m.treeCursor < len(nodes) {
-			if n := nodes[m.treeCursor]; n.kind == tkMile {
-				return m.openMilestoneStatusFor(&m.milestones[n.mileIdx])
-			}
-		}
-		return m, nil
-	case "s": // Sprint-Status (Sprint-Knoten) / Issue-Status (Issue-Knoten), 1:1 Ranger
+	case keybind.Matches(msg, keys.Status):
+		// DD2-174: s öffnet je Node-Typ das richtige Status-Menü (S/s zusammengeführt) —
+		// Meilenstein/Sprint/Issue, 1:1 Ranger.
 		if m.treeCursor < len(nodes) {
 			n := nodes[m.treeCursor]
 			switch n.kind {
+			case tkMile:
+				return m.openMilestoneStatusFor(&m.milestones[n.mileIdx])
 			case tkSprint:
 				sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
 				return m.openSprintStatus(sp.ID, sp.Status)
@@ -606,7 +608,7 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 		return m, nil
-	case "d": // Delete — Meilenstein/Sprint kaskadierend, Issue einzeln (DD2-65)
+	case keybind.Matches(msg, keys.Delete): // Delete — Meilenstein/Sprint kaskadierend, Issue einzeln (DD2-65)
 		if m.treeCursor < len(nodes) {
 			n := nodes[m.treeCursor]
 			switch n.kind {
@@ -623,17 +625,17 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 		return m, nil
-	case "y": // Kontext yanken (1:1 Ranger) — Meilenstein/Sprint
+	case keybind.Matches(msg, keys.Yank): // Kontext yanken (1:1 Ranger) — Meilenstein/Sprint
 		return m.treeYank(nodes)
-	case "T": // DD2-75: Tag-Manager (keyTree fängt vor dem globalen Switch)
+	case keybind.Matches(msg, keys.Tags): // DD2-75: Tag-Manager (keyTree fängt vor dem globalen Switch)
 		return m.openTagManager()
-	case "t": // DD2-33: Tag-Picker für den fokussierten Knoten
+	case keybind.Matches(msg, keys.TagAssign): // DD2-33: Tag-Picker für den fokussierten Knoten
 		if m.treeCursor < len(nodes) {
 			n := nodes[m.treeCursor]
 			switch n.kind {
 			case tkMile:
 				ms := m.milestones[n.mileIdx]
-				return m.openTagPicker("milestone", ms.ID, ms.Name, nil)
+				return m.openTagPicker("milestone", ms.ID, ms.Name, ms.Tags) // DD2-143: embedded Tags vorhaken
 			case tkSprint:
 				sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
 				return m.openTagPicker("sprint", sp.ID, sp.Name, nil)
@@ -661,7 +663,7 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "left":
 		return m.treeCollapse(nodes)
 	}
-	if msg.String() == "enter" {
+	if keybind.Matches(msg, keys.Enter) {
 		// DD2-78: enter „geht ins Detail" — auf Meilenstein/Sprint verlagert es den
 		// Fokus in die Detail-Pane (flache Feldliste), statt nur aufzuklappen (l/→
 		// bleibt das Tree-Expand). Auf einem Issue (Blatt) ist es ohnehin der Detail-
@@ -784,8 +786,8 @@ func (m model) filterStatusOptions() []string {
 	return out
 }
 
-// keyTreeFilter steuert das Filter-Menü: space toggelt die Facette, c leert alles,
-// enter/esc schließt (und lädt bei aktivem Filter projektweit frisch nach).
+// keyTreeFilter steuert das Filter-Menü: space/x toggelt die Facette, X leert alles,
+// enter/esc/f schließt (und lädt bei aktivem Filter projektweit frisch nach).
 func (m model) keyTreeFilter(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch navKey(msg.String()) {
 	case "up":
@@ -795,21 +797,21 @@ func (m model) keyTreeFilter(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.ffMenu.move(1)
 		return m, nil
 	}
-	switch msg.String() {
-	case "esc", "q", "f", "enter":
+	switch { // DD2-174: X = FilterClear (war c); key.Matches statt raw strings
+	case keybind.Matches(msg, keys.Back), keybind.Matches(msg, keys.Filter), keybind.Matches(msg, keys.Enter), msg.String() == "q":
 		m.treeFilterOpen = false
 		m.treeCursor = 0
 		if m.treeFilterActive() {
 			return m, loadAllIssues(m.client) // frische projektweite Daten
 		}
 		return m, nil
-	case "c": // alle Facetten leeren
+	case keybind.Matches(msg, keys.FilterClear): // X — alle Facetten leeren (war c)
 		m.fArt = map[treeKind]bool{}
 		m.fType = map[string]bool{}
 		m.fStatus = map[string]bool{}
 		m.fTags = map[string]bool{}
 		return m, nil
-	case " ", "x":
+	case keybind.Matches(msg, keys.Toggle):
 		if m.ffMenu.cursor < 0 || m.ffMenu.cursor >= len(m.ffItems) {
 			return m, nil
 		}
@@ -849,7 +851,7 @@ func (m model) keyTreeFilter(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // treeFilterBox rendert das schwebende Filter-Menü (Checkboxen je Facette).
 func (m model) treeFilterBox() string {
 	var b strings.Builder
-	b.WriteString(theme.Muted.Render("space:toggle  c:clear  enter/esc:done") + "\n")
+	b.WriteString(theme.Muted.Render("space:toggle  X:clear  enter/esc:done") + "\n")
 	lastFacet := ""
 	facetHead := map[string]string{"art": "Art", "type": "Issue-Type", "status": "Status", "tags": "Tags"}
 	for i, it := range m.ffItems {

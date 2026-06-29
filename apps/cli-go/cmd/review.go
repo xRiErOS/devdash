@@ -10,7 +10,7 @@ import (
 
 var reviewCmd = &cobra.Command{
 	Use:   "review <sprint-key|id>",
-	Short: "to_review-Issues + Readiness eines Sprints",
+	Short: "to_review issues + readiness of a sprint",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c, err := resolveClient()
@@ -36,7 +36,7 @@ var reviewCmd = &cobra.Command{
 				rows = append(rows, []string{output.Key(it.Key), it.Title, output.ColorStatus(it.Status)})
 			}
 			fmt.Println()
-			output.SimpleTable([]string{"Key", "Titel", "Status"}, rows)
+			output.SimpleTable([]string{"Key", "Title", "Status"}, rows)
 			fmt.Println()
 		})
 		return nil
@@ -45,7 +45,7 @@ var reviewCmd = &cobra.Command{
 
 var issuePassCmd = &cobra.Command{
 	Use:   "pass <key|id>",
-	Short: "Issue im Review abnehmen (passed)",
+	Short: "Accept issue in review (passed)",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		note, _ := cmd.Flags().GetString("note")
@@ -55,12 +55,12 @@ var issuePassCmd = &cobra.Command{
 
 var issueRejectCmd = &cobra.Command{
 	Use:   "reject <key|id>",
-	Short: "Issue im Review ablehnen (not_passed, Kommentar Pflicht)",
+	Short: "Reject issue in review (not_passed, comment required)",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		comment, _ := cmd.Flags().GetString("comment")
 		if strings.TrimSpace(comment) == "" {
-			return fmt.Errorf("--comment ist Pflicht bei reject (not_passed)")
+			return fmt.Errorf("--comment is required for reject (not_passed)")
 		}
 		note, _ := cmd.Flags().GetString("note")
 		return submitVerdict(cmd, args[0], "not_passed", comment, note)
@@ -124,7 +124,7 @@ var sprintCompleteCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		yes, _ := cmd.Flags().GetBool("yes")
 		if !yes {
-			return fmt.Errorf("Sprint-Abschluss ist PO-exklusiv (DD-186) — bestätige mit --yes")
+			return fmt.Errorf("sprint completion is PO-exclusive (DD-186) — confirm with --yes")
 		}
 		c, err := resolveClient()
 		if err != nil {
@@ -139,17 +139,17 @@ var sprintCompleteCmd = &cobra.Command{
 			return err
 		}
 		output.Print(cmd, s, func() {
-			fmt.Printf("  %s abgeschlossen → %s\n", output.Key(s.Key), output.ColorStatus(s.Status))
+			fmt.Printf("  %s completed → %s\n", output.Key(s.Key), output.ColorStatus(s.Status))
 		})
 		return nil
 	},
 }
 
 func init() {
-	issuePassCmd.Flags().String("note", "", "Optionale Review-Notiz")
-	issueRejectCmd.Flags().String("comment", "", "Ablehnungs-Kommentar (Pflicht)")
-	issueRejectCmd.Flags().String("note", "", "Optionale Review-Notiz")
-	sprintCompleteCmd.Flags().Bool("yes", false, "PO-Bestätigung für den Abschluss")
+	issuePassCmd.Flags().String("note", "", "Optional review note")
+	issueRejectCmd.Flags().String("comment", "", "Rejection comment (required)")
+	issueRejectCmd.Flags().String("note", "", "Optional review note")
+	sprintCompleteCmd.Flags().Bool("yes", false, "PO confirmation for completion")
 
 	issueCmd.AddCommand(issuePassCmd, issueRejectCmd)
 	sprintCmd.AddCommand(sprintReviewCmd, sprintCompleteCmd)

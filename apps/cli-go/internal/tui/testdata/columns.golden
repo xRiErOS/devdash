@@ -15,8 +15,8 @@
 ││                           ││                           ││                           │ │
 ││                           ││                           ││                           │ │
 ││                           ││                           ││                           │ │
-││                           ││                           ││                           │ │
 │╰───────────────────────────╯╰───────────────────────────╯╰───────────────────────────╯ │
-│i/k:↑↓  l/→:in  j/←:out  enter:detail  S:milestone-status  d:delete  f:filter  y:yank   │
-│t:tags  ctrl+r:reload  b:backlog  R:reviews  q:quit                                     │
+│↑/i:up  ↓/k:down  ←/j:back/out  →/l:in/expand  enter:open/confirm  s:Status (all)       │
+│d:delete (cascade)  f:Filter  y:Copy context  T:Tag-Manager  ctrl+r:Reload data         │
+│b:Backlog  R:Review-Cockpit  q:quit                                                     │
 ╰────────────────────────────────────────────────────────────────────────────────────────╯

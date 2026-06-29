@@ -112,4 +112,5 @@ type Milestone struct {
 	Total       int      `json:"total"`
 	Done        int      `json:"done"`
 	Sprints     []Sprint `json:"sprints"`
+	Tags        []Tag    `json:"tags,omitempty"` // DD2-143: vom List-Endpoint embedded
 }

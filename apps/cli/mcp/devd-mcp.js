@@ -68,10 +68,10 @@ const PROJECT_ID_PARAM = z
 // MEM-10: project_memories categories (mirror of migration 041 CHECK).
 // DD-563: BEWUSST inline gelassen (NICHT aus contracts/project-memory.contracts.js
 // importiert). tests/mem10-cli-mcp/cliMcpWiring.test.js source-greppt diese Datei per
-// `expect(mcp).toContain(c)` über alle 6 Kategorie-Literale ("log tool enumerates all six
-// categories"). Single Source der Werte liegt in der REST-Lib + im Contract; das
-// MCP-Inline-Literal bleibt als Source-Shape-Anker erhalten (DD-562-Lesson: t10-Muster).
-const MEMORY_CATEGORIES = ['architecture_decision', 'dead_end', 'bug_pattern', 'convention', 'external_constraint', 'session_note']
+// `expect(mcp).toContain(c)` über alle Kategorie-Literale. Single Source der Werte liegt in
+// der REST-Lib + im Contract; das MCP-Inline-Literal bleibt als Source-Shape-Anker erhalten
+// (DD-562-Lesson: t10-Muster). DD2-19: session_note -> session_log + knowledge ergänzt.
+const MEMORY_CATEGORIES = ['architecture_decision', 'dead_end', 'bug_pattern', 'convention', 'external_constraint', 'session_log', 'knowledge']
 
 // MEM-18: SSTD-Slot-Keys (mirror of migration 043 / sstdSlots.js SLOT_KEYS).
 // DD-564: Die Single Source der Werte liegt in contracts/sstd.contracts.js + der REST-Lib.
@@ -394,7 +394,7 @@ server.tool(
 
 server.tool(
   'devd_sstd_get',
-  'Get the full reassembled SSTD of a project (6 Slots + Projektionen: Naechste Schritte <- offene ToDos, Journal <- letzte 40 session_notes). Faellt auf den Legacy-Blob projects.sstd_content zurueck, solange alle Slots leer sind. Read-only (MEM-16/18).',
+  'Get the full reassembled SSTD of a project (6 Slots + Projektionen: Naechste Schritte <- offene ToDos, Session-Log <- letzte 40 session_log-Memories). Faellt auf den Legacy-Blob projects.sstd_content zurueck, solange alle Slots leer sind. Read-only (MEM-16/18).',
   { id_or_slug: z.string().describe('Numeric project id or slug string (e.g. "devd", "2")') },
   async ({ id_or_slug }) => {
     let pid
@@ -471,15 +471,15 @@ server.tool(
 
 server.tool(
   'devd_sstd_journal_add',
-  'WRITE: Append a journal entry to a project. Alias, der ein project_memory (category=session_note, Auto-Datum) anlegt — kein eigener Journal-Store (D03-rev). Erscheint in der Journal-Projektion von devd_sstd_get (letzte 40) (MEM-16/18).',
+  'WRITE: Append a session-log entry to a project. Alias, der ein project_memory (category=session_log, Auto-Datum) anlegt — kein eigener Journal-Store (D03-rev). Erscheint in der Session-Log-Projektion von devd_sstd_get (letzte 40) (MEM-16/18, DD2-19).',
   {
     id_or_slug: z.string().describe('Numeric project id or slug string (e.g. "devd", "2")'),
-    content: z.string().describe('Journal entry text (wird als session_note summary gespeichert)'),
+    content: z.string().describe('Session-log entry text (wird als session_log summary gespeichert)'),
   },
   async ({ id_or_slug, content }) => {
     let pid
     try { pid = await resolveProjectNumericId(id_or_slug) } catch (e) { return ok({ error: true, message: e.message }) }
-    const data = await apiRequest('POST', '/api/project-memories', { category: 'session_note', summary: content }, pid)
+    const data = await apiRequest('POST', '/api/project-memories', { category: 'session_log', summary: content }, pid)
     return ok(data)
   },
 )
@@ -601,6 +601,49 @@ server.tool(
     const qs = params.toString() ? `?${params.toString()}` : ''
     const data = await apiRequest('GET', `/api/backlog${qs}`, null, pid)
     return ok(data)
+  },
+)
+
+server.tool(
+  'devd_backlog_list',
+  'DD2-110: List the REAL backlog of a project — open, unplanned work only. Backlog = status "new" OR (status "planned" AND no sprint assigned), mirroring the TUI backlog view (messages.go). Unlike devd_issue_list (which returns ALL issues when unfiltered), this captures the backlog semantics in one call (two backend queries, merged + deduped). refined is excluded (roadmap/milestone-managed). Each item has `key`. Read-only.',
+  {
+    project_id: PROJECT_ID_PARAM,
+    type: z.enum(ISSUE_TYPES).optional().describe('Filter by issue type'),
+    search: z.string().optional().describe('Full-text search across title, context_notes, goal, background'),
+    fields: z.enum(['compact', 'full']).optional().describe('compact (default — token-safe) or full'),
+    limit: z.number().int().min(1).optional().describe('Max rows returned (applied after merge)'),
+  },
+  async ({ project_id, type, search, fields, limit }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    // Backlog-Semantik (TUI-autoritativ): status=new ∪ (status=planned ∧ sprint=null).
+    // Backend /api/backlog komponiert status+sprint_id mit AND → zwei Calls + Merge.
+    const base = new URLSearchParams()
+    if (type) base.set('type', type)
+    if (search) base.set('search', search)
+    if (fields) base.set('fields', fields)
+    const qNew = new URLSearchParams(base)
+    qNew.set('status', 'new')
+    const qPlanned = new URLSearchParams(base)
+    qPlanned.set('status', 'planned')
+    qPlanned.set('sprint_id', 'null')
+    const [newItems, plannedItems] = await Promise.all([
+      apiRequest('GET', `/api/backlog?${qNew.toString()}`, null, pid),
+      apiRequest('GET', `/api/backlog?${qPlanned.toString()}`, null, pid),
+    ])
+    if (newItems && newItems.error) return ok(newItems)
+    if (plannedItems && plannedItems.error) return ok(plannedItems)
+    // Merge + Dedup nach key (Status-disjunkt → Dedup nur Sicherheitsnetz). new zuerst.
+    const seen = new Set()
+    const merged = []
+    for (const it of [...(newItems || []), ...(plannedItems || [])]) {
+      const k = it.key ?? it.id
+      if (seen.has(k)) continue
+      seen.add(k)
+      merged.push(it)
+    }
+    return ok(limit !== undefined ? merged.slice(0, limit) : merged)
   },
 )
 
@@ -836,35 +879,35 @@ server.tool(
     ok(await apiRequest('PUT', `/api/sop-collections/${encodeURIComponent(key)}/items`, { sopKeys })),
 )
 
-// ProjectPages T-be1 (D-D, Modell B): session_notes — NEUE separate Rich-Entity (user-verfasste
-// Notizen, SessionNotesWidget). KEIN Ersatz des SSTD-Auto-Journals (devd_sstd_journal_add bleibt
+// ProjectPages T-be1 (D-D, Modell B): user_notes — NEUE separate Rich-Entity (user-verfasste
+// Notizen, UserNotesWidget). KEIN Ersatz des SSTD-Auto-Journals (devd_sstd_journal_add bleibt
 // project_memories). project-gescopt (X-Project-Id via project_id).
 server.tool(
-  'devd_session_note_list',
-  'List session-notes of a project (id DESC). Optional FTS search over title+details. Read-only.',
+  'devd_user_note_list',
+  'List user-notes of a project (id DESC). Optional FTS search over title+details. Read-only.',
   { project_id: PROJECT_ID_PARAM, search: z.string().optional().describe('FTS query over title+details') },
   async ({ project_id, search }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
     const qs = search ? `?search=${encodeURIComponent(search)}` : ''
-    return ok(await apiRequest('GET', `/api/session-notes${qs}`, null, pid))
+    return ok(await apiRequest('GET', `/api/user-notes${qs}`, null, pid))
   },
 )
 
 server.tool(
-  'devd_session_note_get',
-  'Get one session-note by id (project-scoped, with parsed sprints[]/issues[]). Read-only.',
+  'devd_user_note_get',
+  'Get one user-note by id (project-scoped, with parsed sprints[]/issues[]). Read-only.',
   { project_id: PROJECT_ID_PARAM, id: z.number().int().positive() },
   async ({ project_id, id }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    return ok(await apiRequest('GET', `/api/session-notes/${id}`, null, pid))
+    return ok(await apiRequest('GET', `/api/user-notes/${id}`, null, pid))
   },
 )
 
 server.tool(
-  'devd_session_note_create',
-  'WRITE: Create a session-note (rich entity for SessionNotesWidget — NOT the SSTD auto-journal). title required; details (≤500), pr_url, sprints[], issues[] optional.',
+  'devd_user_note_create',
+  'WRITE: Create a user-note (rich entity for UserNotesWidget — NOT the SSTD auto-journal). title required; details (≤500), pr_url, sprints[], issues[] optional.',
   {
     project_id: PROJECT_ID_PARAM,
     title: z.string().describe('Note title'),
@@ -876,13 +919,13 @@ server.tool(
   async ({ project_id, title, details, pr_url, sprints, issues }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    return ok(await apiRequest('POST', '/api/session-notes', { title, details, pr_url, sprints, issues }, pid))
+    return ok(await apiRequest('POST', '/api/user-notes', { title, details, pr_url, sprints, issues }, pid))
   },
 )
 
 server.tool(
-  'devd_session_note_update',
-  'WRITE: Partial update of a session-note (at least one field). PUT /api/session-notes/:id.',
+  'devd_user_note_update',
+  'WRITE: Partial update of a user-note (at least one field). PUT /api/user-notes/:id.',
   {
     project_id: PROJECT_ID_PARAM,
     id: z.number().int().positive(),
@@ -895,77 +938,21 @@ server.tool(
   async ({ project_id, id, ...patch }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    return ok(await apiRequest('PUT', `/api/session-notes/${id}`, patch, pid))
+    return ok(await apiRequest('PUT', `/api/user-notes/${id}`, patch, pid))
   },
 )
 
 server.tool(
-  'devd_session_note_delete',
-  'WRITE: Delete a session-note by id (project-scoped). DELETE /api/session-notes/:id.',
+  'devd_user_note_delete',
+  'WRITE: Delete a user-note by id (project-scoped). DELETE /api/user-notes/:id.',
   { project_id: PROJECT_ID_PARAM, id: z.number().int().positive() },
   async ({ project_id, id }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    return ok(await apiRequest('DELETE', `/api/session-notes/${id}`, null, pid))
+    return ok(await apiRequest('DELETE', `/api/user-notes/${id}`, null, pid))
   },
 )
 
-// DD-629: component-notes CLI+MCP. Die REST-Route ist PATH-gescopt auf eine NUMERISCHE
-// project_id (Slug wird dort nicht resolved) → erst auf die numerische id auflösen
-// (GET /api/projects/:id resolved Slug via DD-390), dann den Pfad bauen.
-async function resolveNumericProjectId(project_id) {
-  const ref = resolveProjectId(project_id)
-  if (typeof ref === 'object' && ref.error) return ref
-  const proj = await apiRequest('GET', `/api/projects/${encodeURIComponent(String(ref))}`)
-  if (proj && proj.error) return proj
-  return proj.id
-}
-
-server.tool(
-  'devd_component_note_list',
-  'List component-notes (slug + updated_at) of a project. GET /api/projects/:pid/component-notes. Read-only.',
-  { project_id: PROJECT_ID_PARAM },
-  async ({ project_id }) => {
-    const npid = await resolveNumericProjectId(project_id)
-    if (npid && npid.error) return ok(npid)
-    return ok(await apiRequest('GET', `/api/projects/${npid}/component-notes`))
-  },
-)
-
-server.tool(
-  'devd_component_note_get',
-  'Get one component-note by slug. GET /api/projects/:pid/component-notes/:slug. Read-only.',
-  { project_id: PROJECT_ID_PARAM, slug: z.string().describe('Component-note slug') },
-  async ({ project_id, slug }) => {
-    const npid = await resolveNumericProjectId(project_id)
-    if (npid && npid.error) return ok(npid)
-    return ok(await apiRequest('GET', `/api/projects/${npid}/component-notes/${encodeURIComponent(slug)}`))
-  },
-)
-
-server.tool(
-  'devd_component_note_set',
-  'WRITE: Upsert a component-note (create or overwrite by slug). PUT /api/projects/:pid/component-notes/:slug {content}.',
-  { project_id: PROJECT_ID_PARAM, slug: z.string().describe('Component-note slug'), content: z.string().describe('Note content (markdown)') },
-  async ({ project_id, slug, content }) => {
-    const npid = await resolveNumericProjectId(project_id)
-    if (npid && npid.error) return ok(npid)
-    return ok(await apiRequest('PUT', `/api/projects/${npid}/component-notes/${encodeURIComponent(slug)}`, { content }))
-  },
-)
-
-server.tool(
-  'devd_component_note_delete',
-  'WRITE: Delete a component-note by slug. DELETE /api/projects/:pid/component-notes/:slug.',
-  { project_id: PROJECT_ID_PARAM, slug: z.string().describe('Component-note slug') },
-  async ({ project_id, slug }) => {
-    const npid = await resolveNumericProjectId(project_id)
-    if (npid && npid.error) return ok(npid)
-    const data = await apiRequest('DELETE', `/api/projects/${npid}/component-notes/${encodeURIComponent(slug)}`, null)
-    if (data && data.error) return ok(data)
-    return ok({ deleted: true, slug })
-  },
-)
 
 // DD-628: Lean Read-Context-Tools — AI-Kontext in einem Call. Read-only. Der generische
 // Response-Cap (DD-623) schützt diese potenziell großen Outputs automatisch.
@@ -995,6 +982,115 @@ server.tool(
     if (search) params.set('search', search)
     const qs = params.toString() ? `?${params.toString()}` : ''
     return okTextOrError(await apiRequest('GET', `/api/backlog-export${qs}`, null, pid))
+  },
+)
+
+// DD2-6: Sprint-Export (CSV/MD) zugänglich machen. Backlog-CSV bleibt entfernt
+// (DD2-123, schlecht für LLM-Parsing) — Sprint-Export behält CSV für Tabellen-Tools.
+server.tool(
+  'devd_sprint_export',
+  'READ: Export one sprint (its issues) as CSV or Markdown. csv columns: id,key,title,status,type,priority,tags,completed_at. md groups issues by status. GET /api/sprints/:id/export. Read-only.',
+  {
+    project_id: PROJECT_ID_PARAM,
+    sprint_key: z.string().describe('Sprint key (e.g. "DD2#22") or numeric sprint id'),
+    format: z.enum(['csv', 'md']).optional().describe('Export format (default md)'),
+  },
+  async ({ project_id, sprint_key, format }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    const id = await resolveSprintId(sprint_key, pid)
+    const qs = format ? `?format=${format}` : ''
+    return okTextOrError(await apiRequest('GET', `/api/sprints/${id}/export${qs}`, null, pid))
+  },
+)
+
+// DD2-21: Dokumenten-Subsystem (Markdown-Docs an Meilensteine/Sprints, DB-Blob).
+// Owner = milestone_id ODER sprint_key (genau einer). project_id nur für sprint_key-Resolve.
+const DOC_OWNER_PARAMS = {
+  project_id: PROJECT_ID_PARAM,
+  milestone_id: z.number().int().positive().optional().describe('Owner: Meilenstein-id (ODER sprint_key)'),
+  sprint_key: z.string().optional().describe('Owner: Sprint-Key/-id (ODER milestone_id)'),
+}
+async function docOwnerBase(milestone_id, sprint_key, pid) {
+  if (milestone_id != null) return `/api/milestones/${milestone_id}`
+  if (sprint_key != null) return `/api/sprints/${await resolveSprintId(sprint_key, pid)}`
+  return null
+}
+const DOC_OWNER_ERR = { error: true, message: 'Owner erforderlich: milestone_id ODER sprint_key' }
+
+server.tool(
+  'devd_document_list',
+  'READ: List markdown documents attached to a milestone or sprint (id DESC). Owner = milestone_id OR sprint_key. Read-only.',
+  DOC_OWNER_PARAMS,
+  async ({ project_id, milestone_id, sprint_key }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    const base = await docOwnerBase(milestone_id, sprint_key, pid)
+    if (!base) return ok(DOC_OWNER_ERR)
+    return ok(await apiRequest('GET', `${base}/documents`, null, pid))
+  },
+)
+
+server.tool(
+  'devd_document_get',
+  'READ: Get one document (with markdown body) by id, scoped to its milestone/sprint owner. Read-only.',
+  { ...DOC_OWNER_PARAMS, doc_id: z.number().int().positive() },
+  async ({ project_id, milestone_id, sprint_key, doc_id }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    const base = await docOwnerBase(milestone_id, sprint_key, pid)
+    if (!base) return ok(DOC_OWNER_ERR)
+    return ok(await apiRequest('GET', `${base}/documents/${doc_id}`, null, pid))
+  },
+)
+
+server.tool(
+  'devd_document_create',
+  'WRITE: Attach a markdown document to a milestone or sprint. title required; body (markdown, DB-blob) + file_path optional.',
+  {
+    ...DOC_OWNER_PARAMS,
+    title: z.string().describe('Document title'),
+    body: z.string().optional().describe('Markdown body (stored as DB-blob)'),
+    file_path: z.string().nullable().optional().describe('Optional repo-relative origin hint'),
+  },
+  async ({ project_id, milestone_id, sprint_key, title, body, file_path }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    const base = await docOwnerBase(milestone_id, sprint_key, pid)
+    if (!base) return ok(DOC_OWNER_ERR)
+    return ok(await apiRequest('POST', `${base}/documents`, { title, body, file_path }, pid))
+  },
+)
+
+server.tool(
+  'devd_document_update',
+  'WRITE: Partial update of a document (at least one of title/body/file_path). PUT /api/{milestones|sprints}/:id/documents/:docId.',
+  {
+    ...DOC_OWNER_PARAMS,
+    doc_id: z.number().int().positive(),
+    title: z.string().optional(),
+    body: z.string().optional(),
+    file_path: z.string().nullable().optional(),
+  },
+  async ({ project_id, milestone_id, sprint_key, doc_id, ...patch }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    const base = await docOwnerBase(milestone_id, sprint_key, pid)
+    if (!base) return ok(DOC_OWNER_ERR)
+    return ok(await apiRequest('PUT', `${base}/documents/${doc_id}`, patch, pid))
+  },
+)
+
+server.tool(
+  'devd_document_delete',
+  'WRITE: Delete a document by id (scoped to its milestone/sprint owner).',
+  { ...DOC_OWNER_PARAMS, doc_id: z.number().int().positive() },
+  async ({ project_id, milestone_id, sprint_key, doc_id }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    const base = await docOwnerBase(milestone_id, sprint_key, pid)
+    if (!base) return ok(DOC_OWNER_ERR)
+    return ok(await apiRequest('DELETE', `${base}/documents/${doc_id}`, null, pid))
   },
 )
 
@@ -1510,25 +1606,34 @@ server.tool(
   },
 )
 
+// DD2-99: Outcome-Type-Vokabular inline (kein Contract) — enum-validiert, default feat.
+const SET_RESULT_OUTCOME_TYPES = ['feat', 'fix', 'refactor', 'chore', 'docs']
+
 server.tool(
   'devd_issue_set_result',
   'WRITE: Set the structured sprint result on an issue. Builds the YAML+Markdown result string and writes it via PUT /api/backlog/:id {result}. commits is required (D02). Use after sprint work is done, before sprint complete.',
   {
     project_id: PROJECT_ID_PARAM,
-    id_or_key: z.string().describe('Issue key (e.g. "DD-42") or numeric backlog id'),
+    id_or_key: z.string({ error: 'id_or_key ist Pflichtfeld' }).trim().min(1, { error: 'id_or_key darf nicht leer sein' }).describe('Issue key (e.g. "DD-42") or numeric backlog id'),
+    // DD2-99: enum statt Free-String — ungültiger Typ schlägt klar an der Grenze fehl.
     outcome_type: z
-      .string()
+      .enum(SET_RESULT_OUTCOME_TYPES, { error: 'outcome_type muss feat|fix|refactor|chore|docs sein' })
       .optional()
       .describe('Outcome type: feat | fix | refactor | chore | docs (default: feat)'),
+    // DD2-99: non-empty Pflicht — leere Summary erzeugte zuvor ein nutzloses Result.
     outcome_summary: z
-      .string()
+      .string({ error: 'outcome_summary ist Pflichtfeld' })
+      .trim()
+      .min(1, { error: 'outcome_summary darf nicht leer sein' })
       .describe('Short summary of what was achieved (required)'),
     files_changed: z
       .array(z.string())
       .optional()
       .describe('List of changed file paths'),
+    // DD2-99: mind. 1 non-empty Commit (D02) — [] erzeugte zuvor einen leeren YAML-Eintrag.
     commits: z
-      .array(z.string())
+      .array(z.string().trim().min(1, { error: 'commit darf nicht leer sein' }), { error: 'commits muss ein Array sein' })
+      .min(1, { error: 'commits ist Pflicht — mind. 1 Eintrag (D02)' })
       .describe('List of commit SHAs or short descriptions (required — D02)'),
     breaking_changes: z
       .boolean()
@@ -1558,6 +1663,11 @@ server.tool(
     if (typeof pid === 'object' && pid.error) return ok(pid)
     const id = await resolveIssueId(id_or_key, pid)
     const issue = await apiRequest('GET', `/api/backlog/${id}`, null, pid)
+    // DD2-99: Issue nicht auflösbar/nicht gefunden → klar abbrechen, statt ein
+    // Result mit `#undefined`-related_issues zu bauen und blind zu PUTten.
+    if (!issue || issue.error || issue.id == null) {
+      return ok(issue && issue.error ? issue : { error: true, message: `Issue ${id_or_key} nicht gefunden` })
+    }
 
     // Build issue key for related_issues block
     const issueKey = (issue.project_prefix && issue.project_number != null)
@@ -1604,17 +1714,24 @@ ${vorgehenText}
 // ---------------------------------------------------------------------------
 // DD-565 (Triplet 6/6): bewusst KEIN Import aus contracts/subtask.contracts.js. Die
 // devd_subtask_*-Tools tragen kein dedupbares Enum/Konstanten-Literal — Status ist als fixes
-// `{ status: 'done' }` im done-Handler hartkodiert, title/qa_criteria/position sind reine
-// z.-Param-Typen. tests/sma-mcp-parity/subtasks.test.js ist zudem ein Source-Shape-Guard, der den
-// Klartext dieses Blocks (title/qa_criteria/done/id_or_key + Route-Strings) assertet. Die Single
-// Source der Subtask-Werte liegt in contracts/subtask.contracts.js + server/lib/subtasks.js.
+// `{ status: 'done' }` im done-Handler hartkodiert. tests/sma-mcp-parity/subtasks.test.js ist
+// zudem ein Source-Shape-Guard, der den Klartext dieses Blocks (title/qa_criteria/done/id_or_key
+// + Route-Strings) assertet. Die Single Source der Subtask-Werte liegt in
+// contracts/subtask.contracts.js + server/lib/subtasks.js.
+//
+// DD2-97: Input-Boundary gehärtet (klare Fehler an der MCP-Grenze statt Round-Trip): id_or_key
+// non-empty, title non-empty (trim+min(1), spiegelt 'title ist Pflichtfeld'), subtask_id positive
+// Ganzzahl. Bewusst inline (Contract-Entscheidung DD-562/563/564: kein Contract-Import in MCP) —
+// und KEINE künstlichen Längen-Caps, da die REST-Lib keine hat (sonst MCP/REST-Drift). Die
+// werfende Business-Autorität (qa_criteria-auf-done 422, status-nur-open-beim-Anlegen 400,
+// Parent-Existenz 404) bleibt in server/lib/subtasks.js.
 
 server.tool(
   'devd_subtask_list',
   'READ: List all subtasks for an issue. Returns id, title, qa_criteria, status, position.',
   {
     project_id: PROJECT_ID_PARAM,
-    id_or_key: z.string().describe('Issue key (e.g. "DD-42") or numeric backlog id'),
+    id_or_key: z.string({ error: 'id_or_key ist Pflichtfeld' }).trim().min(1, { error: 'id_or_key darf nicht leer sein' }).describe('Issue key (e.g. "DD-42") or numeric backlog id'),
   },
   async ({ project_id, id_or_key }) => {
     const pid = resolveProjectId(project_id)
@@ -1630,10 +1747,10 @@ server.tool(
   'WRITE: Add a subtask to an issue. title is required. qa_criteria is recommended (required before marking done).',
   {
     project_id: PROJECT_ID_PARAM,
-    id_or_key: z.string().describe('Issue key (e.g. "DD-42") or numeric backlog id'),
-    title: z.string().describe('Subtask title (required)'),
+    id_or_key: z.string({ error: 'id_or_key ist Pflichtfeld' }).trim().min(1, { error: 'id_or_key darf nicht leer sein' }).describe('Issue key (e.g. "DD-42") or numeric backlog id'),
+    title: z.string({ error: 'title ist Pflichtfeld' }).trim().min(1, { error: 'title ist Pflichtfeld' }).describe('Subtask title (required)'),
     qa_criteria: z.string().optional().describe('Acceptance / QA criteria — required before marking done'),
-    position: z.number().int().optional().describe('Sort position (default appended at end)'),
+    position: z.number().int({ error: 'position muss eine Ganzzahl sein' }).optional().describe('Sort position (default appended at end)'),
   },
   async ({ project_id, id_or_key, title, qa_criteria, position }) => {
     const pid = resolveProjectId(project_id)
@@ -1652,7 +1769,7 @@ server.tool(
   'WRITE: Mark a subtask as done. The subtask must have qa_criteria set (enforced server-side).',
   {
     project_id: PROJECT_ID_PARAM,
-    subtask_id: z.number().int().describe('Numeric subtask id (ST-<id>)'),
+    subtask_id: z.number().int().positive({ error: 'subtask_id muss eine positive Ganzzahl sein' }).describe('Numeric subtask id (ST-<id>)'),
   },
   async ({ project_id, subtask_id }) => {
     const pid = resolveProjectId(project_id)
@@ -1667,10 +1784,10 @@ server.tool(
   'WRITE: Update title, qa_criteria, or position of a subtask.',
   {
     project_id: PROJECT_ID_PARAM,
-    subtask_id: z.number().int().describe('Numeric subtask id (ST-<id>)'),
-    title: z.string().optional().describe('New title'),
+    subtask_id: z.number().int().positive({ error: 'subtask_id muss eine positive Ganzzahl sein' }).describe('Numeric subtask id (ST-<id>)'),
+    title: z.string().trim().min(1, { error: 'title darf nicht leer sein' }).optional().describe('New title'),
     qa_criteria: z.string().optional().describe('New QA criteria'),
-    position: z.number().int().optional().describe('New sort position'),
+    position: z.number().int({ error: 'position muss eine Ganzzahl sein' }).optional().describe('New sort position'),
   },
   async ({ project_id, subtask_id, title, qa_criteria, position }) => {
     const pid = resolveProjectId(project_id)
@@ -1689,7 +1806,7 @@ server.tool(
   'WRITE: Delete a subtask permanently.',
   {
     project_id: PROJECT_ID_PARAM,
-    subtask_id: z.number().int().describe('Numeric subtask id (ST-<id>)'),
+    subtask_id: z.number().int().positive({ error: 'subtask_id muss eine positive Ganzzahl sein' }).describe('Numeric subtask id (ST-<id>)'),
   },
   async ({ project_id, subtask_id }) => {
     const pid = resolveProjectId(project_id)
@@ -2155,7 +2272,7 @@ server.tool(
 
 server.tool(
   'devd_project_memory_log',
-  'WRITE: Log a project-bound memory (architecture_decision | dead_end | bug_pattern | convention | external_constraint | session_note) into project_memories. Append-only; corrections via the supersede endpoint. Decoupled from the global ~/.claude memory.',
+  'WRITE: Log a project-bound memory (architecture_decision | dead_end | bug_pattern | convention | external_constraint | session_log | knowledge) into project_memories. Append-only; corrections via the supersede endpoint. Decoupled from the global ~/.claude memory.',
   {
     project_id: PROJECT_ID_PARAM,
     category: z.enum(MEMORY_CATEGORIES).describe('Memory category'),

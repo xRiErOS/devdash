@@ -20,6 +20,9 @@
       "name": "backlog"
     },
     {
+      "name": "documents"
+    },
+    {
       "name": "memory"
     },
     {
@@ -27,9 +30,6 @@
     },
     {
       "name": "projects"
-    },
-    {
-      "name": "session-notes"
     },
     {
       "name": "sops"
@@ -42,6 +42,9 @@
     },
     {
       "name": "tags"
+    },
+    {
+      "name": "user-notes"
     }
   ],
   "paths": {
@@ -58,14 +61,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "properties": {
-                    "archon_enabled": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "archon_enabled"
-                  ],
+                  "properties": {},
                   "additionalProperties": false
                 }
               }
@@ -564,89 +560,6 @@
               "application/json": {
                 "schema": {
                   "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/planning-prompt": {
-      "get": {
-        "tags": [
-          "system"
-        ],
-        "summary": "Sprint-Planning-Prompt als Markdown rendern (refined Issues + Projektkontext).",
-        "parameters": [
-          {
-            "name": "capacity",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "files",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "project_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/archon-runs": {
-      "get": {
-        "tags": [
-          "system"
-        ],
-        "summary": "Archon-Runs auflisten, optional nach Sprint gefiltert.",
-        "parameters": [
-          {
-            "name": "sprint_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "propertyNames": {
-                      "type": "string"
-                    },
-                    "additionalProperties": {}
-                  }
                 }
               }
             }
@@ -3051,16 +2964,6 @@
                       }
                     ]
                   },
-                  "description": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
                   "files": {
                     "type": "array",
                     "items": {
@@ -3484,16 +3387,6 @@
                     ]
                   },
                   "result": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "description": {
                     "anyOf": [
                       {
                         "type": "string"
@@ -6055,172 +5948,6 @@
         }
       }
     },
-    "/api/sprints/{id}/run-archon": {
-      "post": {
-        "tags": [
-          "sprints"
-        ],
-        "summary": "Archon-Run für Sprint starten",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "run_id": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "run_id",
-                    "status"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/sprints/{id}/submit-feedback": {
-      "post": {
-        "tags": [
-          "sprints"
-        ],
-        "summary": "Archon-Feedback einreichen",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "run_id": {
-                    "type": "string"
-                  },
-                  "feedback_items": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "propertyNames": {
-                        "type": "string"
-                      },
-                      "additionalProperties": {}
-                    }
-                  }
-                },
-                "required": [
-                  "run_id",
-                  "feedback_items"
-                ],
-                "additionalProperties": false
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "action": {
-                      "type": "string"
-                    },
-                    "run_id": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "action",
-                    "run_id"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/sprints/{id}/active-run": {
-      "get": {
-        "tags": [
-          "sprints"
-        ],
-        "summary": "Aktiver Archon-Run eines Sprints",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "run_id": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "run_id",
-                        "status"
-                      ],
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/milestones": {
       "get": {
         "tags": [
@@ -7597,7 +7324,8 @@
                       "bug_pattern",
                       "convention",
                       "external_constraint",
-                      "session_note"
+                      "session_log",
+                      "knowledge"
                     ]
                   },
                   "summary": {
@@ -7906,7 +7634,8 @@
                       "bug_pattern",
                       "convention",
                       "external_constraint",
-                      "session_note"
+                      "session_log",
+                      "knowledge"
                     ]
                   },
                   "summary": {
@@ -8108,7 +7837,8 @@
                       "bug_pattern",
                       "convention",
                       "external_constraint",
-                      "session_note"
+                      "session_log",
+                      "knowledge"
                     ]
                   },
                   "summary": {
@@ -8299,7 +8029,8 @@
                       "bug_pattern",
                       "convention",
                       "external_constraint",
-                      "session_note"
+                      "session_log",
+                      "knowledge"
                     ]
                   },
                   "summary": {
@@ -9132,12 +8863,12 @@
         }
       }
     },
-    "/api/session-notes": {
+    "/api/user-notes": {
       "get": {
         "tags": [
-          "session-notes"
+          "user-notes"
         ],
-        "summary": "Listet Session-Notes des Projekts (optional Volltext-Filter)",
+        "summary": "Listet User-Notes des Projekts (optional Volltext-Filter)",
         "parameters": [
           {
             "name": "search",
@@ -9170,9 +8901,9 @@
       },
       "post": {
         "tags": [
-          "session-notes"
+          "user-notes"
         ],
-        "summary": "Session-Note anlegen",
+        "summary": "User-Note anlegen",
         "requestBody": {
           "required": true,
           "content": {
@@ -9239,12 +8970,12 @@
         }
       }
     },
-    "/api/session-notes/{id}": {
+    "/api/user-notes/{id}": {
       "get": {
         "tags": [
-          "session-notes"
+          "user-notes"
         ],
-        "summary": "Einzelne Session-Note per id (404 wenn fehlt)",
+        "summary": "Einzelne User-Note per id (404 wenn fehlt)",
         "parameters": [
           {
             "name": "id",
@@ -9274,9 +9005,9 @@
       },
       "put": {
         "tags": [
-          "session-notes"
+          "user-notes"
         ],
-        "summary": "Session-Note bearbeiten (partielles Update)",
+        "summary": "User-Note bearbeiten (partielles Update)",
         "parameters": [
           {
             "name": "id",
@@ -9351,12 +9082,502 @@
       },
       "delete": {
         "tags": [
-          "session-notes"
+          "user-notes"
         ],
-        "summary": "Session-Note löschen",
+        "summary": "User-Note löschen",
         "parameters": [
           {
             "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/milestones/{id}/documents": {
+      "get": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Listet Dokumente eines Meilensteins (id DESC)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Dokument anlegen (DB-Blob body)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "body": {
+                    "type": "string"
+                  },
+                  "file_path": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "title"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/milestones/{id}/documents/{docId}": {
+      "get": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Einzelnes Dokument (404 wenn fehlt/anderer Owner)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "docId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Dokument bearbeiten (partielles Update)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "docId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "body": {
+                    "type": "string"
+                  },
+                  "file_path": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Dokument löschen",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "docId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/sprints/{id}/documents": {
+      "get": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Listet Dokumente eines Sprints (id DESC)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Dokument anlegen (DB-Blob body)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "body": {
+                    "type": "string"
+                  },
+                  "file_path": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "title"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sprints/{id}/documents/{docId}": {
+      "get": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Einzelnes Dokument (404 wenn fehlt/anderer Owner)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "docId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Dokument bearbeiten (partielles Update)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "docId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "body": {
+                    "type": "string"
+                  },
+                  "file_path": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Dokument löschen",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "docId",
             "in": "path",
             "required": true,
             "schema": {

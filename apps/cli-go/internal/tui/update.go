@@ -34,6 +34,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.view == viewBacklog {
 				return m, tea.Batch(loadBacklog(m.client), clear)
 			}
+			// DD2-153: im Review die Ursprungs-Sprint-Review gezielt neu laden. Sonst
+			// reloadt loadMilestones→syncSprint() den columns-SELEKTIERTEN (default
+			// ersten) Sprint und clobbert m.curSprint → Redirect auf das erste Review
+			// der Liste statt das, von dem die PO startete.
+			if m.view == viewReview && m.curSprint != nil {
+				return m, tea.Batch(loadSprint(m.client, m.curSprint.ID), clear)
+			}
 			// DD2-72: im Tree/Columns nach Issue-Anlage die Spalten/Counts auffrischen,
 			// sonst hängt die Ansicht auf veralteten Fortschrittszahlen.
 			return m, tea.Batch(loadMilestones(m.client), clear)
@@ -63,21 +70,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.statusSeq++
 		return m, statusTimeout(m.statusSeq) // DD2-35: Auto-Clear
 	case userStoriesMsg:
-		if msg.issueID == m.usIssueID {
-			m.usList = msg.items
-			m.uslist.setLen(len(m.usList))
-		}
-		// DD2-67 #4: frische Stories ins Cockpit-Issue spiegeln, damit der summative
-		// User-Story-Dot LIVE umschlägt (grün sobald alle accepted) — ohne Sprint-Reload.
-		if m.curSprint != nil {
-			for i := range m.curSprint.Items {
-				if m.curSprint.Items[i].ID == msg.issueID {
-					m.curSprint.Items[i].UserStories = msg.items
-					break
-				}
-			}
-		}
+		m.mergeUserStories(msg.issueID, msg.items)
 		return m, nil
+	case usMutatedMsg: // DD2-144: US angelegt/bearbeitet → Caches spiegeln + Toast
+		m.mergeUserStories(msg.issueID, msg.items)
+		m.status = noticeText(msg.status)
+		m.statusSticky = false
+		m.statusSeq++
+		return m, statusTimeout(m.statusSeq)
 	case projectsMsg:
 		m.projects = msg.items
 		m.plist.setLen(len(m.projects))

@@ -11,6 +11,7 @@ import (
 
 	"devd-cli/internal/api"
 	"devd-cli/internal/theme"
+	keybind "github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -53,14 +54,14 @@ func removeIssueByID(items []api.Issue, id int) []api.Issue {
 	return out
 }
 
-// keyDelete steuert den Confirm-Dialog.
+// keyDelete steuert den Confirm-Dialog (DD2-174: enter=confirm, esc/n=cancel).
 func (m model) keyDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "esc", "q", "n":
+	switch {
+	case keybind.Matches(msg, keys.Back), msg.String() == "n":
 		m.delConfirm = false
 		m.status = ""
 		return m, nil
-	case "y", "enter":
+	case keybind.Matches(msg, keys.Enter):
 		if m.delLoading {
 			return m, nil // erst Counts abwarten
 		}
@@ -100,6 +101,6 @@ func (m model) deleteBox() string {
 		b.WriteString(fmt.Sprintf("  %d Dokument(e)\n", m.delDocs))
 		b.WriteString("\n" + lipgloss.NewStyle().Foreground(theme.Red).Render("Irreversible.") + "\n")
 	}
-	b.WriteString("\n" + theme.Dim.Render("y: delete permanently   esc/n: cancel"))
+	b.WriteString("\n" + theme.Dim.Render("enter: delete permanently   esc/n: cancel"))
 	return modalBox(b.String(), clampModalWidth(48, m.width), theme.Red)
 }

@@ -49,10 +49,8 @@ export const MILESTONE_STATUS_FILTERS = new Set([
 /**
  * canTransition(from, to, ctx) → { allowed: boolean, reason: string }
  *
- * Archon deferred (siehe ADR Archon und LivePreview deferred 2026-04-26):
- * Lifecycle erlaubt manuelle Übergänge ohne Archon-Token. Wenn Archon
- * reaktiviert wird, kann man optional `ctx.requireArchon=true` einführen
- * und zusätzliche Checks ergänzen.
+ * Lifecycle erlaubt manuelle Übergänge (DD2-172: Archon-Subsystem entfernt;
+ * es gibt keinen Token-/Automatik-Pfad mehr — alle Übergänge sind PO-getrieben).
  *
  * ctx shape:
  *   goal               string|null   — backlog.goal
@@ -96,6 +94,14 @@ export function canTransition(from, to, ctx = {}) {
     refined: {
       new: () => null,
       planned: () => {
+        // DD2-113 (PO-Entscheidung 2026-06-29): goal+background sind Pflicht vor planned.
+        // Greift v.a. bei direkt als 'refined' angelegten Issues (ISSUE_CREATE_STATUSES =
+        // ['new','refined']), die den new→refined-Guard umgangen haben. Spiegelt bewusst die
+        // new→refined-Bedingung. Reopen-Pfade (done/passed → planned) laufen oberhalb dieser
+        // Map und bleiben unberührt.
+        if (!ctx.goal || !ctx.background) {
+          return 'goal und background müssen befüllt sein'
+        }
         if (ctx.assigned_sprint == null) {
           return 'assigned_sprint muss gesetzt sein'
         }

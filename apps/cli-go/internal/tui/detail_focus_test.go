@@ -98,16 +98,20 @@ func TestDetailFocusSectionNav(t *testing.T) {
 	if m.secCursor != 2 || m.accOpen != 2 {
 		t.Errorf("j → secCursor=%d accOpen=%d, want 2/2", m.secCursor, m.accOpen)
 	}
-	// Am Ende geklemmt (3 Sektionen, Index max 2).
-	mi, _ = m.keyTree(key("k"))
-	m = mi.(model)
-	if m.secCursor != 2 {
-		t.Errorf("j am Ende → secCursor=%d, want 2 (geklemmt)", m.secCursor)
+	// Am Ende geklemmt: secCursor läuft bis zur letzten Section (DD2-144 fügt
+	// Relevant-Files/User-Stories-Sektionen hinzu → Anzahl dynamisch ermitteln).
+	last := len(m.focusSections()) - 1
+	for i := 0; i < last+2; i++ { // mehr k's als Sektionen → muss klemmen
+		mi, _ = m.keyTree(key("k"))
+		m = mi.(model)
+	}
+	if m.secCursor != last {
+		t.Errorf("j am Ende → secCursor=%d, want %d (geklemmt)", m.secCursor, last)
 	}
 	mi, _ = m.keyTree(key("i"))
 	m = mi.(model)
-	if m.secCursor != 1 || m.accOpen != 1 {
-		t.Errorf("k → secCursor=%d accOpen=%d, want 1/1", m.secCursor, m.accOpen)
+	if m.secCursor != last-1 || m.accOpen != last-1 {
+		t.Errorf("k → secCursor=%d accOpen=%d, want %d/%d", m.secCursor, m.accOpen, last-1, last-1)
 	}
 }
 
@@ -189,24 +193,34 @@ func TestDetailFocusDigitJump(t *testing.T) {
 	}
 }
 
-// Read-only-Section (keine editierbaren Felder, z.B. User-Stories) → l/→ ist no-op.
+// Read-only-Section (keine editierbaren Felder) → l/→ ist no-op. Seit DD2-144 ist
+// die User-Stories-Section editierbar (Add/Edit); die verbleibende read-only Section
+// ist Result — darauf navigieren und l/→ als no-op prüfen.
 func TestDetailFocusReadOnlySectionNoFieldEntry(t *testing.T) {
 	m := treeModel()
 	m.treeExpMile[1] = true
+	r := "Implemented and merged"
 	m.treeIssues[10] = []api.Issue{{
 		Key: "DD2-9", Title: "RO", Type: "bug", Priority: 1, Status: "to_review",
-		UserStories: []api.UserStory{{Title: "US1", Verdict: "open"}},
+		Result: &r,
 	}}
 	m.treeExpSprint[10] = true
 	m.view = viewTree
 	m.treeCursor = 2
-	// focusSections = [Übersicht(editierbar), Section 1 (Goal/PO immer editierbar,
-	// DD2-135), User-Stories(read-only)]. enter landet auf der Übersicht → 2× k auf die
-	// read-only User-Stories-Section, dann l/→ = no-op.
+	// focusSections (full): [Overview, Goal/PO, Background/Context, Relevant Files,
+	// User-Stories, Result(read-only)]. enter → Overview; auf die letzte (Result-)
+	// Section laufen, dann l/→ = no-op.
 	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter})
-	mi, _ = mi.(model).keyTree(key("k")) // → Section 1 (editierbar)
-	mi, _ = mi.(model).keyTree(key("k")) // → read-only User-Stories-Section
-	mi, _ = mi.(model).keyTree(key("l"))
+	m = mi.(model)
+	last := len(m.focusSections()) - 1
+	for m.secCursor < last {
+		mi, _ = m.keyTree(key("k"))
+		m = mi.(model)
+	}
+	if got := m.focusSections()[last]; len(got.fields) != 0 {
+		t.Fatalf("letzte Section %q ist nicht feldlos (%d Felder)", got.title, len(got.fields))
+	}
+	mi, _ = m.keyTree(key("l"))
 	if mi.(model).detailLevel != 0 {
 		t.Errorf("l/→ in feldlose Section → level=%d, want 0 (no-op)", mi.(model).detailLevel)
 	}
@@ -218,7 +232,7 @@ func TestIssueSectionsCarryFields(t *testing.T) {
 	g, d, po, bg := "Z", "B", "P", "H"
 	it := api.Issue{Key: "DD2-1", Title: "T", Type: "bug", Priority: 1, Status: "in_progress",
 		Goal: &g, Description: &d, PoNotes: &po, Background: &bg}
-	secs := treeModel().issueSections(it, 60)
+	secs := treeModel().issueSections(it, 60, false)
 	if len(secs) != 2 {
 		t.Fatalf("Sektionen=%d, want 2", len(secs))
 	}

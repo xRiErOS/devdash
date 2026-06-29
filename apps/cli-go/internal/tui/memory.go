@@ -16,9 +16,10 @@ import (
 )
 
 // memCategories spiegelt MEMORY_CATEGORIES (project-memory.contracts.js).
+// DD2-19: session_note -> session_log (KI-Logbuch) + knowledge ergänzt.
 var memCategories = []string{
 	"architecture_decision", "dead_end", "bug_pattern",
-	"convention", "external_constraint", "session_note",
+	"convention", "external_constraint", "session_log", "knowledge",
 }
 
 // memCatShort kürzt die langen Kategorie-Namen für die Listenspalte.
@@ -34,8 +35,10 @@ func memCatShort(cat string) string {
 		return "conv"
 	case "external_constraint":
 		return "ext"
-	case "session_note":
-		return "note"
+	case "session_log":
+		return "log"
+	case "knowledge":
+		return "know"
 	}
 	return cat
 }

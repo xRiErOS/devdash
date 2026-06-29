@@ -30,13 +30,13 @@ func TestAssignableSprintsFilter(t *testing.T) {
 	}
 }
 
-// S im Backlog öffnet den Sprint-Picker für das selektierte Issue.
+// a im Backlog öffnet den Sprint-Picker für das selektierte Issue (DD2-174: Assign=a, war S).
 func TestBacklogOpenAssignSprint(t *testing.T) {
 	m := backlogMDModel()
-	mi, _ := m.keyBacklog(key("S"))
+	mi, _ := m.keyBacklog(key("a"))
 	mm := mi.(model)
 	if !mm.asPick || mm.asIssueID != 1 {
-		t.Fatalf("S → asPick=%v asIssueID=%d, want true/1", mm.asPick, mm.asIssueID)
+		t.Fatalf("a → asPick=%v asIssueID=%d, want true/1", mm.asPick, mm.asIssueID)
 	}
 }
 

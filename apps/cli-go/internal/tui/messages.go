@@ -450,6 +450,43 @@ func doUSVerdict(c *api.Client, usID int, verdict string, issueID int) tea.Cmd {
 	}
 }
 
+// usMutatedMsg signalisiert eine erfolgreiche User-Story-Anlage/-Änderung aus dem
+// Detail-Fokus (DD2-144): die frische Story-Liste wird in alle Issue-Caches
+// gespiegelt + ein Toast gezeigt.
+type usMutatedMsg struct {
+	issueID int
+	items   []api.UserStory
+	status  string
+}
+
+// doAddUserStory legt eine User-Story am Issue an und lädt die Liste neu (DD2-144).
+func doAddUserStory(c *api.Client, issueID int, title, qa string) tea.Cmd {
+	return func() tea.Msg {
+		if _, err := c.AddUserStory(issueID, title, qa); err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		us, err := c.ListUserStories(issueID)
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return usMutatedMsg{issueID, us, "User story added"}
+	}
+}
+
+// doEditUserStory ändert Titel/QA einer User-Story und lädt die Liste neu (DD2-144).
+func doEditUserStory(c *api.Client, usID, issueID int, title, qa string) tea.Cmd {
+	return func() tea.Msg {
+		if _, err := c.EditUserStory(usID, title, qa); err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		us, err := c.ListUserStories(issueID)
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return usMutatedMsg{issueID, us, "User story updated"}
+	}
+}
+
 // createdMsg signalisiert eine erfolgreiche Anlage (Command-Center, T16).
 // kind ∈ {issue, milestone, sprint} steuert den Folge-Reload.
 type createdMsg struct {

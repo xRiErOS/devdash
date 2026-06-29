@@ -10,7 +10,7 @@ import (
 
 var tuiCmd = &cobra.Command{
 	Use:   "tui [project]",
-	Short: "Interaktive TUI starten (Meilenstein → Sprint → Issue)",
+	Short: "Start interactive TUI (milestone → sprint → issue)",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		global := api.NewClient("")

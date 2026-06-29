@@ -315,6 +315,24 @@ func (m model) reviewStandClip() string {
 		}
 		b.WriteString(fmt.Sprintf("| %s | %s | %s | %s | %s |\n", it.Key, it.Title, it.Status, verdict, result))
 	}
+	// DD2-152: Reject-Kommentare je not_passed-Issue UNTER der Tabelle anhängen. Der
+	// Handover-Markdown (y → Clipboard) trägt damit die Ablehnungsgründe direkt — der
+	// KI-Agent muss sie für das Rework nicht separat per Tool nachladen.
+	var rej strings.Builder
+	for _, it := range s.Items {
+		if deref(it.ReviewStatus) != "not_passed" {
+			continue
+		}
+		comment := strings.TrimSpace(deref(it.ReviewComment))
+		if comment == "" {
+			comment = "(no comment)"
+		}
+		rej.WriteString(fmt.Sprintf("\n### %s — %s\n%s\n", it.Key, it.Title, comment))
+	}
+	if rej.Len() > 0 {
+		b.WriteString("\n## Reject comments\n")
+		b.WriteString(rej.String())
+	}
 	return b.String()
 }
 
@@ -374,7 +392,7 @@ func (m model) userStoryModal() string {
 		}
 	}
 	content := b.String()
-	footer := theme.Dim.Render("a:accept  r:reject  o:open  i/k:↑↓  enter/esc:close")
+	footer := theme.Dim.Render("a:accept  x:reject  o:open  i/k:↑↓  enter/esc:close")
 	// DD2-90 Rework: Höhen-Guard — sehr lange Texte sollen das Modal nicht über den
 	// Schirm hinaus wachsen lassen (placeOverlay clippt sonst unten weg). Überlauf →
 	// Hinweis auf den Detail-Pane (dort voller, scrollbarer Text). Footer bleibt sichtbar.
@@ -400,9 +418,80 @@ func usVerdictBox(v string) string {
 	}
 }
 
+// reviewHandoverClip baut das Sprint-Review-Übergabe-Artefakt (DD2-105): ein
+// aktionsfähiges Markdown aus dem Review-Ergebnis — Sprint-Goal, Verdikt-Summary,
+// Re-Work-Liste (not_passed inkl. Reject-Kommentar, DD2-152-Link), abgenommene und
+// offene Issues, Next-Steps. Reicher als reviewStandClip (kompakte State-Tabelle) —
+// gedacht für die Hand an PO bzw. die Folge-Session.
+func (m model) reviewHandoverClip() string {
+	s := m.curSprint
+	var b strings.Builder
+	b.WriteString(fmt.Sprintf("# Sprint Review Handover — %s\n\n", s.Key))
+	b.WriteString(fmt.Sprintf("**Sprint:** %s\n", s.Name))
+	if g := deref(s.Goal); g != "" {
+		b.WriteString(fmt.Sprintf("**Goal:** %s\n", g))
+	}
+	b.WriteString(fmt.Sprintf("**Status:** %s · %d/%d done\n\n", s.Status, s.DoneCount, s.ItemCount))
+
+	var passed, rejected, pending []api.Issue
+	for _, it := range s.Items {
+		switch deref(it.ReviewStatus) {
+		case "passed":
+			passed = append(passed, it)
+		case "not_passed":
+			rejected = append(rejected, it)
+		default:
+			pending = append(pending, it)
+		}
+	}
+	b.WriteString(fmt.Sprintf("Verdicts: %d passed · %d not_passed · %d open\n\n", len(passed), len(rejected), len(pending)))
+
+	if len(rejected) > 0 {
+		b.WriteString("## Re-Work (not_passed)\n")
+		for _, it := range rejected {
+			b.WriteString(fmt.Sprintf("- **%s** %s\n", it.Key, it.Title))
+			if c := strings.TrimSpace(deref(it.ReviewComment)); c != "" {
+				for _, ln := range strings.Split(c, "\n") {
+					b.WriteString("  > " + ln + "\n")
+				}
+			}
+		}
+		b.WriteString("\n")
+	}
+	if len(passed) > 0 {
+		b.WriteString("## Passed\n")
+		for _, it := range passed {
+			res := ""
+			if strings.TrimSpace(deref(it.Result)) != "" {
+				res = " — result attached"
+			}
+			b.WriteString(fmt.Sprintf("- %s %s%s\n", it.Key, it.Title, res))
+		}
+		b.WriteString("\n")
+	}
+	if len(pending) > 0 {
+		b.WriteString("## Pending review\n")
+		for _, it := range pending {
+			b.WriteString(fmt.Sprintf("- %s %s (%s)\n", it.Key, it.Title, it.Status))
+		}
+		b.WriteString("\n")
+	}
+
+	b.WriteString("## Next steps\n")
+	switch {
+	case len(rejected) > 0:
+		b.WriteString("- Address the re-work items above, then move them back to to_review.\n")
+	case len(pending) > 0:
+		b.WriteString("- Reach a verdict on every pending item before handover.\n")
+	default:
+		b.WriteString("- All issues passed — sprint complete is the PO's call (DD-186).\n")
+	}
+	return b.String()
+}
+
 // reviewHints zeigt nur die im aktuellen Zustand gültigen Aktionen.
 func (m model) reviewHints() string {
-	hints := []string{"i/k:↑↓", "1-n:Section", "ctrl+d/u:scroll", "enter:Abnahme", "s:status", "r:result", "a:pass", "x:reject", "y:copy→clipboard"}
+	hints := []string{"i/k:↑↓", "1-n:Section", "ctrl+d/u:scroll", "enter:Abnahme", "s:status", "r:result", "a:pass", "x:reject", "y:copy→clipboard", "H:handover"}
 	if it := m.reviewItem(); it != nil {
 		if it.Status == "to_review" {
 			hints = append(hints, "o:reopen")

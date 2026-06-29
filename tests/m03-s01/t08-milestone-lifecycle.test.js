@@ -20,7 +20,7 @@ const MIG_038 = '038_v3_milestones_status_lifecycle.sql'
 // DD2-155: spec_path (039) ist Voraussetzung für den milestones-Recreate in 065,
 // 065 vereinheitlicht das Status-Vokabular (planning→new, active→in_progress, …).
 const MIG_039 = '039_v3_milestones_spec_path.sql'
-const MIG_065 = '065_v3_dd2_155_status_unify.sql'
+const MIG_069 = '069_v3_dd2_155_status_unify.sql'
 
 describe('T08 — canMilestoneTransition (Pure Lifecycle Function)', () => {
   test('Forward-Path: new → in_progress jeweils erlaubt', () => {
@@ -108,7 +108,7 @@ describe('T08 — patchMilestoneStatus (DB-Helper mit Audit-DI)', () => {
     applyMigration(db, MIG_033, { logDir })
     applyMigration(db, MIG_038, { logDir })
     applyMigration(db, MIG_039, { logDir })
-    applyMigration(db, MIG_065, { logDir })
+    applyMigration(db, MIG_069, { logDir })
     const r = db.prepare(
       `INSERT INTO milestones (project_id, name, target_date, status) VALUES (?, ?, ?, ?)`
     ).run(2, 'M-Test', '2026-08-12', 'new')

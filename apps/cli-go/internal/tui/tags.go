@@ -13,6 +13,7 @@ import (
 
 	"devd-cli/internal/api"
 	"devd-cli/internal/theme"
+	keybind "github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
@@ -115,19 +116,19 @@ func (m model) keyTags(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.taglist.move(1)
 		return m, nil
 	}
-	switch msg.String() {
-	case "esc", "q":
+	switch {
+	case keybind.Matches(msg, keys.Back), msg.String() == "q":
 		m.view = m.tagReturn
 		m.status = ""
 		return m, nil
-	case "n": // neuer Tag
+	case keybind.Matches(msg, keys.Create): // c — neuer Tag (DD2-174, war n)
 		return m.openTagForm(0, "", "mauve")
-	case "e", "enter": // Tag bearbeiten
+	case keybind.Matches(msg, keys.Enter), msg.String() == "e": // Tag bearbeiten
 		if t := m.selTag(); t != nil {
 			return m.openTagForm(t.ID, t.Name, t.Color)
 		}
 		return m, nil
-	case "d": // Tag löschen (Confirm)
+	case keybind.Matches(msg, keys.Delete): // d — Tag löschen (Confirm)
 		if t := m.selTag(); t != nil {
 			m.tagDelConfNo = true
 			m.tagDelID = t.ID
@@ -149,12 +150,12 @@ func (m *model) selTag() *api.Tag {
 }
 
 func (m model) keyTagDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "y", "Y", "enter":
+	switch { // DD2-174: enter=confirm, esc/n=cancel
+	case keybind.Matches(msg, keys.Enter):
 		m.tagDelConfNo = false
 		m.status = "Deleting tag …"
 		return m, doDeleteTag(m.client, m.tagDelID, m.tagDelName)
-	case "n", "N", "esc", "q":
+	case keybind.Matches(msg, keys.Back), msg.String() == "n":
 		m.tagDelConfNo = false
 		m.status = noticeText("Abgebrochen")
 		return m, nil
@@ -165,7 +166,7 @@ func (m model) keyTagDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // viewTags rendert die Tag-Verwaltungs-Liste (DD2-75).
 func (m model) viewTags() string {
 	var b strings.Builder
-	b.WriteString(theme.Dim.Render("project-wide tags — n:new  e:edit  d:delete") + "\n\n")
+	b.WriteString(theme.Dim.Render("project-wide tags — c:new  e:edit  d:delete") + "\n\n")
 	if len(m.tags) == 0 {
 		b.WriteString(theme.Dim.Render("(no tags yet — n creates the first)") + "\n")
 	}
@@ -185,7 +186,7 @@ func (m model) viewTags() string {
 		if m.tagDelUsage > 0 {
 			body += theme.Dim.Render(fmt.Sprintf(" (entfernt %d Zuweisung[en])", m.tagDelUsage))
 		}
-		body += "  " + red.Render("y") + theme.Dim.Render(":delete  ") + theme.Accent.Render("n/esc") + theme.Dim.Render(":cancel")
+		body += "  " + red.Render("enter") + theme.Dim.Render(":delete  ") + theme.Accent.Render("n/esc") + theme.Dim.Render(":cancel")
 	}
 	return m.framed("Tag-Manager", body, "n:new  e:edit  d:delete  esc:back  q:quit")
 }
@@ -219,18 +220,18 @@ func (m model) keyTagPicker(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.tagPickMenu.move(1)
 		return m, nil
 	}
-	switch msg.String() {
-	case "esc", "q", "t":
+	switch {
+	case keybind.Matches(msg, keys.Back), keybind.Matches(msg, keys.TagAssign), msg.String() == "q":
 		m.tagPick = false
 		m.status = ""
 		return m, nil
-	case " ", "x":
+	case keybind.Matches(msg, keys.Toggle):
 		if m.tagPickMenu.cursor >= 0 && m.tagPickMenu.cursor < len(m.tagPickAll) {
 			id := m.tagPickAll[m.tagPickMenu.cursor].ID
 			m.tagPickChecked[id] = !m.tagPickChecked[id]
 		}
 		return m, nil
-	case "enter":
+	case keybind.Matches(msg, keys.Enter):
 		var ids []int
 		for _, t := range m.tagPickAll {
 			if m.tagPickChecked[t.ID] {

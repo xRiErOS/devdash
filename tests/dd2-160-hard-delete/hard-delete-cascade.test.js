@@ -11,7 +11,7 @@ import { describe, test, expect, beforeEach } from 'vitest'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
 import { cascadeDeleteSprints, cascadeDeleteIssues, milestoneDeletePreview } from '../../apps/backend/src/lib/cascadeDelete.js'
 
-const AT_065 = '065_v3_dd2_155_status_unify.sql'
+const AT_069 = '069_v3_dd2_155_status_unify.sql'
 
 function seed(db) {
   db.exec('CREATE TABLE IF NOT EXISTS archon_runs (id INTEGER PRIMARY KEY, sprint_id INTEGER)')
@@ -52,7 +52,7 @@ function seed(db) {
 describe('DD2-160 — Hard-Delete + Cascade (Schema 065 / neues Vokabular)', () => {
   let db, ids
   beforeEach(() => {
-    db = createTestDb({ upToVersion: AT_065 })
+    db = createTestDb({ upToVersion: AT_069 })
     ids = seed(db)
   })
 

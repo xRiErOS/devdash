@@ -11,9 +11,7 @@ import { fileURLToPath } from 'url'
 import { existsSync, mkdirSync, unlinkSync, renameSync, copyFileSync } from 'fs'
 import { body, validationResult } from 'express-validator'
 import rateLimit from 'express-rate-limit'
-import { spawn } from 'child_process'
 import { randomUUID } from 'crypto'
-import { WebSocketServer } from 'ws'
 import { canTransition, canSprintTransition } from './lib/lifecycle.js'
 import { TAG_COLORS as TAG_COLORS_CONTRACT } from '@devd/api-types/tag.contracts.js'
 import {
@@ -21,7 +19,6 @@ import {
   listOpenIssuesForMilestone,
   MilestoneCloseError,
 } from './lib/milestoneClose.js'
-import { attachStream, subscribe } from './lib/archonStream.js'
 import { listMemories, getMemory, insertMemory, updateMemory, deleteMemory } from './lib/memoryDb.js'
 import { validateMilestonePayload, validateStatusFilter, sendValidationError, resolveTargetDate } from './lib/milestoneValidation.js'
 import { insertDependency, getDependenciesForMilestone } from './lib/milestoneDependencies.js'
@@ -58,10 +55,13 @@ import {
   ProjectSlotError,
 } from './lib/sstdSlots.js'
 import { validateSpecPath, MilestoneSpecPathError } from './lib/milestoneSpecPath.js'
-import { listNotes as listComponentNotes, getNote as getComponentNote, upsertNote as upsertComponentNote, deleteNote as deleteComponentNote, ComponentNoteError } from './lib/componentNotes.js'
 import { listMemories as listProjectMemories, getMemory as getProjectMemory, createMemory as createProjectMemory, updateMemory as updateProjectMemory, deleteMemory as deleteProjectMemory, supersedeMemory as supersedeProjectMemory, searchMemories as searchProjectMemories, getMemoryByAnchor as getProjectMemoryByAnchor, patchByAnchor as patchProjectMemoryByAnchor, ProjectMemoryError } from './lib/projectMemories.js'
 import { renderSnapshot as renderProjectMemorySnapshot, renderSplitSnapshot as renderProjectMemorySplitSnapshot } from './lib/projectMemorySnapshot.js'
-import { cascadeDeleteSprints, milestoneDeletePreview } from './lib/cascadeDelete.js'
+import { cascadeDeleteSprints, milestoneDeletePreview, sprintDocumentCount } from './lib/cascadeDelete.js'
+import {
+  DocumentError,
+  createDocument, listDocuments, getDocument, updateDocument, deleteDocument,
+} from './lib/documents.js'
 import { listTags as listMemoryTags, createTag as createMemoryTag, renameTag as renameMemoryTag, deleteTag as deleteMemoryTag, pruneTagsNotInRegistry as pruneMemoryTags } from './lib/memoryTags.js'
 import { listIssueDependencies, countIssueDependencies } from './lib/issueDependencies.js'
 import { resolveIssueByNumber } from './lib/issueResolve.js'
@@ -113,23 +113,9 @@ import {
   exportCollection as exportSopCollection,
 } from './lib/sopCollections.js'
 import {
-  SessionNoteError,
-  createSessionNote, listSessionNotes, getSessionNote, updateSessionNote, deleteSessionNote,
-} from './lib/sessionNotes.js'
-
-// ============================================================
-// Feature-Flags (ADR 2026-04-26: Archon + Live-Preview deferred)
-// Default: beide deaktiviert. Reaktivierung via ENV.
-// ============================================================
-const ENABLE_ARCHON = process.env.ENABLE_ARCHON === '1' || process.env.ENABLE_ARCHON === 'true'
-
-const ARCHON_TOKEN = process.env.ARCHON_INTERNAL_TOKEN || 'dev-archon-token'
-
-// Verzeichnis, in dem der Archon-Worker pro Run eine JSONL-Logdatei schreibt.
-// Default zeigt auf myPrivateBabyTracker; via DEVD_ARCHON_LOG_DIR konfigurierbar.
-const ARCHON_LOG_DIR =
-  process.env.DEVD_ARCHON_LOG_DIR ||
-  path.join(os.homedir(), '.archon/workspaces/xRiErOS/myPrivateBabyTracker/logs')
+  UserNoteError,
+  createUserNote, listUserNotes, getUserNote, updateUserNote, deleteUserNote,
+} from './lib/userNotes.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 // Pfad zur Projekt-DB. Wird per Default aus dem benachbarten myPrivateBabyTracker-Repo
@@ -404,11 +390,9 @@ const issuesCaptureLimiter = rateLimit({
   message: { error: 'RATE_LIMIT_EXCEEDED', retry_after_seconds: 15 * 60 },
 })
 
-// GET /api/config — Frontend-Feature-Flags
+// GET /api/config — Frontend-Feature-Flags (aktuell keine; Archon entfernt DD2-172)
 app.get('/api/config', (_req, res) => {
-  res.json({
-    archon_enabled: ENABLE_ARCHON,
-  })
+  res.json({})
 })
 
 // DD-230: liveness probe — no DB, no auth, no side-effects. Container HEALTHCHECK
@@ -467,6 +451,27 @@ function tagsForMilestone(milestoneId) {
     SELECT t.id, t.name, t.color FROM milestone_tags mt
     JOIN tags t ON t.id = mt.tag_id WHERE mt.milestone_id = ? ORDER BY t.name
   `).all(milestoneId)
+}
+
+// DD2-143: Batch-Variante (mirror tagsForBacklog) — Tags vieler Milestones in
+// einem Query, map milestone_id → [{id,name,color}]. Vermeidet N+1 beim Embedden
+// der Tags in die GET /api/milestones Liste (TUI msRows / RoadmapBoard).
+function tagsForMilestones(ids) {
+  if (!ids.length) return new Map()
+  const placeholders = ids.map(() => '?').join(',')
+  const rows = db.prepare(`
+    SELECT mt.milestone_id, t.id, t.name, t.color
+    FROM milestone_tags mt
+    JOIN tags t ON t.id = mt.tag_id
+    WHERE mt.milestone_id IN (${placeholders})
+    ORDER BY t.name
+  `).all(...ids)
+  const map = new Map()
+  for (const r of rows) {
+    if (!map.has(r.milestone_id)) map.set(r.milestone_id, [])
+    map.get(r.milestone_id).push({ id: r.id, name: r.name, color: r.color })
+  }
+  return map
 }
 
 // GF-2 Wave D / D1: generischer Replace-Handler für Entity-Tags (mirror PUT /api/backlog/:id/tags).
@@ -981,7 +986,7 @@ function _sendProjectSlotError(res, e) {
 
 // DD-213 / MEM-16: SSTD — pro Projekt genau ein Markdown-Dokument, Master-Quelle ist die DB.
 // GET reassembliert seit MEM-16 (D07) aus den 6 Slots (project_sstd_slots) + zwei Projektionen
-// (Nächste Schritte ← offene project_todos; Journal ← letzte 40 session_notes). Solange alle Slots
+// (Nächste Schritte ← offene project_todos; Session-Log ← letzte 40 session_log-Memories). Solange alle Slots
 // leer sind, fällt renderReadAll auf den Legacy-Blob projects.sstd_content zurück.
 app.get('/api/projects/:id/sstd', (req, res) => {
   const project = db.prepare('SELECT id, sstd_updated_at FROM projects WHERE id = ?').get(req.params.id)
@@ -1008,8 +1013,8 @@ app.get('/api/projects/:id/sstd/slots', (req, res) => {
   }
 })
 
-// DD-361: Read-Only-Projektionen (Nächste Schritte ← offene project_todos; Journal ←
-// letzte 40 session_notes). Liefert die beiden NICHT editierbaren Read-All-Sektionen als
+// DD-361: Read-Only-Projektionen (Nächste Schritte ← offene project_todos; Session-Log ←
+// letzte 40 session_log-Memories, DD2-19). Liefert die beiden NICHT editierbaren Read-All-Sektionen als
 // fertiges Markdown, damit der SSTD-Tab sie separat von den 6 Slots rendern kann.
 // MUSS vor '/api/projects/:id/sstd/slots/:key' stehen — sonst matcht Express ':key'='projections'.
 app.get('/api/projects/:id/sstd/projections', (req, res) => {
@@ -1207,47 +1212,98 @@ app.put('/api/sop-collections/:key/items', (req, res) => {
   }
 })
 
-// --- session_notes (ProjectPages T-be1, D-D Modell B) — project-gescopt (currentProjectId),
-// NEUE Rich-Entity (kein SSTD-Journal-Ersatz). Speist SessionNotesWidget. ---
-function _sendSessionNoteError(res, e) {
-  if (e instanceof SessionNoteError) {
+// --- user_notes (DD2-161, ehem. session_notes/ProjectPages T-be1) — project-gescopt
+// (currentProjectId), separate Rich-Entity (kein SSTD-Session-Log-Ersatz). Speist UserNotesWidget. ---
+function _sendUserNoteError(res, e) {
+  if (e instanceof UserNoteError) {
     return res.status(e.statusCode).json({ error: e.message, code: e.code, field: e.field })
   }
-  console.error('[session-notes] unexpected error', e)
+  console.error('[user-notes] unexpected error', e)
   return res.status(500).json({ error: 'Internal server error' })
 }
 
-app.get('/api/session-notes', (req, res) => {
-  res.json(listSessionNotes(db, currentProjectId(req), { search: req.query.search }))
+app.get('/api/user-notes', (req, res) => {
+  res.json(listUserNotes(db, currentProjectId(req), { search: req.query.search }))
 })
 
-app.get('/api/session-notes/:id', (req, res) => {
-  const note = getSessionNote(db, currentProjectId(req), Number(req.params.id))
-  if (!note) return res.status(404).json({ error: 'session_note nicht gefunden', code: 'NOTE_NOT_FOUND' })
+app.get('/api/user-notes/:id', (req, res) => {
+  const note = getUserNote(db, currentProjectId(req), Number(req.params.id))
+  if (!note) return res.status(404).json({ error: 'user_note nicht gefunden', code: 'NOTE_NOT_FOUND' })
   res.json(note)
 })
 
-app.post('/api/session-notes', (req, res) => {
+app.post('/api/user-notes', (req, res) => {
   try {
-    res.status(201).json(createSessionNote(db, currentProjectId(req), req.body || {}))
+    res.status(201).json(createUserNote(db, currentProjectId(req), req.body || {}))
   } catch (e) {
-    return _sendSessionNoteError(res, e)
+    return _sendUserNoteError(res, e)
   }
 })
 
-app.put('/api/session-notes/:id', (req, res) => {
+app.put('/api/user-notes/:id', (req, res) => {
   try {
-    res.json(updateSessionNote(db, currentProjectId(req), Number(req.params.id), req.body || {}))
+    res.json(updateUserNote(db, currentProjectId(req), Number(req.params.id), req.body || {}))
   } catch (e) {
-    return _sendSessionNoteError(res, e)
+    return _sendUserNoteError(res, e)
   }
 })
 
-app.delete('/api/session-notes/:id', (req, res) => {
-  const ok = deleteSessionNote(db, currentProjectId(req), Number(req.params.id))
-  if (!ok) return res.status(404).json({ error: 'session_note nicht gefunden', code: 'NOTE_NOT_FOUND' })
+app.delete('/api/user-notes/:id', (req, res) => {
+  const ok = deleteUserNote(db, currentProjectId(req), Number(req.params.id))
+  if (!ok) return res.status(404).json({ error: 'user_note nicht gefunden', code: 'NOTE_NOT_FOUND' })
   res.status(204).end()
 })
+
+// --- documents (DD2-21) — Markdown-Dokumente an Meilensteine ODER Sprints (DB-Blob).
+// Owner kommt aus der Route (/api/milestones/:id/documents bzw. /api/sprints/:id/documents),
+// nicht aus dem Body. ON DELETE CASCADE räumt sie beim Löschen des Owners. ---
+function _sendDocumentError(res, e) {
+  if (e instanceof DocumentError) {
+    return res.status(e.statusCode).json({ error: e.message, code: e.code, field: e.field })
+  }
+  console.error('[documents] unexpected error', e)
+  return res.status(500).json({ error: 'Internal server error' })
+}
+
+// Verifiziert, dass der Owner (milestone|sprint) existiert; sonst 404 + null.
+function _resolveDocOwner(res, type, idParam) {
+  const id = Number(idParam)
+  const table = type === 'milestone' ? 'milestones' : 'sprints'
+  const row = db.prepare(`SELECT id FROM ${table} WHERE id = ?`).get(id)
+  if (!row) { res.status(404).json({ error: `${type} not found` }); return null }
+  return { type, id }
+}
+
+function _registerDocumentRoutes(type, base) {
+  app.get(`${base}/:id/documents`, (req, res) => {
+    const owner = _resolveDocOwner(res, type, req.params.id); if (!owner) return
+    res.json(listDocuments(db, owner))
+  })
+  app.post(`${base}/:id/documents`, (req, res) => {
+    const owner = _resolveDocOwner(res, type, req.params.id); if (!owner) return
+    try { res.status(201).json(createDocument(db, owner, req.body || {})) }
+    catch (e) { return _sendDocumentError(res, e) }
+  })
+  app.get(`${base}/:id/documents/:docId`, (req, res) => {
+    const owner = _resolveDocOwner(res, type, req.params.id); if (!owner) return
+    const doc = getDocument(db, owner, Number(req.params.docId))
+    if (!doc) return res.status(404).json({ error: 'document nicht gefunden', code: 'DOC_NOT_FOUND' })
+    res.json(doc)
+  })
+  app.put(`${base}/:id/documents/:docId`, (req, res) => {
+    const owner = _resolveDocOwner(res, type, req.params.id); if (!owner) return
+    try { res.json(updateDocument(db, owner, Number(req.params.docId), req.body || {})) }
+    catch (e) { return _sendDocumentError(res, e) }
+  })
+  app.delete(`${base}/:id/documents/:docId`, (req, res) => {
+    const owner = _resolveDocOwner(res, type, req.params.id); if (!owner) return
+    const ok = deleteDocument(db, owner, Number(req.params.docId))
+    if (!ok) return res.status(404).json({ error: 'document nicht gefunden', code: 'DOC_NOT_FOUND' })
+    res.status(204).end()
+  })
+}
+_registerDocumentRoutes('milestone', '/api/milestones')
+_registerDocumentRoutes('sprint', '/api/sprints')
 
 app.delete('/api/projects/:id', (req, res) => {
   const id = Number(req.params.id)
@@ -1740,6 +1796,9 @@ app.get('/api/milestones', (req, res) => {
     return { total, done, cancelled, terminal_count: done + cancelled }
   }
 
+  // DD2-143: Tags aller Milestones in einem Query (kein N+1), in den Bucket embedden.
+  const milestoneTagMap = tagsForMilestones(milestones.map(m => m.id))
+
   const newBucket = (milestone) => {
     const sprints = milestone?.id
       ? (sprintsByMilestone.get(milestone.id) || [])
@@ -1748,6 +1807,7 @@ app.get('/api/milestones', (req, res) => {
     const bucket = {
       ...milestone,
       sprints,
+      tags: milestone?.id ? (milestoneTagMap.get(milestone.id) || []) : [],
       ...counts,
     }
     // DD-293 R2: backfill_sprints[] nur im noneBucket (Milestone-Buckets
@@ -2319,7 +2379,7 @@ app.patch('/api/backlog/bulk', (req, res) => {
         if (!newStatus) { failed.push({ id, reason: 'status required' }); continue }
         const ctx = {
           goal: item.goal, background: item.background,
-          assigned_sprint: item.assigned_sprint, isArchon: false,
+          assigned_sprint: item.assigned_sprint,
           cancellationNotes: newStatus === 'cancelled' ? (payload.notes || 'bulk') : null,
         }
         const { allowed, reason } = canTransition(item.status, newStatus, ctx)
@@ -2355,7 +2415,7 @@ app.patch('/api/backlog/bulk', (req, res) => {
         if (item.status === 'cancelled') { failed.push({ id, reason: 'already cancelled' }); continue }
         const ctx = {
           goal: item.goal, background: item.background,
-          assigned_sprint: item.assigned_sprint, isArchon: false,
+          assigned_sprint: item.assigned_sprint,
           cancellationNotes: payload.notes || 'bulk',
         }
         const { allowed, reason } = canTransition(item.status, 'cancelled', ctx)
@@ -3040,10 +3100,6 @@ app.patch('/api/backlog/:id/status', (req, res) => {
   const { status: newStatus, notes } = req.body
   if (!newStatus) return res.status(400).json({ error: 'status ist Pflichtfeld' })
 
-  // ADR Archon deferred (2026-04-26): Lifecycle erlaubt manuelle Übergänge
-  // ohne Archon-Token. isArchon wird nur noch als Audit-Marker geloggt.
-  const isArchon = req.headers['x-archon-token'] === ARCHON_TOKEN
-
   // Build ctx for lifecycle check
   const latestFeedback = db.prepare(
     'SELECT * FROM review_feedback WHERE backlog_id = ? ORDER BY id DESC LIMIT 1'
@@ -3094,7 +3150,7 @@ app.patch('/api/backlog/:id/status', (req, res) => {
   vals.push(req.params.id)
   db.prepare(`UPDATE backlog SET ${sets.join(', ')} WHERE id = ?`).run(...vals)
 
-  auditLog('backlog', Number(req.params.id), 'status_change', { status: item.status }, { status: newStatus, notes }, isArchon ? 'archon' : 'dashboard-po')
+  auditLog('backlog', Number(req.params.id), 'status_change', { status: item.status }, { status: newStatus, notes }, 'dashboard-po')
 
   // DD-507: Rework → to_review mit letztem Verdict not_passed öffnet automatisch
   // eine neue pending-Runde und setzt den Sprint-Review-Marker zurück (reopen).
@@ -3597,7 +3653,8 @@ app.get('/api/sprints/:id/delete-preview', (req, res) => {
   const sprint = db.prepare('SELECT id, name FROM sprints WHERE id = ?').get(req.params.id)
   if (!sprint) return res.status(404).json({ error: 'Sprint not found' })
   const issues = db.prepare('SELECT COUNT(*) AS c FROM backlog WHERE assigned_sprint = ?').get(req.params.id).c
-  res.json({ sprint_id: Number(req.params.id), sprint_name: sprint.name, issues, documents: 0 })
+  const documents = sprintDocumentCount(db, Number(req.params.id))
+  res.json({ sprint_id: Number(req.params.id), sprint_name: sprint.name, issues, documents })
 })
 
 app.delete('/api/sprints/:id', (req, res) => {
@@ -3606,6 +3663,7 @@ app.delete('/api/sprints/:id', (req, res) => {
   const cascade = req.query.cascade === '1' || req.query.cascade === 'true'
 
   const itemCount = db.prepare('SELECT COUNT(*) AS c FROM backlog WHERE assigned_sprint = ?').get(req.params.id).c
+  const docCount = sprintDocumentCount(db, Number(req.params.id))
   // Ohne ?cascade=1 bleibt das alte Schutz-Verhalten: 409 wenn Items zugewiesen.
   if (!cascade && itemCount > 0) {
     return res.status(409).json({
@@ -3616,8 +3674,7 @@ app.delete('/api/sprints/:id', (req, res) => {
   }
 
   db.transaction(() => {
-    // cascadeDeleteSprints räumt Issues (inkl. Kinder) + archon_runs + Sprint.
-    // Bei itemCount=0 ist das identisch zum alten Pfad (nur archon_runs + Sprint).
+    // cascadeDeleteSprints räumt Issues (inkl. Kinder) + Sprint.
     cascadeDeleteSprints(db, [Number(req.params.id)])
     db.prepare(`INSERT INTO audit_log (agent_id, action, table_name, record_id, old_value, new_value)
                 VALUES (?, ?, ?, ?, ?, ?)`).run(
@@ -3626,7 +3683,7 @@ app.delete('/api/sprints/:id', (req, res) => {
   })()
 
   // deleted_id bleibt für Rückwärtskompatibilität (OpenAPI-Schema + alt-CLI).
-  res.json({ ok: true, deleted_id: Number(req.params.id), deleted: { sprint_id: Number(req.params.id), issues: itemCount, documents: 0 } })
+  res.json({ ok: true, deleted_id: Number(req.params.id), deleted: { sprint_id: Number(req.params.id), issues: itemCount, documents: docCount } })
 })
 
 // Helper — DD-Erik-Feedback: backlog.milestone als denormalisierten Cache der
@@ -3853,7 +3910,6 @@ app.post('/api/sprints/:id/complete', (req, res) => {
     })
   }
 
-  const isArchon = req.headers['x-archon-token'] === ARCHON_TOKEN
   const today = new Date().toISOString().slice(0, 10)
 
   // ADR 2026-04-29 / DD2-155: sprint complete setzt alle passed-Items final auf completed.
@@ -3878,7 +3934,7 @@ app.post('/api/sprints/:id/complete', (req, res) => {
   const updated = db.prepare('SELECT * FROM sprints WHERE id = ?').get(req.params.id)
   auditLog('sprint', Number(req.params.id), 'status_change',
     { status: sprint.status }, { status: 'completed', forced: force || undefined },
-    isArchon ? 'archon' : 'dashboard-po')
+    'dashboard-po')
   res.json(updated)
 })
 
@@ -3899,14 +3955,13 @@ app.patch('/api/sprints/:id/status', (req, res) => {
   const { allowed, reason } = canSprintTransition(sprint.status, to, ctx)
   if (!allowed) return res.status(422).json({ error: reason })
 
-  const isArchon = req.headers['x-archon-token'] === ARCHON_TOKEN
   // DD-158: Idempotenz — bei from===to (reason='no-op') kein UPDATE, kein
   // notes-Append, kein Audit-Log. Snapshot zurückgeben.
   if (reason !== 'no-op') {
     db.prepare('UPDATE sprints SET status = ? WHERE id = ?').run(to, req.params.id)
     auditLog('sprint', Number(req.params.id), 'status_change',
       { status: sprint.status }, { status: to, ...(cancellationNotes ? { cancellationNotes } : {}) },
-      isArchon ? 'archon' : 'dashboard-po')
+      'dashboard-po')
     // DD-160: notes-Append bei cancel als separater edit-Audit-Eintrag (Lösung A
     // aus Issue-Context). Saubere Trennung Status-Wechsel vs. Field-Edit, gleicher
     // Pattern wie andere edit-Calls. Leerer cancellationNotes → kein edit-Eintrag.
@@ -3917,7 +3972,7 @@ app.patch('/api/sprints/:id/status', (req, res) => {
       db.prepare("UPDATE sprints SET notes = ? WHERE id = ?").run(after, req.params.id)
       auditLog('sprint', Number(req.params.id), 'edit',
         { notes: before }, { notes: after },
-        isArchon ? 'archon' : 'dashboard-po')
+        'dashboard-po')
     }
   }
 
@@ -3929,121 +3984,6 @@ app.patch('/api/sprints/:id/status', (req, res) => {
   `).get(req.params.id)
   res.json(updated)
 })
-
-// Helper: spawn detached archon process
-function spawnArchon(args) {
-  const child = spawn('archon', args, {
-    detached: true,
-    env: { ...process.env, CLAUDECODE: undefined },
-    stdio: ['ignore', 'pipe', 'ignore'],
-  })
-  child.unref()
-  return child
-}
-
-// Helper: parse run_id from archon stdout
-function parseRunId(child) {
-  return new Promise((resolve) => {
-    let output = ''
-    child.stdout.on('data', (chunk) => { output += chunk.toString() })
-    child.stdout.on('end', () => {
-      try {
-        for (const line of output.split('\n')) {
-          const parsed = JSON.parse(line)
-          if (parsed.run_id) { resolve(parsed.run_id); return }
-        }
-      } catch (_) {}
-      resolve(null)
-    })
-    setTimeout(() => resolve(null), 3000)
-  })
-}
-
-// ============================================================
-// Archon-Endpoints — nur registriert wenn ENABLE_ARCHON=1
-// ============================================================
-if (ENABLE_ARCHON) {
-  // POST /api/sprints/:id/run-archon
-  app.post('/api/sprints/:id/run-archon', async (req, res) => {
-    const sprintId = req.params.id
-    const child = spawnArchon(['workflow', 'run', 'mybaby-sprint-execute', String(sprintId)])
-    const runId = (await parseRunId(child)) || randomUUID()
-
-    const logPath = path.join(ARCHON_LOG_DIR, `${runId}.jsonl`)
-
-    try {
-      db.prepare(
-        `INSERT OR IGNORE INTO archon_runs (run_id, workflow, sprint_id, status, log_path) VALUES (?, ?, ?, 'running', ?)`
-      ).run(runId, 'mybaby-sprint-execute', sprintId, logPath)
-    } catch (_) {}
-
-    attachStream(runId, logPath, db)
-    res.json({ run_id: runId, status: 'running' })
-  })
-
-  // POST /api/sprints/:id/submit-feedback
-  app.post('/api/sprints/:id/submit-feedback', (req, res) => {
-    const { run_id, feedback_items } = req.body
-    if (!run_id || !Array.isArray(feedback_items)) {
-      return res.status(400).json({ error: 'run_id und feedback_items sind Pflicht' })
-    }
-
-    const writeFeedback = db.transaction(() => {
-      for (const item of feedback_items) {
-        const { backlog_id, notes, review_status } = item
-        const maxRound = db.prepare(
-          'SELECT MAX(round_number) as mr FROM review_feedback WHERE backlog_id = ?'
-        ).get(backlog_id)
-        const roundNumber = (maxRound?.mr ?? 0) + 1
-
-        db.prepare(`
-          INSERT INTO review_feedback (backlog_id, round_number, review_status, notes)
-          VALUES (?, ?, ?, ?)
-        `).run(backlog_id, roundNumber, review_status, notes || null)
-      }
-    })
-    writeFeedback()
-
-    const allPassed = feedback_items.every(i => i.review_status === 'passed')
-    const action = allPassed ? 'approved' : 'rejected'
-
-    if (allPassed) {
-      const child = spawnArchon(['workflow', 'approve', run_id])
-      child.unref()
-    } else {
-      const rejected = feedback_items.filter(i => i.review_status === 'rejected')
-      const summary = rejected.map(i => `#${i.backlog_id}: ${i.notes || 'rejected'}`).join('; ')
-      const child = spawnArchon(['workflow', 'reject', run_id, summary])
-      child.unref()
-    }
-
-    res.json({ action, run_id })
-  })
-
-  // GET /api/sprints/:id/active-run
-  app.get('/api/sprints/:id/active-run', (req, res) => {
-    const row = db
-      .prepare(
-        "SELECT run_id, status FROM archon_runs WHERE sprint_id=? AND status IN ('running','awaiting_approval') ORDER BY started_at DESC LIMIT 1",
-      )
-      .get(req.params.id)
-    res.json(row ?? null)
-  })
-
-  // GET /api/archon-runs
-  app.get('/api/archon-runs', (req, res) => {
-    const { sprint_id } = req.query
-    let query = 'SELECT * FROM archon_runs'
-    const params = []
-    if (sprint_id) {
-      query += ' WHERE sprint_id = ?'
-      params.push(sprint_id)
-    }
-    query += ' ORDER BY started_at DESC'
-    const runs = db.prepare(query).all(...params)
-    res.json(runs)
-  })
-}
 
 // ---- Reviews ----
 
@@ -4480,75 +4420,6 @@ app.delete('/api/projects/:project_id/todos/:tid/links/:lid', (req, res) => {
 })
 
 // ============================================================
-// DD-273 (M3-S02 T01): component_notes — Debug-Mode-Notes pro data-ui-Slug.
-// Wiki 40.03 Baustein Notes-Panel. Auth: read = ANY, write = ANY (Dev-Tool, kein Audit-Log).
-// ============================================================
-
-function _sendComponentNoteError(res, e) {
-  if (e instanceof ComponentNoteError) {
-    return res.status(e.statusCode).json({ error: e.message, code: e.code, field: e.field })
-  }
-  console.error('[component-notes] unexpected error', e)
-  return res.status(500).json({ error: 'Internal Server Error' })
-}
-
-app.get('/api/projects/:project_id/component-notes', (req, res) => {
-  const projectId = Number(req.params.project_id)
-  if (!Number.isInteger(projectId) || projectId <= 0) {
-    return res.status(400).json({ error: 'project_id muss positive Ganzzahl sein' })
-  }
-  try {
-    res.json(listComponentNotes(db, projectId))
-  } catch (e) {
-    return _sendComponentNoteError(res, e)
-  }
-})
-
-app.get('/api/projects/:project_id/component-notes/:slug', (req, res) => {
-  const projectId = Number(req.params.project_id)
-  if (!Number.isInteger(projectId) || projectId <= 0) {
-    return res.status(400).json({ error: 'project_id muss positive Ganzzahl sein' })
-  }
-  try {
-    const note = getComponentNote(db, projectId, req.params.slug)
-    if (!note) return res.status(404).json({ error: 'Note nicht gefunden', code: 'NOTE_NOT_FOUND' })
-    res.json(note)
-  } catch (e) {
-    return _sendComponentNoteError(res, e)
-  }
-})
-
-app.put('/api/projects/:project_id/component-notes/:slug', (req, res) => {
-  const projectId = Number(req.params.project_id)
-  if (!Number.isInteger(projectId) || projectId <= 0) {
-    return res.status(400).json({ error: 'project_id muss positive Ganzzahl sein' })
-  }
-  const body = req.body || {}
-  if (!Object.prototype.hasOwnProperty.call(body, 'content')) {
-    return res.status(400).json({ error: 'content-Feld fehlt im Body', code: 'CONTENT_MISSING', field: 'content' })
-  }
-  try {
-    const note = upsertComponentNote(db, projectId, req.params.slug, body.content)
-    res.json(note)
-  } catch (e) {
-    return _sendComponentNoteError(res, e)
-  }
-})
-
-app.delete('/api/projects/:project_id/component-notes/:slug', (req, res) => {
-  const projectId = Number(req.params.project_id)
-  if (!Number.isInteger(projectId) || projectId <= 0) {
-    return res.status(400).json({ error: 'project_id muss positive Ganzzahl sein' })
-  }
-  try {
-    deleteComponentNote(db, projectId, req.params.slug)
-    res.status(204).end()
-  } catch (e) {
-    return _sendComponentNoteError(res, e)
-  }
-})
-
-// ============================================================
 // MEM-9 (MEM#5): project_memories — projektgebundenes Memory (FTS5-first).
 // Scope über X-Project-Id (currentProjectId). /search VOR /:id registrieren.
 // ============================================================
@@ -4777,19 +4648,6 @@ const PORT = Number(process.env.PORT) || 5556
 const HOST = process.env.HOST || '0.0.0.0'
 const server = http.createServer(app)
 
-if (ENABLE_ARCHON) {
-  const wss = new WebSocketServer({ noServer: true })
-  server.on('upgrade', (req, socket, head) => {
-    const m = req.url.match(/^\/ws\/archon\/([^/?]+)/)
-    if (!m) { socket.destroy(); return }
-    const runId = decodeURIComponent(m[1])
-    wss.handleUpgrade(req, socket, head, ws => {
-      subscribe(runId, ws, db)
-    })
-  })
-}
-
 server.listen(PORT, HOST, () => {
-  const flags = `archon=${ENABLE_ARCHON ? 'on' : 'off'}`
-  console.log(`API running on http://${HOST}:${PORT} (${flags})`)
+  console.log(`API running on http://${HOST}:${PORT}`)
 })

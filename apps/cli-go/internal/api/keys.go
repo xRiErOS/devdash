@@ -70,7 +70,7 @@ func refMatchesKey(r Ref, key string) bool {
 func (c *Client) ResolveSprintID(input string) (int, error) {
 	r, ok := ParseRef(input)
 	if !ok {
-		return 0, fmt.Errorf("ungültiger Key %q (erwartet z.B. DD2#12, DD2-42 oder Zahl)", input)
+		return 0, fmt.Errorf("invalid key %q (expected e.g. DD2#12, DD2-42 or a number)", input)
 	}
 	if r.IsID {
 		return r.ID, nil
@@ -88,14 +88,14 @@ func (c *Client) ResolveSprintID(input string) (int, error) {
 			return s.ID, nil
 		}
 	}
-	return 0, fmt.Errorf("sprint %q nicht gefunden", input)
+	return 0, fmt.Errorf("sprint %q not found", input)
 }
 
 // ResolveIssueID übersetzt Key|ID → numerische Issue-ID.
 func (c *Client) ResolveIssueID(input string) (int, error) {
 	r, ok := ParseRef(input)
 	if !ok {
-		return 0, fmt.Errorf("ungültiger Key %q (erwartet z.B. DD2-42 oder Zahl)", input)
+		return 0, fmt.Errorf("invalid key %q (expected e.g. DD2-42 or a number)", input)
 	}
 	if r.IsID {
 		return r.ID, nil
@@ -113,5 +113,5 @@ func (c *Client) ResolveIssueID(input string) (int, error) {
 			return i.ID, nil
 		}
 	}
-	return 0, fmt.Errorf("issue %q nicht gefunden", input)
+	return 0, fmt.Errorf("issue %q not found", input)
 }

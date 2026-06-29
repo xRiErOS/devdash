@@ -6,6 +6,7 @@ import (
 
 	"devd-cli/internal/api"
 	"devd-cli/internal/clip"
+	keybind "github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -92,8 +93,8 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	it := m.reviewItem()
-	switch msg.String() {
-	case "q", "esc":
+	switch { // DD2-174: key.Matches; S (Sprint-Status) bleibt literal — keine Keymap-Bindung (Q-flag PO)
+	case keybind.Matches(msg, keys.Back), msg.String() == "q":
 		m.status = ""
 		// B01: Columns nach Review immer neu laden — Verdikte/Status-Mutationen
 		// im Cockpit ändern m.curSprint, aber m.milestones (Columns) blieb stale.
@@ -103,7 +104,7 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.view = viewTree // DD2-111: Cockpit-q/esc → Tree-Primat (Ranger gesunset)
 		return m, loadMilestones(m.client)
-	case "enter": // Issue-Abnahme-Modal: goal/background/User-Stories abhaken
+	case keybind.Matches(msg, keys.Enter): // Issue-Abnahme-Modal: goal/background/User-Stories abhaken
 		if it == nil {
 			return m, nil
 		}
@@ -113,7 +114,7 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.uslist = listState{}
 		m.status = ""
 		return m, loadUserStories(m.client, it.ID)
-	case "r": // I02: Ergebnisfeld setzen (löst das result-Gate ohne Tool-Wechsel)
+	case keybind.Matches(msg, keys.ReviewResult): // I02: Ergebnisfeld setzen (löst das result-Gate ohne Tool-Wechsel)
 		if it == nil {
 			return m, nil
 		}
@@ -121,13 +122,13 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.resultIssueKey = it.Key
 		m.resultSprintID = m.curSprint.ID
 		return m.openForm("result")
-	case "s": // Status manuell mutieren — nur lifecycle-gültige Ziele
+	case keybind.Matches(msg, keys.Status): // Issue-Status manuell mutieren — nur lifecycle-gültige Ziele
 		sid := 0
 		if m.curSprint != nil {
 			sid = m.curSprint.ID
 		}
 		return m.openIssueStatus(it, sid)
-	case "a": // Pass — Backend erlaubt Verdikt unabhängig vom Issue-Status
+	case keybind.Matches(msg, keys.ReviewPass): // Pass — Backend erlaubt Verdikt unabhängig vom Issue-Status
 		// (autoSetPassedOnReviewPass setzt to_review/rejected→passed). Edit-Lock
 		// (submitted Sprint + entschiedene Runde) kommt als Sapphire-Hinweis zurück.
 		if it == nil {
@@ -135,7 +136,7 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.status = "Pass gesendet …"
 		return m, doVerdict(m.client, it.ID, "passed", "", m.curSprint.ID)
-	case "x": // Reject — DD2-119: mehrzeiliges Kommentar-Modal (US-50) statt Footer-Eingabe
+	case keybind.Matches(msg, keys.ReviewReject): // Reject — DD2-119: mehrzeiliges Kommentar-Modal (US-50) statt Footer-Eingabe
 		if it == nil {
 			return m, nil
 		}
@@ -145,7 +146,7 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.rejectSprintID = m.curSprint.ID
 		}
 		return m.openForm("reject")
-	case "o": // Reopen — direkt aus to_review/passed/rejected (DD2-7). Löst den
+	case keybind.Matches(msg, keys.ReviewReopen): // Reopen — direkt aus to_review/passed/rejected (DD2-7). Löst den
 		// Deadlock (passed + letztes Verdikt not_passed) ohne den w:Rework-
 		// Mehrschritt; das Backend öffnet eine frische pending-Runde + Marker-Reset.
 		if it == nil {
@@ -157,7 +158,7 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.status = "Reopen gesendet …"
 		return m, doReopen(m.client, it.ID, m.curSprint.ID)
-	case "w": // Rework: Issue über die Lifecycle-Kette nach to_review (entsperrt
+	case keybind.Matches(msg, keys.ReviewRework): // Rework: Issue über die Lifecycle-Kette nach to_review (entsperrt
 		// re-Review bei Edit-Lock / status≠to_review, z.B. passed mit not_passed-Verdikt)
 		if it == nil {
 			return m, nil
@@ -169,7 +170,7 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.status = "Rework: " + it.Status + " → " + strings.Join(path, " → ") + " …"
 		return m, doRework(m.client, it.ID, path, m.curSprint.ID)
-	case "y": // DD2-121: Review-Stand als Markdown in die Zwischenablage (auch vor Abschluss)
+	case keybind.Matches(msg, keys.Yank): // DD2-121: Review-Stand als Markdown in die Zwischenablage (auch vor Abschluss)
 		if m.curSprint == nil {
 			return m, nil
 		}
@@ -180,19 +181,33 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.status = noticeText(fmt.Sprintf("Review state copied (%s, %d issues)", m.curSprint.Key, len(m.curSprint.Items)))
 		}
 		return m, nil
-	case "P": // DD2-44: Review-Pass markieren (review_submitted_at) — „Review-Durchgang
+	case msg.String() == "H": // DD2-105: Sprint-Review-Handover-Artefakt (aktionsfähiges Markdown) yanken.
+		// DD2-174 Q-flag: H hat keine Keymap-Bindung — literal beibehalten (wie Cockpit-S).
+		if m.curSprint == nil {
+			return m, nil
+		}
+		if err := clip.Copy(m.reviewHandoverClip()); err != nil {
+			m.errNote = "Clipboard-Fehler: " + err.Error()
+		} else {
+			m.errNote = ""
+			m.status = noticeText(fmt.Sprintf("Review handover copied (%s)", m.curSprint.Key))
+		}
+		return m, nil
+	case keybind.Matches(msg, keys.ReviewPass2): // DD2-44: Review-Pass markieren (review_submitted_at) — „Review-Durchgang
 		// fertig"-Marker. Backend ist idempotent; entsperrt keinen Auto-Close.
 		if m.curSprint == nil {
 			return m, nil
 		}
 		m.status = "Marking review pass …"
 		return m, doReviewSubmit(m.client, m.curSprint.ID)
-	case "S": // Sprint-Status-Menü: zeigt gültige Sprint-Transitions
+	case msg.String() == "S": // Sprint-Status-Menü: zeigt gültige Sprint-Transitions.
+		// DD2-174 Q-flag: S hat keine Keymap-Bindung (S=Sort global, im Cockpit ungenutzt) —
+		// literal beibehalten, bis PO eine eigene Bindung entscheidet.
 		if m.curSprint == nil {
 			return m, nil
 		}
 		return m.openSprintStatus(m.curSprint.ID, m.curSprint.Status)
-	case "C": // Sprint abschließen — nur wenn review
+	case keybind.Matches(msg, keys.SprintComplete): // Sprint abschließen — nur wenn review
 		if m.curSprint == nil {
 			return m, nil
 		}
@@ -223,12 +238,12 @@ func (m model) keyStatusPick(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.smenu.move(1)
 		return m, nil
 	}
-	switch msg.String() {
-	case "esc", "q", "s":
+	switch { // DD2-174: s (Status) öffnet/schließt das Menü
+	case keybind.Matches(msg, keys.Back), keybind.Matches(msg, keys.Status), msg.String() == "q":
 		m.statusPick = false
 		m.status = ""
 		return m, nil
-	case "enter":
+	case keybind.Matches(msg, keys.Enter):
 		m.statusPick = false
 		if m.stIssueID == 0 || m.smenu.cursor < 0 || m.smenu.cursor >= len(m.sopts) {
 			return m, nil
@@ -285,12 +300,12 @@ func (m model) keySprintPick(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.spmenu.move(1)
 		return m, nil
 	}
-	switch msg.String() {
-	case "esc", "q", "S", "s":
+	switch { // DD2-174: s/S (Columns s / Cockpit S) öffnen dieses Menü → beide schließen
+	case keybind.Matches(msg, keys.Back), keybind.Matches(msg, keys.Status), msg.String() == "S", msg.String() == "q":
 		m.sprintPick = false
 		m.status = ""
 		return m, nil
-	case "enter":
+	case keybind.Matches(msg, keys.Enter):
 		m.sprintPick = false
 		if m.spTargetID == 0 || m.spmenu.cursor < 0 || m.spmenu.cursor >= len(m.spopts) {
 			return m, nil
@@ -323,20 +338,20 @@ func (m model) keyUserStory(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return nil
 	}
-	switch msg.String() {
-	case "esc", "q", "enter":
+	switch { // DD2-174: a=accept, x=reject (D04, war r), o=reset
+	case keybind.Matches(msg, keys.Back), keybind.Matches(msg, keys.Enter), msg.String() == "q":
 		m.usOpen = false
 		m.status = ""
 		return m, nil
-	case "a": // accepted
+	case keybind.Matches(msg, keys.StoryAccept): // accepted (a)
 		if us := cur(); us != nil {
 			return m, doUSVerdict(m.client, us.ID, "accepted", m.usIssueID)
 		}
-	case "r": // rejected
+	case keybind.Matches(msg, keys.StoryReject): // rejected (x, war r — D04)
 		if us := cur(); us != nil {
 			return m, doUSVerdict(m.client, us.ID, "rejected", m.usIssueID)
 		}
-	case "o": // open (zurücksetzen)
+	case keybind.Matches(msg, keys.StoryReset): // open / zurücksetzen (o)
 		if us := cur(); us != nil {
 			return m, doUSVerdict(m.client, us.ID, "open", m.usIssueID)
 		}

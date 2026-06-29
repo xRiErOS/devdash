@@ -16,7 +16,7 @@ func TestEscSpineToHome(t *testing.T) {
 
 	// Columns → Home
 	mc := columnsModel()
-	if got, _ := mc.keyColumns("esc"); got.(model).view != viewHome {
+	if got, _ := mc.keyColumns(key("esc")); got.(model).view != viewHome {
 		t.Errorf("Columns esc → view=%d, want viewHome", got.(model).view)
 	}
 

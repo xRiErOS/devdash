@@ -20,8 +20,8 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "dd",
 	Short: "DevDashboard CLI",
-	Long: "Sprint-, Issue-, Review- und Projekt-Kommandos gegen die DevDash API.\n\n" +
-		"Ohne Subcommand startet die interaktive TUI (folgt in Phase 2).",
+	Long: "Sprint, issue, review and project commands against the DevDash API.\n\n" +
+		"Without a subcommand the interactive TUI starts (coming in phase 2).",
 	SilenceUsage:  true,
 	SilenceErrors: true, // main gibt den Fehler aus — kein doppeltes "Error:"
 }
@@ -43,9 +43,9 @@ func firstNonFlag(args []string) string {
 }
 
 func init() {
-	rootCmd.PersistentFlags().BoolVar(&flagJSON, "json", false, "Output als JSON")
-	rootCmd.PersistentFlags().BoolVar(&flagYAML, "yaml", false, "Output als YAML")
-	rootCmd.PersistentFlags().StringVar(&flagProject, "project", "", "Projekt-ID, Slug oder Prefix (überschreibt DEVD_PROJECT_ID)")
+	rootCmd.PersistentFlags().BoolVar(&flagJSON, "json", false, "Output as JSON")
+	rootCmd.PersistentFlags().BoolVar(&flagYAML, "yaml", false, "Output as YAML")
+	rootCmd.PersistentFlags().StringVar(&flagProject, "project", "", "Project ID, slug or prefix (overrides DEVD_PROJECT_ID)")
 }
 
 // Execute ist der Einstiegspunkt aus main. Dispatch: bare `dd` oder

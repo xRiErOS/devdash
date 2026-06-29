@@ -6,6 +6,7 @@ import (
 
 	"devd-cli/internal/api"
 	"devd-cli/internal/theme"
+	keybind "github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 )
@@ -252,21 +253,42 @@ func (m model) footer() string {
 		}
 		return wrapText(st, m.termWidth())
 	}
-	// DD2-29: Status-Taste depth-abhängig benennen — s wirkt je Ebene auf Sprint
-	// (depth 1) bzw. Issue (depth 2), S auf den Meilenstein (depth 0).
-	var act string
-	switch m.depth {
-	case 0:
-		act = "S:milestone-status  d:delete"
-	case 1:
-		act = "s:sprint-status  d:delete"
-	default:
-		act = "s:issue-status"
-	}
-	hint := "i/k:↑↓  l/→:in  j/←:out  enter:detail  " + act + "  f:filter  y:yank  t:tags  ctrl+r:reload  b:backlog  R:reviews  q:quit"
+	// DD2-175: Footer-Hint wird nicht mehr als hardcoded String gepflegt, sondern
+	// aus der Keymap (Single-Source) abgeleitet — kann damit nie mehr von den
+	// echten Bindings driften. Depth-abhängige lokale Tasten + globaler Block.
+	local := m.localKeyHints()
+	global := []keybind.Binding{keys.Filter, keys.Yank, keys.Tags, keys.Refresh, keys.Backlog, keys.Reviews, keys.Quit}
+	hint := renderBindings(append(local, global...))
 	// DD2-73: auf schmalen Terminals umbrechen statt in die Pane-Spalten überlaufen
 	// (analog chrome()). viewColumns rechnet die Footer-Höhe in die Body-Höhe ein.
 	return theme.Dim.Render(wrapText(hint, m.termWidth()))
+}
+
+// renderBindings rendert eine Bindungs-Liste als "key:desc"-Hint, getrennt durch
+// zwei Spaces. Bindings ohne Help.Key werden übersprungen (DD2-175).
+func renderBindings(bs []keybind.Binding) string {
+	parts := make([]string, 0, len(bs))
+	for _, b := range bs {
+		h := b.Help()
+		if h.Key != "" {
+			parts = append(parts, h.Key+":"+h.Desc)
+		}
+	}
+	return strings.Join(parts, "  ")
+}
+
+// localKeyHints liefert die depth-abhängigen lokalen Tasten für den Footer aus der
+// Keymap (DD2-175). s (Status) wirkt je Ebene auf den fokussierten Node; Delete
+// nur auf den oberen Ebenen (Meilenstein/Sprint).
+func (m model) localKeyHints() []keybind.Binding {
+	switch m.depth {
+	case 0:
+		return []keybind.Binding{keys.Up, keys.Down, keys.Left, keys.Right, keys.Enter, keys.Status, keys.Delete}
+	case 1:
+		return []keybind.Binding{keys.Up, keys.Down, keys.Left, keys.Right, keys.Enter, keys.Status, keys.Delete}
+	default:
+		return []keybind.Binding{keys.Up, keys.Down, keys.Left, keys.Right, keys.Enter, keys.Status}
+	}
 }
 
 func (m model) termWidth() int {

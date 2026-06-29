@@ -3,6 +3,8 @@ package tui
 import (
 	"devd-cli/internal/api"
 	"strings"
+
+	keybind "github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -117,33 +119,33 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.keyBacklog(msg)
 	}
 	k := msg.String()
-	// Globale Tasten
-	switch k {
-	case "q": // DD2-124: q verlässt jede Projekt-View zur Lobby (immer Home)
+	// Globale Tasten (DD2-174: key.Matches; q=Lobby ist Sonderfall vor keys.Quit)
+	switch {
+	case k == "q": // DD2-124: q verlässt jede Projekt-View zur Lobby (immer Home)
 		return m.goHome()
-	case "ctrl+c": // harter Beenden-Pfad → Confirm (DD2-49)
+	case keybind.Matches(msg, keys.Quit): // ctrl+c (q oben) — harter Beenden-Pfad → Confirm (DD2-49)
 		return m.requestQuit()
-	case "p":
+	case keybind.Matches(msg, keys.Picker):
 		if m.global != nil {
 			return m.openProjPick() // DD2-124: Picker als Overlay (kein View-Wechsel)
 		}
-	case "R": // T17: R öffnet von überall die Liste offener Review-Sprints
+	case keybind.Matches(msg, keys.Reviews): // T17: R öffnet von überall die Liste offener Review-Sprints
 		return m.openReviewsList()
-	case "T": // DD2-75: Tag-Manager von überall
+	case keybind.Matches(msg, keys.Tags): // DD2-75: Tag-Manager von überall
 		return m.openTagManager()
 	}
 
 	switch m.view {
 	case viewColumns:
-		return m.keyColumns(k)
+		return m.keyColumns(msg)
 	case viewDetail:
 		if m.keyScroll(k) { // DD2-30: scrollbarer Detail-Body
 			return m, nil
 		}
-		switch k {
-		case "esc":
+		switch {
+		case keybind.Matches(msg, keys.Back):
 			m.view = viewTree // DD2-111: Ranger gesunset → Tree-Primat
-		case "s": // DD2-29: Issue-Status auch im Detail mutieren
+		case keybind.Matches(msg, keys.Status): // DD2-29: Issue-Status auch im Detail mutieren
 			if it := m.selIssue(); it != nil {
 				sid := 0
 				if m.curSprint != nil {
@@ -151,7 +153,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				}
 				return m.openIssueStatus(it, sid)
 			}
-		case "t": // DD2-33: Tag-Picker für das Issue
+		case keybind.Matches(msg, keys.TagAssign): // DD2-33: Tag-Picker für das Issue
 			if it := m.selIssue(); it != nil {
 				return m.openTagPicker("issue", it.ID, it.Key+" "+it.Title, it.Tags)
 			}
@@ -161,18 +163,18 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.keyScroll(k) {
 			return m, nil
 		}
-		switch k {
-		case "esc":
+		switch {
+		case keybind.Matches(msg, keys.Back):
 			m.view = viewTree // DD2-111: Ranger gesunset → Tree-Primat
-		case "S":
+		case keybind.Matches(msg, keys.Status): // DD2-174: s (war S) — Meilenstein-Status
 			return m.openMilestoneStatus()
-		case "a": // T03 Flow B: Sprints diesem Meilenstein zuweisen (Checkliste)
+		case keybind.Matches(msg, keys.Assign): // T03 Flow B: Sprints diesem Meilenstein zuweisen (Checkliste)
 			return m.openMilestoneAssign()
-		case "d": // T02b: Meilenstein kaskadierend löschen
+		case keybind.Matches(msg, keys.Delete): // T02b: Meilenstein kaskadierend löschen
 			if ms := m.selMilestone(); ms != nil {
 				return m.openDelete("milestone", ms.ID, ms.Name)
 			}
-		case "t": // DD2-33: Tag-Picker für den Meilenstein
+		case keybind.Matches(msg, keys.TagAssign): // DD2-33: Tag-Picker für den Meilenstein
 			if ms := m.selMilestone(); ms != nil {
 				return m.openTagPicker("milestone", ms.ID, ms.Name, nil)
 			}
@@ -182,27 +184,27 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.keyScroll(k) {
 			return m, nil
 		}
-		switch k {
-		case "esc":
+		switch {
+		case keybind.Matches(msg, keys.Back):
 			m.view = viewTree // DD2-111: Ranger gesunset → Tree-Primat
-		case "y":
+		case keybind.Matches(msg, keys.Yank):
 			return m.yankContext()
-		case "m": // T03 Flow A: diesen Sprint einem Meilenstein zuweisen
+		case keybind.Matches(msg, keys.Assign): // DD2-174: a (war m) — diesen Sprint einem Meilenstein zuweisen
 			if s := m.selSprint(); s != nil {
 				return m.openSprintMilestone(s.ID)
 			}
-		case "d": // T02b: Sprint kaskadierend löschen
+		case keybind.Matches(msg, keys.Delete): // T02b: Sprint kaskadierend löschen
 			if s := m.selSprint(); s != nil {
 				return m.openDelete("sprint", s.ID, s.Name)
 			}
-		case "t": // DD2-33: Tag-Picker für den Sprint
+		case keybind.Matches(msg, keys.TagAssign): // DD2-33: Tag-Picker für den Sprint
 			if s := m.selSprint(); s != nil {
 				return m.openTagPicker("sprint", s.ID, s.Name, nil)
 			}
 		}
 		return m, nil
 	case viewReviewsList:
-		return m.keyReviewsList(k)
+		return m.keyReviewsList(msg)
 	case viewBacklog:
 		return m.keyBacklog(msg)
 	}
@@ -235,8 +237,8 @@ func (m model) openBacklog() (tea.Model, tea.Cmd) {
 }
 
 // keyReviewsList steuert die Review-Sprint-Liste: Auswahl öffnet das Cockpit.
-func (m model) keyReviewsList(k string) (tea.Model, tea.Cmd) {
-	switch navKey(k) {
+func (m model) keyReviewsList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch navKey(msg.String()) {
 	case "up":
 		m.rvlist.move(-1)
 		return m, nil
@@ -244,11 +246,11 @@ func (m model) keyReviewsList(k string) (tea.Model, tea.Cmd) {
 		m.rvlist.move(1)
 		return m, nil
 	}
-	switch k {
-	case "esc", "R":
+	switch { // DD2-174
+	case keybind.Matches(msg, keys.Back), keybind.Matches(msg, keys.Reviews): // esc/R schließt
 		m.view = m.topReturn // zurück zur Quell-View (Tree/Columns, DD2-61)
 		return m, nil
-	case "enter":
+	case keybind.Matches(msg, keys.Enter):
 		if m.rvlist.cursor >= 0 && m.rvlist.cursor < len(m.reviewSprints) {
 			s := m.reviewSprints[m.rvlist.cursor]
 			m.view = viewReview
@@ -279,8 +281,8 @@ func (m model) filteredProjects() []api.Project {
 	return out
 }
 
-func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
-	switch navKey(k) {
+func (m model) keyColumns(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch navKey(msg.String()) {
 	case "up":
 		m.focusList().move(-1)
 		return m, m.onFocusMove()
@@ -298,17 +300,17 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	}
-	if bindHas(keys.Refresh, k) { // DD2-72: manueller Daten-Reload (Spalten + selektierter Sprint)
+	if keybind.Matches(msg, keys.Refresh) { // DD2-72: manueller Daten-Reload (Spalten + selektierter Sprint)
 		var ids []int
 		if s := m.selSprint(); s != nil {
 			ids = append(ids, s.ID)
 		}
 		return m, doRefresh(m.client, ids)
 	}
-	switch k {
-	case "esc": // DD2-124: Esc aus Projekt-View → Lobby (Esc-Spine)
+	switch { // DD2-174: key.Matches statt raw strings
+	case keybind.Matches(msg, keys.Back): // DD2-124: Esc aus Projekt-View → Lobby (Esc-Spine)
 		return m.goHome()
-	case "enter":
+	case keybind.Matches(msg, keys.Enter):
 		if m.depth == 0 && m.selMilestone() != nil {
 			m.view = viewMilestone
 			m.scroll = 0
@@ -320,22 +322,25 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 			m.view = viewDetail
 			m.scroll = 0
 		}
-	case "f":
+	case keybind.Matches(msg, keys.Filter):
 		return m.openFilter()
-	case "y":
+	case keybind.Matches(msg, keys.Yank):
 		return m.yankContext()
-	case "b":
+	case keybind.Matches(msg, keys.Backlog):
 		return m.openBacklog()
-	case "S": // T01: Meilenstein-Status (nur auf fokussiertem Meilenstein)
-		if m.depth == 0 {
-			return m.openMilestoneStatus()
-		}
-	case "s": // T05: Sprint-Status (depth 1) / DD2-29: Issue-Status (depth 2)
-		if m.depth == 1 {
+	case keybind.Matches(msg, keys.Status):
+		// DD2-174: s öffnet je Ebene das richtige Status-Menü (S/s zusammengeführt) —
+		// Meilenstein (depth 0) / Sprint (depth 1) / Issue (depth 2).
+		switch m.depth {
+		case 0:
+			if m.selMilestone() != nil {
+				return m.openMilestoneStatus()
+			}
+		case 1:
 			if sp := m.selSprint(); sp != nil {
 				return m.openSprintStatus(sp.ID, sp.Status)
 			}
-		} else if m.depth == 2 {
+		case 2:
 			if it := m.selIssue(); it != nil {
 				sid := 0
 				if m.curSprint != nil {
@@ -344,7 +349,7 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 				return m.openIssueStatus(it, sid)
 			}
 		}
-	case "d": // T02b: Cascade-Delete Meilenstein/Sprint; DD2-65/DD2-85: Issue einzeln
+	case keybind.Matches(msg, keys.Delete): // T02b: Cascade-Delete Meilenstein/Sprint; DD2-65/DD2-85: Issue einzeln
 		if m.depth == 0 {
 			if ms := m.selMilestone(); ms != nil {
 				return m.openDelete("milestone", ms.ID, ms.Name)
@@ -358,7 +363,7 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 				return m.openDelete("issue", it.ID, it.Key+" "+it.Title)
 			}
 		}
-	case "t": // DD2-33: Tag-Picker für die fokussierte Ebene
+	case keybind.Matches(msg, keys.TagAssign): // DD2-33: Tag-Picker für die fokussierte Ebene
 		switch m.depth {
 		case 0:
 			if ms := m.selMilestone(); ms != nil {
@@ -456,12 +461,12 @@ func (m model) keyMilestoneStatus(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.msmenu.move(1)
 		return m, nil
 	}
-	switch msg.String() {
-	case "esc", "q", "S":
+	switch { // DD2-174: s (war S) öffnet/schließt das Status-Menü
+	case keybind.Matches(msg, keys.Back), keybind.Matches(msg, keys.Status), msg.String() == "q":
 		m.msPick = false
 		m.status = ""
 		return m, nil
-	case "enter":
+	case keybind.Matches(msg, keys.Enter):
 		m.msPick = false
 		if m.msmenu.cursor < 0 || m.msmenu.cursor >= len(m.msopts) {
 			return m, nil
@@ -498,12 +503,12 @@ func openSprintCount(sprints []api.Sprint) int {
 
 // keyMilestoneCascade behandelt den Cascade-Complete-Confirm (DD2-28).
 func (m model) keyMilestoneCascade(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "y", "Y", "enter":
+	switch { // DD2-174: enter=confirm, esc/n=cancel
+	case keybind.Matches(msg, keys.Enter):
 		m.mcConfirm = false
 		m.status = "Closing milestone cascading …"
 		return m, doMilestoneCascadeComplete(m.client, m.mcID)
-	case "n", "N", "esc", "q":
+	case keybind.Matches(msg, keys.Back), msg.String() == "n":
 		m.mcConfirm = false
 		m.status = noticeText("Abgebrochen")
 		return m, nil
@@ -573,16 +578,19 @@ func (m model) keyFilter(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.fcur.move(1)
 		return m, nil
 	}
-	switch msg.String() {
-	case "q", "esc", "f":
+	switch { // DD2-174: key.Matches; X = alle Facetten löschen (FilterClear)
+	case keybind.Matches(msg, keys.Back), keybind.Matches(msg, keys.Filter), msg.String() == "q":
 		m.filtering = false
 		return m, m.afterFilter()
-	case " ", "x":
+	case keybind.Matches(msg, keys.FilterClear): // X — alle Facetten dieser Spalte zeigen
+		m.filterFor(m.ftarget).clear()
+		return m, nil
+	case keybind.Matches(msg, keys.Toggle):
 		if m.fcur.cursor < len(m.fopts) {
 			m.filterFor(m.ftarget).toggle(m.fopts[m.fcur.cursor].value)
 		}
 		return m, nil
-	case "enter":
+	case keybind.Matches(msg, keys.Enter):
 		m.filtering = false
 		return m, m.afterFilter()
 	}

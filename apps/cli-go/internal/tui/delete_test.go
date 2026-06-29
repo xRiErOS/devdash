@@ -52,25 +52,25 @@ func TestDeleteConfirmWaitsForCountsThenDispatches(t *testing.T) {
 	m := columnsModel()
 	mi, _ := m.Update(keyMsg("d"))
 	m = mi.(model)
-	// y während Laden: kein Dispatch, Dialog bleibt
-	mi, cmd := m.Update(keyMsg("y"))
+	// enter während Laden: kein Dispatch, Dialog bleibt (DD2-174)
+	mi, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = mi.(model)
 	if !m.delConfirm {
-		t.Error("y während Laden sollte den Dialog nicht schließen")
+		t.Error("enter während Laden sollte den Dialog nicht schließen")
 	}
 	if cmd != nil {
-		t.Error("y während Laden sollte nicht löschen")
+		t.Error("enter während Laden sollte nicht löschen")
 	}
-	// Counts da → y löscht
+	// Counts da → enter löscht
 	mi, _ = m.Update(deletePreviewMsg{"milestone", 1, "M1", 2, 7, 0})
 	m = mi.(model)
-	mi, cmd = m.Update(keyMsg("y"))
+	mi, cmd = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = mi.(model)
 	if m.delConfirm {
-		t.Error("y nach Laden sollte den Dialog schließen")
+		t.Error("enter nach Laden sollte den Dialog schließen")
 	}
 	if cmd == nil {
-		t.Error("y nach Laden sollte doCascadeDelete dispatchen")
+		t.Error("enter nach Laden sollte doCascadeDelete dispatchen")
 	}
 }
 

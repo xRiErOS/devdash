@@ -44,8 +44,8 @@ describe('MEM-10 — Project-Memory MCP tools', () => {
     expect(mcp).toMatch(/project-memories\/search/)
   })
 
-  test('log tool enumerates all six categories', () => {
-    for (const c of ['architecture_decision', 'dead_end', 'bug_pattern', 'convention', 'external_constraint', 'session_note']) {
+  test('log tool enumerates all categories', () => {
+    for (const c of ['architecture_decision', 'dead_end', 'bug_pattern', 'convention', 'external_constraint', 'session_log', 'knowledge']) {
       expect(mcp).toContain(c)
     }
   })

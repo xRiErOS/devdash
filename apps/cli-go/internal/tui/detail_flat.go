@@ -12,6 +12,7 @@ import (
 
 	"devd-cli/internal/api"
 	"devd-cli/internal/theme"
+	keybind "github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
@@ -113,13 +114,13 @@ func (m model) keyDetailFlat(msg tea.KeyMsg, fields []detailField) (tea.Model, t
 		m.fieldCursor = len(fields) - 1
 	}
 
-	switch msg.String() {
-	case "ctrl+c", "q":
+	switch {
+	case keybind.Matches(msg, keys.Quit):
 		return m.requestQuit() // DD2-49
-	case "esc":
+	case keybind.Matches(msg, keys.Back):
 		m.exitDetailFocus()
 		return m, nil
-	case "t": // DD2-33: Tag-Picker für den fokussierten Knoten (1:1 zum Issue-Detail)
+	case keybind.Matches(msg, keys.TagAssign): // DD2-33: Tag-Picker für den fokussierten Knoten (1:1 zum Issue-Detail)
 		if n := m.focusedNode(); n != nil {
 			switch n.kind {
 			case tkMile:
@@ -131,7 +132,7 @@ func (m model) keyDetailFlat(msg tea.KeyMsg, fields []detailField) (tea.Model, t
 			}
 		}
 		return m, nil
-	case "enter":
+	case keybind.Matches(msg, keys.Enter):
 		return m.editFlatField(fields[m.fieldCursor])
 	}
 

@@ -7,9 +7,17 @@ import { createTestDb } from '../_fixtures/in-memory-db.js'
 import { cascadeDeleteSprints, milestoneDeletePreview } from '../../apps/backend/src/lib/cascadeDelete.js'
 
 function seed(db) {
-  // archon_runs wird erst nach dem Baseline-Snapshot (028) angelegt — in Prod
-  // vorhanden, hier als Stub, damit cascadeDeleteSprints es räumen kann.
-  db.exec('CREATE TABLE IF NOT EXISTS archon_runs (id INTEGER PRIMARY KEY, sprint_id INTEGER)')
+  // DD2-21: documents-Tabelle (Migration 067) — als Stub, damit milestoneDeletePreview
+  // sie zählen kann (Snapshot ist 028, vor 067). Genau ein Owner via CHECK.
+  db.exec(`CREATE TABLE IF NOT EXISTS documents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    milestone_id INTEGER REFERENCES milestones(id) ON DELETE CASCADE,
+    sprint_id INTEGER REFERENCES sprints(id) ON DELETE CASCADE,
+    title TEXT NOT NULL, body TEXT NOT NULL DEFAULT '', file_path TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    CHECK ((milestone_id IS NOT NULL) + (sprint_id IS NOT NULL) = 1)
+  )`)
   const pid = db.prepare("INSERT INTO projects (slug, name, prefix) VALUES ('c-test','C','C')").run().lastInsertRowid
   const milestone = (name) =>
     db.prepare("INSERT INTO milestones (project_id, name, status, position) VALUES (?, ?, 'planning', 1)").run(pid, name).lastInsertRowid

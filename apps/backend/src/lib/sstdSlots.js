@@ -5,7 +5,7 @@
 //
 // Daten: project_sstd_slots (Migration 043). Slots werden lazy behandelt — fehlt eine Row,
 // gilt der Slot als leer (''). renderReadAll reassembliert die 6 Slots + ZWEI Projektionen
-// (Nächste Schritte ← offene project_todos; Journal ← letzte 40 session_note-Memories) und
+// (Nächste Schritte ← offene project_todos; Session-Log ← letzte 40 session_log-Memories) und
 // fällt auf projects.sstd_content (Legacy-Blob) zurück, solange alle Slots leer sind.
 
 import { listMemories } from './projectMemories.js'
@@ -15,7 +15,7 @@ import { listTodos } from './projectTodos.js'
 import { SLOT_KEYS as CONTRACT_SLOT_KEYS, SLOT_LINE_OPS as CONTRACT_SLOT_LINE_OPS } from '@devd/api-types/sstd.contracts.js'
 
 // D02-rev3: 6 fixe Prosa-Slots. next_steps ist KEIN Slot (Projektion offener ToDos),
-// Journal ist KEIN Slot (Projektion von session_note-Memories).
+// Session-Log ist KEIN Slot (Projektion von session_log-Memories).
 // DD-564: Werte aus dem Contract gesourct (Reihenfolge load-bearing für die
 // `slot_key muss einer von: …`-Message), hier eingefroren für die bestehende Export-Form.
 export const SLOT_KEYS = Object.freeze([...CONTRACT_SLOT_KEYS])
@@ -30,9 +30,12 @@ export const SLOT_TITLES = Object.freeze({
 })
 
 // Read-All-Projektionen (D02-rev3 / D03-rev): Reihenfolge im Gesamtdokument.
+// DD2-19: Label „Session-Log" (KI-Logbuch über zurückliegende Sessions). Der
+// Projektions-Key bleibt `journal` (interne Adressierung), nur das Anzeige-Label zieht
+// auf den neuen Begriff. Quelle = project_memories cat=session_log.
 export const PROJECTION_TITLES = Object.freeze({
   next_steps: 'Nächste Schritte',
-  journal: 'Journal',
+  journal: 'Session-Log',
 })
 
 export const CONTENT_MAX = 64000
@@ -185,7 +188,7 @@ export function renderNextSteps(db, projectId) {
 }
 
 export function renderJournal(db, projectId) {
-  const notes = listMemories(db, projectId, { category: 'session_note' }).slice(0, JOURNAL_LIMIT)
+  const notes = listMemories(db, projectId, { category: 'session_log' }).slice(0, JOURNAL_LIMIT)
   if (notes.length === 0) return null
   const lines = [`## ${PROJECTION_TITLES.journal}`, '']
   for (const m of notes) lines.push(`- ${m.summary}`)

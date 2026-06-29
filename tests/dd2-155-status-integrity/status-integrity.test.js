@@ -9,12 +9,12 @@ import { createTestDb } from '../_fixtures/in-memory-db.js'
 import { MILESTONE_STATUSES, SPRINT_STATUSES } from '../../packages/api-types/milestone-sprint.contracts.js'
 import { ISSUE_STATUSES as BACKLOG_ISSUE_STATUSES } from '../../packages/api-types/backlog.contracts.js'
 
-const AT_065 = '065_v3_dd2_155_status_unify.sql'
+const AT_069 = '069_v3_dd2_155_status_unify.sql'
 
-describe('DD2-155 — Status-Integrität (Migration 065)', () => {
+describe('DD2-155 — Status-Integrität (Migration 069)', () => {
   let db, pid
   beforeEach(() => {
-    db = createTestDb({ upToVersion: AT_065 })
+    db = createTestDb({ upToVersion: AT_069 })
     pid = db.prepare("INSERT INTO projects (slug, name, prefix) VALUES ('c155','C','C')").run().lastInsertRowid
   })
 

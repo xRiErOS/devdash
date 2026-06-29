@@ -97,6 +97,19 @@ func renderPane(p pane, w, h int, focused bool) string {
 		Render(strings.Join(lines, "\n"))
 }
 
+// tagsInline rendert Tag-Swatches space-getrennt (leerer String bei keinen Tags).
+// DD2-143: Single Source für Milestone-Tag-Anzeige in msRows + TreeView.
+func tagsInline(tags []api.Tag) string {
+	if len(tags) == 0 {
+		return ""
+	}
+	chips := make([]string, len(tags))
+	for i, t := range tags {
+		chips[i] = tagSwatch(t)
+	}
+	return strings.Join(chips, " ")
+}
+
 func (m model) msRows() []string {
 	ms := m.visMilestonesRaw()
 	rows := make([]string, len(ms))
@@ -105,8 +118,13 @@ func (m model) msRows() []string {
 		if x.Deferred == 1 {
 			def = theme.Dim.Render(" ⏸")
 		}
-		rows[i] = fmt.Sprintf("%s %s  %s%s", statusDot(x.Status), x.Name,
-			theme.Dim.Render(fmt.Sprintf("%d/%d", x.Done, x.Total)), def)
+		// DD2-143: Tags hinter dem Fortschritt anzeigen (vom List-Endpoint embedded).
+		tags := ""
+		if t := tagsInline(x.Tags); t != "" {
+			tags = "  " + t
+		}
+		rows[i] = fmt.Sprintf("%s %s  %s%s%s", statusDot(x.Status), x.Name,
+			theme.Dim.Render(fmt.Sprintf("%d/%d", x.Done, x.Total)), def, tags)
 	}
 	if len(rows) == 0 {
 		return []string{theme.Dim.Render("(none — f for filter)")}
@@ -418,10 +436,22 @@ func (m model) reviewDetailPane(it *api.Issue, w, h int) string {
 		truncate(theme.Header.Render(it.Key+" — "+it.Title), w),
 		truncate(theme.StatusStyle(it.Status).Render(it.Status)+"  "+
 			theme.TypeIcon(it.Type)+" "+it.Type+"  "+theme.Priority(it.Priority)+"  "+reviewBadge(*it), w),
+	}
+	// DD2-117: Kontext-Meta (Milestone/Sprint/Tags) wie im Issue-Detail einblenden —
+	// gibt dem PO beim Review die Einordnung, ohne die View zu verlassen. Leere Werte
+	// fallen via metaStrip weg; ist alles leer, bleibt die Zeile ganz aus.
+	if deref(it.Milestone) != "" || deref(it.SprintKey) != "" || len(it.Tags) > 0 {
+		header = append(header, truncate(metaStrip([]metaPair{
+			{deref(it.Milestone), "milestone"},
+			{deref(it.SprintKey), "sprint"},
+			{tagsInline(it.Tags), "tags"},
+		}, "", w), w))
+	}
+	header = append(header,
 		truncate(theme.Dim.Render("Result ")+resultDot(*it)+theme.Dim.Render("   User-Stories ")+usSummaryDot(*it), w),
 		theme.Dim.Render(strings.Repeat("─", min(w, 24))),
-	}
-	acc := renderAccordion(m.issueSections(*it, w-2), m.accOpen, w, detailFocusView{})
+	)
+	acc := renderAccordion(m.issueSections(*it, w-2, false), m.accOpen, w, detailFocusView{}) // read-only Preview (DD2-144)
 	accLines := strings.Split(acc, "\n")
 	bodyH := h - len(header)
 	if bodyH < 1 {

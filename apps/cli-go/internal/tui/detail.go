@@ -11,6 +11,7 @@ import (
 
 	"devd-cli/internal/api"
 	"devd-cli/internal/theme"
+	keybind "github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -54,7 +55,7 @@ func (m model) focusSections() []accordionSection {
 	}
 	_, _, _, rw, _ := m.treeLayout()
 	secs := []accordionSection{{title: "Overview", fields: kopfFields()}}
-	return append(secs, m.issueSections(*it, rw-4)...)
+	return append(secs, m.issueSections(*it, rw-4, true)...) // full: alle Felder editierbar (DD2-144)
 }
 
 // currentFieldValue liefert den aktuellen Wert eines Contract-Felds als String
@@ -134,6 +135,31 @@ func (m *model) mergeIssueIntoCache(src *api.Issue) {
 	}
 }
 
+// mergeUserStories spiegelt die frische US-Liste eines Issues in alle Caches:
+// Review-Abnahme-Modal (usList/uslist), Cockpit-Sprint, Backlog und Tree — kein
+// Refetch (DD2-144). curSprint deckt DD2-67 #4 ab (US-Dot schlägt live um).
+func (m *model) mergeUserStories(issueID int, items []api.UserStory) {
+	if issueID == m.usIssueID {
+		m.usList = items
+		m.uslist.setLen(len(items))
+	}
+	apply := func(list []api.Issue) {
+		for i := range list {
+			if list[i].ID == issueID {
+				list[i].UserStories = items
+			}
+		}
+	}
+	if m.curSprint != nil {
+		apply(m.curSprint.Items)
+	}
+	apply(m.backlog)
+	apply(m.treeFilterIssues)
+	for sid := range m.treeIssues {
+		apply(m.treeIssues[sid])
+	}
+}
+
 // enterDetailFocus verlagert den Fokus vom Tree in die Detail-Pane (D01). Issue:
 // erste Section, Section-Ebene, Section zu (zweistufig). Meilenstein/Sprint: direkt
 // auf Feld-Ebene (flache Liste, einstufig — D09/DD2-78).
@@ -202,28 +228,28 @@ func (m model) keyDetailFocus(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 	m.clampDetailCursor(secs)
 
-	switch msg.String() {
-	case "ctrl+c", "q":
+	switch {
+	case keybind.Matches(msg, keys.Quit):
 		return m.requestQuit() // DD2-49
-	case "esc":
+	case keybind.Matches(msg, keys.Back):
 		m.exitDetailFocus()
 		return m, nil
-	case "t": // DD2-33: Tag-Picker für das fokussierte Issue
+	case keybind.Matches(msg, keys.TagAssign): // DD2-33: Tag-Picker für das fokussierte Issue
 		if it := m.focusedIssue(); it != nil {
 			return m.openTagPicker("issue", it.ID, it.Key+" "+it.Title, it.Tags)
 		}
 		return m, nil
-	case "d": // DD2-65: fokussiertes Issue löschen (Confirm)
+	case keybind.Matches(msg, keys.Delete): // DD2-65: fokussiertes Issue löschen (Confirm)
 		if it := m.focusedIssue(); it != nil {
 			return m.openDelete("issue", it.ID, it.Key+" "+it.Title)
 		}
 		return m, nil
-	case "S": // DD2-136: fokussiertes Issue einem Sprint zuweisen
+	case keybind.Matches(msg, keys.Assign): // DD2-136/174: fokussiertes Issue einem Sprint zuweisen (a, war S)
 		if it := m.focusedIssue(); it != nil {
 			return m.openAssignSprint(it.ID)
 		}
 		return m, nil
-	case "enter":
+	case keybind.Matches(msg, keys.Enter):
 		// Section-Ebene → in die Section rein (wie l/→); Feld-Ebene → editField-Form
 		// für das aktive Feld öffnen (D04).
 		if m.detailLevel == 0 {
@@ -234,7 +260,11 @@ func (m model) keyDetailFocus(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		if it := m.focusedIssue(); it != nil {
-			return m.openEditField(*it, secs[m.secCursor].fields[m.fieldCursor])
+			f := secs[m.secCursor].fields[m.fieldCursor]
+			if f.editor == "userstory" { // DD2-144: US-Felder → US-Form statt scalar-Edit
+				return m.openUserStoryForm(*it, f)
+			}
+			return m.openEditField(*it, f)
 		}
 		return m, nil
 	}

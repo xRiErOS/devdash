@@ -11,7 +11,8 @@ const CATEGORY_TITLES = {
   external_constraint: 'Externe Constraints',
   bug_pattern: 'Bug-Patterns',
   dead_end: 'Sackgassen',
-  session_note: 'Session-Notizen',
+  knowledge: 'Wissen',
+  session_log: 'Session-Log',
 }
 
 const CATEGORY_ORDER = [
@@ -20,7 +21,8 @@ const CATEGORY_ORDER = [
   'external_constraint',
   'bug_pattern',
   'dead_end',
-  'session_note',
+  'knowledge',
+  'session_log',
 ]
 
 // Markdown-Snapshot aktiver Rows (deleted + superseded sind via listMemories bereits raus),

@@ -3,7 +3,6 @@
  * @property {string} baseUrl
  * @property {string|number} [projectId]
  * @property {string} [token]        - X-Devd-Token (DD-285, no-op wenn Backend ungesetzt)
- * @property {string} [archonToken]  - X-Archon-Token (privilegierte Status-Pfade)
  * @property {typeof fetch} [fetchImpl]
  */
 
@@ -25,12 +24,11 @@
  * @returns {ApiClient}
  */
 export function createApiClient(cfg) {
-  const { baseUrl, projectId, token, archonToken, fetchImpl = fetch } = cfg
+  const { baseUrl, projectId, token, fetchImpl = fetch } = cfg
 
   function buildHeaders(extra = {}) {
     const h = { 'Content-Type': 'application/json', ...extra }
     if (projectId != null && h['X-Project-Id'] == null) h['X-Project-Id'] = String(projectId)
-    if (archonToken) h['X-Archon-Token'] = archonToken
     if (token) h['X-Devd-Token'] = token
     return h
   }

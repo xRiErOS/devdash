@@ -33,6 +33,7 @@ type filterState struct {
 
 func (f filterState) shown(val string) bool { return !f.hidden[val] }
 func (f *filterState) toggle(val string)    { f.hidden[val] = !f.hidden[val] }
+func (f *filterState) clear()               { f.hidden = map[string]bool{} } // DD2-174: alle Facetten zeigen
 
 const deferredKey = "__deferred__" // Pseudo-Wert: zurückgestellte Meilensteine zeigen
 
@@ -254,6 +255,12 @@ type model struct {
 	editLabel  string
 	editEditor string // input | text | select
 	editValue  string // aktueller Wert (Form-Preset)
+
+	// User-Story-Edit (DD2-144): anlegen/bearbeiten direkt aus dem Detail-Fokus
+	// (Backlog + Tree, geteilte Maschine). usFormIssueID = Eltern-Issue (für POST +
+	// Cache-Merge), usFormID = Ziel-Story beim Edit (0 = Neuanlage).
+	usFormIssueID int
+	usFormID      int
 
 	// Tree-Suche (DD2-62): `/` öffnet das Suchfeld im Tree-Kopf, tippen filtert live.
 	// treeSearching = Eingabe fokussiert; treeQuery = aktiver Filter (auch nach enter).

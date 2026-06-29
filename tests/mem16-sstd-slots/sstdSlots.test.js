@@ -38,6 +38,7 @@ describe('MEM-16 — SSTD-Slots: schema + lib + line-ops + read-all', () => {
     applyMigration(db, '041_v3_project_memories.sql', { logDir })
     applyMigration(db, '042_v3_project_memory_anchor_stability.sql', { logDir })
     applyMigration(db, '043_v3_sstd_slots.sql', { logDir })
+    applyMigration(db, '065_v3_dd2_19_memory_categories.sql', { logDir })
   })
 
   afterEach(() => {
@@ -183,18 +184,18 @@ describe('MEM-16 — SSTD-Slots: schema + lib + line-ops + read-all', () => {
     expect(iNext).toBeLessThan(iRoad)
   })
 
-  test('renderReadAll projiziert session_notes als "Journal" am Ende', () => {
+  test('renderReadAll projiziert session_log als "Session-Log" am Ende', () => {
     setSlot(db, PROJECT_ID, 'architecture', 'Kopf')
-    createMemory(db, PROJECT_ID, { category: 'session_note', summary: 'Heute MEM-16 begonnen' })
+    createMemory(db, PROJECT_ID, { category: 'session_log', summary: 'Heute MEM-16 begonnen' })
     const md = renderReadAll(db, PROJECT_ID)
-    expect(md).toContain('Journal')
+    expect(md).toContain('Session-Log')
     expect(md).toContain('Heute MEM-16 begonnen')
-    expect(md.indexOf('Journal')).toBeGreaterThan(md.indexOf('Architektur'))
+    expect(md.indexOf('Session-Log')).toBeGreaterThan(md.indexOf('Architektur'))
   })
 
-  test('renderReadAll: Journal begrenzt auf 40 Einträge', () => {
+  test('renderReadAll: Session-Log begrenzt auf 40 Einträge', () => {
     for (let i = 1; i <= 45; i++) {
-      createMemory(db, PROJECT_ID, { category: 'session_note', summary: `Eintrag ${i}` })
+      createMemory(db, PROJECT_ID, { category: 'session_log', summary: `Eintrag ${i}` })
     }
     const md = renderReadAll(db, PROJECT_ID)
     const count = (md.match(/Eintrag \d+/g) || []).length

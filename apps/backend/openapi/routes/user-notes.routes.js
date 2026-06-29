@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { register } from '../registry.js';
 
-// session_notes (T-be1, Modell B) — Rich-Entity fürs SessionNotesWidget.
-// Schema spiegelt contracts/sessionNote.contracts.js (TITLE_MAX 200, DETAILS_MAX 500).
+// user_notes (DD2-161, ehem. session_notes/T-be1) — Rich-Entity fürs UserNotesWidget.
+// Schema spiegelt contracts/userNote.contracts.js (TITLE_MAX 200, DETAILS_MAX 500).
 
 const keyArray = z.array(z.string());
 
@@ -16,9 +16,9 @@ const createBody = z.object({
 
 register({
   method: 'GET',
-  path: '/api/session-notes',
-  tag: 'session-notes',
-  summary: 'Listet Session-Notes des Projekts (optional Volltext-Filter)',
+  path: '/api/user-notes',
+  tag: 'user-notes',
+  summary: 'Listet User-Notes des Projekts (optional Volltext-Filter)',
   query: z.object({
     search: z.string().optional(),
   }),
@@ -27,18 +27,18 @@ register({
 
 register({
   method: 'GET',
-  path: '/api/session-notes/:id',
-  tag: 'session-notes',
-  summary: 'Einzelne Session-Note per id (404 wenn fehlt)',
+  path: '/api/user-notes/:id',
+  tag: 'user-notes',
+  summary: 'Einzelne User-Note per id (404 wenn fehlt)',
   params: z.object({ id: z.string() }),
   res: z.record(z.string(), z.unknown()),
 });
 
 register({
   method: 'POST',
-  path: '/api/session-notes',
-  tag: 'session-notes',
-  summary: 'Session-Note anlegen',
+  path: '/api/user-notes',
+  tag: 'user-notes',
+  summary: 'User-Note anlegen',
   body: createBody,
   status: 201,
   res: z.record(z.string(), z.unknown()),
@@ -46,9 +46,9 @@ register({
 
 register({
   method: 'PUT',
-  path: '/api/session-notes/:id',
-  tag: 'session-notes',
-  summary: 'Session-Note bearbeiten (partielles Update)',
+  path: '/api/user-notes/:id',
+  tag: 'user-notes',
+  summary: 'User-Note bearbeiten (partielles Update)',
   params: z.object({ id: z.string() }),
   body: createBody.partial(),
   res: z.record(z.string(), z.unknown()),
@@ -56,9 +56,9 @@ register({
 
 register({
   method: 'DELETE',
-  path: '/api/session-notes/:id',
-  tag: 'session-notes',
-  summary: 'Session-Note löschen',
+  path: '/api/user-notes/:id',
+  tag: 'user-notes',
+  summary: 'User-Note löschen',
   params: z.object({ id: z.string() }),
   res: z.null(),
   status: 204,

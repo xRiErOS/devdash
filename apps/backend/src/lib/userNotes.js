@@ -1,14 +1,14 @@
-// ProjectPages T-be1 (D-D, Modell B): session_notes — NEUE separate Rich-Entity (user-verfasste
-// Notizen für SessionNotesWidget). KEIN Ersatz des SSTD-Auto-Journals (project_memories
-// cat=session_note bleibt). Pure Funktionen ohne Express (Muster sops.js / projectMemories.js).
-// Daten: session_notes + session_notes_fts (Migration 062). project-gescopt (project_id).
+// DD2-161 (ehem. ProjectPages T-be1, Modell B): user_notes — separate Rich-Entity (user-verfasste
+// Notizen für das UserNotesWidget). KEIN Ersatz des SSTD-Auto-Logbuchs (project_memories
+// cat=session_log bleibt). Pure Funktionen ohne Express (Muster sops.js / projectMemories.js).
+// Daten: user_notes + user_notes_fts (Migration 066, vormals session_notes/062). project-gescopt.
 
-import { TITLE_MAX, DETAILS_MAX } from '@devd/api-types/sessionNote.contracts.js'
+import { TITLE_MAX, DETAILS_MAX } from '@devd/api-types/userNote.contracts.js'
 
-export class SessionNoteError extends Error {
+export class UserNoteError extends Error {
   constructor(message, { statusCode = 400, code, field } = {}) {
     super(message)
-    this.name = 'SessionNoteError'
+    this.name = 'UserNoteError'
     this.statusCode = statusCode
     this.code = code
     this.field = field
@@ -17,10 +17,10 @@ export class SessionNoteError extends Error {
 
 function validateTitle(raw) {
   if (typeof raw !== 'string' || raw.trim() === '') {
-    throw new SessionNoteError('title darf nicht leer sein', { code: 'TITLE_REQUIRED', field: 'title' })
+    throw new UserNoteError('title darf nicht leer sein', { code: 'TITLE_REQUIRED', field: 'title' })
   }
   if (raw.length > TITLE_MAX) {
-    throw new SessionNoteError(`title darf max ${TITLE_MAX} Zeichen lang sein`, { code: 'TITLE_TOO_LONG', field: 'title' })
+    throw new UserNoteError(`title darf max ${TITLE_MAX} Zeichen lang sein`, { code: 'TITLE_TOO_LONG', field: 'title' })
   }
   return raw
 }
@@ -28,10 +28,10 @@ function validateTitle(raw) {
 function validateDetails(raw) {
   if (raw === undefined || raw === null) return ''
   if (typeof raw !== 'string') {
-    throw new SessionNoteError('details muss ein String sein', { code: 'DETAILS_TYPE', field: 'details' })
+    throw new UserNoteError('details muss ein String sein', { code: 'DETAILS_TYPE', field: 'details' })
   }
   if (raw.length > DETAILS_MAX) {
-    throw new SessionNoteError(`details darf max ${DETAILS_MAX} Zeichen lang sein`, { code: 'DETAILS_TOO_LONG', field: 'details' })
+    throw new UserNoteError(`details darf max ${DETAILS_MAX} Zeichen lang sein`, { code: 'DETAILS_TOO_LONG', field: 'details' })
   }
   return raw
 }
@@ -39,7 +39,7 @@ function validateDetails(raw) {
 function validateKeyArray(raw, field) {
   if (raw === undefined || raw === null) return []
   if (!Array.isArray(raw) || raw.some(x => typeof x !== 'string')) {
-    throw new SessionNoteError(`${field} muss ein String-Array sein`, { code: 'KEY_ARRAY_TYPE', field })
+    throw new UserNoteError(`${field} muss ein String-Array sein`, { code: 'KEY_ARRAY_TYPE', field })
   }
   return raw
 }
@@ -47,7 +47,7 @@ function validateKeyArray(raw, field) {
 function validatePrUrl(raw) {
   if (raw === undefined || raw === null || raw === '') return null
   if (typeof raw !== 'string') {
-    throw new SessionNoteError('pr_url muss ein String sein', { code: 'PR_URL_TYPE', field: 'pr_url' })
+    throw new UserNoteError('pr_url muss ein String sein', { code: 'PR_URL_TYPE', field: 'pr_url' })
   }
   return raw
 }
@@ -62,31 +62,31 @@ function hydrate(row) {
   }
 }
 
-export function createSessionNote(db, projectId, { title, details, pr_url, sprints, issues } = {}) {
+export function createUserNote(db, projectId, { title, details, pr_url, sprints, issues } = {}) {
   const t = validateTitle(title)
   const d = validateDetails(details)
   const pr = validatePrUrl(pr_url)
   const sp = JSON.stringify(validateKeyArray(sprints, 'sprints'))
   const is = JSON.stringify(validateKeyArray(issues, 'issues'))
   const result = db.prepare(
-    'INSERT INTO session_notes (project_id, title, details, pr_url, sprints, issues) VALUES (?, ?, ?, ?, ?, ?)',
+    'INSERT INTO user_notes (project_id, title, details, pr_url, sprints, issues) VALUES (?, ?, ?, ?, ?, ?)',
   ).run(projectId, t, d, pr, sp, is)
-  return getSessionNote(db, projectId, Number(result.lastInsertRowid))
+  return getUserNote(db, projectId, Number(result.lastInsertRowid))
 }
 
 // Liste neueste zuerst (id DESC), project-gescopt. search → FTS über title+details.
-export function listSessionNotes(db, projectId, { search } = {}) {
+export function listUserNotes(db, projectId, { search } = {}) {
   const q = typeof search === 'string' ? search.trim() : ''
   let rows
   if (q) {
     rows = db.prepare(`
-      SELECT n.* FROM session_notes n
-      JOIN session_notes_fts f ON f.rowid = n.id
-      WHERE n.project_id = ? AND session_notes_fts MATCH ?
+      SELECT n.* FROM user_notes n
+      JOIN user_notes_fts f ON f.rowid = n.id
+      WHERE n.project_id = ? AND user_notes_fts MATCH ?
       ORDER BY n.id DESC
     `).all(projectId, ftsQuery(q))
   } else {
-    rows = db.prepare('SELECT * FROM session_notes WHERE project_id = ? ORDER BY id DESC').all(projectId)
+    rows = db.prepare('SELECT * FROM user_notes WHERE project_id = ? ORDER BY id DESC').all(projectId)
   }
   return rows.map(hydrate)
 }
@@ -98,15 +98,15 @@ function ftsQuery(raw) {
   return tokens.map(t => `"${t}"*`).join(' ')
 }
 
-export function getSessionNote(db, projectId, id) {
-  const row = db.prepare('SELECT * FROM session_notes WHERE id = ? AND project_id = ?').get(id, projectId)
+export function getUserNote(db, projectId, id) {
+  const row = db.prepare('SELECT * FROM user_notes WHERE id = ? AND project_id = ?').get(id, projectId)
   return hydrate(row)
 }
 
-export function updateSessionNote(db, projectId, id, patch = {}) {
-  const existing = db.prepare('SELECT * FROM session_notes WHERE id = ? AND project_id = ?').get(id, projectId)
+export function updateUserNote(db, projectId, id, patch = {}) {
+  const existing = db.prepare('SELECT * FROM user_notes WHERE id = ? AND project_id = ?').get(id, projectId)
   if (!existing) {
-    throw new SessionNoteError(`session_note ${id} nicht gefunden`, { statusCode: 404, code: 'NOTE_NOT_FOUND', field: 'id' })
+    throw new UserNoteError(`user_note ${id} nicht gefunden`, { statusCode: 404, code: 'NOTE_NOT_FOUND', field: 'id' })
   }
   const fields = []
   const params = []
@@ -116,15 +116,15 @@ export function updateSessionNote(db, projectId, id, patch = {}) {
   if (patch.sprints !== undefined) { fields.push('sprints = ?'); params.push(JSON.stringify(validateKeyArray(patch.sprints, 'sprints'))) }
   if (patch.issues !== undefined) { fields.push('issues = ?'); params.push(JSON.stringify(validateKeyArray(patch.issues, 'issues'))) }
   if (fields.length === 0) {
-    throw new SessionNoteError('Kein aktualisierbares Feld übergeben', { code: 'EMPTY_PATCH' })
+    throw new UserNoteError('Kein aktualisierbares Feld übergeben', { code: 'EMPTY_PATCH' })
   }
   fields.push("updated_at = datetime('now')")
   params.push(id, projectId)
-  db.prepare(`UPDATE session_notes SET ${fields.join(', ')} WHERE id = ? AND project_id = ?`).run(...params)
-  return getSessionNote(db, projectId, id)
+  db.prepare(`UPDATE user_notes SET ${fields.join(', ')} WHERE id = ? AND project_id = ?`).run(...params)
+  return getUserNote(db, projectId, id)
 }
 
-export function deleteSessionNote(db, projectId, id) {
-  const result = db.prepare('DELETE FROM session_notes WHERE id = ? AND project_id = ?').run(id, projectId)
+export function deleteUserNote(db, projectId, id) {
+  const result = db.prepare('DELETE FROM user_notes WHERE id = ? AND project_id = ?').run(id, projectId)
   return result.changes > 0
 }
