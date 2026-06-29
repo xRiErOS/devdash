@@ -6,9 +6,7 @@ register({
   path: '/api/config',
   tag: 'system',
   summary: 'Laufzeit-Konfiguration (Feature-Flags) des DevDashboards.',
-  res: z.object({
-    archon_enabled: z.boolean(),
-  }),
+  res: z.object({}),
 });
 
 register({
@@ -137,17 +135,6 @@ register({
     project_id: z.string().optional(),
   }),
   res: z.string(),
-});
-
-register({
-  method: 'GET',
-  path: '/api/archon-runs',
-  tag: 'system',
-  summary: 'Archon-Runs auflisten, optional nach Sprint gefiltert.',
-  query: z.object({
-    sprint_id: z.string().optional(),
-  }),
-  res: z.array(z.record(z.string(), z.unknown())),
 });
 
 register({

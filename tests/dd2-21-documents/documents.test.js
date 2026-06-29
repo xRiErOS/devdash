@@ -18,9 +18,6 @@ describe('DD2-21 — documents (DB-Blob, milestone/sprint owner)', () => {
   beforeEach(() => {
     db = createTestDb({ upToVersion: MIG })
     seedProject(db)
-    // archon_runs wurde von Migration 006 gedroppt (Archon deferred) — Stub, damit
-    // cascadeDeleteSprints es räumen kann (Muster aus tests/dd2-cascade-delete).
-    db.exec('CREATE TABLE IF NOT EXISTS archon_runs (id INTEGER PRIMARY KEY, sprint_id INTEGER)')
     logDir = mkdtempSync(join(tmpdir(), 'devd-dd221-'))
     ;[milestoneId] = seedMilestones(db, [{ name: 'M1', target_date: '2026-12-31', status: 'planning' }])
     const r = db.prepare("INSERT INTO sprints (name, status, project_id, project_number, milestone_id) VALUES ('S1','active',?,1,?)")

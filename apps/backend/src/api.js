@@ -11,9 +11,7 @@ import { fileURLToPath } from 'url'
 import { existsSync, mkdirSync, unlinkSync, renameSync, copyFileSync } from 'fs'
 import { body, validationResult } from 'express-validator'
 import rateLimit from 'express-rate-limit'
-import { spawn } from 'child_process'
 import { randomUUID } from 'crypto'
-import { WebSocketServer } from 'ws'
 import { canTransition, canSprintTransition } from './lib/lifecycle.js'
 import { TAG_COLORS as TAG_COLORS_CONTRACT } from '@devd/api-types/tag.contracts.js'
 import {
@@ -21,7 +19,6 @@ import {
   listOpenIssuesForMilestone,
   MilestoneCloseError,
 } from './lib/milestoneClose.js'
-import { attachStream, subscribe } from './lib/archonStream.js'
 import { listMemories, getMemory, insertMemory, updateMemory, deleteMemory } from './lib/memoryDb.js'
 import { validateMilestonePayload, validateStatusFilter, sendValidationError, resolveTargetDate } from './lib/milestoneValidation.js'
 import { insertDependency, getDependenciesForMilestone } from './lib/milestoneDependencies.js'
@@ -120,20 +117,6 @@ import {
   UserNoteError,
   createUserNote, listUserNotes, getUserNote, updateUserNote, deleteUserNote,
 } from './lib/userNotes.js'
-
-// ============================================================
-// Feature-Flags (ADR 2026-04-26: Archon + Live-Preview deferred)
-// Default: beide deaktiviert. Reaktivierung via ENV.
-// ============================================================
-const ENABLE_ARCHON = process.env.ENABLE_ARCHON === '1' || process.env.ENABLE_ARCHON === 'true'
-
-const ARCHON_TOKEN = process.env.ARCHON_INTERNAL_TOKEN || 'dev-archon-token'
-
-// Verzeichnis, in dem der Archon-Worker pro Run eine JSONL-Logdatei schreibt.
-// Default zeigt auf myPrivateBabyTracker; via DEVD_ARCHON_LOG_DIR konfigurierbar.
-const ARCHON_LOG_DIR =
-  process.env.DEVD_ARCHON_LOG_DIR ||
-  path.join(os.homedir(), '.archon/workspaces/xRiErOS/myPrivateBabyTracker/logs')
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 // Pfad zur Projekt-DB. Wird per Default aus dem benachbarten myPrivateBabyTracker-Repo
@@ -408,11 +391,9 @@ const issuesCaptureLimiter = rateLimit({
   message: { error: 'RATE_LIMIT_EXCEEDED', retry_after_seconds: 15 * 60 },
 })
 
-// GET /api/config — Frontend-Feature-Flags
+// GET /api/config — Frontend-Feature-Flags (aktuell keine; Archon entfernt DD2-172)
 app.get('/api/config', (_req, res) => {
-  res.json({
-    archon_enabled: ENABLE_ARCHON,
-  })
+  res.json({})
 })
 
 // DD-230: liveness probe — no DB, no auth, no side-effects. Container HEALTHCHECK
@@ -2374,7 +2355,7 @@ app.patch('/api/backlog/bulk', (req, res) => {
         if (!newStatus) { failed.push({ id, reason: 'status required' }); continue }
         const ctx = {
           goal: item.goal, background: item.background,
-          assigned_sprint: item.assigned_sprint, isArchon: false,
+          assigned_sprint: item.assigned_sprint,
           cancellationNotes: newStatus === 'cancelled' ? (payload.notes || 'bulk') : null,
         }
         const { allowed, reason } = canTransition(item.status, newStatus, ctx)
@@ -2410,7 +2391,7 @@ app.patch('/api/backlog/bulk', (req, res) => {
         if (item.status === 'cancelled') { failed.push({ id, reason: 'already cancelled' }); continue }
         const ctx = {
           goal: item.goal, background: item.background,
-          assigned_sprint: item.assigned_sprint, isArchon: false,
+          assigned_sprint: item.assigned_sprint,
           cancellationNotes: payload.notes || 'bulk',
         }
         const { allowed, reason } = canTransition(item.status, 'cancelled', ctx)
@@ -3095,10 +3076,6 @@ app.patch('/api/backlog/:id/status', (req, res) => {
   const { status: newStatus, notes } = req.body
   if (!newStatus) return res.status(400).json({ error: 'status ist Pflichtfeld' })
 
-  // ADR Archon deferred (2026-04-26): Lifecycle erlaubt manuelle Übergänge
-  // ohne Archon-Token. isArchon wird nur noch als Audit-Marker geloggt.
-  const isArchon = req.headers['x-archon-token'] === ARCHON_TOKEN
-
   // Build ctx for lifecycle check
   const latestFeedback = db.prepare(
     'SELECT * FROM review_feedback WHERE backlog_id = ? ORDER BY id DESC LIMIT 1'
@@ -3149,7 +3126,7 @@ app.patch('/api/backlog/:id/status', (req, res) => {
   vals.push(req.params.id)
   db.prepare(`UPDATE backlog SET ${sets.join(', ')} WHERE id = ?`).run(...vals)
 
-  auditLog('backlog', Number(req.params.id), 'status_change', { status: item.status }, { status: newStatus, notes }, isArchon ? 'archon' : 'dashboard-po')
+  auditLog('backlog', Number(req.params.id), 'status_change', { status: item.status }, { status: newStatus, notes }, 'dashboard-po')
 
   // DD-507: Rework → to_review mit letztem Verdict not_passed öffnet automatisch
   // eine neue pending-Runde und setzt den Sprint-Review-Marker zurück (reopen).
@@ -3673,8 +3650,7 @@ app.delete('/api/sprints/:id', (req, res) => {
   }
 
   db.transaction(() => {
-    // cascadeDeleteSprints räumt Issues (inkl. Kinder) + archon_runs + Sprint.
-    // Bei itemCount=0 ist das identisch zum alten Pfad (nur archon_runs + Sprint).
+    // cascadeDeleteSprints räumt Issues (inkl. Kinder) + Sprint.
     cascadeDeleteSprints(db, [Number(req.params.id)])
     db.prepare(`INSERT INTO audit_log (agent_id, action, table_name, record_id, old_value, new_value)
                 VALUES (?, ?, ?, ?, ?, ?)`).run(
@@ -3910,7 +3886,6 @@ app.post('/api/sprints/:id/complete', (req, res) => {
     })
   }
 
-  const isArchon = req.headers['x-archon-token'] === ARCHON_TOKEN
   const today = new Date().toISOString().slice(0, 10)
 
   // ADR 2026-04-29: sprint complete setzt alle passed-Items final auf done.
@@ -3935,7 +3910,7 @@ app.post('/api/sprints/:id/complete', (req, res) => {
   const updated = db.prepare('SELECT * FROM sprints WHERE id = ?').get(req.params.id)
   auditLog('sprint', Number(req.params.id), 'status_change',
     { status: sprint.status }, { status: 'completed', forced: force || undefined },
-    isArchon ? 'archon' : 'dashboard-po')
+    'dashboard-po')
   res.json(updated)
 })
 
@@ -3956,14 +3931,13 @@ app.patch('/api/sprints/:id/status', (req, res) => {
   const { allowed, reason } = canSprintTransition(sprint.status, to, ctx)
   if (!allowed) return res.status(422).json({ error: reason })
 
-  const isArchon = req.headers['x-archon-token'] === ARCHON_TOKEN
   // DD-158: Idempotenz — bei from===to (reason='no-op') kein UPDATE, kein
   // notes-Append, kein Audit-Log. Snapshot zurückgeben.
   if (reason !== 'no-op') {
     db.prepare('UPDATE sprints SET status = ? WHERE id = ?').run(to, req.params.id)
     auditLog('sprint', Number(req.params.id), 'status_change',
       { status: sprint.status }, { status: to, ...(cancellationNotes ? { cancellationNotes } : {}) },
-      isArchon ? 'archon' : 'dashboard-po')
+      'dashboard-po')
     // DD-160: notes-Append bei cancel als separater edit-Audit-Eintrag (Lösung A
     // aus Issue-Context). Saubere Trennung Status-Wechsel vs. Field-Edit, gleicher
     // Pattern wie andere edit-Calls. Leerer cancellationNotes → kein edit-Eintrag.
@@ -3974,7 +3948,7 @@ app.patch('/api/sprints/:id/status', (req, res) => {
       db.prepare("UPDATE sprints SET notes = ? WHERE id = ?").run(after, req.params.id)
       auditLog('sprint', Number(req.params.id), 'edit',
         { notes: before }, { notes: after },
-        isArchon ? 'archon' : 'dashboard-po')
+        'dashboard-po')
     }
   }
 
@@ -3986,144 +3960,6 @@ app.patch('/api/sprints/:id/status', (req, res) => {
   `).get(req.params.id)
   res.json(updated)
 })
-
-// Helper: spawn detached archon process
-function spawnArchon(args) {
-  const child = spawn('archon', args, {
-    detached: true,
-    env: { ...process.env, CLAUDECODE: undefined },
-    stdio: ['ignore', 'pipe', 'ignore'],
-  })
-  child.unref()
-  return child
-}
-
-// Helper: parse run_id from archon stdout
-function parseRunId(child) {
-  return new Promise((resolve) => {
-    let output = ''
-    child.stdout.on('data', (chunk) => { output += chunk.toString() })
-    child.stdout.on('end', () => {
-      try {
-        for (const line of output.split('\n')) {
-          const parsed = JSON.parse(line)
-          if (parsed.run_id) { resolve(parsed.run_id); return }
-        }
-      } catch (_) {}
-      resolve(null)
-    })
-    setTimeout(() => resolve(null), 3000)
-  })
-}
-
-// ============================================================
-// Archon-Endpoints — nur registriert wenn ENABLE_ARCHON=1
-// ============================================================
-if (ENABLE_ARCHON) {
-  // POST /api/sprints/:id/run-archon
-  app.post('/api/sprints/:id/run-archon', async (req, res) => {
-    const sprintId = req.params.id
-    const child = spawnArchon(['workflow', 'run', 'mybaby-sprint-execute', String(sprintId)])
-    const runId = (await parseRunId(child)) || randomUUID()
-
-    const logPath = path.join(ARCHON_LOG_DIR, `${runId}.jsonl`)
-
-    try {
-      db.prepare(
-        `INSERT OR IGNORE INTO archon_runs (run_id, workflow, sprint_id, status, log_path) VALUES (?, ?, ?, 'running', ?)`
-      ).run(runId, 'mybaby-sprint-execute', sprintId, logPath)
-    } catch (_) {}
-
-    attachStream(runId, logPath, db)
-    res.json({ run_id: runId, status: 'running' })
-  })
-
-  // POST /api/sprints/:id/submit-feedback
-  app.post('/api/sprints/:id/submit-feedback', (req, res) => {
-    const { run_id, feedback_items } = req.body
-    if (!run_id || !Array.isArray(feedback_items)) {
-      return res.status(400).json({ error: 'run_id und feedback_items sind Pflicht' })
-    }
-
-    const writeFeedback = db.transaction(() => {
-      for (const item of feedback_items) {
-        const { backlog_id, notes, review_status } = item
-        const maxRound = db.prepare(
-          'SELECT MAX(round_number) as mr FROM review_feedback WHERE backlog_id = ?'
-        ).get(backlog_id)
-        const roundNumber = (maxRound?.mr ?? 0) + 1
-
-        db.prepare(`
-          INSERT INTO review_feedback (backlog_id, round_number, review_status, notes)
-          VALUES (?, ?, ?, ?)
-        `).run(backlog_id, roundNumber, review_status, notes || null)
-      }
-    })
-    writeFeedback()
-
-    const allPassed = feedback_items.every(i => i.review_status === 'passed')
-    const action = allPassed ? 'approved' : 'rejected'
-
-    if (allPassed) {
-      const child = spawnArchon(['workflow', 'approve', run_id])
-      child.unref()
-    } else {
-      const rejected = feedback_items.filter(i => i.review_status === 'rejected')
-      const summary = rejected.map(i => `#${i.backlog_id}: ${i.notes || 'rejected'}`).join('; ')
-      const child = spawnArchon(['workflow', 'reject', run_id, summary])
-      child.unref()
-    }
-
-    res.json({ action, run_id })
-  })
-
-  // GET /api/sprints/:id/active-run
-  app.get('/api/sprints/:id/active-run', (req, res) => {
-    const row = db
-      .prepare(
-        "SELECT run_id, status FROM archon_runs WHERE sprint_id=? AND status IN ('running','awaiting_approval') ORDER BY started_at DESC LIMIT 1",
-      )
-      .get(req.params.id)
-    res.json(row ?? null)
-  })
-
-  // GET /api/archon-runs
-  app.get('/api/archon-runs', (req, res) => {
-    const { sprint_id } = req.query
-    let query = 'SELECT * FROM archon_runs'
-    const params = []
-    if (sprint_id) {
-      query += ' WHERE sprint_id = ?'
-      params.push(sprint_id)
-    }
-    query += ' ORDER BY started_at DESC'
-    const runs = db.prepare(query).all(...params)
-    res.json(runs)
-  })
-
-  // DD2-22: DELETE /api/archon-runs/:runId — FullDelete (Row + JSONL-Logdatei,
-  // unwiderruflich). Destruktiv → X-Archon-Token-Pflicht (403 wenn fehlt/falsch).
-  app.delete('/api/archon-runs/:runId', (req, res) => {
-    const isArchon = req.headers['x-archon-token'] === ARCHON_TOKEN
-    if (!isArchon) return res.status(403).json({ error: 'Forbidden: gültiges X-Archon-Token erforderlich' })
-    const { runId } = req.params
-    const row = db.prepare('SELECT run_id, log_path FROM archon_runs WHERE run_id = ?').get(runId)
-    if (!row) return res.status(404).json({ error: 'Archon-Run nicht gefunden', code: 'RUN_NOT_FOUND' })
-    db.prepare('DELETE FROM archon_runs WHERE run_id = ?').run(runId)
-    // Logdatei best-effort entfernen — ENOENT ignorieren (Datei kann fehlen, wenn
-    // ARCHON_LOG_DIR gewechselt wurde). Andere Fehler nur loggen, nicht 500en (Row ist weg).
-    let logDeleted = false
-    if (row.log_path) {
-      try {
-        unlinkSync(row.log_path)
-        logDeleted = true
-      } catch (e) {
-        if (e.code !== 'ENOENT') console.warn('[archon-fulldelete] unlink failed:', e.message)
-      }
-    }
-    res.json({ run_id: runId, deleted: true, log_deleted: logDeleted })
-  })
-}
 
 // ---- Reviews ----
 
@@ -4857,19 +4693,6 @@ const PORT = Number(process.env.PORT) || 5556
 const HOST = process.env.HOST || '0.0.0.0'
 const server = http.createServer(app)
 
-if (ENABLE_ARCHON) {
-  const wss = new WebSocketServer({ noServer: true })
-  server.on('upgrade', (req, socket, head) => {
-    const m = req.url.match(/^\/ws\/archon\/([^/?]+)/)
-    if (!m) { socket.destroy(); return }
-    const runId = decodeURIComponent(m[1])
-    wss.handleUpgrade(req, socket, head, ws => {
-      subscribe(runId, ws, db)
-    })
-  })
-}
-
 server.listen(PORT, HOST, () => {
-  const flags = `archon=${ENABLE_ARCHON ? 'on' : 'off'}`
-  console.log(`API running on http://${HOST}:${PORT} (${flags})`)
+  console.log(`API running on http://${HOST}:${PORT}`)
 })

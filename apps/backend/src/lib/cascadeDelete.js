@@ -4,8 +4,8 @@
 // user_stories, subtasks, attachments, issue_files) tragen ON DELETE CASCADE und
 // verschwinden mit der backlog-Zeile automatisch. NICHT kaskadierend sind
 // issue_dependencies + review_feedback → explizit zuerst löschen (spiegelt den
-// force-Pfad von DELETE /api/backlog/:id). Sprints: archon_runs hat keinen
-// Cascade-FK (manuell), sprint_dependencies/sprint_tags kaskadieren. backlog.
+// force-Pfad von DELETE /api/backlog/:id). Sprints: sprint_dependencies/sprint_tags
+// kaskadieren. backlog.
 // assigned_sprint ist KEIN FK → Issues müssen explizit über den Sprint gelöscht
 // werden. Aufrufer kapselt die Calls in db.transaction().
 //
@@ -23,7 +23,6 @@ export function cascadeDeleteSprints(db, sprintIds) {
   for (const sid of sprintIds) {
     const issueIds = db.prepare('SELECT id FROM backlog WHERE assigned_sprint = ?').all(sid).map(r => r.id)
     cascadeDeleteIssues(db, issueIds)
-    db.prepare('DELETE FROM archon_runs WHERE sprint_id = ?').run(sid)
     db.prepare('DELETE FROM sprints WHERE id = ?').run(sid)
   }
 }

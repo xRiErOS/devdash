@@ -37,13 +37,13 @@ describe('createApiClient', () => {
     )
   })
 
-  it('adds X-Devd-Token and X-Archon-Token only when set', async () => {
+  it('adds X-Devd-Token only when set', async () => {
     const fetchImpl = mockFetch(200, {})
-    const c = createApiClient({ baseUrl: 'http://h', token: 't', archonToken: 'a', fetchImpl })
+    const c = createApiClient({ baseUrl: 'http://h', token: 't', fetchImpl })
     await c.get('/api/x')
     const h = fetchImpl.mock.calls[0][1].headers
     expect(h['X-Devd-Token']).toBe('t')
-    expect(h['X-Archon-Token']).toBe('a')
+    expect(h['X-Archon-Token']).toBeUndefined()
   })
 
   describe('upload()', () => {
