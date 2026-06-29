@@ -9,7 +9,7 @@ const RICH = {
   name: 'Capture-Sprint',
   goal: 'Capture-PWA absichern und Render-Smoke ausbauen.',
   notes: 'Fokus auf Security-Härtung der öffentlichen Capture-Route.',
-  status: 'active',
+  status: 'in_progress',
   items: [
     { key: 'DD2-7', type: 'core', title: 'Capture-Host härten', status: 'in_progress' },
     { key: 'DD2-8', type: 'feature', title: 'Render-Smoke erweitern', status: 'new' },

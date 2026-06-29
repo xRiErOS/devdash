@@ -112,7 +112,7 @@ var sprintContextCmd = &cobra.Command{
 }
 
 func init() {
-	sprintListCmd.Flags().String("status", "", "Filter nach Status (active, planning, review, completed)")
+	sprintListCmd.Flags().String("status", "", "Filter nach Status (new, in_progress, to_review, completed)")
 	sprintContextCmd.Flags().String("format", "markdown", "Kontext-Format (json|markdown)")
 	sprintCmd.AddCommand(sprintListCmd, sprintShowCmd, sprintContextCmd)
 	rootCmd.AddCommand(sprintCmd)

@@ -13,9 +13,9 @@
  *   devd-cli sprint context <key|id> [--format json|markdown]
  *                                  [--screenshots [--output-dir <dir>]]
  *   devd-cli sprint create <name> [--goal <text>]
- *   devd-cli sprint start <key|id>           # planning → active
- *   devd-cli sprint review <key|id>          # active → review
- *   devd-cli sprint complete <key|id>        # review → completed (setzt passed→done)
+ *   devd-cli sprint start <key|id>           # new → in_progress
+ *   devd-cli sprint review <key|id>          # in_progress → to_review
+ *   devd-cli sprint complete <key|id>        # to_review → completed (setzt passed→completed)
  *   devd-cli sprint cancel <key|id> --notes <text>
  *   devd-cli sprint rev-results <key|id>     # PO-Review-Status pro Issue
  *
@@ -373,7 +373,7 @@ const ANSI = {
 }
 
 function statusColor(status) {
-  if (status === 'done') return `${ANSI.green}${status}${ANSI.reset}`
+  if (status === 'done' || status === 'completed') return `${ANSI.green}${status}${ANSI.reset}`
   if (status === 'open') return `${ANSI.peach}${status}${ANSI.reset}`
   return String(status || '-')
 }
@@ -590,7 +590,7 @@ const COMMANDS = {
     const name = flags._[0]
     if (!name) { console.error('Usage: devd-cli sprint create <name> [--goal <text>]'); process.exit(2) }
     await printSOPBundle('sprint:create')
-    const body = { name, status: 'planning' }
+    const body = { name, status: 'new' }
     if (flags.goal) body.goal = flags.goal
     parseOrThrow(sprintCreateContract, body, 'sprint create')   // DD-561: Client-Guard vor API
     const s = await api('POST', '/api/sprints', body)
@@ -600,20 +600,20 @@ const COMMANDS = {
   async 'sprint:start'(flags) {
     const id = await resolveSprintId(flags._[0])
     await printSOPBundle('sprint:start', id)
-    const s = await api('PATCH', `/api/sprints/${id}/status`, { to: 'active' })
+    const s = await api('PATCH', `/api/sprints/${id}/status`, { to: 'in_progress' })
     console.log(`✓ Sprint ${formatSprintKey(s)} → ${s.status}`)
     await scopedLink(s, 'sprints', s.id)
   },
   async 'sprint:review'(flags) {
     const id = await resolveSprintId(flags._[0])
-    const s = await api('PATCH', `/api/sprints/${id}/status`, { to: 'review' })
+    const s = await api('PATCH', `/api/sprints/${id}/status`, { to: 'to_review' })
     console.log(`✓ Sprint ${formatSprintKey(s)} → ${s.status}`)
     await scopedLink(s, 'review', s.id)
   },
   async 'sprint:complete'(flags) {
     const id = await resolveSprintId(flags._[0])
     const s = await api('POST', `/api/sprints/${id}/complete`, flags.force ? { force: true } : undefined)
-    console.log(`✓ Sprint ${formatSprintKey(s)} → ${s.status} (alle passed-Items wurden auf done gesetzt)`)
+    console.log(`✓ Sprint ${formatSprintKey(s)} → ${s.status} (alle passed-Items wurden auf completed gesetzt)`)
     await scopedLink(s, 'sprints', s.id)
   },
   async 'sprint:cancel'(flags) {
@@ -823,7 +823,7 @@ const COMMANDS = {
   async 'milestone:status'(flags) {
     const id = Number(flags._[0])
     const status = flags._[1]
-    if (!id || !status) { console.error('Usage: devd-cli milestone status <id> <planning|active|completed|cancelled> [--notes <text>]'); process.exit(2) }
+    if (!id || !status) { console.error('Usage: devd-cli milestone status <id> <new|planned|in_progress|completed|cancelled> [--notes <text>]'); process.exit(2) }
     const payload = parseOrThrow(milestoneStatusContract, {
       status,
       cancellation_notes: typeof flags.notes === 'string' ? flags.notes : undefined,
@@ -2208,13 +2208,13 @@ Projekte:
                                  [--color <hex>] [--description <text>] [--path <repo-path>]
 
 Sprints (Key wie DD#20 oder globale ID):
-  devd-cli sprint list [--status planning|active|review|completed|cancelled]
+  devd-cli sprint list [--status new|planned|in_progress|to_review|completed|cancelled]
   devd-cli sprint show <key|id>
   devd-cli sprint context <key|id> [--format json|markdown]
                                    [--screenshots [--output-dir <dir>]]
   devd-cli sprint create <name> [--goal <text>]
-  devd-cli sprint start <key|id>            # planning → active
-  devd-cli sprint review <key|id>           # active → review
+  devd-cli sprint start <key|id>            # new → in_progress
+  devd-cli sprint review <key|id>           # in_progress → to_review
   devd-cli sprint complete <key|id> [--force]
   devd-cli sprint cancel <key|id> --notes <begründung>
   devd-cli sprint rev-results <key|id>      # PO-Review-Übersicht
@@ -2226,10 +2226,10 @@ Sprints (Key wie DD#20 oder globale ID):
   devd-cli sprint delete <key|id>                             # DD-626 (409 wenn Issues zugewiesen)
 
 Milestones (numerische ID — Contract-validiert, DD-553/556):
-  devd-cli milestone list [--status open|planning|active|completed|cancelled|all]
+  devd-cli milestone list [--status open|new|planned|in_progress|completed|cancelled|all]
   devd-cli milestone show <id>
   devd-cli milestone create <name> [--description <text>] [--target-date YYYY-MM-DD] [--status <s>]
-  devd-cli milestone status <id> <planning|active|completed|cancelled> [--notes <text>]
+  devd-cli milestone status <id> <new|planned|in_progress|completed|cancelled> [--notes <text>]
   devd-cli milestone edit <id> [--name <text>] [--description <text>] [--target-date YYYY-MM-DD]
   devd-cli milestone dep-add <id> --depends-on <id>      # Vorgänger → Nachfolger
   devd-cli milestone dep-list <id>
@@ -2355,9 +2355,9 @@ Reviews:
                           # Review-Marker zurücksetzen), idempotent. Hebt die
                           # verdictlose Sprint-Submit-Sperre ohne UI auf.
 
-Issue-Status: new | refined | planned | in_progress | to_review | passed | rejected | done | cancelled
+Issue-Status: new | refined | planned | in_progress | to_review | passed | rejected | completed | cancelled
 
-Sprint-Status: planning → active → review → completed (plus cancelled)
+Sprint-Status: new → in_progress → to_review → completed (plus planned, cancelled)
 
 Env:
   DEVD_API_URL=${API}

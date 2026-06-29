@@ -21,29 +21,29 @@ describe('DD-524 — Issue reopen (canTransition)', () => {
 })
 
 describe('DD-524 — Sprint reopen (canSprintTransition)', () => {
-  test('cancelled → planning ist erlaubt (Reopen-Re-Entry)', () => {
-    expect(canSprintTransition('cancelled', 'planning').allowed).toBe(true)
+  test('cancelled → new ist erlaubt (Reopen-Re-Entry)', () => {
+    expect(canSprintTransition('cancelled', 'new').allowed).toBe(true)
   })
 
-  test('cancelled → active|review|completed bleiben abgelehnt', () => {
-    expect(canSprintTransition('cancelled', 'active').allowed).toBe(false)
-    expect(canSprintTransition('cancelled', 'review').allowed).toBe(false)
+  test('cancelled → in_progress|to_review|completed bleiben abgelehnt', () => {
+    expect(canSprintTransition('cancelled', 'in_progress').allowed).toBe(false)
+    expect(canSprintTransition('cancelled', 'to_review').allowed).toBe(false)
     expect(canSprintTransition('cancelled', 'completed').allowed).toBe(false)
   })
 
   test('any → cancelled verlangt weiterhin cancellationNotes', () => {
-    expect(canSprintTransition('active', 'cancelled').allowed).toBe(false)
-    expect(canSprintTransition('active', 'cancelled', { cancellationNotes: 'stop' }).allowed).toBe(true)
+    expect(canSprintTransition('in_progress', 'cancelled').allowed).toBe(false)
+    expect(canSprintTransition('in_progress', 'cancelled', { cancellationNotes: 'stop' }).allowed).toBe(true)
   })
 })
 
 describe('DD-524 — Milestone reopen (canMilestoneTransition)', () => {
-  test('cancelled → planning ist erlaubt (Reopen-Re-Entry)', () => {
-    expect(canMilestoneTransition('cancelled', 'planning').allowed).toBe(true)
+  test('cancelled → new ist erlaubt (Reopen-Re-Entry)', () => {
+    expect(canMilestoneTransition('cancelled', 'new').allowed).toBe(true)
   })
 
-  test('cancelled → active|completed bleiben abgelehnt', () => {
-    expect(canMilestoneTransition('cancelled', 'active').allowed).toBe(false)
+  test('cancelled → in_progress|completed bleiben abgelehnt', () => {
+    expect(canMilestoneTransition('cancelled', 'in_progress').allowed).toBe(false)
     expect(canMilestoneTransition('cancelled', 'completed').allowed).toBe(false)
   })
 })

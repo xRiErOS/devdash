@@ -1,6 +1,6 @@
 // DD-360 — Sprint-Complete-Block-Dialog rendert die blockierenden result-losen Issues.
 //
-// Bug: Beim Abschluss eines Sprints mit passed/done-Issues ohne result lieferte das
+// Bug: Beim Abschluss eines Sprints mit passed/completed-Issues ohne result lieferte das
 // Backend 422 mit { issue_keys, issues } — das Frontend verwarf die Liste und zeigte
 // einen leeren Dialog. Fix: submitComplete parst body.issues bei 422 und der
 // CompleteDialog rendert sie.
@@ -27,6 +27,6 @@ describe('DD-360 — Block-Dialog rendert result-lose Issues', () => {
   test('Backend-Guard liefert key + title (Datengrundlage)', () => {
     expect(guard).toMatch(/b\.title/)
     expect(guard).toMatch(/project_prefix/)
-    expect(guard).toMatch(/status IN \('done','passed'\)/)
+    expect(guard).toMatch(/status IN \('completed','passed'\)/)
   })
 })

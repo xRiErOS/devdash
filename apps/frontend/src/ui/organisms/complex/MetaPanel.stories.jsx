@@ -17,11 +17,11 @@ const ROWS = [
 // Sample-Entitäten (Form wie milestone-list.json-Fixture).
 const SPRINT_ENTITY = {
   kind: 'sprint', id: 106, key: 'DD2#52', name: 'RoadmapBoard Mockup',
-  status: 'active', target_date: '2026-09-01', position: 0, issue_total: 9, issue_done: 4,
+  status: 'in_progress', target_date: '2026-09-01', position: 0, issue_total: 9, issue_done: 4,
 }
 const MILESTONE_ENTITY = {
   kind: 'milestone', id: 2, name: 'ElementBrowser-Reihe',
-  status: 'active', target_date: '2026-08-10', dod_total: 3,
+  status: 'in_progress', target_date: '2026-08-10', dod_total: 3,
   sprints: [{ id: 104 }, { id: 105 }],
 }
 
@@ -50,13 +50,13 @@ export const Collapsed = {
   render: (args) => frame(<MetaPanel {...args} collapsed dataUiScope="organism.metaPanel.collapsed.panel" />),
 }
 
-// — entity-Modus: Sprint mit Fortschritt + Transition (active → review/planning/cancelled) —
+// — entity-Modus: Sprint mit Fortschritt + Transition (in_progress → to_review/new/cancelled) —
 export const EntitySprint = {
   args: { entity: SPRINT_ENTITY },
   render: (args) => frame(<MetaPanel {...args} dataUiScope="organism.metaPanel.sprint.panel" />),
 }
 
-// — entity-Modus: Meilenstein (active → completed/cancelled) —
+// — entity-Modus: Meilenstein (in_progress → completed/cancelled) —
 export const EntityMilestone = {
   args: { entity: MILESTONE_ENTITY },
   render: (args) => frame(<MetaPanel {...args} dataUiScope="organism.metaPanel.milestone.panel" />),
@@ -64,7 +64,7 @@ export const EntityMilestone = {
 
 // — entity-Modus: Endzustand (keine Folge-Status) —
 export const EntityTerminal = {
-  args: { entity: { ...SPRINT_ENTITY, status: 'closed', issue_done: 9 } },
+  args: { entity: { ...SPRINT_ENTITY, status: 'completed', issue_done: 9 } },
   render: (args) => frame(<MetaPanel {...args} dataUiScope="organism.metaPanel.terminal.panel" />),
 }
 

@@ -40,23 +40,23 @@ func TestSprintToBody(t *testing.T) {
 		path = r.URL.Path
 		b, _ := io.ReadAll(r.Body)
 		body = string(b)
-		json.NewEncoder(w).Encode(api.Sprint{ID: 7, Key: "DD2#3", Status: "review"})
+		json.NewEncoder(w).Encode(api.Sprint{ID: 7, Key: "DD2#3", Status: "to_review"})
 	}))
 	defer srv.Close()
 	t.Setenv("DEVD_API_URL", srv.URL)
 	c := api.NewClient("10")
 
-	s, err := c.SprintTo(7, "review")
+	s, err := c.SprintTo(7, "to_review")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.HasSuffix(path, "/sprints/7/status") {
 		t.Errorf("Pfad %q", path)
 	}
-	if !strings.Contains(body, `"to":"review"`) {
-		t.Errorf("Body ohne to=review: %q", body)
+	if !strings.Contains(body, `"to":"to_review"`) {
+		t.Errorf("Body ohne to=to_review: %q", body)
 	}
-	if s.Status != "review" {
+	if s.Status != "to_review" {
 		t.Errorf("Status %q", s.Status)
 	}
 }

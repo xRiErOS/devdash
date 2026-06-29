@@ -64,20 +64,15 @@ func SetAccent(hex string) {
 }
 
 var statusColor = map[string]lipgloss.Color{
-	"planning":    Yellow,
-	"active":      Green,
-	"review":      Peach,
-	"completed":   Overlay,
-	"closed":      Overlay,
-	"cancelled":   Red,
 	"new":         Sky,
 	"refined":     Teal,
 	"planned":     Blue,
 	"in_progress": Yellow,
 	"to_review":   Peach,
 	"passed":      Green,
-	"done":        Overlay,
 	"rejected":    Red,
+	"completed":   Overlay,
+	"cancelled":   Red,
 }
 
 // StatusStyle liefert den lipgloss-Style für einen Status (Default: Subtext).

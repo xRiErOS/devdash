@@ -62,11 +62,11 @@ func TestMetaStripSubLabelMuted(t *testing.T) {
 func TestMetaStripNarrowKeepsStatus(t *testing.T) {
 	out := metaStrip([]metaPair{
 		{"sehr langer Meilenstein-Name der nicht passt", "milestone"},
-	}, statusText("active"), 20)
+	}, statusText("in_progress"), 20)
 	if w := lipgloss.Width(out); w > 20 {
 		t.Errorf("Breite %d überläuft 20", w)
 	}
-	if !strings.Contains(ansi.Strip(out), "active") {
+	if !strings.Contains(ansi.Strip(out), "in_progress") {
 		t.Errorf("Status bei Engpass verloren: %q", ansi.Strip(out))
 	}
 }

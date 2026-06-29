@@ -79,7 +79,7 @@ func TestCockpitGlyphsUnambiguous(t *testing.T) {
 	}
 
 	// statusDot über alle Form-Zweige (hohl/abgebrochen/gefüllt).
-	for _, st := range []string{"planned", "cancelled", "rejected", "active", "in_progress", "passed", "done"} {
+	for _, st := range []string{"new", "planned", "cancelled", "rejected", "in_progress", "to_review", "passed", "completed"} {
 		if r, bad := hasAmbiguous(statusDot(st)); bad {
 			t.Errorf("statusDot(%q) nutzt Ambiguous-Glyph U+%04X %q", st, r, string(r))
 		}

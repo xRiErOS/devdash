@@ -10,17 +10,17 @@
     "deferred": 0,
     "dod_total": 4,
     "sprints": [
-      { "id": 101, "key": "DD2#41", "name": "Token-Layer härten", "status": "active", "milestone_id": 1, "position": 0, "issue_total": 6, "issue_done": 4, "issue_cancelled": 1, "issues": [
-        { "key": "DD2-201", "title": "Catppuccin-Tokens in @theme verschieben", "status": "done" },
-        { "key": "DD2-202", "title": "Radius-Trap (DD-483) entschärfen", "status": "done" },
-        { "key": "DD2-203", "title": "Spacing-Skala auf px-Tokens", "status": "active" },
-        { "key": "DD2-204", "title": "Stylelint @theme-Kapsel", "status": "planning" }
+      { "id": 101, "key": "DD2#41", "name": "Token-Layer härten", "status": "in_progress", "milestone_id": 1, "position": 0, "issue_total": 6, "issue_done": 4, "issue_cancelled": 1, "issues": [
+        { "key": "DD2-201", "title": "Catppuccin-Tokens in @theme verschieben", "status": "completed" },
+        { "key": "DD2-202", "title": "Radius-Trap (DD-483) entschärfen", "status": "completed" },
+        { "key": "DD2-203", "title": "Spacing-Skala auf px-Tokens", "status": "in_progress" },
+        { "key": "DD2-204", "title": "Stylelint @theme-Kapsel", "status": "new" }
       ] },
-      { "id": 102, "key": "DD2#42", "name": "Render-Smoke-Netz", "status": "review", "milestone_id": 1, "position": 1, "issue_total": 3, "issue_done": 2, "issue_cancelled": 0, "issues": [
-        { "key": "DD2-210", "title": "SSR-Render aller Stories", "status": "done" },
-        { "key": "DD2-211", "title": "Non-empty-Markup-Assertion", "status": "review" }
+      { "id": 102, "key": "DD2#42", "name": "Render-Smoke-Netz", "status": "to_review", "milestone_id": 1, "position": 1, "issue_total": 3, "issue_done": 2, "issue_cancelled": 0, "issues": [
+        { "key": "DD2-210", "title": "SSR-Render aller Stories", "status": "completed" },
+        { "key": "DD2-211", "title": "Non-empty-Markup-Assertion", "status": "to_review" }
       ] },
-      { "id": 103, "key": "DD2#40", "name": "Clean-Cut Baseline", "status": "done", "milestone_id": 1, "position": 2, "issue_total": 8, "issue_done": 8, "issue_cancelled": 2 }
+      { "id": 103, "key": "DD2#40", "name": "Clean-Cut Baseline", "status": "completed", "milestone_id": 1, "position": 2, "issue_total": 8, "issue_done": 8, "issue_cancelled": 2 }
     ]
   },
   {
@@ -29,18 +29,18 @@
     "name": "ElementBrowser-Reihe",
     "description": "Browser-Organismus samt Bausteinen ausliefern: Toolbar, Filter-Menü, Master-Detail und die Promote-Kette aus _mockups nach src/ui.",
     "target_date": "2026-08-10",
-    "status": "active",
+    "status": "in_progress",
     "position": 1,
     "deferred": 0,
     "dod_total": 3,
     "sprints": [
-      { "id": 104, "key": "DD2#49", "name": "Browser-Organismus + Bausteine", "status": "active", "milestone_id": 2, "position": 0, "issue_total": 5, "issue_done": 1, "issue_cancelled": 3, "issues": [
-        { "key": "DD2-220", "title": "BrowserToolbar-Organismus", "status": "done" },
-        { "key": "DD2-221", "title": "FilterMenu-Popover anbinden", "status": "active" },
-        { "key": "DD2-222", "title": "MasterDetail-Layout", "status": "planning" }
+      { "id": 104, "key": "DD2#49", "name": "Browser-Organismus + Bausteine", "status": "in_progress", "milestone_id": 2, "position": 0, "issue_total": 5, "issue_done": 1, "issue_cancelled": 3, "issues": [
+        { "key": "DD2-220", "title": "BrowserToolbar-Organismus", "status": "completed" },
+        { "key": "DD2-221", "title": "FilterMenu-Popover anbinden", "status": "in_progress" },
+        { "key": "DD2-222", "title": "MasterDetail-Layout", "status": "new" }
       ] },
-      { "id": 105, "key": "DD2#50", "name": "Promote: _mockups → src/ui", "status": "planning", "milestone_id": 2, "position": 1, "issue_total": 3, "issue_done": 0, "issue_cancelled": 0, "issues": [
-        { "key": "DD2-230", "title": "ElementRow nach atoms ziehen", "status": "planning" }
+      { "id": 105, "key": "DD2#50", "name": "Promote: _mockups → src/ui", "status": "new", "milestone_id": 2, "position": 1, "issue_total": 3, "issue_done": 0, "issue_cancelled": 0, "issues": [
+        { "key": "DD2-230", "title": "ElementRow nach atoms ziehen", "status": "new" }
       ] }
     ]
   },
@@ -50,15 +50,15 @@
     "name": "Roadmap & Planung",
     "description": "RoadmapBoard und Sprint-Planung als Eckpfeiler: Spalten-Board, Drag-&-Drop-Zuordnung, abhängigkeitsbewusster Meilenstein-Reorder und Wide-Mode mit Issue-Listen.",
     "target_date": "2026-09-01",
-    "status": "planning",
+    "status": "new",
     "position": 2,
     "deferred": 0,
     "dod_total": 5,
     "sprints": [
-      { "id": 106, "key": "DD2#52", "name": "RoadmapBoard Mockup", "status": "active", "milestone_id": 3, "position": 0, "issue_total": 9, "issue_done": 0, "issue_cancelled": 0, "issues": [
-        { "key": "DD2-240", "title": "Spalten-Board + DnD-Mathe", "status": "active" },
-        { "key": "DD2-241", "title": "Wide-Mode + Issue-Chevron", "status": "planning" },
-        { "key": "DD2-242", "title": "PageTitle-Header + Toolbar", "status": "planning" }
+      { "id": 106, "key": "DD2#52", "name": "RoadmapBoard Mockup", "status": "in_progress", "milestone_id": 3, "position": 0, "issue_total": 9, "issue_done": 0, "issue_cancelled": 0, "issues": [
+        { "key": "DD2-240", "title": "Spalten-Board + DnD-Mathe", "status": "in_progress" },
+        { "key": "DD2-241", "title": "Wide-Mode + Issue-Chevron", "status": "new" },
+        { "key": "DD2-242", "title": "PageTitle-Header + Toolbar", "status": "new" }
       ] },
       { "id": 107, "key": "DD2#39", "name": "Heartbeat-Abriss", "status": "cancelled", "milestone_id": 3, "position": 1, "issue_total": 0, "issue_done": 0, "issue_cancelled": 4 }
     ]
@@ -69,19 +69,19 @@
     "name": "Mobile & Capture",
     "description": "Capture-PWA härten und eine schlanke Mobile-Shell ausliefern: schneller Issue-Eintrag von unterwegs, Offline-Queue und Authelia-Gate (DD-375).",
     "target_date": "2026-09-20",
-    "status": "planning",
+    "status": "new",
     "position": 3,
     "deferred": 0,
     "dod_total": 4,
     "sprints": [
-      { "id": 110, "key": "DD2#54", "name": "Capture-PWA Hardening", "status": "active", "milestone_id": 4, "position": 0, "issue_total": 5, "issue_done": 2, "issue_cancelled": 0, "issues": [
-        { "key": "DD2-250", "title": "Allowlist-Guard auf neue Routen", "status": "done" },
-        { "key": "DD2-251", "title": "Offline-Queue für POST /issues", "status": "active" },
-        { "key": "DD2-252", "title": "Install-Prompt + Icons", "status": "planning" }
+      { "id": 110, "key": "DD2#54", "name": "Capture-PWA Hardening", "status": "in_progress", "milestone_id": 4, "position": 0, "issue_total": 5, "issue_done": 2, "issue_cancelled": 0, "issues": [
+        { "key": "DD2-250", "title": "Allowlist-Guard auf neue Routen", "status": "completed" },
+        { "key": "DD2-251", "title": "Offline-Queue für POST /issues", "status": "in_progress" },
+        { "key": "DD2-252", "title": "Install-Prompt + Icons", "status": "new" }
       ] },
-      { "id": 111, "key": "DD2#55", "name": "Mobile Shell", "status": "planning", "milestone_id": 4, "position": 1, "issue_total": 4, "issue_done": 0, "issue_cancelled": 0, "issues": [
-        { "key": "DD2-255", "title": "Bottom-Tab-Navigation", "status": "planning" },
-        { "key": "DD2-256", "title": "Touch-Targets auf 44px", "status": "planning" }
+      { "id": 111, "key": "DD2#55", "name": "Mobile Shell", "status": "new", "milestone_id": 4, "position": 1, "issue_total": 4, "issue_done": 0, "issue_cancelled": 0, "issues": [
+        { "key": "DD2-255", "title": "Bottom-Tab-Navigation", "status": "new" },
+        { "key": "DD2-256", "title": "Touch-Targets auf 44px", "status": "new" }
       ] }
     ]
   },
@@ -91,17 +91,17 @@
     "name": "Realtime & Sync",
     "description": "WebSocket-Layer und optimistische Synchronisation: Board-Änderungen propagieren live an alle Clients, Konflikte werden serverseitig aufgelöst.",
     "target_date": "2026-10-15",
-    "status": "planning",
+    "status": "new",
     "position": 4,
     "deferred": 0,
     "dod_total": 3,
     "sprints": [
-      { "id": 112, "key": "DD2#56", "name": "WebSocket-Layer", "status": "planning", "milestone_id": 5, "position": 0, "issue_total": 6, "issue_done": 0, "issue_cancelled": 0, "issues": [
-        { "key": "DD2-260", "title": "ws@8-Server an Express anbinden", "status": "planning" },
-        { "key": "DD2-261", "title": "Channel-Abo je project_id", "status": "planning" }
+      { "id": 112, "key": "DD2#56", "name": "WebSocket-Layer", "status": "new", "milestone_id": 5, "position": 0, "issue_total": 6, "issue_done": 0, "issue_cancelled": 0, "issues": [
+        { "key": "DD2-260", "title": "ws@8-Server an Express anbinden", "status": "new" },
+        { "key": "DD2-261", "title": "Channel-Abo je project_id", "status": "new" }
       ] },
-      { "id": 113, "key": "DD2#57", "name": "Optimistic Sync", "status": "planning", "milestone_id": 5, "position": 1, "issue_total": 3, "issue_done": 0, "issue_cancelled": 0, "issues": [
-        { "key": "DD2-265", "title": "Client-Reconciliation bei Konflikt", "status": "planning" }
+      { "id": 113, "key": "DD2#57", "name": "Optimistic Sync", "status": "new", "milestone_id": 5, "position": 1, "issue_total": 3, "issue_done": 0, "issue_cancelled": 0, "issues": [
+        { "key": "DD2-265", "title": "Client-Reconciliation bei Konflikt", "status": "new" }
       ] }
     ]
   },
@@ -111,18 +111,18 @@
     "name": "Insights & Reporting",
     "description": "Dashboards und Export-Pipeline: Sprint-Burndown, Milestone-Fortschritt und CSV/JSON-Export für PO-Reviews.",
     "target_date": "2026-11-01",
-    "status": "planning",
+    "status": "new",
     "position": 5,
     "deferred": 0,
     "dod_total": 6,
     "sprints": [
-      { "id": 114, "key": "DD2#58", "name": "Dashboards", "status": "planning", "milestone_id": 6, "position": 0, "issue_total": 5, "issue_done": 0, "issue_cancelled": 0, "issues": [
-        { "key": "DD2-270", "title": "Burndown-Widget", "status": "planning" },
-        { "key": "DD2-271", "title": "Milestone-Fortschrittsring", "status": "planning" }
+      { "id": 114, "key": "DD2#58", "name": "Dashboards", "status": "new", "milestone_id": 6, "position": 0, "issue_total": 5, "issue_done": 0, "issue_cancelled": 0, "issues": [
+        { "key": "DD2-270", "title": "Burndown-Widget", "status": "new" },
+        { "key": "DD2-271", "title": "Milestone-Fortschrittsring", "status": "new" }
       ] },
-      { "id": 115, "key": "DD2#59", "name": "Export-Pipeline", "status": "review", "milestone_id": 6, "position": 1, "issue_total": 4, "issue_done": 3, "issue_cancelled": 0, "issues": [
-        { "key": "DD2-275", "title": "CSV-Export Backlog", "status": "done" },
-        { "key": "DD2-276", "title": "JSON-Export mit Filtern", "status": "review" }
+      { "id": 115, "key": "DD2#59", "name": "Export-Pipeline", "status": "to_review", "milestone_id": 6, "position": 1, "issue_total": 4, "issue_done": 3, "issue_cancelled": 0, "issues": [
+        { "key": "DD2-275", "title": "CSV-Export Backlog", "status": "completed" },
+        { "key": "DD2-276", "title": "JSON-Export mit Filtern", "status": "to_review" }
       ] }
     ]
   }

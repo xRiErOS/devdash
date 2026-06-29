@@ -1,7 +1,7 @@
 package tui
 
 // DD2-136 (Review-Befund #4): Issue aus dem Backlog einem nicht-finalen Sprint
-// (planning/active) zuweisen — Single-Select-Picker, S-Shortcut.
+// (new/in_progress) zuweisen — Single-Select-Picker, S-Shortcut.
 
 import (
 	"testing"
@@ -10,21 +10,21 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// assignableSprints filtert auf nicht-finale Sprints (planning/active).
+// assignableSprints filtert auf nicht-finale Sprints (new/in_progress).
 func TestAssignableSprintsFilter(t *testing.T) {
 	all := []api.Sprint{
-		{ID: 1, Key: "DD2#1", Status: "planning"},
-		{ID: 2, Key: "DD2#2", Status: "active"},
+		{ID: 1, Key: "DD2#1", Status: "new"},
+		{ID: 2, Key: "DD2#2", Status: "in_progress"},
 		{ID: 3, Key: "DD2#3", Status: "completed"},
 		{ID: 4, Key: "DD2#4", Status: "cancelled"},
-		{ID: 5, Key: "DD2#5", Status: "review"},
+		{ID: 5, Key: "DD2#5", Status: "to_review"},
 	}
 	got := assignableSprints(all)
 	if len(got) != 2 {
-		t.Fatalf("assignbar=%d, want 2 (planning,active)", len(got))
+		t.Fatalf("assignbar=%d, want 2 (new,in_progress)", len(got))
 	}
 	for _, s := range got {
-		if s.Status != "planning" && s.Status != "active" {
+		if s.Status != "new" && s.Status != "in_progress" {
 			t.Errorf("finaler Sprint durchgerutscht: %s (%s)", s.Key, s.Status)
 		}
 	}
@@ -45,7 +45,7 @@ func TestAssignSprintPickAndFire(t *testing.T) {
 	m := backlogMDModel()
 	mi, _ := m.keyBacklog(key("S"))
 	m = mi.(model)
-	mi, _ = m.Update(assignSprintsMsg{items: []api.Sprint{{ID: 9, Key: "DD2#9", Status: "active"}}})
+	mi, _ = m.Update(assignSprintsMsg{items: []api.Sprint{{ID: 9, Key: "DD2#9", Status: "in_progress"}}})
 	m = mi.(model)
 	if len(m.asSprints) != 1 {
 		t.Fatalf("asSprints=%d, want 1", len(m.asSprints))

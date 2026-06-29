@@ -13,7 +13,7 @@ describe('DD-316 — sprint complete result guard', () => {
     const project = db.prepare("INSERT INTO projects (slug, name, prefix) VALUES ('dd316', 'DD-316', 'DD')").run()
     sprintId = Number(db.prepare(`
       INSERT INTO sprints (project_id, project_number, name, status)
-      VALUES (?, 44, 'Result Guard Sprint', 'review')
+      VALUES (?, 44, 'Result Guard Sprint', 'to_review')
     `).run(project.lastInsertRowid).lastInsertRowid)
 
     const insertIssue = db.prepare(`
@@ -21,7 +21,7 @@ describe('DD-316 — sprint complete result guard', () => {
       VALUES (?, ?, ?, 'feature', ?, ?, ?)
     `)
     insertIssue.run(project.lastInsertRowid, 123, 'Passed without result', 'passed', sprintId, null)
-    insertIssue.run(project.lastInsertRowid, 124, 'Done blank result', 'done', sprintId, '   ')
+    insertIssue.run(project.lastInsertRowid, 124, 'Done blank result', 'completed', sprintId, '   ')
     insertIssue.run(project.lastInsertRowid, 125, 'Passed with result', 'passed', sprintId, 'Implemented')
     insertIssue.run(project.lastInsertRowid, 126, 'Cancelled no result', 'cancelled', sprintId, null)
     insertIssue.run(project.lastInsertRowid, 127, 'Rejected no result', 'rejected', sprintId, null)
@@ -30,11 +30,11 @@ describe('DD-316 — sprint complete result guard', () => {
   test('returns done/passed issues missing result with display keys', () => {
     const missing = listSprintIssuesMissingResult(db, sprintId)
     expect(missing.map(i => i.key)).toEqual(['DD-123', 'DD-124'])
-    expect(missing.map(i => i.status)).toEqual(['passed', 'done'])
+    expect(missing.map(i => i.status)).toEqual(['passed', 'completed'])
   })
 
   test('returns empty list once all done/passed issues have result', () => {
-    db.prepare("UPDATE backlog SET result = 'Documented outcome' WHERE status IN ('done', 'passed')").run()
+    db.prepare("UPDATE backlog SET result = 'Documented outcome' WHERE status IN ('completed', 'passed')").run()
     expect(listSprintIssuesMissingResult(db, sprintId)).toEqual([])
   })
 })

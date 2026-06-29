@@ -34,7 +34,7 @@ func cmdWithFlags() *cobra.Command {
 func TestPrintJSON(t *testing.T) {
 	c := cmdWithFlags()
 	c.Flags().Set("json", "true")
-	data := map[string]string{"key": "DD2#1", "status": "active"}
+	data := map[string]string{"key": "DD2#1", "status": "in_progress"}
 
 	got := captureStdout(func() { output.Print(c, data, func() { t.Error("humanFn darf bei --json nicht laufen") }) })
 
@@ -50,12 +50,12 @@ func TestPrintJSON(t *testing.T) {
 func TestPrintYAML(t *testing.T) {
 	c := cmdWithFlags()
 	c.Flags().Set("yaml", "true")
-	data := map[string]string{"status": "active"}
+	data := map[string]string{"status": "in_progress"}
 
 	got := captureStdout(func() { output.Print(c, data, func() {}) })
 
-	if !strings.Contains(got, "status: active") {
-		t.Errorf("erwartete YAML 'status: active', got: %q", got)
+	if !strings.Contains(got, "status: in_progress") {
+		t.Errorf("erwartete YAML 'status: in_progress', got: %q", got)
 	}
 }
 

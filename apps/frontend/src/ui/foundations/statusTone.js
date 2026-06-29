@@ -16,10 +16,11 @@
  * @returns {{text:string, dot:string}} Utility-Klassen (Text-Farbe, Dot-Hintergrund)
  */
 
-// Issue-Lifecycle — 1:1 aus lifecycle.js STATUS_COLORS.
-// Sprint/Milestone — analoge Präsentationswahl (gleiche Tokens).
+// Unifiziertes Status-Vokabular (DD2-155): ein Wort je Bedeutung über
+// Issue / Sprint / Milestone. Issue-Lifecycle 1:1 aus lifecycle.js
+// STATUS_COLORS; Sprint/Milestone teilen dieselben Wörter (new|planned|
+// in_progress|to_review|completed|cancelled) und damit dieselben Tokens.
 export const STATUS_TONE = {
-  // Issue
   new: { text: 'text-[var(--yellow)]', dot: 'bg-[var(--yellow)]' },
   refined: { text: 'text-[var(--blue)]', dot: 'bg-[var(--blue)]' },
   planned: { text: 'text-[var(--lavender)]', dot: 'bg-[var(--lavender)]' },
@@ -27,15 +28,8 @@ export const STATUS_TONE = {
   to_review: { text: 'text-[var(--mauve)]', dot: 'bg-[var(--mauve)]' },
   passed: { text: 'text-[var(--green)]', dot: 'bg-[var(--green)]' },
   rejected: { text: 'text-[var(--red)]', dot: 'bg-[var(--red)]' },
-  done: { text: 'text-[var(--teal)]', dot: 'bg-[var(--teal)]' },
+  completed: { text: 'text-[var(--teal)]', dot: 'bg-[var(--teal)]' },
   cancelled: { text: 'text-[var(--overlay0)]', dot: 'bg-[var(--overlay0)]' },
-  // Sprint (planning|active|review|completed|closed|cancelled)
-  planning: { text: 'text-[var(--lavender)]', dot: 'bg-[var(--lavender)]' },
-  active: { text: 'text-[var(--peach)]', dot: 'bg-[var(--peach)]' },
-  review: { text: 'text-[var(--mauve)]', dot: 'bg-[var(--mauve)]' },
-  completed: { text: 'text-[var(--green)]', dot: 'bg-[var(--green)]' },
-  closed: { text: 'text-[var(--teal)]', dot: 'bg-[var(--teal)]' },
-  // Milestone teilt planning|active|completed|cancelled (oben abgedeckt)
 }
 
 const FALLBACK = { text: 'text-[var(--subtext0)]', dot: 'bg-[var(--subtext0)]' }
@@ -48,8 +42,7 @@ export function statusTone(status) {
 // Sprint/Milestone. Fallback = roher Status.
 export const STATUS_LABEL = {
   new: 'Neu', refined: 'Refined', planned: 'Geplant', in_progress: 'In Arbeit',
-  to_review: 'Review', passed: 'Passed', rejected: 'Abgelehnt', done: 'Done', cancelled: 'Abgebrochen',
-  planning: 'Planung', active: 'Aktiv', review: 'Review', completed: 'Abgeschlossen', closed: 'Geschlossen',
+  to_review: 'Review', passed: 'Passed', rejected: 'Abgelehnt', completed: 'Abgeschlossen', cancelled: 'Abgebrochen',
 }
 
 export function statusLabel(status) {

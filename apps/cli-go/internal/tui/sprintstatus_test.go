@@ -8,7 +8,7 @@ import (
 
 func TestColumnsSmallSOpensSprintStatus(t *testing.T) {
 	m := columnsModel()
-	m.milestones[0].Sprints[0].Status = "active"
+	m.milestones[0].Sprints[0].Status = "in_progress"
 	m.depth = 1
 	mi, _ := m.Update(keyMsg("s"))
 	m = mi.(model)
@@ -18,8 +18,8 @@ func TestColumnsSmallSOpensSprintStatus(t *testing.T) {
 	if m.spTargetID != 10 {
 		t.Errorf("spTargetID=%d, want 10 (selSprint)", m.spTargetID)
 	}
-	if m.spCurStatus != "active" {
-		t.Errorf("spCurStatus=%q, want active", m.spCurStatus)
+	if m.spCurStatus != "in_progress" {
+		t.Errorf("spCurStatus=%q, want in_progress", m.spCurStatus)
 	}
 }
 
@@ -35,7 +35,7 @@ func TestColumnsSmallSDepth0NoMenu(t *testing.T) {
 
 func TestColumnsSprintStatusEnterDispatches(t *testing.T) {
 	m := columnsModel()
-	m.milestones[0].Sprints[0].Status = "active"
+	m.milestones[0].Sprints[0].Status = "in_progress"
 	m.depth = 1
 	mi, _ := m.Update(keyMsg("s"))
 	m = mi.(model)
@@ -51,7 +51,7 @@ func TestColumnsSprintStatusEnterDispatches(t *testing.T) {
 
 func TestColumnsSprintStatusNoTransitionNotice(t *testing.T) {
 	m := columnsModel()
-	m.milestones[0].Sprints[0].Status = "closed" // terminal, keine Übergänge, nicht default-gefiltert
+	m.milestones[0].Sprints[0].Status = "planned" // keine Übergänge (nicht in der Map), nicht default-gefiltert
 	m.depth = 1
 	mi, _ := m.Update(keyMsg("s"))
 	m = mi.(model)

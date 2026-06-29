@@ -412,7 +412,7 @@ func (m model) reviewHints() string {
 	}
 	if m.curSprint != nil {
 		hints = append(hints, "P:Review-Pass", "S:sprint-status")
-		if m.curSprint.Status == "review" {
+		if m.curSprint.Status == "to_review" {
 			c := "C:complete(PO)"
 			if sprintReviewReady(m.curSprint) { // DD2-70: bereit → prominent
 				c = "★C:complete(PO)"

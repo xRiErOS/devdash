@@ -37,7 +37,7 @@ const DEFAULT_OPTIONS = {
     { key: 'planned', label: 'Geplant' },
     { key: 'in_progress', label: 'In Arbeit' },
     { key: 'to_review', label: 'Review' },
-    { key: 'done', label: 'Done' },
+    { key: 'completed', label: 'Abgeschlossen' },
   ],
   priorities: [
     { key: 1, label: 'P1 — kritisch' },

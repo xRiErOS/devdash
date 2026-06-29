@@ -554,7 +554,7 @@ func spKey(s *api.Sprint) string {
 func statusDot(status string) string {
 	var glyph string
 	switch status {
-	case "planning", "planned", "new":
+	case "new", "planned":
 		glyph = "◦" // U+25E6 noch nicht gestartet (neutral; war ○ U+25CB = ambiguous)
 	case "cancelled", "rejected":
 		glyph = "✗" // U+2717 abgebrochen (neutral)

@@ -799,27 +799,27 @@ app.get('/api/dashboard/home', (_req, res) => {
       LEFT JOIN (
         SELECT project_id, COUNT(*) AS cnt
         FROM sprints
-        WHERE status NOT IN ('closed','completed','cancelled')
+        WHERE status NOT IN ('completed','cancelled')
         GROUP BY project_id
       ) s  ON s.project_id  = p.id
       LEFT JOIN (
         SELECT project_id, COUNT(*) AS cnt
         FROM milestones
-        WHERE status IN ('planning','active')
+        WHERE status IN ('new','planned','in_progress')
         GROUP BY project_id
       ) m  ON m.project_id  = p.id
       LEFT JOIN (
         SELECT project_id, COUNT(*) AS cnt
         FROM backlog
         WHERE assigned_sprint IS NOT NULL
-          AND status NOT IN ('done','cancelled')
+          AND status NOT IN ('completed','cancelled')
         GROUP BY project_id
       ) bs ON bs.project_id = p.id
       LEFT JOIN (
         SELECT project_id, COUNT(*) AS cnt
         FROM backlog
         WHERE assigned_sprint IS NULL
-          AND status NOT IN ('done','cancelled')
+          AND status NOT IN ('completed','cancelled')
         GROUP BY project_id
       ) bb ON bb.project_id = p.id
       WHERE p.archived = 0
@@ -1298,8 +1298,8 @@ app.get('/api/sprints', (req, res) => {
       m.name AS milestone_name,
       p.prefix AS project_prefix,
       (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id) as item_count,
-      (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status = 'done') as done_count,
-      (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status IN ('done','passed','cancelled')) as terminal_count
+      (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status = 'completed') as done_count,
+      (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status IN ('completed','passed','cancelled')) as terminal_count
     FROM sprints s
     LEFT JOIN milestones m ON m.id = s.milestone_id
     LEFT JOIN projects p ON p.id = s.project_id
@@ -1665,7 +1665,7 @@ app.get('/api/milestones', (req, res) => {
   try { statusFilter = validateStatusFilter(req.query.status) } catch (e) { return sendValidationError(res, e) }
   let statusClause = ''
   if (statusFilter === 'open') {
-    statusClause = `AND status IN ('planning','active')`
+    statusClause = `AND status IN ('new','planned','in_progress')`
   } else if (statusFilter !== 'all') {
     statusClause = `AND status = '${statusFilter}'`
   }
@@ -1678,7 +1678,7 @@ app.get('/api/milestones', (req, res) => {
     SELECT id, name, description, target_date, status, created_at, position, deferred
     FROM milestones
     WHERE project_id = ? ${statusClause} ${deferredClause}
-    ORDER BY position IS NULL, position ASC, status IN ('planning','active') DESC, target_date IS NULL, target_date ASC, id ASC
+    ORDER BY position IS NULL, position ASC, status IN ('new','planned','in_progress') DESC, target_date IS NULL, target_date ASC, id ASC
   `).all(projectId)
 
   const sprintsByMilestone = new Map()
@@ -1692,7 +1692,7 @@ app.get('/api/milestones', (req, res) => {
            s.project_number, s.start_date, s.end_date,
            p.prefix AS project_prefix,
            (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status != 'cancelled') AS issue_total,
-           (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status IN ('done','passed')) AS issue_done,
+           (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status IN ('completed','passed')) AS issue_done,
            (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status = 'cancelled') AS issue_cancelled
     FROM sprints s
     LEFT JOIN projects p ON p.id = s.project_id
@@ -1714,7 +1714,7 @@ app.get('/api/milestones', (req, res) => {
   // als Drag-Source fuer Milestone-Zuordnung. review/completed/closed/cancelled
   // sind final — Milestone-Zuordnung dort nicht mehr sinnvoll.
   const sprintsWithoutMilestone = allSprints.filter(s =>
-    s.milestone_id == null && (s.status === 'planning' || s.status === 'active')
+    s.milestone_id == null && (s.status === 'new' || s.status === 'planned' || s.status === 'in_progress')
   )
   // DD-293 R2: Zusätzlich abgeschlossene Sprints (completed/closed/review)
   // ohne milestone_id als separates Feld backfill_sprints[] im noneBucket
@@ -1723,7 +1723,7 @@ app.get('/api/milestones', (req, res) => {
   // optisch nicht-draggable, abgeschlossene Sprints brauchen einen expliziten
   // Picker analog RoadmapBoard-Backfill).
   const backfillSprintsWithoutMilestone = allSprints.filter(s =>
-    s.milestone_id == null && (s.status === 'completed' || s.status === 'closed' || s.status === 'review')
+    s.milestone_id == null && (s.status === 'completed' || s.status === 'to_review')
   )
 
   // DD-292: Aggregat-Counts ausschließlich aus den per-Sprint-Werten summieren.
@@ -1845,7 +1845,7 @@ app.post('/api/milestones', (req, res) => {
     const result = db.prepare(`
       INSERT INTO milestones (project_id, name, description, target_date, status, position)
       VALUES (?, ?, ?, ?, ?, ?)
-    `).run(projectId, String(name).trim(), description ? String(description).trim() || null : null, resolvedTargetDate, status || 'planning', maxPos + 1)
+    `).run(projectId, String(name).trim(), description ? String(description).trim() || null : null, resolvedTargetDate, status || 'new', maxPos + 1)
     const milestone = db.prepare('SELECT * FROM milestones WHERE id = ?').get(result.lastInsertRowid)
     res.status(201).json(milestone)
   } catch (e) {
@@ -1879,7 +1879,7 @@ app.get('/api/milestones/:id', (req, res) => {
            s.project_number, s.start_date, s.end_date,
            p.prefix AS project_prefix,
            (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status != 'cancelled') AS issue_total,
-           (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status IN ('done','passed')) AS issue_done,
+           (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status IN ('completed','passed')) AS issue_done,
            (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status = 'cancelled') AS issue_cancelled
     FROM sprints s
     LEFT JOIN projects p ON p.id = s.project_id
@@ -2040,7 +2040,7 @@ app.get('/api/milestones/:id/open-issues', (req, res) => {
 
 // DD-277: Milestone schließen + nicht-terminale Issues triagieren (atomar).
 // Body: { target_status: 'completed'|'cancelled', assignments: [{issue_id, target}] }
-//   target ∈ {'backlog', 'done', 'cancelled'}
+//   target ∈ {'backlog', 'completed', 'cancelled'}
 app.post('/api/milestones/:id/close-with-issues', (req, res) => {
   const id = Number(req.params.id)
   if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'id muss positive Ganzzahl sein' })
@@ -2326,7 +2326,7 @@ app.patch('/api/backlog/bulk', (req, res) => {
         if (!allowed) { failed.push({ id, reason }); continue }
         const sets = ['status = ?']
         const vals = [newStatus]
-        if (newStatus === 'done' || newStatus === 'cancelled') sets.push('completed_at = CURRENT_TIMESTAMP')
+        if (newStatus === 'completed' || newStatus === 'cancelled') sets.push('completed_at = CURRENT_TIMESTAMP')
         vals.push(id)
         db.prepare(`UPDATE backlog SET ${sets.join(', ')} WHERE id = ?`).run(...vals)
         auditLog('backlog', id, 'status_change', { status: item.status }, { status: newStatus }, 'dashboard-bulk')
@@ -2484,7 +2484,7 @@ app.get('/api/backlog/lost', (req, res) => {
     WHERE b.project_id = ?
       AND b.deleted_at IS NULL
       AND s.status = 'completed'
-      AND b.status NOT IN ('done', 'passed', 'cancelled')
+      AND b.status NOT IN ('completed', 'passed', 'cancelled')
     ORDER BY s.id, b.project_number
   `).all(projectId)
   for (const r of rows) {
@@ -3084,10 +3084,10 @@ app.patch('/api/backlog/:id/status', (req, res) => {
   if (newStatus === 'refined' && (item.status === 'new')) {
     sets.push('refined_at = CURRENT_TIMESTAMP')
   }
-  if (newStatus === 'done' || newStatus === 'cancelled') {
+  if (newStatus === 'completed' || newStatus === 'cancelled') {
     sets.push('completed_at = CURRENT_TIMESTAMP')
   }
-  if ((item.status === 'done' && newStatus === 'planned') || (item.status === 'passed' && newStatus === 'planned')) {
+  if ((item.status === 'completed' && newStatus === 'planned') || (item.status === 'passed' && newStatus === 'planned')) {
     sets.push('completed_at = NULL')
   }
 
@@ -3367,7 +3367,7 @@ app.post('/api/sprints', (req, res) => {
     const projectNumber = (maxNum?.mn ?? 0) + 1
     return db.prepare(`
       INSERT INTO sprints (project_id, project_number, name, start_date, end_date, capacity, notes, goal, status, position, milestone_id, wip_limit)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'planning', ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'new', ?, ?, ?)
     `).run(projectId, projectNumber, name, start_date || null, end_date || null, capacity || null, notes || null, goal || null, position, milestone_id || null, wip_limit || null)
   })
   const result = insertTx()
@@ -3474,8 +3474,8 @@ app.patch('/api/sprints/reorder', (req, res) => {
       m.name AS milestone_name,
       p.prefix AS project_prefix,
       (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id) as item_count,
-      (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status = 'done') as done_count,
-      (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status IN ('done','passed','cancelled')) as terminal_count
+      (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status = 'completed') as done_count,
+      (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status IN ('completed','passed','cancelled')) as terminal_count
     FROM sprints s
     LEFT JOIN milestones m ON m.id = s.milestone_id
     LEFT JOIN projects p ON p.id = s.project_id
@@ -3580,8 +3580,8 @@ app.put('/api/sprints/:id', (req, res) => {
       m.name AS milestone_name,
       p.prefix AS project_prefix,
       (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id) as item_count,
-      (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status = 'done') as done_count,
-      (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status IN ('done','passed','cancelled')) as terminal_count
+      (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status = 'completed') as done_count,
+      (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status IN ('completed','passed','cancelled')) as terminal_count
     FROM sprints s
     LEFT JOIN milestones m ON m.id = s.milestone_id
     LEFT JOIN projects p ON p.id = s.project_id
@@ -3748,7 +3748,7 @@ app.get('/api/sprints/:id/export', (req, res) => {
   }
 
   // Markdown
-  const buckets = { done: [], passed: [], in_progress: [], to_review: [], planned: [], refined: [], cancelled: [] }
+  const buckets = { completed: [], passed: [], in_progress: [], to_review: [], planned: [], refined: [], cancelled: [] }
   for (const it of items) (buckets[it.status] || (buckets[it.status] = [])).push(it)
   const md = []
   md.push(`# ${sprint.name}`)
@@ -3760,7 +3760,7 @@ app.get('/api/sprints/:id/export', (req, res) => {
   if (sprint.notes) { md.push(''); md.push(sprint.notes) }
   md.push('')
   const sectionOrder = [
-    ['done', 'Done'],
+    ['completed', 'Completed'],
     ['passed', 'Passed'],
     ['in_progress', 'In Arbeit'],
     ['to_review', 'Review'],
@@ -3808,7 +3808,7 @@ app.post('/api/sprints/:id/complete', (req, res) => {
   const sprint = db.prepare('SELECT * FROM sprints WHERE id = ?').get(req.params.id)
   if (!sprint) return res.status(404).json({ error: 'Sprint not found' })
 
-  if (sprint.status === 'completed' || sprint.status === 'closed') {
+  if (sprint.status === 'completed') {
     return res.status(409).json({ error: `Sprint ist bereits ${sprint.status}` })
   }
   if (sprint.status === 'cancelled') {
@@ -3841,7 +3841,7 @@ app.post('/api/sprints/:id/complete', (req, res) => {
   const missingResults = listSprintIssuesMissingResult(db, req.params.id)
   if (missingResults.length > 0) {
     return res.status(422).json({
-      error: 'Sprint kann nicht abgeschlossen werden — result ist für done/passed Issues Pflicht.',
+      error: 'Sprint kann nicht abgeschlossen werden — result ist für completed/passed Issues Pflicht.',
       issue_keys: missingResults.map(i => i.key),
       issues: missingResults.map(i => ({
         id: i.id,
@@ -3856,14 +3856,14 @@ app.post('/api/sprints/:id/complete', (req, res) => {
   const isArchon = req.headers['x-archon-token'] === ARCHON_TOKEN
   const today = new Date().toISOString().slice(0, 10)
 
-  // ADR 2026-04-29: sprint complete setzt alle passed-Items final auf done.
+  // ADR 2026-04-29 / DD2-155: sprint complete setzt alle passed-Items final auf completed.
   const completeTx = db.transaction(() => {
     for (const item of openItems) {
-      if (item.review_status === 'passed' && item.status !== 'done') {
+      if (item.review_status === 'passed' && item.status !== 'completed') {
         const prevStatus = item.status
-        db.prepare("UPDATE backlog SET status='done', completed_at=CURRENT_TIMESTAMP WHERE id=?").run(item.id)
+        db.prepare("UPDATE backlog SET status='completed', completed_at=CURRENT_TIMESTAMP WHERE id=?").run(item.id)
         auditLog('backlog', item.id, 'status_change',
-          { status: prevStatus }, { status: 'done', reason: 'sprint_completed' }, 'system-auto')
+          { status: prevStatus }, { status: 'completed', reason: 'sprint_completed' }, 'system-auto')
       }
     }
     db.prepare(`
@@ -3883,7 +3883,7 @@ app.post('/api/sprints/:id/complete', (req, res) => {
 })
 
 // PATCH /api/sprints/:id/status — generischer Sprint-Status-Übergang
-// Body: { to: 'planning'|'active'|'review'|'cancelled', cancellationNotes?: string }
+// Body: { to: 'new'|'planned'|'in_progress'|'to_review'|'cancelled', cancellationNotes?: string }
 // completed wird über POST /api/sprints/:id/complete gesetzt (mit Pre-Conditions).
 app.patch('/api/sprints/:id/status', (req, res) => {
   const sprint = db.prepare('SELECT * FROM sprints WHERE id = ?').get(req.params.id)

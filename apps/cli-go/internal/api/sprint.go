@@ -20,7 +20,7 @@ func (c *Client) ListSprints(status string) ([]Sprint, error) {
 	return list, json.Unmarshal(data, &list)
 }
 
-// CreateSprint legt einen neuen Sprint an (POST /api/sprints, Status planning).
+// CreateSprint legt einen neuen Sprint an (POST /api/sprints, Status new).
 func (c *Client) CreateSprint(body SprintCreateBody) (*Sprint, error) {
 	data, err := c.Do("POST", "/api/sprints", body)
 	if err != nil {

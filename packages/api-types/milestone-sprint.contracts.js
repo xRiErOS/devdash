@@ -14,9 +14,9 @@
 import { z } from 'zod'
 
 // Milestone-Lifecycle-Stati — Spiegel von server/lib/lifecycle.js canMilestoneTransition
-// (DD-306: planning|active|completed|cancelled). Legacy 'open'/'reached' bewusst NICHT
-// hier — die werden nicht mehr geschrieben (nur Alt-Daten / Status-Filter-Alias).
-export const MILESTONE_STATUSES = ['planning', 'active', 'completed', 'cancelled']
+// (DD2-155: new|planned|in_progress|completed|cancelled). Legacy planning/active/open/reached
+// bewusst NICHT hier — die werden nicht mehr geschrieben (nur Alt-Daten / Status-Filter-Alias).
+export const MILESTONE_STATUSES = ['new', 'planned', 'in_progress', 'completed', 'cancelled']
 
 // name: nicht-leerer String. Lehnt '', '   ' (nach trim) und Nicht-Strings (0, false) ab
 // — exakt die isBlank-Semantik von milestoneValidation.js (Finding #5).
@@ -27,7 +27,7 @@ const milestoneName = z.string().trim().min(1)
 // damit der Contract bestehende REST-Caller nicht bricht (Voll-Umstellung, Bestand grün).
 const optionalText = z.string().nullish()
 
-// status bei create bewusst NICHT auf das Enum gepinnt — POST nutzt status||'planning',
+// status bei create bewusst NICHT auf das Enum gepinnt — POST nutzt status||'new',
 // die Lifecycle-Validierung sitzt in patchMilestoneStatus. Enum-Pinning nur beim
 // dedizierten Status-Verb (milestoneStatusContract).
 export const milestoneCreateContract = z.object({
@@ -93,13 +93,13 @@ export const dodItemUpdateContract = z.object({
 // in server/api.js + server/lib/lifecycle.js — hier nur Struktur/Typ/Required.
 
 // Sprint-Lifecycle-Stati — Spiegel von server/lib/lifecycle.js SPRINT_STATUSES
-// (planning|active|review|completed|closed|cancelled). Status-Übergänge selbst
+// (DD2-155: new|planned|in_progress|to_review|completed|cancelled). Status-Übergänge selbst
 // validiert canSprintTransition; das Enum dient Tooling/Doku + dedizierten Verben.
-export const SPRINT_STATUSES = ['planning', 'active', 'review', 'completed', 'closed', 'cancelled']
+export const SPRINT_STATUSES = ['new', 'planned', 'in_progress', 'to_review', 'completed', 'cancelled']
 
 // sprint create — name Pflicht (exakt 'name ist Pflichtfeld' wie POST /api/sprints).
 // Restliche Felder optional/lenient (REST defaultet leere Werte → NULL). status bei
-// create bewusst NICHT auf das Enum gepinnt — INSERT hardcodet 'planning'.
+// create bewusst NICHT auf das Enum gepinnt — INSERT hardcodet 'new'.
 export const sprintCreateContract = z.object({
   name: z.string({ error: 'name ist Pflichtfeld' }).trim().min(1, { error: 'name ist Pflichtfeld' }),
   goal: z.string().nullish(),

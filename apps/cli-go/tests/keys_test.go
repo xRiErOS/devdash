@@ -53,8 +53,8 @@ func TestParseRef(t *testing.T) {
 
 func TestResolveSprintIDByKey(t *testing.T) {
 	sprints := []map[string]any{
-		{"id": 7, "key": "DD2#3", "name": "Sprint 3", "status": "active"},
-		{"id": 9, "key": "DD2#20", "name": "Sprint 20", "status": "active"},
+		{"id": 7, "key": "DD2#3", "name": "Sprint 3", "status": "in_progress"},
+		{"id": 9, "key": "DD2#20", "name": "Sprint 20", "status": "in_progress"},
 	}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(sprints)

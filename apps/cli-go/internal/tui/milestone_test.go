@@ -7,20 +7,20 @@ import (
 )
 
 func TestMilestoneTransitions(t *testing.T) {
-	if got := milestoneTransitions["planning"]; len(got) != 1 || got[0] != "active" {
-		t.Errorf("planning → %+v, want [active]", got)
+	if got := milestoneTransitions["new"]; len(got) != 1 || got[0] != "in_progress" {
+		t.Errorf("new → %+v, want [in_progress]", got)
 	}
-	if got := milestoneTransitions["active"]; len(got) != 1 || got[0] != "completed" {
-		t.Errorf("active → %+v, want [completed]", got)
+	if got := milestoneTransitions["in_progress"]; len(got) != 1 || got[0] != "completed" {
+		t.Errorf("in_progress → %+v, want [completed]", got)
 	}
-	if len(milestoneTransitions["closed"]) != 0 {
-		t.Error("closed sollte keine Übergänge haben")
+	if len(milestoneTransitions["planned"]) != 0 {
+		t.Error("planned sollte keine manuellen Übergänge haben")
 	}
 }
 
 func TestColumnsSOpensMilestoneStatus(t *testing.T) {
 	m := columnsModel()
-	m.milestones[0].Status = "planning"
+	m.milestones[0].Status = "new"
 	mi, _ := m.Update(keyMsg("S"))
 	m = mi.(model)
 	if !m.msPick {
@@ -33,7 +33,7 @@ func TestColumnsSOpensMilestoneStatus(t *testing.T) {
 
 func TestColumnsSDepth1NoMenu(t *testing.T) {
 	m := columnsModel()
-	m.milestones[0].Status = "planning"
+	m.milestones[0].Status = "new"
 	m.depth = 1
 	mi, _ := m.Update(keyMsg("S"))
 	m = mi.(model)
@@ -44,7 +44,7 @@ func TestColumnsSDepth1NoMenu(t *testing.T) {
 
 func TestMilestoneStatusEnterDispatches(t *testing.T) {
 	m := columnsModel()
-	m.milestones[0].Status = "planning"
+	m.milestones[0].Status = "new"
 	mi, _ := m.Update(keyMsg("S"))
 	m = mi.(model)
 	mi, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
@@ -59,7 +59,7 @@ func TestMilestoneStatusEnterDispatches(t *testing.T) {
 
 func TestMilestoneStatusNoTransitionNotice(t *testing.T) {
 	m := columnsModel()
-	m.milestones[0].Status = "closed" // nicht in der Transitions-Map
+	m.milestones[0].Status = "planned" // nicht in der Transitions-Map
 	mi, _ := m.Update(keyMsg("S"))
 	m = mi.(model)
 	if m.msPick {

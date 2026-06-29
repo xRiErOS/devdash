@@ -46,8 +46,8 @@ func goldenModel(view viewID, depth int) model {
 	bg := "Hintergrund mit Text, der über die Terminalbreite hinausläuft und sauber umgebrochen werden muss, damit die Zeilenzählung beim Scrollen stimmt."
 	iss := api.Issue{ID: 5, Key: "DD2-99", Title: "Beispiel-Issue für den Snapshot", Status: "to_review", Type: "bug", Priority: 1, Goal: &g, Background: &bg}
 	iss.UserStories = []api.UserStory{{Title: "US eins", Verdict: "accepted"}, {Title: "US zwei", Verdict: "open"}}
-	sp := api.Sprint{ID: 3, Key: "DD2#9", Name: "Sprint Neun", Status: "review", Items: []api.Issue{iss}}
-	ms := api.Milestone{ID: 1, Name: "Meilenstein Eins", Status: "active", Sprints: []api.Sprint{sp}}
+	sp := api.Sprint{ID: 3, Key: "DD2#9", Name: "Sprint Neun", Status: "to_review", Items: []api.Issue{iss}}
+	ms := api.Milestone{ID: 1, Name: "Meilenstein Eins", Status: "in_progress", Sprints: []api.Sprint{sp}}
 	m := model{view: view, depth: depth, width: 90, height: 22, project: &api.Project{Slug: "devd2", Prefix: "DD2"}}
 	m.milestones = []api.Milestone{ms}
 	m.mlist.setLen(1)

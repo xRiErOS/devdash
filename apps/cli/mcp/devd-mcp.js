@@ -496,7 +496,7 @@ server.tool(
     status: z
       .string()
       .optional()
-      .describe('Filter by status. Single (active) or comma-list (active,review). Valid: planning | active | review | completed | cancelled'),
+      .describe('Filter by status. Single (in_progress) or comma-list (in_progress,to_review). Valid: new | planned | in_progress | to_review | completed | cancelled'),
     milestone_id: z
       .union([z.coerce.number().int().positive(), z.literal('none'), z.literal('null')])
       .optional()
@@ -569,7 +569,7 @@ server.tool(
       .string()
       .optional()
       .describe(
-        'Filter by issue status. Single value (new) or comma-list (new,refined). Valid: new | refined | planned | in_progress | to_review | passed | rejected | done | cancelled',
+        'Filter by issue status. Single value (new) or comma-list (new,refined). Valid: new | refined | planned | in_progress | to_review | passed | rejected | completed | cancelled',
       ),
     type: z
       .enum(ISSUE_TYPES)
@@ -606,7 +606,7 @@ server.tool(
 
 server.tool(
   'devd_issue_lost',
-  'DD-555: Find lost issues — non-terminal issues (status ∉ done/passed/cancelled) still assigned to a COMPLETED sprint. Data-hygiene query, project-scoped. Each hit has issue key, sprint key and status. Read-only.',
+  'DD-555: Find lost issues — non-terminal issues (status ∉ completed/passed/cancelled) still assigned to a COMPLETED sprint. Data-hygiene query, project-scoped. Each hit has issue key, sprint key and status. Read-only.',
   {
     project_id: PROJECT_ID_PARAM,
   },
@@ -642,7 +642,7 @@ server.tool(
 
 server.tool(
   'devd_sprint_create',
-  'WRITE: Create a new sprint in a specific project. Status starts as "planning". Response includes `key` (e.g. "DD#20").',
+  'WRITE: Create a new sprint in a specific project. Status starts as "new". Response includes `key` (e.g. "DD#20").',
   {
     project_id: PROJECT_ID_PARAM,
     name: z.string().describe('Sprint name (required)'),
@@ -688,7 +688,7 @@ server.tool(
 
 server.tool(
   'devd_sprint_start',
-  'WRITE: Transition a sprint from planning → active. Wraps PATCH /api/sprints/:id/status.',
+  'WRITE: Transition a sprint from new → in_progress. Wraps PATCH /api/sprints/:id/status.',
   {
     project_id: PROJECT_ID_PARAM,
     sprint_key: z.string().describe('Sprint key (e.g. "DD#20") or numeric sprint id'),
@@ -697,7 +697,7 @@ server.tool(
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
     const id = await resolveSprintId(sprint_key, pid)
-    const data = await apiRequest('PATCH', `/api/sprints/${id}/status`, { to: 'active' }, pid)
+    const data = await apiRequest('PATCH', `/api/sprints/${id}/status`, { to: 'in_progress' }, pid)
     return ok(data)
   },
 )
@@ -1024,7 +1024,7 @@ server.tool(
 
 server.tool(
   'devd_sprint_review',
-  'WRITE: Transition a sprint from active → review (triggers PO review phase). Sprint completion (review → completed) is exclusive to the PO.',
+  'WRITE: Transition a sprint from in_progress → to_review (triggers PO review phase). Sprint completion (to_review → completed) is exclusive to the PO.',
   {
     project_id: PROJECT_ID_PARAM,
     sprint_key: z.string().describe('Sprint key (e.g. "DD#20") or numeric sprint id'),
@@ -1033,7 +1033,7 @@ server.tool(
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
     const id = await resolveSprintId(sprint_key, pid)
-    const data = await apiRequest('PATCH', `/api/sprints/${id}/status`, { to: 'review' }, pid)
+    const data = await apiRequest('PATCH', `/api/sprints/${id}/status`, { to: 'to_review' }, pid)
     return ok(data)
   },
 )
@@ -1133,10 +1133,10 @@ server.tool(
 
 server.tool(
   'devd_milestone_list',
-  'List milestones for a project. status filter: open (default) | planning | active | completed | cancelled | all. Read-only.',
+  'List milestones for a project. status filter: open (default) | new | planned | in_progress | completed | cancelled | all. Read-only.',
   {
     project_id: PROJECT_ID_PARAM,
-    status: z.string().optional().describe('Filter: open (default) | planning | active | completed | cancelled | all'),
+    status: z.string().optional().describe('Filter: open (default) | new | planned | in_progress | completed | cancelled | all'),
   },
   async ({ project_id, status }) => {
     const pid = resolveProjectId(project_id)
@@ -1164,7 +1164,7 @@ server.tool(
 
 server.tool(
   'devd_milestone_create',
-  'WRITE: Create a milestone. name required; target_date auto-defaults (now+90d) when omitted; status defaults to planning.',
+  'WRITE: Create a milestone. name required; target_date auto-defaults (now+90d) when omitted; status defaults to new.',
   {
     project_id: PROJECT_ID_PARAM,
     ...milestoneCreateContract.shape,
@@ -1179,7 +1179,7 @@ server.tool(
 
 server.tool(
   'devd_milestone_status',
-  'WRITE: Transition a milestone status (planning|active|completed|cancelled, incl. sanctioned reopen paths completed→active / cancelled→planning). Routes PUT /api/milestones/:id {status}. Lifecycle errors (e.g. 422 SPRINTS_NOT_DONE) are passed through. cancellation_notes required by the lifecycle on →cancelled.',
+  'WRITE: Transition a milestone status (new|planned|in_progress|completed|cancelled, incl. sanctioned reopen paths completed→in_progress / cancelled→new). Routes PUT /api/milestones/:id {status}. Lifecycle errors (e.g. 422 SPRINTS_NOT_DONE) are passed through. cancellation_notes required by the lifecycle on →cancelled.',
   {
     project_id: PROJECT_ID_PARAM,
     milestone_id: z.coerce.number().int().positive().describe('Numeric milestone id'),
@@ -1417,7 +1417,7 @@ server.tool(
 
 server.tool(
   'devd_issue_update',
-  'WRITE: Update editable fields of an issue (title, goal, background, context_notes, relevant_files, priority, type, po_notes, result). po_notes is the PO-facing free-text field (replaces the removed description field, DD2-131/132). result documents the sprint outcome — required on done/passed issues before sprint complete. E01/D09: per-issue acceptance_criteria + test_instruction are replaced by user_stories[].qa — manage them via devd_user_story_*. Does NOT change status or sprint assignment — use devd_issue_status for status transitions.',
+  'WRITE: Update editable fields of an issue (title, goal, background, context_notes, relevant_files, priority, type, po_notes, result). po_notes is the PO-facing free-text field (replaces the removed description field, DD2-131/132). result documents the sprint outcome — required on completed/passed issues before sprint complete. E01/D09: per-issue acceptance_criteria + test_instruction are replaced by user_stories[].qa — manage them via devd_user_story_*. Does NOT change status or sprint assignment — use devd_issue_status for status transitions.',
   {
     project_id: PROJECT_ID_PARAM,
     id_or_key: z.string().describe('Issue key (e.g. "DD-42") or numeric backlog id'),
@@ -1429,7 +1429,7 @@ server.tool(
     priority: z.number().int().min(1).max(5).optional(),
     type: z.enum(ISSUE_TYPES).optional(),
     po_notes: z.string().optional(),
-    result: z.string().optional().describe('Sprint outcome documentation. Required on done/passed issues before sprint complete. Markdown text — summarise what was implemented, decisions made, and lessons learned.'),
+    result: z.string().optional().describe('Sprint outcome documentation. Required on completed/passed issues before sprint complete. Markdown text — summarise what was implemented, decisions made, and lessons learned.'),
   },
   async ({ project_id, id_or_key, ...fields }) => {
     const pid = resolveProjectId(project_id)
@@ -1443,14 +1443,14 @@ server.tool(
 
 server.tool(
   'devd_issue_status',
-  'WRITE: Transition an issue to a new status. Full lifecycle: new → refined → planned → in_progress → to_review → passed → done. Also: rejected → in_progress (re-open after review); cancelled (from any non-done state). Notes are required when cancelling.',
+  'WRITE: Transition an issue to a new status. Full lifecycle: new → refined → planned → in_progress → to_review → passed → completed. Also: rejected → in_progress (re-open after review); cancelled (from any non-completed state). Notes are required when cancelling.',
   {
     project_id: PROJECT_ID_PARAM,
     id_or_key: z.string().describe('Issue key (e.g. "DD-42") or numeric backlog id'),
     new_status: z
       .string()
       .describe(
-        'Target status: new | refined | planned | in_progress | to_review | passed | done | rejected | cancelled',
+        'Target status: new | refined | planned | in_progress | to_review | passed | rejected | completed | cancelled',
       ),
     notes: z.string().optional().describe('Transition notes (required when cancelling)'),
   },

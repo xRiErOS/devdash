@@ -7,7 +7,7 @@ import { computeSprintCompleteness } from '../../apps/backend/src/lib/sprintComp
 
 function seedSprintWithIssues(db, statuses) {
   const pid = db.prepare("INSERT INTO projects (slug, name, prefix) VALUES ('c','C','C')").run().lastInsertRowid
-  const sid = db.prepare("INSERT INTO sprints (project_id, name, status) VALUES (?, 'S', 'active')").run(pid).lastInsertRowid
+  const sid = db.prepare("INSERT INTO sprints (project_id, name, status) VALUES (?, 'S', 'in_progress')").run(pid).lastInsertRowid
   let n = 0
   for (const st of statuses) {
     db.prepare("INSERT INTO backlog (project_id, title, type, status, assigned_sprint) VALUES (?, ?, 'task', ?, ?)")
@@ -17,12 +17,12 @@ function seedSprintWithIssues(db, statuses) {
 }
 
 describe('D4 — computeSprintCompleteness (issues-only, DD-524)', () => {
-  test('2 done + 1 passed + 1 in_progress + 1 cancelled → total=4, done=3, 75%', () => {
+  test('2 completed + 1 passed + 1 in_progress + 1 cancelled → total=4, done=3, 75%', () => {
     const db = createTestDb()
-    const { sid } = seedSprintWithIssues(db, ['done', 'done', 'passed', 'in_progress', 'cancelled'])
+    const { sid } = seedSprintWithIssues(db, ['completed', 'completed', 'passed', 'in_progress', 'cancelled'])
     const c = computeSprintCompleteness(db, sid)
     expect(c.issues_total).toBe(4) // cancelled excluded (DD-524)
-    expect(c.issues_done).toBe(3) // done + passed
+    expect(c.issues_done).toBe(3) // completed + passed
     expect(c.issues_open).toBe(1)
     expect(c.issues_cancelled).toBe(1)
     expect(c.percent_complete).toBe(75)
@@ -39,7 +39,7 @@ describe('D4 — computeSprintCompleteness (issues-only, DD-524)', () => {
 
   test('alle done → 100%', () => {
     const db = createTestDb()
-    const { sid } = seedSprintWithIssues(db, ['done', 'passed'])
+    const { sid } = seedSprintWithIssues(db, ['completed', 'passed'])
     expect(computeSprintCompleteness(db, sid).percent_complete).toBe(100)
   })
 })

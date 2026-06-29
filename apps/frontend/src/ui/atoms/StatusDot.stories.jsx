@@ -13,7 +13,7 @@ const meta = {
   argTypes: {
     status: {
       control: 'select',
-      options: ['new', 'refined', 'planned', 'in_progress', 'to_review', 'passed', 'rejected', 'done', 'cancelled'],
+      options: ['new', 'refined', 'planned', 'in_progress', 'to_review', 'passed', 'rejected', 'completed', 'cancelled'],
       description: 'Roher Lifecycle-Status → Ton via statusTone.',
     },
     label: { control: 'text' },
@@ -29,7 +29,7 @@ export const Default = {
 // Issue-Lifecycle vollständig — jeder Status sein kanonischer Ton.
 const ISSUE = [
   ['new', 'New'], ['refined', 'Refined'], ['planned', 'Planned'], ['in_progress', 'In Arbeit'],
-  ['to_review', 'Review'], ['passed', 'Passed'], ['rejected', 'Rejected'], ['done', 'Done'], ['cancelled', 'Cancelled'],
+  ['to_review', 'Review'], ['passed', 'Passed'], ['rejected', 'Rejected'], ['completed', 'Completed'], ['cancelled', 'Cancelled'],
 ]
 export const IssueLifecycle = {
   render: () => (

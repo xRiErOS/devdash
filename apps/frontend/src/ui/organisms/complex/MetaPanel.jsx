@@ -41,16 +41,17 @@ import { statusLabel } from '../../foundations/statusTone.js'
 // Rückschritt + Abbruch; Endzustände leer.
 const NEXT_STATUS = {
   sprint: {
-    planning: ['active', 'cancelled'],
-    active: ['review', 'planning', 'cancelled'],
-    review: ['completed', 'active'],
-    completed: ['closed'],
-    closed: [],
+    new: ['planned', 'in_progress', 'cancelled'],
+    planned: ['in_progress', 'cancelled'],
+    in_progress: ['to_review', 'new', 'cancelled'],
+    to_review: ['completed', 'in_progress'],
+    completed: [],
     cancelled: [],
   },
   milestone: {
-    planning: ['active', 'cancelled'],
-    active: ['completed', 'cancelled'],
+    new: ['planned', 'in_progress', 'cancelled'],
+    planned: ['in_progress', 'cancelled'],
+    in_progress: ['completed', 'cancelled'],
     completed: [],
     cancelled: [],
   },

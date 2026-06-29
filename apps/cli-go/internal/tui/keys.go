@@ -488,7 +488,7 @@ func openSprintCount(sprints []api.Sprint) int {
 	n := 0
 	for _, s := range sprints {
 		switch s.Status {
-		case "completed", "closed", "cancelled":
+		case "completed", "cancelled":
 		default:
 			n++
 		}

@@ -33,11 +33,11 @@ import MetaPanel from '../organisms/complex/MetaPanel.jsx'
 // per Klick selektiert.
 const SAMPLE_SPRINT = {
   kind: 'sprint', id: 106, key: 'DD2#52', name: 'RoadmapBoard Mockup',
-  status: 'active', target_date: '2026-09-01', position: 0, issue_total: 9, issue_done: 4,
+  status: 'in_progress', target_date: '2026-09-01', position: 0, issue_total: 9, issue_done: 4,
 }
 const SAMPLE_MILESTONE = {
   kind: 'milestone', id: 3, name: 'Roadmap & Planung',
-  status: 'planning', target_date: '2026-09-01', dod_total: 5,
+  status: 'new', target_date: '2026-09-01', dod_total: 5,
   sprints: [{ id: 106 }, { id: 107 }],
 }
 

@@ -28,7 +28,7 @@ func (c *Client) ReopenReview(id int) ([]byte, error) {
 	return c.Do("POST", fmt.Sprintf("/api/backlog/%d/review/reopen", id), nil)
 }
 
-// SprintTo setzt den Sprint-Status (active|review|completed). completed ist
+// SprintTo setzt den Sprint-Status (in_progress|to_review|completed). completed ist
 // PO-exklusiv (DD-186) — der Aufrufer guardet via Confirm/--yes.
 func (c *Client) SprintTo(id int, to string) (*Sprint, error) {
 	data, err := c.Do("PATCH", fmt.Sprintf("/api/sprints/%d/status", id), map[string]any{"to": to})
@@ -39,7 +39,7 @@ func (c *Client) SprintTo(id int, to string) (*Sprint, error) {
 	return &s, json.Unmarshal(data, &s)
 }
 
-// SprintComplete schließt einen Sprint ab (review→completed). Eigener Endpoint
+// SprintComplete schließt einen Sprint ab (to_review→completed). Eigener Endpoint
 // statt PATCH /status — das Backend prüft passed-Reviews. PO-exklusiv (DD-186).
 func (c *Client) SprintComplete(id int) (*Sprint, error) {
 	data, err := c.Do("POST", fmt.Sprintf("/api/sprints/%d/complete", id), nil)

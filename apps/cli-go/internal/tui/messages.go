@@ -638,11 +638,11 @@ func cleanAPIErr(err error) string {
 	return msg
 }
 
-// loadReviewSprints liefert die offenen Review-Sprints (status=review). Mehrere
+// loadReviewSprints liefert die offenen Review-Sprints (status=to_review). Mehrere
 // Sprints können gleichzeitig im Review-Zyklus stehen (T17: R entkoppelt).
 func loadReviewSprints(c *api.Client) tea.Cmd {
 	return func() tea.Msg {
-		sp, err := c.ListSprints("review")
+		sp, err := c.ListSprints("to_review")
 		if err != nil {
 			return errMsg{err}
 		}

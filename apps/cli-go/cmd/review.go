@@ -95,7 +95,7 @@ func verdictToStatus(v string) string {
 
 var sprintReviewCmd = &cobra.Command{
 	Use:   "review <key|id>",
-	Short: "Sprint zur Review stellen (active → review)",
+	Short: "Sprint zur Review stellen (in_progress → to_review)",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c, err := resolveClient()
@@ -106,7 +106,7 @@ var sprintReviewCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		s, err := c.SprintTo(id, "review")
+		s, err := c.SprintTo(id, "to_review")
 		if err != nil {
 			return err
 		}
@@ -119,7 +119,7 @@ var sprintReviewCmd = &cobra.Command{
 
 var sprintCompleteCmd = &cobra.Command{
 	Use:   "complete <key|id>",
-	Short: "Sprint abschließen (review → completed) — PO-exklusiv, DD-186",
+	Short: "Sprint abschließen (to_review → completed) — PO-exklusiv, DD-186",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		yes, _ := cmd.Flags().GetBool("yes")

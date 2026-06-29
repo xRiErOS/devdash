@@ -225,7 +225,7 @@ export function reopenReviewRound(db, backlogId, auditFn) {
 export function autoSetPassedOnReviewPass(db, backlogId, auditFn) {
   const item = db.prepare('SELECT id, status FROM backlog WHERE id = ?').get(backlogId)
   if (!item) return
-  if (item.status === 'done' || item.status === 'cancelled') return
+  if (item.status === 'completed' || item.status === 'cancelled') return
   const latest = db.prepare(
     'SELECT review_status FROM review_feedback WHERE backlog_id = ? ORDER BY round_number DESC, id DESC LIMIT 1'
   ).get(backlogId)
@@ -243,7 +243,7 @@ export function autoSetPassedOnReviewPass(db, backlogId, auditFn) {
 export function autoSetRejectedOnReviewFail(db, backlogId, auditFn) {
   const item = db.prepare('SELECT id, status FROM backlog WHERE id = ?').get(backlogId)
   if (!item) return
-  if (item.status === 'done' || item.status === 'cancelled') return
+  if (item.status === 'completed' || item.status === 'cancelled') return
   const latest = db.prepare(
     'SELECT review_status FROM review_feedback WHERE backlog_id = ? ORDER BY round_number DESC, id DESC LIMIT 1'
   ).get(backlogId)

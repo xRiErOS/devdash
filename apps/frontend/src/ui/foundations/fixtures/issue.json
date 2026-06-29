@@ -6,7 +6,7 @@
   "project_number": 1,
   "title": "Multi-Tenant Dashboard fertigstellen",
   "type": "feature",
-  "status": "done",
+  "status": "completed",
   "priority": 1,
   "description": "Project-Switcher, project_id-Filter in allen Endpoints, Header zeigt aktives Projekt",
   "goal": "Project-Switcher, project_id-Filter in allen Endpoints, Header zeigt aktives Projekt",

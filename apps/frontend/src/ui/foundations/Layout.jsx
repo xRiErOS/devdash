@@ -591,14 +591,14 @@ export default function Layout() {
   }
 
   // DD-154/DD-187 (geteilt mit dem 'r'-Shortcut): Review-Sprint des aktiven
-  // Projekts öffnen — Reihenfolge status 'review' (PO-Gate) > 'active'.
+  // Projekts öffnen — Reihenfolge status 'to_review' (PO-Gate) > 'in_progress'.
   const openCurrentReview = async () => {
     try {
       const res = await fetch('/api/sprints')
       if (!res.ok) return
       const list = await res.json()
       if (!Array.isArray(list)) return
-      const target = list.find(s => s.status === 'review') || list.find(s => s.status === 'active')
+      const target = list.find(s => s.status === 'to_review') || list.find(s => s.status === 'in_progress')
       if (!target) return
       navigate(`/review/${target.id}`)
     } catch { /* no-op */ }

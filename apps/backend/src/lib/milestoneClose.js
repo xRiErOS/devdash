@@ -1,18 +1,17 @@
 // DD-277 — Milestone-Close mit Issue-Triage.
-// DD-306 (2026-05-24): Status-Werte migriert auf neuen Lifecycle (Migration 038).
-//   reached → completed, open → planning|active.
+// DD2-155 (2026-06-29): Status-Vokabular vereinheitlicht — Issue done → completed.
 //
 // Beim Abschließen eines Meilensteins (status → 'completed' oder 'cancelled')
 // erhalten nicht-terminale Issues eine explizite Triage:
 //   - 'backlog'   → assigned_sprint=NULL, milestone-Text geleert, Status auf
 //                   'refined' (wenn planned) bzw. 'new' (wenn new) zurueck.
-//   - 'done'      → status='done', completed_at=NOW. PO-Triggered Direct-Set.
+//   - 'completed' → status='completed', completed_at=NOW. PO-Triggered Direct-Set.
 //   - 'cancelled' → status='cancelled', completed_at=NOW, result-Annex.
 //
 // Helper ist pure: keine Express-Abhaengigkeiten, akzeptiert better-sqlite3-DB
 // + Audit-Log-Funktion (Dependency-Injection fuer Tests).
 
-export const VALID_TARGETS = new Set(['backlog', 'done', 'cancelled'])
+export const VALID_TARGETS = new Set(['backlog', 'completed', 'cancelled'])
 export const VALID_TERMINAL_STATUS = new Set(['completed', 'cancelled'])
 
 export class MilestoneCloseError extends Error {
@@ -26,7 +25,7 @@ export class MilestoneCloseError extends Error {
 /**
  * Liefert nicht-terminale Issues eines Milestones.
  * Verkettung: backlog.assigned_sprint → sprints.id, sprints.milestone_id = ?
- * Terminale Stati: done, passed, cancelled.
+ * Terminale Stati: completed, passed, cancelled.
  */
 export function listOpenIssuesForMilestone(db, milestoneId) {
   return db.prepare(`
@@ -35,7 +34,7 @@ export function listOpenIssuesForMilestone(db, milestoneId) {
       FROM backlog b
       JOIN sprints s ON b.assigned_sprint = s.id
      WHERE s.milestone_id = ?
-       AND b.status NOT IN ('done', 'passed', 'cancelled')
+       AND b.status NOT IN ('completed', 'passed', 'cancelled')
      ORDER BY b.priority ASC, b.id ASC
   `).all(milestoneId)
 }
@@ -63,19 +62,19 @@ function applyAssignment(db, milestone, issue, target, auditLog) {
     return { id: issue.id, target, from_status: oldStatus, to_status: newStatus }
   }
 
-  if (target === 'done') {
+  if (target === 'completed') {
     // PO-Triggered direkter Direct-Set; Audit-Log markiert die Sonderbehandlung.
     db.prepare(`
       UPDATE backlog
-         SET status = 'done',
+         SET status = 'completed',
              completed_at = CURRENT_TIMESTAMP
        WHERE id = ?
     `).run(issue.id)
-    auditLog('backlog', issue.id, 'milestone_close_done',
+    auditLog('backlog', issue.id, 'milestone_close_completed',
       { status: oldStatus },
-      { status: 'done', milestone_id: milestone.id },
+      { status: 'completed', milestone_id: milestone.id },
       'milestone-close')
-    return { id: issue.id, target, from_status: oldStatus, to_status: 'done' }
+    return { id: issue.id, target, from_status: oldStatus, to_status: 'completed' }
   }
 
   if (target === 'cancelled') {
@@ -139,7 +138,7 @@ export function closeMilestoneWithIssues(db, { milestoneId, targetStatus, assign
   const milestone = db.prepare('SELECT * FROM milestones WHERE id = ?').get(milestoneId)
   if (!milestone) throw new MilestoneCloseError('Milestone not found', { statusCode: 404 })
 
-  // Erlaubte Quell-Stati: 'planning'|'active' → 'completed'/'cancelled'. Bereits terminal → 409.
+  // Erlaubte Quell-Stati: non-terminal (new|planned|in_progress) → 'completed'/'cancelled'. Bereits terminal → 409.
   if (milestone.status === 'completed' || milestone.status === 'cancelled') {
     throw new MilestoneCloseError(
       `Milestone ist bereits ${milestone.status}`,

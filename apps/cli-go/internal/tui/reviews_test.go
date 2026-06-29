@@ -24,8 +24,8 @@ func TestReviewsListMsgPopulates(t *testing.T) {
 	mi, _ := m.openReviewsList()
 	m = mi.(model)
 	mi, _ = m.Update(reviewSprintsMsg{[]api.Sprint{
-		{ID: 10, Key: "SPF#1", Name: "S1", Status: "review"},
-		{ID: 11, Key: "SPF#2", Name: "S2", Status: "review"},
+		{ID: 10, Key: "SPF#1", Name: "S1", Status: "to_review"},
+		{ID: 11, Key: "SPF#2", Name: "S2", Status: "to_review"},
 	}})
 	m = mi.(model)
 	if len(m.reviewSprints) != 2 || m.rvlist.length != 2 {
@@ -36,7 +36,7 @@ func TestReviewsListMsgPopulates(t *testing.T) {
 func TestReviewsListEnterOpensCockpit(t *testing.T) {
 	m := columnsModel()
 	m.view = viewReviewsList
-	m.reviewSprints = []api.Sprint{{ID: 42, Key: "SPF#5", Name: "S5", Status: "review"}}
+	m.reviewSprints = []api.Sprint{{ID: 42, Key: "SPF#5", Name: "S5", Status: "to_review"}}
 	m.rvlist.setLen(1)
 	mi, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = mi.(model)

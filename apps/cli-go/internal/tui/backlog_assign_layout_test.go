@@ -23,8 +23,8 @@ func TestAssignSprintMenuBlockLayout(t *testing.T) {
 		width:  120,
 		asPick: true,
 		asSprints: []api.Sprint{
-			{ID: 28, Key: "DD2#28", Name: "Sprint Title der auch deutlich länger sein kann und umbrechen muss in der Anzeige", Status: "active", ItemCount: 4, MilestoneID: &mid, MilestoneName: &mn},
-			{ID: 29, Key: "DD2#29", Name: "Kurz", Status: "planning", ItemCount: 3},
+			{ID: 28, Key: "DD2#28", Name: "Sprint Title der auch deutlich länger sein kann und umbrechen muss in der Anzeige", Status: "in_progress", ItemCount: 4, MilestoneID: &mid, MilestoneName: &mn},
+			{ID: 29, Key: "DD2#29", Name: "Kurz", Status: "new", ItemCount: 3},
 		},
 		asMenu: listState{length: 2, cursor: 0},
 	}
@@ -63,7 +63,7 @@ func TestAssignSprintMenuLongTitleNoCountOverflow(t *testing.T) {
 		width:  120,
 		asPick: true,
 		asSprints: []api.Sprint{
-			{ID: 24, Key: "DD2#24", Name: "Create-Form: PO-Notes statt description + description-Deprecation", Status: "planning", ItemCount: 4, MilestoneID: &mid, MilestoneName: &mn},
+			{ID: 24, Key: "DD2#24", Name: "Create-Form: PO-Notes statt description + description-Deprecation", Status: "new", ItemCount: 4, MilestoneID: &mid, MilestoneName: &mn},
 		},
 		asMenu: listState{length: 1, cursor: 0},
 	}
@@ -91,7 +91,7 @@ func TestAssignSprintMenuCursorBar(t *testing.T) {
 	m := model{
 		width:     120,
 		asPick:    true,
-		asSprints: []api.Sprint{{ID: 1, Key: "DD2#1", Name: "A", Status: "active", ItemCount: 1}},
+		asSprints: []api.Sprint{{ID: 1, Key: "DD2#1", Name: "A", Status: "in_progress", ItemCount: 1}},
 		asMenu:    listState{length: 1, cursor: 0},
 	}
 	out := ansi.Strip(m.assignSprintMenu())

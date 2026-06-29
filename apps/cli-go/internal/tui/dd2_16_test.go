@@ -33,7 +33,7 @@ func TestReviewReopenable(t *testing.T) {
 			t.Errorf("reviewReopenable(%q) = false, want true", s)
 		}
 	}
-	for _, s := range []string{"new", "refined", "planned", "in_progress", "done", "cancelled", ""} {
+	for _, s := range []string{"new", "refined", "planned", "in_progress", "completed", "cancelled", ""} {
 		if reviewReopenable(s) {
 			t.Errorf("reviewReopenable(%q) = true, want false", s)
 		}

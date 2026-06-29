@@ -15,7 +15,7 @@ import (
 func TestRefreshedMsgSetsToastAndUpdatesCache(t *testing.T) {
 	m := model{curSprint: &api.Sprint{ID: 7}}
 	msg := refreshedMsg{
-		milestones: []api.Milestone{{ID: 1, Name: "M", Status: "active"}},
+		milestones: []api.Milestone{{ID: 1, Name: "M", Status: "in_progress"}},
 		sprints:    map[int]*api.Sprint{7: {ID: 7, Items: []api.Issue{{ID: 99}}}},
 	}
 	mi, cmd := m.Update(msg)

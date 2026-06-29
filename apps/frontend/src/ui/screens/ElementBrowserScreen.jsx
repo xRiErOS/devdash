@@ -44,7 +44,7 @@ const STATUSES = [
   { key: 'new', label: 'Neu' },
   { key: 'in_progress', label: 'In Arbeit' },
   { key: 'to_review', label: 'Review' },
-  { key: 'done', label: 'Done' },
+  { key: 'completed', label: 'Abgeschlossen' },
 ]
 const SPRINTS = [
   { key: 'dd49', label: 'DD2#49 Browser-Organismus' },

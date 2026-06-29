@@ -63,10 +63,10 @@ func TestTreeStatusShortcuts(t *testing.T) {
 	}
 
 	// Cursor 0 = Meilenstein → S öffnet Meilenstein-Status-Menü (aktueller Status mit).
-	if mi, _ := mk(0).keyTree(key("S")); !mi.(model).msPick || mi.(model).msTargetStatus != "active" {
+	if mi, _ := mk(0).keyTree(key("S")); !mi.(model).msPick || mi.(model).msTargetStatus != "in_progress" {
 		t.Errorf("S auf Meilenstein: msPick=%v status=%q", mi.(model).msPick, mi.(model).msTargetStatus)
 	}
-	// Cursor 1 = Sprint S1 (active) → s öffnet Sprint-Menü mit review-Transition.
+	// Cursor 1 = Sprint S1 (in_progress) → s öffnet Sprint-Menü mit to_review-Transition.
 	sp, _ := mk(1).keyTree(key("s"))
 	mm := sp.(model)
 	if !mm.sprintPick {
@@ -74,12 +74,12 @@ func TestTreeStatusShortcuts(t *testing.T) {
 	}
 	hasReview := false
 	for _, o := range mm.spopts {
-		if o == "review" {
+		if o == "to_review" {
 			hasReview = true
 		}
 	}
 	if !hasReview {
-		t.Errorf("Sprint-active-Menü ohne review: %v", mm.spopts)
+		t.Errorf("Sprint-in_progress-Menü ohne to_review: %v", mm.spopts)
 	}
 	// Cursor 2 = Issue → s öffnet Issue-Status-Menü.
 	if mi, _ := mk(2).keyTree(key("s")); !mi.(model).statusPick {
@@ -144,10 +144,10 @@ func TestTreeCursorRowTintedAccent(t *testing.T) {
 func treeModel() model {
 	return model{
 		milestones: []api.Milestone{{
-			ID: 1, Name: "M1", Status: "active",
+			ID: 1, Name: "M1", Status: "in_progress",
 			Sprints: []api.Sprint{
-				{ID: 10, Key: "DD2#1", Name: "S1", Status: "active"},
-				{ID: 11, Key: "DD2#2", Name: "S2", Status: "planning"},
+				{ID: 10, Key: "DD2#1", Name: "S1", Status: "in_progress"},
+				{ID: 11, Key: "DD2#2", Name: "S2", Status: "new"},
 			},
 		}},
 		treeExpMile:   map[int]bool{},

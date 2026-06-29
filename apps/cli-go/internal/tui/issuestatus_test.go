@@ -30,7 +30,7 @@ func TestOpenIssueStatusSetsMenu(t *testing.T) {
 		t.Error("keine Status-Optionen gesetzt")
 	}
 	for _, s := range mm.sopts {
-		if s == "passed" || s == "done" || s == "rejected" {
+		if s == "passed" || s == "completed" || s == "rejected" {
 			t.Errorf("unerlaubtes Ziel %q im Menü (muss über Review laufen)", s)
 		}
 	}

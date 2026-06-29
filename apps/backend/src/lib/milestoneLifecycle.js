@@ -14,18 +14,17 @@ export class MilestoneLifecycleError extends Error {
   }
 }
 
-// DD-512: Sprint-Status-Werte die als "terminal" (= done) gelten.
-// Der Sprint-Status-Enum hat kein literales "done" — mapping: terminal = completed|closed|cancelled.
+// DD-512 / DD2-155: Sprint-Status-Werte die als "terminal" gelten.
 // Ein Meilenstein kann erst auf "completed" wechseln wenn alle zugeordneten Sprints terminal sind.
-// Blocking-Sprints sind planning|active|review.
-export const DONE_SPRINT_STATUSES = new Set(['completed', 'closed', 'cancelled'])
+// Terminal = completed|cancelled. Blocking-Sprints sind new|planned|in_progress|to_review.
+export const DONE_SPRINT_STATUSES = new Set(['completed', 'cancelled'])
 
 /**
  * Wechselt den Lifecycle-Status eines Milestones.
  *
  * @param {Database} db                better-sqlite3 Instanz
  * @param {number}   milestoneId       Ziel-Milestone
- * @param {string}   newStatus         planning|active|completed|cancelled
+ * @param {string}   newStatus         new|planned|in_progress|completed|cancelled
  * @param {Object}   [opts]
  * @param {string}   [opts.cancellationNotes]  Pflicht bei → cancelled
  * @param {string}   [opts.agentId='ui']       Audit-Log-Agent
@@ -45,7 +44,7 @@ export function patchMilestoneStatus(db, milestoneId, newStatus, opts = {}) {
   // Berechnung hier (im Caller), damit lifecycle.js rein bleibt und ctx vollständig befüllt wird.
   // Frühzeitiger 422-Throw mit SPRINTS_NOT_DONE — analog Sprint-Complete-422.
   let sprintCtx = {}
-  if (newStatus === 'completed' && milestone.status === 'active') {
+  if (newStatus === 'completed' && milestone.status === 'in_progress') {
     // JOIN mit projects um Sprint-Keys (prefix#project_number) zu bilden.
     const sprints = db.prepare(`
       SELECT s.id, s.name, s.status, s.project_number, p.prefix
@@ -113,7 +112,7 @@ export function milestoneCompletePreview(db, milestoneId) {
   let issues = 0
   for (const sid of openSprintIds) {
     issues += db.prepare(
-      "SELECT COUNT(*) AS c FROM backlog WHERE assigned_sprint = ? AND status NOT IN ('done','cancelled')"
+      "SELECT COUNT(*) AS c FROM backlog WHERE assigned_sprint = ? AND status NOT IN ('completed','cancelled')"
     ).get(sid).c
   }
   return { openSprints: openSprintIds.length, issues, openSprintIds }
@@ -122,11 +121,11 @@ export function milestoneCompletePreview(db, milestoneId) {
 /**
  * cascadeCompleteMilestone — PO-getriggerter Komplett-Abschluss (DD2-28). Statt am
  * SPRINTS_NOT_DONE-Gate (422) zu scheitern, setzt der PO bewusst die ganze Kette
- * terminal: offene Sprints → completed, ihre offenen Issues → done, dann der
- * Meilenstein → completed. Nur aus 'active' (die normale gated Transition).
+ * terminal: offene Sprints → completed, ihre offenen Issues → completed, dann der
+ * Meilenstein → completed. Nur aus 'in_progress' (die normale gated Transition).
  * Transaktional + Audit. Spiegelt cascadeDeleteSprints, nur mit Ziel-Status statt Delete.
  *
- * Bewusste, eng begrenzte Ausnahme zu DD-186 (done sonst nur via sprint-complete):
+ * Bewusste, eng begrenzte Ausnahme zu DD-186 (completed sonst nur via sprint-complete):
  * Hier ist der PO der handelnde Akteur über die TUI — kein Automatik-Verdikt.
  */
 export function cascadeCompleteMilestone(db, milestoneId, opts = {}) {
@@ -136,9 +135,9 @@ export function cascadeCompleteMilestone(db, milestoneId, opts = {}) {
     throw new MilestoneLifecycleError('Milestone not found', { statusCode: 404, code: 'NOT_FOUND' })
   }
   if (milestone.status === 'completed') return milestone // idempotent
-  if (milestone.status !== 'active') {
+  if (milestone.status !== 'in_progress') {
     throw new MilestoneLifecycleError(
-      `Cascade-Complete nur aus 'active' möglich (Meilenstein ist: ${milestone.status})`,
+      `Cascade-Complete nur aus 'in_progress' möglich (Meilenstein ist: ${milestone.status})`,
       { statusCode: 400, code: 'TRANSITION_INVALID', field: 'status' }
     )
   }
@@ -147,12 +146,12 @@ export function cascadeCompleteMilestone(db, milestoneId, opts = {}) {
     for (const s of sprints) {
       if (DONE_SPRINT_STATUSES.has(s.status)) continue
       const issues = db.prepare(
-        "SELECT id, status FROM backlog WHERE assigned_sprint = ? AND status NOT IN ('done','cancelled')"
+        "SELECT id, status FROM backlog WHERE assigned_sprint = ? AND status NOT IN ('completed','cancelled')"
       ).all(s.id)
       for (const it of issues) {
-        db.prepare("UPDATE backlog SET status = 'done', completed_at = CURRENT_TIMESTAMP WHERE id = ?").run(it.id)
+        db.prepare("UPDATE backlog SET status = 'completed', completed_at = CURRENT_TIMESTAMP WHERE id = ?").run(it.id)
         if (typeof auditLog === 'function') {
-          auditLog('backlog', it.id, 'milestone_cascade_done', { status: it.status }, { status: 'done' }, agentId)
+          auditLog('backlog', it.id, 'milestone_cascade_completed', { status: it.status }, { status: 'completed' }, agentId)
         }
       }
       db.prepare("UPDATE sprints SET status = 'completed' WHERE id = ?").run(s.id)

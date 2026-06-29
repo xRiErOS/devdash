@@ -31,8 +31,8 @@ export const PerEntity = {
   render: () => (
     <div data-ui="organism.pageTitle.perEntity" className="flex flex-col gap-[var(--space-3)]">
       <PageTitle kind="issue" id="DD2-7" name="Capture-Host härten" status="refined" statusLabel="Refined" meta={['chore', 'P2']} dataUiScope="organism.pageTitle.issue" />
-      <PageTitle kind="sprint" id="DD#49" name="Capture-Sprint" status="active" statusLabel="Active" meta={['12 Issues']} dataUiScope="organism.pageTitle.sprint" />
-      <PageTitle kind="milestone" id="M3" name="Mobile-Track" status="planning" statusLabel="Planning" meta={['4 Sprints']} dataUiScope="organism.pageTitle.milestone" />
+      <PageTitle kind="sprint" id="DD#49" name="Capture-Sprint" status="in_progress" statusLabel="In Arbeit" meta={['12 Issues']} dataUiScope="organism.pageTitle.sprint" />
+      <PageTitle kind="milestone" id="M3" name="Mobile-Track" status="new" statusLabel="Neu" meta={['4 Sprints']} dataUiScope="organism.pageTitle.milestone" />
     </div>
   ),
 }

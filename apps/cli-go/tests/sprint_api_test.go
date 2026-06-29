@@ -10,7 +10,7 @@ import (
 )
 
 func TestListSprints(t *testing.T) {
-	want := []api.Sprint{{ID: 1, Key: "DD2#1", Name: "Sprint 1", Status: "active"}}
+	want := []api.Sprint{{ID: 1, Key: "DD2#1", Name: "Sprint 1", Status: "in_progress"}}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/sprints" {
 			t.Errorf("Pfad %q", r.URL.Path)
@@ -39,14 +39,14 @@ func TestListSprintsStatusFilter(t *testing.T) {
 	defer srv.Close()
 	t.Setenv("DEVD_API_URL", srv.URL)
 	c := api.NewClient("10")
-	c.ListSprints("active")
-	if gotQuery != "active" {
-		t.Errorf("status-Query = %q, want active", gotQuery)
+	c.ListSprints("in_progress")
+	if gotQuery != "in_progress" {
+		t.Errorf("status-Query = %q, want in_progress", gotQuery)
 	}
 }
 
 func TestGetSprintWithItems(t *testing.T) {
-	want := api.Sprint{ID: 7, Key: "DD2#3", Name: "Sprint 3", Status: "active",
+	want := api.Sprint{ID: 7, Key: "DD2#3", Name: "Sprint 3", Status: "in_progress",
 		Items: []api.Issue{{ID: 1, Key: "DD2-10", Title: "Issue", Status: "to_review"}}}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/sprints/7" {

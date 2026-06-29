@@ -333,30 +333,29 @@ var issueTransitions = map[string][]string{
 	"to_review":   {"planned"}, // passed/rejected nur über Verdikt
 	"rejected":    {"in_progress", "planned"},
 	"passed":      {"planned"}, // Reopen für nächsten Sprint
-	"done":        {"planned"},
+	"completed":   {"planned"},
 	"cancelled":   {"refined"},
 }
 
 // milestoneTransitions spiegelt canMilestoneTransition (lifecycle.js, forward-only).
 // cancelled ausgelassen (braucht cancellation_notes) — analog Sprint-Menü.
-// active→completed gated das Backend (alle Sprints terminal) → kommt als Hinweis zurück.
+// in_progress→completed gated das Backend (alle Sprints terminal) → kommt als Hinweis zurück.
 var milestoneTransitions = map[string][]string{
-	"planning":  {"active"},
-	"active":    {"completed"},
-	"completed": {"active"}, // sanktionierter Reopen (DD-357)
-	"cancelled": {"planning"},
+	"new":         {"in_progress"},
+	"in_progress": {"completed"},
+	"completed":   {"in_progress"}, // sanktionierter Reopen (DD-357)
+	"cancelled":   {"new"},
 }
 
 // sprintTransitions spiegelt canSprintTransition (lifecycle.js). completed läuft
 // über den dedizierten /complete-Endpoint (eigener Menüpunkt mit Gate), cancelled
 // braucht Notes → hier ausgelassen.
 var sprintTransitions = map[string][]string{
-	"planning":  {"active"},
-	"active":    {"review", "planning"},
-	"review":    {"active", "completed"},
-	"completed": {},
-	"closed":    {},
-	"cancelled": {"planning"},
+	"new":         {"in_progress"},
+	"in_progress": {"to_review", "new"},
+	"to_review":   {"in_progress", "completed"},
+	"completed":   {},
+	"cancelled":   {"new"},
 }
 
 // allowedManualStatuses liefert die vom aktuellen Status erlaubten manuellen

@@ -4,7 +4,7 @@ export function listSprintIssuesMissingResult(db, sprintId) {
     FROM backlog b
     LEFT JOIN projects p ON p.id = b.project_id
     WHERE b.assigned_sprint = ?
-      AND b.status IN ('done','passed')
+      AND b.status IN ('completed','passed')
       AND (b.result IS NULL OR TRIM(b.result) = '')
     ORDER BY b.project_number, b.id
   `).all(sprintId).map(row => ({

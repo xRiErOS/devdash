@@ -196,8 +196,8 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.curSprint == nil {
 			return m, nil
 		}
-		if m.curSprint.Status != "review" {
-			m.status = noticeText("Completion only from review (sprint is: " + m.curSprint.Status + ") — first S")
+		if m.curSprint.Status != "to_review" {
+			m.status = noticeText("Completion only from to_review (sprint is: " + m.curSprint.Status + ") — first S")
 			return m, nil
 		}
 		if !m.confirmComplete {
@@ -264,7 +264,7 @@ func reworkPath(from string) []string {
 		return []string{"in_progress", "to_review"}
 	case "rejected":
 		return []string{"in_progress", "to_review"}
-	case "passed", "done":
+	case "passed", "completed":
 		return []string{"planned", "in_progress", "to_review"}
 	case "refined":
 		return []string{"planned", "in_progress", "to_review"}

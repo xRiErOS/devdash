@@ -7,8 +7,8 @@ import { fn } from 'storybook/test'
 import UnassignedColumn from './UnassignedColumn.jsx'
 
 const SPRINTS = [
-  { id: 108, key: 'DD2#51', name: 'Connected-Wrapper + Daten-Layer', status: 'planning', issue_done: 0, issue_total: 4 },
-  { id: 109, key: 'DD2#53', name: 'Dependency-Graph-Widget', status: 'planning', issue_done: 0, issue_total: 2 },
+  { id: 108, key: 'DD2#51', name: 'Connected-Wrapper + Daten-Layer', status: 'new', issue_done: 0, issue_total: 4 },
+  { id: 109, key: 'DD2#53', name: 'Dependency-Graph-Widget', status: 'new', issue_done: 0, issue_total: 2 },
 ]
 
 const meta = {

@@ -8,7 +8,7 @@ import { createTestDb } from '../_fixtures/in-memory-db.js'
 import { seedProject, seedMilestones } from '../_fixtures/seed.js'
 import { getProjectWithCounts, listProjectsWithCounts } from '../../apps/backend/src/lib/projectCounts.js'
 
-function seedSprint(db, projectId, name, status = 'planning') {
+function seedSprint(db, projectId, name, status = 'new') {
   return Number(
     db.prepare("INSERT INTO sprints (project_id, name, status) VALUES (?, ?, ?)")
       .run(projectId, name, status).lastInsertRowid,
@@ -30,18 +30,18 @@ function seedMemory(db, projectId, category = 'session_note') {
 describe('T-be3 — getProjectWithCounts', () => {
   let db
   beforeEach(() => {
-    db = createTestDb({ upToVersion: '059_v3_drop_acceptance_test_instruction.sql' })
+    db = createTestDb({ upToVersion: '065_v3_dd2_155_status_unify.sql' })
     seedProject(db) // id=2 'devd'
   })
   afterEach(() => db.close())
 
   test('aggregiert sprint/backlog/milestone/memory-Counts + aktiven Sprint', () => {
     seedSprint(db, 2, 'S1', 'completed')
-    const activeId = seedSprint(db, 2, 'S2 aktiv', 'active')
+    const activeId = seedSprint(db, 2, 'S2 aktiv', 'in_progress')
     seedIssue(db, 2, 'I1'); seedIssue(db, 2, 'I2'); seedIssue(db, 2, 'I3')
     seedMilestones(db, [
-      { name: 'M1', target_date: '2026-07-01', status: 'planning' },
-      { name: 'M2', target_date: '2026-08-01', status: 'active' },
+      { name: 'M1', target_date: '2026-07-01', status: 'new' },
+      { name: 'M2', target_date: '2026-08-01', status: 'in_progress' },
     ], { projectId: 2 })
     seedMemory(db, 2); seedMemory(db, 2, 'architecture_decision'); seedMemory(db, 2, 'convention'); seedMemory(db, 2)
 
@@ -57,7 +57,7 @@ describe('T-be3 — getProjectWithCounts', () => {
   })
 
   test('kein aktiver Sprint → active_sprint = null', () => {
-    seedSprint(db, 2, 'S1', 'planning')
+    seedSprint(db, 2, 'S1', 'new')
     const row = getProjectWithCounts(db, 2)
     expect(row.sprint_count).toBe(1)
     expect(row.active_sprint).toBeNull()
@@ -65,9 +65,9 @@ describe('T-be3 — getProjectWithCounts', () => {
 
   test('Counts sind project-scoped (Fremdprojekt zählt nicht)', () => {
     const other = seedProject(db, { id: 3, slug: 'mybaby', name: 'MBT', prefix: 'MBT' })
-    seedSprint(db, other, 'X', 'active')
+    seedSprint(db, other, 'X', 'in_progress')
     seedIssue(db, other, 'fremd')
-    seedSprint(db, 2, 'S1', 'active')
+    seedSprint(db, 2, 'S1', 'in_progress')
     const row = getProjectWithCounts(db, 2)
     expect(row.sprint_count).toBe(1)
     expect(row.backlog_count).toBe(0)
@@ -79,7 +79,7 @@ describe('T-be3 — getProjectWithCounts', () => {
 
   test('listProjectsWithCounts liefert alle Projekte mit denselben Count-Feldern', () => {
     seedProject(db, { id: 3, slug: 'mybaby', name: 'MBT', prefix: 'MBT' })
-    seedSprint(db, 2, 'S1', 'active')
+    seedSprint(db, 2, 'S1', 'in_progress')
     const rows = listProjectsWithCounts(db)
     expect(rows.length).toBeGreaterThanOrEqual(2)
     const devd = rows.find(r => r.slug === 'devd')

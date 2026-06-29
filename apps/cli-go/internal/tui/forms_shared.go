@@ -42,14 +42,14 @@ func splitLines(s string) []string {
 	return out
 }
 
-// openMilestones liefert nur offene/aktive Meilensteine (planning|active) —
+// openMilestones liefert nur offene/aktive Meilensteine (new|in_progress) —
 // geschlossene/stornierte taugen nicht als Sprint-Ziel und verwässern nur das
 // Select bei der Sprint-Erstellung (DD2-27).
 func openMilestones(ms []api.Milestone) []api.Milestone {
 	out := make([]api.Milestone, 0, len(ms))
 	for _, x := range ms {
 		switch x.Status {
-		case "planning", "active":
+		case "new", "in_progress":
 			out = append(out, x)
 		}
 	}

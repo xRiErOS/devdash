@@ -42,8 +42,8 @@ import {
 } from '../../../lib/roadmapBoardDnd.js'
 
 // Sprint-Status, die als „aktiv" im Spalten-Body erscheinen (Q06). Alles andere
-// (done/passed/cancelled/completed/closed) wandert in die Completed-Sektion.
-const ACTIVE_STATUS = new Set(['planning', 'active', 'review'])
+// (passed/cancelled/completed) wandert in die Completed-Sektion.
+const ACTIVE_STATUS = new Set(['new', 'planned', 'in_progress', 'to_review'])
 
 const goalOf = (m) => m.goal ?? m.description ?? ''
 

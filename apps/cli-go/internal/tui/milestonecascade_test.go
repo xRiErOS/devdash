@@ -10,11 +10,11 @@ import (
 // DD2-28: nur nicht-terminale Sprints zählen für den Cascade-Confirm.
 func TestOpenSprintCount(t *testing.T) {
 	sp := []api.Sprint{
-		{Status: "active"}, {Status: "completed"}, {Status: "review"},
-		{Status: "cancelled"}, {Status: "closed"},
+		{Status: "in_progress"}, {Status: "completed"}, {Status: "to_review"},
+		{Status: "cancelled"}, {Status: "completed"},
 	}
 	if got := openSprintCount(sp); got != 2 {
-		t.Errorf("openSprintCount=%d, want 2 (active+review)", got)
+		t.Errorf("openSprintCount=%d, want 2 (in_progress+to_review)", got)
 	}
 }
 

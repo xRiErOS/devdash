@@ -9,7 +9,7 @@ const ITEMS = [
   { id: 'DD2-7', type: 'core', name: 'Capture-Host härten', status: 'in_progress', statusLabel: 'In Arbeit' },
   { id: 'DD2-8', type: 'feature', name: 'Render-Smoke erweitern', status: 'new', statusLabel: 'Offen' },
   { id: 'DD2-9', type: 'bug', name: 'Roadmap-Reorder DnD', status: 'to_review', statusLabel: 'Review' },
-  { id: 'DD2-11', type: 'improvement', name: 'Memory-Tag-Prune', status: 'done', statusLabel: 'Done' },
+  { id: 'DD2-11', type: 'improvement', name: 'Memory-Tag-Prune', status: 'completed', statusLabel: 'Completed' },
 ]
 
 const meta = {

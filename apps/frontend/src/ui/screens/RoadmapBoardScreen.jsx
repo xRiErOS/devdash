@@ -42,8 +42,8 @@ import RoadmapBoard from '../organisms/complex/RoadmapBoard.jsx'
 import MetaPanel from '../organisms/complex/MetaPanel.jsx'
 import { filterRoadmap } from '../../lib/roadmapBoardFilter.js'
 
-const FINISHED = new Set(['done', 'passed', 'completed', 'closed'])
-const WIP = new Set(['planning', 'active', 'review'])
+const FINISHED = new Set(['passed', 'completed'])
+const WIP = new Set(['new', 'planned', 'in_progress', 'to_review'])
 
 function computeStats({ milestones, unassignedSprints }) {
   const all = [...milestones.flatMap((m) => m.sprints || []), ...unassignedSprints]

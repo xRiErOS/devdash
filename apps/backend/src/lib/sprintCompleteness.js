@@ -3,14 +3,14 @@
 // Story-Points existieren NICHT im backlog/sprints-Schema → issues-only (points: null).
 // Zähl-Logik gespiegelt aus den bestehenden Sprint-Subqueries (api.js:1208, DD-524):
 //   total  = status != 'cancelled'   (cancelled zählt nicht in total, DD-524)
-//   done   = status IN ('done','passed')
+//   done   = status IN ('completed','passed')
 // SUM(CASE …) statt FILTER für maximale SQLite-Kompatibilität.
 
 export function computeSprintCompleteness(db, sprintId) {
   const row = db.prepare(`
     SELECT
       SUM(CASE WHEN status != 'cancelled' THEN 1 ELSE 0 END) AS issues_total,
-      SUM(CASE WHEN status IN ('done','passed') THEN 1 ELSE 0 END) AS issues_done,
+      SUM(CASE WHEN status IN ('completed','passed') THEN 1 ELSE 0 END) AS issues_done,
       SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS issues_cancelled
     FROM backlog
     WHERE assigned_sprint = ?

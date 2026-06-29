@@ -14,10 +14,10 @@ const COUNTS_SELECT = `
   FROM projects p
 `
 
-// Aktiver Sprint je Projekt: erster mit status='active' (id-stabil). null wenn keiner.
+// Aktiver Sprint je Projekt: erster mit status='in_progress' (id-stabil). null wenn keiner.
 function activeSprintFor(db, projectId) {
   const s = db.prepare(
-    "SELECT id, name FROM sprints WHERE project_id = ? AND status = 'active' ORDER BY id LIMIT 1",
+    "SELECT id, name FROM sprints WHERE project_id = ? AND status = 'in_progress' ORDER BY id LIMIT 1",
   ).get(projectId)
   return s ? { id: Number(s.id), name: s.name } : null
 }

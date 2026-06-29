@@ -94,7 +94,7 @@ type MilestoneCreateBody struct {
 }
 
 // SprintCreateBody ist der POST-Body für CreateSprint (name Pflicht; Sprint
-// startet serverseitig immer im Status planning).
+// startet serverseitig immer im Status new).
 type SprintCreateBody struct {
 	Name        string  `json:"name"`
 	Goal        *string `json:"goal,omitempty"`

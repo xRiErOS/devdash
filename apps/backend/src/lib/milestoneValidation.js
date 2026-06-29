@@ -51,12 +51,13 @@ export function resolveTargetDate(value, { createdAt } = {}) {
   return fallback.toISOString().slice(0, 10)
 }
 
-// DD-306 (2026-05-24): Filter-Werte erweitert um neuen Lifecycle (planning|active|completed|cancelled).
-// 'open' bleibt als Backward-Compat-Alias erhalten und matcht (planning OR active) in der Query.
+// DD2-155: Filter-Werte auf neuen Lifecycle (new|planned|in_progress|completed|cancelled).
+// 'open' bleibt als Backward-Compat-Alias und matcht (new OR planned OR in_progress) in der Query.
 export const VALID_STATUS_FILTERS = new Set([
-  'open',         // Alias für planning OR active (Backward-Compat)
-  'planning',
-  'active',
+  'open',         // Alias für non-terminal (new OR planned OR in_progress) (Backward-Compat)
+  'new',
+  'planned',
+  'in_progress',
   'completed',
   'cancelled',
   'all',

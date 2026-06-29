@@ -51,8 +51,8 @@ export const Focused = {
 export const NestedParents = {
   render: () => (
     <Frame>
-      <ElementRow kind="milestone" entityId="M3" title="Meilenstein (aufgeklappt)" status="active" priority={1} level={0} caret="open" />
-      <ElementRow kind="sprint" entityId="DD2#49" title="Sprint (zugeklappt)" status="active" priority={2} level={1} caret="closed" />
+      <ElementRow kind="milestone" entityId="M3" title="Meilenstein (aufgeklappt)" status="in_progress" priority={1} level={0} caret="open" />
+      <ElementRow kind="sprint" entityId="DD2#49" title="Sprint (zugeklappt)" status="in_progress" priority={2} level={1} caret="closed" />
       <ElementRow kind="issue" issueType="feature" entityId="DD2-7" title="Issue auf Ebene 2" status="in_progress" priority={1} level={2} />
     </Frame>
   ),

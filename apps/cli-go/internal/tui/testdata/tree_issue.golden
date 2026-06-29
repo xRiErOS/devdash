@@ -3,7 +3,7 @@
 │╭───────────────────────────────────╮╭─────────────────────────────────────────────────╮│
 ││⌕ search with /  ∙  filter f       ││> DD2-99 Beispiel-Issue für den Snapshot         ││
 ││ ▾ ◉ Meilenstein Eins              ││P1 prio  ∙  ⯁ bug type                to_review  ││
-││   ▾ DD2#9 review                  ││                                                 ││
+││   ▾ DD2#9 to_review               ││                                                 ││
 ││▌      ⯁ DD2-99                    ││Sections: digit [1..n] opens                     ││
 ││                                   ││> [1] Goal / Description ∙ PO notes  ▾           ││
 ││                                   ││  Goal                       PO-Notes            ││

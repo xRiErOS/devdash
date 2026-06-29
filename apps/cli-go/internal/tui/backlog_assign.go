@@ -2,7 +2,7 @@ package tui
 
 // backlog_assign.go — Issue→Sprint-Zuweisung aus dem Backlog (DD2-136, Review-
 // Befund #4). S öffnet einen Single-Select-Picker über die NICHT-finalen Sprints
-// (planning/active); enter weist zu (PATCH /api/backlog/:id/sprint). Danach verlässt
+// (new/in_progress); enter weist zu (PATCH /api/backlog/:id/sprint). Danach verlässt
 // das Issue das Backlog (= neu/geplant ohne Sprint) → in-place aus dem Cache. Muster
 // gespiegelt von assign.go (Flow A, Sprint→Meilenstein).
 
@@ -24,12 +24,12 @@ type issueAssignedMsg struct {
 	err       string
 }
 
-// assignableSprints filtert auf nicht-finale Sprints — nur planning/active sind
-// gültige Zuweisungsziele (completed/cancelled/review sind final/gesperrt).
+// assignableSprints filtert auf nicht-finale Sprints — nur new/in_progress sind
+// gültige Zuweisungsziele (completed/cancelled/to_review sind final/gesperrt).
 func assignableSprints(all []api.Sprint) []api.Sprint {
 	var out []api.Sprint
 	for _, s := range all {
-		if s.Status == "planning" || s.Status == "active" {
+		if s.Status == "new" || s.Status == "in_progress" {
 			out = append(out, s)
 		}
 	}

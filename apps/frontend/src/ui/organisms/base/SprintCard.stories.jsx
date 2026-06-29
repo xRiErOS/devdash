@@ -21,19 +21,19 @@ const meta = {
 export default meta
 
 export const Active = {
-  args: { sprint: { id: 104, key: 'DD2#49', name: 'Browser-Organismus + Bausteine', status: 'active', issue_done: 1, issue_total: 5 } },
+  args: { sprint: { id: 104, key: 'DD2#49', name: 'Browser-Organismus + Bausteine', status: 'in_progress', issue_done: 1, issue_total: 5 } },
 }
 
 export const Review = {
-  args: { sprint: { id: 102, key: 'DD2#42', name: 'Render-Smoke-Netz', status: 'review', issue_done: 2, issue_total: 3 } },
+  args: { sprint: { id: 102, key: 'DD2#42', name: 'Render-Smoke-Netz', status: 'to_review', issue_done: 2, issue_total: 3 } },
 }
 
 export const Dragging = {
-  args: { sprint: { id: 106, key: 'DD2#52', name: 'RoadmapBoard Mockup', status: 'active', issue_done: 0, issue_total: 9 }, isDragging: true },
+  args: { sprint: { id: 106, key: 'DD2#52', name: 'RoadmapBoard Mockup', status: 'in_progress', issue_done: 0, issue_total: 9 }, isDragging: true },
 }
 
 export const Completed = {
-  args: { variant: 'completed', sprint: { id: 103, key: 'DD2#40', name: 'Clean-Cut Baseline', status: 'done' } },
+  args: { variant: 'completed', sprint: { id: 103, key: 'DD2#40', name: 'Clean-Cut Baseline', status: 'completed' } },
 }
 
 // Wide-Mode: Detailzeile (Issue-Count + storniert) + Chevron → Issue-Liste.
@@ -41,12 +41,12 @@ export const Wide = {
   args: {
     wide: true,
     sprint: {
-      id: 104, key: 'DD2#49', name: 'Browser-Organismus + Bausteine', status: 'active',
+      id: 104, key: 'DD2#49', name: 'Browser-Organismus + Bausteine', status: 'in_progress',
       issue_done: 1, issue_total: 5, issue_cancelled: 3,
       issues: [
-        { key: 'DD2-220', title: 'BrowserToolbar-Organismus', status: 'done' },
-        { key: 'DD2-221', title: 'FilterMenu-Popover anbinden', status: 'active' },
-        { key: 'DD2-222', title: 'MasterDetail-Layout', status: 'planning' },
+        { key: 'DD2-220', title: 'BrowserToolbar-Organismus', status: 'completed' },
+        { key: 'DD2-221', title: 'FilterMenu-Popover anbinden', status: 'in_progress' },
+        { key: 'DD2-222', title: 'MasterDetail-Layout', status: 'new' },
       ],
     },
   },

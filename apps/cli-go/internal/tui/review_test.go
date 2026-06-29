@@ -10,7 +10,7 @@ import (
 
 func reviewModel() model {
 	m := columnsModel()
-	m.curSprint = &api.Sprint{ID: 10, Key: "SPF#1", Status: "review", Items: []api.Issue{
+	m.curSprint = &api.Sprint{ID: 10, Key: "SPF#1", Status: "to_review", Items: []api.Issue{
 		{ID: 100, Key: "SPF-1", Title: "A", Status: "to_review"},
 	}}
 	// T17: R öffnet jetzt erst die Reviews-Liste; Cockpit wird wie nach
@@ -117,7 +117,7 @@ func TestPassDispatchesRegardlessOfStatus(t *testing.T) {
 }
 
 func TestSprintMenuOpensAndDispatches(t *testing.T) {
-	m := reviewModel() // Sprint-Status "review" → {active, completed}
+	m := reviewModel() // Sprint-Status "to_review" → {in_progress, completed}
 	mi, _ := m.Update(keyMsg("S"))
 	m = mi.(model)
 	if !m.sprintPick {
@@ -127,8 +127,8 @@ func TestSprintMenuOpensAndDispatches(t *testing.T) {
 		t.Fatal("keine Sprint-Optionen")
 	}
 	for _, o := range m.spopts {
-		if o == "review" {
-			t.Error("review-Sprint darf nicht review als Ziel anbieten")
+		if o == "to_review" {
+			t.Error("to_review-Sprint darf nicht to_review als Ziel anbieten")
 		}
 	}
 	mi, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
@@ -161,7 +161,7 @@ func TestStatusMenuExcludesPassed(t *testing.T) {
 	mi, _ := m.Update(keyMsg("s"))
 	m = mi.(model)
 	for _, o := range m.sopts {
-		if o == "passed" || o == "rejected" || o == "done" {
+		if o == "passed" || o == "rejected" || o == "completed" {
 			t.Errorf("Status-Menü darf %q nicht enthalten (läuft über Review)", o)
 		}
 	}

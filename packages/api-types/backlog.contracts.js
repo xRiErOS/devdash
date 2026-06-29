@@ -14,7 +14,7 @@ import { z } from 'zod'
 export const ISSUE_TYPES = ['bug', 'feature', 'improvement', 'core']
 export const ISSUE_STATUSES = [
   'new', 'refined', 'planned', 'in_progress',
-  'to_review', 'passed', 'rejected', 'done', 'cancelled',
+  'to_review', 'passed', 'rejected', 'completed', 'cancelled',
 ]
 // Bei Anlage erlaubt der Backend nur new|refined (sonst 400) — der Rest folgt via Lifecycle.
 export const ISSUE_CREATE_STATUSES = ['new', 'refined']

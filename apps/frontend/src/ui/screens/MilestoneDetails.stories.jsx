@@ -8,10 +8,10 @@ const RICH = {
   name: 'M3 Mobile-Track',
   description: 'Mobile-first Capture-PWA und responsive Shell.',
   target_date: '2026-09-30',
-  status: 'active',
+  status: 'in_progress',
   sprints: [
-    { key: 'DD#49', name: 'Capture-Sprint', status: 'active' },
-    { key: 'DD#50', name: 'Mobile-Sprint', status: 'planning' },
+    { key: 'DD#49', name: 'Capture-Sprint', status: 'in_progress' },
+    { key: 'DD#50', name: 'Mobile-Sprint', status: 'new' },
   ],
   dod_items: [
     { id: 1, label: 'Capture-PWA offline-fähig', done: 1 },

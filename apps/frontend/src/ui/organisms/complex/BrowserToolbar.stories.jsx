@@ -9,7 +9,7 @@ import { ACTIVE_FILTERS } from '../../foundations/fixtures/elementBrowser.demo.j
 const STATUSES = [
   { key: 'new', label: 'Neu' },
   { key: 'in_progress', label: 'In Arbeit' },
-  { key: 'done', label: 'Done' },
+  { key: 'completed', label: 'Abgeschlossen' },
 ]
 const SPRINTS = [{ key: 'dd49', label: 'DD2#49' }, { key: 'dd50', label: 'DD2#50' }]
 

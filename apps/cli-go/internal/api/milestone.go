@@ -7,7 +7,7 @@ import (
 )
 
 // ListMilestones liefert die Meilensteine des aktiven Projekts (Sprints embedded).
-// status: open (default Backend) | planning | active | completed | cancelled | all.
+// status: open (default Backend) | new | in_progress | completed | cancelled | all.
 func (c *Client) ListMilestones(status string) ([]Milestone, error) {
 	path := "/api/milestones"
 	if status != "" {

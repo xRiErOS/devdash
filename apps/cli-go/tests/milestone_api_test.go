@@ -11,7 +11,7 @@ import (
 
 func TestListMilestonesWithSprints(t *testing.T) {
 	want := []api.Milestone{{
-		ID: 30, Name: "Beta-Feedback", Status: "active", Total: 28, Done: 28,
+		ID: 30, Name: "Beta-Feedback", Status: "in_progress", Total: 28, Done: 28,
 		Sprints: []api.Sprint{{ID: 190, Key: "SPF#8", Name: "Stillmodus", Status: "completed"}},
 	}}
 	var gotStatus string

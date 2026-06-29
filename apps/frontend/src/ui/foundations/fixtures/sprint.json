@@ -21,7 +21,7 @@
       "key": "DD-1",
       "title": "Multi-Tenant Dashboard fertigstellen",
       "type": "feature",
-      "status": "done",
+      "status": "completed",
       "priority": 1,
       "milestone": "M0 Initialer Meilenstein",
       "assigned_sprint": 25,
