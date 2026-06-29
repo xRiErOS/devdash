@@ -4043,6 +4043,29 @@ if (ENABLE_ARCHON) {
     const runs = db.prepare(query).all(...params)
     res.json(runs)
   })
+
+  // DD2-22: DELETE /api/archon-runs/:runId — FullDelete (Row + JSONL-Logdatei,
+  // unwiderruflich). Destruktiv → X-Archon-Token-Pflicht (403 wenn fehlt/falsch).
+  app.delete('/api/archon-runs/:runId', (req, res) => {
+    const isArchon = req.headers['x-archon-token'] === ARCHON_TOKEN
+    if (!isArchon) return res.status(403).json({ error: 'Forbidden: gültiges X-Archon-Token erforderlich' })
+    const { runId } = req.params
+    const row = db.prepare('SELECT run_id, log_path FROM archon_runs WHERE run_id = ?').get(runId)
+    if (!row) return res.status(404).json({ error: 'Archon-Run nicht gefunden', code: 'RUN_NOT_FOUND' })
+    db.prepare('DELETE FROM archon_runs WHERE run_id = ?').run(runId)
+    // Logdatei best-effort entfernen — ENOENT ignorieren (Datei kann fehlen, wenn
+    // ARCHON_LOG_DIR gewechselt wurde). Andere Fehler nur loggen, nicht 500en (Row ist weg).
+    let logDeleted = false
+    if (row.log_path) {
+      try {
+        unlinkSync(row.log_path)
+        logDeleted = true
+      } catch (e) {
+        if (e.code !== 'ENOENT') console.warn('[archon-fulldelete] unlink failed:', e.message)
+      }
+    }
+    res.json({ run_id: runId, deleted: true, log_deleted: logDeleted })
+  })
 }
 
 // ---- Reviews ----
