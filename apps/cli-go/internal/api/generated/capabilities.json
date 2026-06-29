@@ -1,0 +1,5136 @@
+{
+  "generatedFrom": "apps/cli/mcp/devd-mcp.js",
+  "toolCount": 128,
+  "tools": {
+    "devd_backlog_export": {
+      "description": "READ: Export the project backlog in an LLM-friendly format — md (default) | json | yaml. Default status filter is new,refined (sprint-bound status excluded); narrow further via status (single or comma-list). Full triage context in one call. GET /api/backlog-export. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "format": {
+            "description": "Export format (default md)",
+            "type": "string",
+            "enum": [
+              "md",
+              "json",
+              "yaml"
+            ]
+          },
+          "status": {
+            "description": "Status filter (single or comma-list); default new,refined",
+            "type": "string"
+          },
+          "search": {
+            "description": "Full-text filter",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "devd_backlog_list": {
+      "description": "DD2-110: List the REAL backlog of a project — open, unplanned work only. Backlog = status \"new\" OR (status \"planned\" AND no sprint assigned), mirroring the TUI backlog view (messages.go). Unlike devd_issue_list (which returns ALL issues when unfiltered), this captures the backlog semantics in one call (two backend queries, merged + deduped). refined is excluded (roadmap/milestone-managed). Each item has `key`. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "type": {
+            "description": "Filter by issue type",
+            "type": "string",
+            "enum": [
+              "bug",
+              "feature",
+              "improvement",
+              "core"
+            ]
+          },
+          "search": {
+            "description": "Full-text search across title, context_notes, goal, background",
+            "type": "string"
+          },
+          "fields": {
+            "description": "compact (default — token-safe) or full",
+            "type": "string",
+            "enum": [
+              "compact",
+              "full"
+            ]
+          },
+          "limit": {
+            "description": "Max rows returned (applied after merge)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "devd_dashboard_home": {
+      "description": "READ: Global home dashboard — one tile row per non-archived project (open sprints/milestones/issues counts). GET /api/dashboard/home. Global, read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    "devd_dependencies_graph": {
+      "description": "READ: Issue dependency graph for a project ({nodes, edges}); optionally scoped to one sprint. GET /api/dependencies/graph. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "sprint_key": {
+            "description": "Optional sprint key/id to scope the graph",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "devd_document_create": {
+      "description": "WRITE: Attach a markdown document to a milestone or sprint. title required; body (markdown, DB-blob) + file_path optional.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "milestone_id": {
+            "description": "Owner: Meilenstein-id (ODER sprint_key)",
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "sprint_key": {
+            "description": "Owner: Sprint-Key/-id (ODER milestone_id)",
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "description": "Document title"
+          },
+          "body": {
+            "description": "Markdown body (stored as DB-blob)",
+            "type": "string"
+          },
+          "file_path": {
+            "description": "Optional repo-relative origin hint",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_document_delete": {
+      "description": "WRITE: Delete a document by id (scoped to its milestone/sprint owner).",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "milestone_id": {
+            "description": "Owner: Meilenstein-id (ODER sprint_key)",
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "sprint_key": {
+            "description": "Owner: Sprint-Key/-id (ODER milestone_id)",
+            "type": "string"
+          },
+          "doc_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "doc_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_document_get": {
+      "description": "READ: Get one document (with markdown body) by id, scoped to its milestone/sprint owner. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "milestone_id": {
+            "description": "Owner: Meilenstein-id (ODER sprint_key)",
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "sprint_key": {
+            "description": "Owner: Sprint-Key/-id (ODER milestone_id)",
+            "type": "string"
+          },
+          "doc_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "doc_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_document_list": {
+      "description": "READ: List markdown documents attached to a milestone or sprint (id DESC). Owner = milestone_id OR sprint_key. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "milestone_id": {
+            "description": "Owner: Meilenstein-id (ODER sprint_key)",
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "sprint_key": {
+            "description": "Owner: Sprint-Key/-id (ODER milestone_id)",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "devd_document_update": {
+      "description": "WRITE: Partial update of a document (at least one of title/body/file_path). PUT /api/{milestones|sprints}/:id/documents/:docId.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "milestone_id": {
+            "description": "Owner: Meilenstein-id (ODER sprint_key)",
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "sprint_key": {
+            "description": "Owner: Sprint-Key/-id (ODER milestone_id)",
+            "type": "string"
+          },
+          "doc_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "file_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "doc_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_issue_activity": {
+      "description": "Audit-log activity for an issue (newest first): timestamp, agent_id, action, old/new value. GET /api/backlog/:id/activity. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "issue": {
+            "type": "string",
+            "description": "Issue key or numeric id"
+          },
+          "limit": {
+            "description": "Max rows (default 100)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          }
+        },
+        "required": [
+          "issue"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_issue_assign_sprint": {
+      "description": "WRITE: Assign an issue to a sprint, or unassign (sprint_key=null). Wraps PATCH /api/backlog/:id/sprint.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "id_or_key": {
+            "type": "string",
+            "description": "Issue key (e.g. \"DD-42\") or numeric backlog id"
+          },
+          "sprint_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Sprint key (e.g. \"DD#20\"), numeric sprint id, or null to unassign"
+          }
+        },
+        "required": [
+          "id_or_key",
+          "sprint_key"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_issue_bulk": {
+      "description": "WRITE: Bulk action on many issues. action ∈ set_status | set_sprint | cancel | soft_delete | add_tags | remove_tags. ids accept keys or numeric ids (resolved). Per action: set_status→status; set_sprint→sprint_key; cancel→notes; add_tags/remove_tags→tags (names). Lifecycle/ownership validated server-side; returns {ok, failed}.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "ids": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "description": "Issue keys or numeric ids"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "set_status",
+              "set_sprint",
+              "cancel",
+              "soft_delete",
+              "add_tags",
+              "remove_tags"
+            ],
+            "description": "Bulk action"
+          },
+          "status": {
+            "description": "set_status: target status",
+            "type": "string"
+          },
+          "sprint_key": {
+            "description": "set_sprint: sprint key/id, or \"null\"/\"none\" to unassign",
+            "type": "string"
+          },
+          "notes": {
+            "description": "cancel: cancellation note",
+            "type": "string"
+          },
+          "tags": {
+            "description": "add_tags/remove_tags: tag names",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          }
+        },
+        "required": [
+          "ids",
+          "action"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_issue_bulk_create": {
+      "description": "WRITE: Create many issues in ONE project. Each item is a single atomic POST (devd_issue_create_full semantics). Returns per-item { index, id, key, status, assigned_sprint } or { index, error, title }. Per-item failures are non-fatal — iteration continues.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "issues": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "bug",
+                    "feature",
+                    "improvement",
+                    "core"
+                  ]
+                },
+                "priority": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 5
+                },
+                "goal": {
+                  "type": "string"
+                },
+                "background": {
+                  "type": "string"
+                },
+                "context_notes": {
+                  "type": "string"
+                },
+                "relevant_files": {
+                  "type": "string"
+                },
+                "po_notes": {
+                  "type": "string"
+                },
+                "tag_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "sprint_key": {
+                  "type": "string"
+                },
+                "target_status": {
+                  "type": "string",
+                  "enum": [
+                    "new",
+                    "refined"
+                  ]
+                }
+              },
+              "required": [
+                "title"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Array of issue payloads"
+          }
+        },
+        "required": [
+          "issues"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_issue_create": {
+      "description": "WRITE: Create a new issue in a specific project backlog.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "Issue title (required)"
+          },
+          "type": {
+            "description": "Issue type",
+            "type": "string",
+            "enum": [
+              "bug",
+              "feature",
+              "improvement",
+              "core"
+            ]
+          },
+          "priority": {
+            "description": "Priority 1 (highest) to 5 (lowest)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "goal": {
+            "description": "Issue goal — primary refinement field",
+            "type": "string"
+          },
+          "po_notes": {
+            "description": "PO free-text notes — the PO-facing free-text field (replaces the removed description field, DD2-131/132).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_issue_create_full": {
+      "description": "WRITE: Create an issue with refinement fields (goal, background, context_notes, relevant_files, po_notes), optional sprint-assign and target_status — in ONE atomic API call. po_notes is the PO-facing free-text field (replaces the removed description field, DD2-131/132). E01/D09: per-issue acceptance_criteria + test_instruction are replaced by user_stories[].qa — add them after creation via devd_user_story_add.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "Issue title (required)"
+          },
+          "type": {
+            "description": "Issue type (default feature)",
+            "type": "string",
+            "enum": [
+              "bug",
+              "feature",
+              "improvement",
+              "core"
+            ]
+          },
+          "priority": {
+            "description": "1 (highest) – 5 (lowest)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "goal": {
+            "description": "What outcome — pflicht für status=refined",
+            "type": "string"
+          },
+          "background": {
+            "description": "Why — pflicht für status=refined",
+            "type": "string"
+          },
+          "context_notes": {
+            "description": "Implementation context and notes. Per-US QA goes into user_stories[].qa (devd_user_story_add).",
+            "type": "string"
+          },
+          "relevant_files": {
+            "description": "JSON array or comma-list of file paths",
+            "type": "string"
+          },
+          "po_notes": {
+            "type": "string"
+          },
+          "tag_ids": {
+            "description": "Tag ids to attach",
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          },
+          "sprint_key": {
+            "description": "Sprint key (e.g. \"DD#20\") to assign right away",
+            "type": "string"
+          },
+          "target_status": {
+            "description": "Target status after creation (default new). refined requires goal+background.",
+            "type": "string",
+            "enum": [
+              "new",
+              "refined"
+            ]
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_issue_delete": {
+      "description": "WRITE: Delete an issue. Without force the backend returns 409 (use status=cancelled instead). force=true hard-deletes (cascades dependencies + reviews). DELETE /api/backlog/:id.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "issue": {
+            "type": "string",
+            "description": "Issue key or numeric id"
+          },
+          "force": {
+            "description": "Hard-delete (default false → 409 with a hint to cancel)",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "issue"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_issue_dep_add": {
+      "description": "WRITE: Add a dependency edge — issue depends_on another issue (depends_on must finish first → it blocks issue). Self-reference, duplicate and cycles are rejected by the backend. Same-project only (keys resolve within the project). Accepts issue keys (e.g. \"MEM-9\") or numeric ids.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "issue": {
+            "type": "string",
+            "description": "The dependent issue (key or numeric id)"
+          },
+          "depends_on": {
+            "type": "string",
+            "description": "The issue it depends on / is blocked by (key or numeric id)"
+          },
+          "note": {
+            "description": "Optional note on the edge",
+            "type": "string"
+          }
+        },
+        "required": [
+          "issue",
+          "depends_on"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_issue_dep_list": {
+      "description": "List dependencies of an issue: blockers (issues it depends on) + blocked_by (issues that depend on it). Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "issue": {
+            "type": "string",
+            "description": "Issue key or numeric id"
+          }
+        },
+        "required": [
+          "issue"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_issue_dep_remove": {
+      "description": "WRITE: Remove the dependency edge issue→depends_on. Resolves the edge id internally. Same-project only. Accepts keys or numeric ids.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "issue": {
+            "type": "string",
+            "description": "The dependent issue (key or numeric id)"
+          },
+          "depends_on": {
+            "type": "string",
+            "description": "The depended-on issue (key or numeric id)"
+          }
+        },
+        "required": [
+          "issue",
+          "depends_on"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_issue_list": {
+      "description": "List backlog issues for a specific project. Server-side filters: status, type, sprint, search. Each item has `key` (e.g. \"DD-42\"). Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "sprint_key": {
+            "description": "Filter by sprint key (e.g. \"DD#20\"), numeric id, or \"null\"/\"none\" for unassigned",
+            "type": "string"
+          },
+          "status": {
+            "description": "Filter by issue status. Single value (new) or comma-list (new,refined). Valid: new | refined | planned | in_progress | to_review | passed | rejected | completed | cancelled",
+            "type": "string"
+          },
+          "type": {
+            "description": "Filter by issue type",
+            "type": "string",
+            "enum": [
+              "bug",
+              "feature",
+              "improvement",
+              "core"
+            ]
+          },
+          "search": {
+            "description": "Full-text search across title, context_notes, goal, background",
+            "type": "string"
+          },
+          "fields": {
+            "description": "DD-620: compact (default — identity/status fields only, token-safe) or full (every field; use devd_issue_show for one issue instead).",
+            "type": "string",
+            "enum": [
+              "compact",
+              "full"
+            ]
+          },
+          "limit": {
+            "description": "DD-622: max rows returned",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "offset": {
+            "description": "DD-622: skip the first N rows (pagination)",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "devd_issue_lost": {
+      "description": "DD-555: Find lost issues — non-terminal issues (status ∉ completed/passed/cancelled) still assigned to a COMPLETED sprint. Data-hygiene query, project-scoped. Each hit has issue key, sprint key and status. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "devd_issue_move": {
+      "description": "WRITE: Move an issue to another project (gets a new project_number/key there). Blocked while in_progress/to_review. POST /api/backlog/:id/move.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "issue": {
+            "type": "string",
+            "description": "Issue key or numeric id"
+          },
+          "target_project": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "description": "Target project id or slug"
+          }
+        },
+        "required": [
+          "issue",
+          "target_project"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_issue_set_result": {
+      "description": "WRITE: Set the structured sprint result on an issue. Builds the YAML+Markdown result string and writes it via PUT /api/backlog/:id {result}. commits is required (D02). Use after sprint work is done, before sprint complete.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "id_or_key": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Issue key (e.g. \"DD-42\") or numeric backlog id"
+          },
+          "outcome_type": {
+            "description": "Outcome type: feat | fix | refactor | chore | docs (default: feat)",
+            "type": "string",
+            "enum": [
+              "feat",
+              "fix",
+              "refactor",
+              "chore",
+              "docs"
+            ]
+          },
+          "outcome_summary": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Short summary of what was achieved (required)"
+          },
+          "files_changed": {
+            "description": "List of changed file paths",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "commits": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "List of commit SHAs or short descriptions (required — D02)"
+          },
+          "breaking_changes": {
+            "description": "Whether this introduces breaking changes (default false)",
+            "type": "boolean"
+          },
+          "lessons_learned": {
+            "description": "Lessons learned during implementation",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "vorgehen": {
+            "description": "Markdown body: approach, trade-offs, code snippets, links",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id_or_key",
+          "outcome_summary",
+          "commits"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_issue_show": {
+      "description": "Get full details of a single issue including tasks, feedback, attachments, tags. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "id_or_key": {
+            "type": "string",
+            "description": "Issue key (e.g. \"DD-42\", \"MBT-7\") or numeric backlog id"
+          }
+        },
+        "required": [
+          "id_or_key"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_issue_status": {
+      "description": "WRITE: Transition an issue to a new status. Full lifecycle: new → refined → planned → in_progress → to_review → passed → completed. Also: rejected → in_progress (re-open after review); cancelled (from any non-completed state). Notes are required when cancelling.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "id_or_key": {
+            "type": "string",
+            "description": "Issue key (e.g. \"DD-42\") or numeric backlog id"
+          },
+          "new_status": {
+            "type": "string",
+            "description": "Target status: new | refined | planned | in_progress | to_review | passed | rejected | completed | cancelled"
+          },
+          "notes": {
+            "description": "Transition notes (required when cancelling)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id_or_key",
+          "new_status"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_issue_tag_remove": {
+      "description": "WRITE: Remove the given tag names from an issue (keeps the rest). Fetches the current tags, subtracts, and writes the remaining set. PUT /api/backlog/:id/tags.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "issue": {
+            "type": "string",
+            "description": "Issue key or numeric id"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ],
+            "description": "Tag names to remove (array or comma string)"
+          }
+        },
+        "required": [
+          "issue",
+          "tags"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_issue_tag_set": {
+      "description": "WRITE: Replace ALL tags on an issue with the given tag names (full set; empty array clears). Names are resolved to ids against the project tags; unknown names are reported, not auto-created. PUT /api/backlog/:id/tags.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "issue": {
+            "type": "string",
+            "description": "Issue key or numeric id"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ],
+            "description": "Tag names (array or comma string); [] / \"\" clears all"
+          }
+        },
+        "required": [
+          "issue",
+          "tags"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_issue_update": {
+      "description": "WRITE: Update editable fields of an issue (title, goal, background, context_notes, relevant_files, priority, type, po_notes, result). po_notes is the PO-facing free-text field (replaces the removed description field, DD2-131/132). result documents the sprint outcome — required on completed/passed issues before sprint complete. E01/D09: per-issue acceptance_criteria + test_instruction are replaced by user_stories[].qa — manage them via devd_user_story_*. Does NOT change status or sprint assignment — use devd_issue_status for status transitions.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "id_or_key": {
+            "type": "string",
+            "description": "Issue key (e.g. \"DD-42\") or numeric backlog id"
+          },
+          "title": {
+            "type": "string"
+          },
+          "goal": {
+            "type": "string"
+          },
+          "background": {
+            "type": "string"
+          },
+          "context_notes": {
+            "type": "string"
+          },
+          "relevant_files": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "bug",
+              "feature",
+              "improvement",
+              "core"
+            ]
+          },
+          "po_notes": {
+            "type": "string"
+          },
+          "result": {
+            "description": "Sprint outcome documentation. Required on completed/passed issues before sprint complete. Markdown text — summarise what was implemented, decisions made, and lessons learned.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id_or_key"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_memory_tag_create": {
+      "description": "WRITE: Register a new allowed tag (Controlled Vocabulary). Required before a memory may use it once the register is non-empty (hard-block enforcement). Check devd_memory_tag_list first to avoid synonyms.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "tag": {
+            "type": "string",
+            "description": "Tag token (alphanumeric start, . _ - allowed, NO spaces, max 40)"
+          },
+          "description": {
+            "description": "What this tag means / when to use it",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tag"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_memory_tag_delete": {
+      "description": "WRITE: Remove a tag from the register. Returns usage_count (how many active memories still carry it) as a guard — those memories keep the literal token but it will fail re-validation on next edit.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "tag": {
+            "type": "string",
+            "description": "Register tag to delete"
+          }
+        },
+        "required": [
+          "tag"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_memory_tag_list": {
+      "description": "List the curated tag register for a project (Controlled Vocabulary for project_memories tags). Optional FTS filter. Each row carries usage_count (active memories using it). Use this to pick valid tags BEFORE logging a memory. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "query": {
+            "description": "FTS filter over tag names (substring/fuzzy)",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "devd_memory_tag_prune": {
+      "description": "WRITE: Strip every token that is NOT in the register from all active memories (migration cleanup for the singleton-drop decision). Idempotent. Returns { touched }. Run AFTER seeding the register + folding synonyms via devd_memory_tag_rename.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "devd_memory_tag_rename": {
+      "description": "WRITE: Rename a register tag, doubling as MERGE: folds <old> into <new> across all memories (repoints + dedupes tokens). If <new> already exists it merges; otherwise it renames. Use for synonym cleanup (gf2/GF-2/greenfield → gf-2).",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "old": {
+            "type": "string",
+            "description": "Existing register tag to fold away"
+          },
+          "new": {
+            "type": "string",
+            "description": "Canonical target tag (created if missing)"
+          }
+        },
+        "required": [
+          "old",
+          "new"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_milestone_activity": {
+      "description": "READ: Milestone audit-log activity (newest first). GET /api/milestones/:id/activity.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "milestone_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Numeric milestone id"
+          },
+          "limit": {
+            "description": "Max rows (default 100)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          }
+        },
+        "required": [
+          "milestone_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_milestone_close": {
+      "description": "WRITE: Close a milestone, handling its still-open issues. target_status applies to the open issues (e.g. cancelled); assignments optionally re-homes them. POST /api/milestones/:id/close-with-issues.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "milestone_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Numeric milestone id"
+          },
+          "target_status": {
+            "description": "Status to apply to still-open issues",
+            "type": "string"
+          },
+          "assignments": {
+            "description": "Optional per-issue re-assignment payload (see close-with-issues)"
+          }
+        },
+        "required": [
+          "milestone_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_milestone_create": {
+      "description": "WRITE: Create a milestone. name required; target_date auto-defaults (now+90d) when omitted; status defaults to new.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "target_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_milestone_delete": {
+      "description": "WRITE: Hard-delete a milestone. cascade=true (default) also deletes all of the milestone's sprints and their issues incl. children (no dangling rows). cascade=false only deletes the milestone and detaches its sprints (milestone_id → NULL). DELETE /api/milestones/:id[?cascade=1]. Note: cancelled is a soft state that stays in the DB — this is the hard delete.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "milestone_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Numeric milestone id"
+          },
+          "cascade": {
+            "default": true,
+            "description": "Also delete the milestone's sprints + their issues (default true). false → detach sprints only.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "milestone_id",
+          "cascade"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_milestone_dep_add": {
+      "description": "WRITE: Add a milestone dependency (predecessor must finish before successor). Routes POST /api/milestone-dependencies. DFS cycle-detection — a cycle is rejected 409 and passed through 1:1.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "predecessor_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "successor_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "predecessor_id",
+          "successor_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_milestone_dep_list": {
+      "description": "List a milestone dependencies: { predecessors, successors } with dependency edge id. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "milestone_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Numeric milestone id"
+          }
+        },
+        "required": [
+          "milestone_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_milestone_dep_remove": {
+      "description": "WRITE: Remove a milestone dependency edge by its dependency id (from devd_milestone_dep_list). Routes DELETE /api/milestone-dependencies/:id.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "dependency_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Dependency edge id (dep# from dep_list)"
+          }
+        },
+        "required": [
+          "dependency_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_milestone_dod_add": {
+      "description": "WRITE: Add a Definition-of-Done item to a milestone. POST /api/milestones/:id/dod-items {label}.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "milestone_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Numeric milestone id"
+          },
+          "label": {
+            "type": "string",
+            "description": "DoD item label"
+          }
+        },
+        "required": [
+          "milestone_id",
+          "label"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_milestone_dod_delete": {
+      "description": "WRITE: Delete a DoD item. DELETE /api/dod-items/:id.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "item_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "DoD item id"
+          }
+        },
+        "required": [
+          "item_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_milestone_dod_list": {
+      "description": "List a milestone Definition-of-Done items (id, label, done, position). GET /api/milestones/:id/dod-items. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "milestone_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Numeric milestone id"
+          }
+        },
+        "required": [
+          "milestone_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_milestone_dod_reorder": {
+      "description": "WRITE: Reorder a milestone DoD items by passing item ids in the desired order. PATCH /api/milestones/:id/dod-items/reorder {order}.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "milestone_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Numeric milestone id"
+          },
+          "order": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "description": "DoD item ids in the new order"
+          }
+        },
+        "required": [
+          "milestone_id",
+          "order"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_milestone_dod_set": {
+      "description": "WRITE: Update a DoD item (label and/or done). PATCH /api/dod-items/:id.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "item_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "DoD item id"
+          },
+          "label": {
+            "type": "string"
+          },
+          "done": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "item_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_milestone_list": {
+      "description": "List milestones for a project. status filter: open (default) | new | planned | in_progress | completed | cancelled | all. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "status": {
+            "description": "Filter: open (default) | new | planned | in_progress | completed | cancelled | all",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "devd_milestone_reorder": {
+      "description": "WRITE: Set the display order of milestones by passing all milestone ids in the desired order (own project only). PATCH /api/milestones/reorder {ordered_ids}.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "ordered_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "description": "Milestone ids in the new order"
+          }
+        },
+        "required": [
+          "ordered_ids"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_milestone_show": {
+      "description": "Get a single milestone with sprints, dependencies (in/out), DoD-items and issue counts. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "milestone_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Numeric milestone id"
+          }
+        },
+        "required": [
+          "milestone_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_milestone_status": {
+      "description": "WRITE: Transition a milestone status (new|planned|in_progress|completed|cancelled, incl. sanctioned reopen paths completed→in_progress / cancelled→new). Routes PUT /api/milestones/:id {status}. Lifecycle errors (e.g. 422 SPRINTS_NOT_DONE) are passed through. cancellation_notes required by the lifecycle on →cancelled.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "milestone_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Numeric milestone id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "new",
+              "planned",
+              "in_progress",
+              "completed",
+              "cancelled"
+            ]
+          },
+          "cancellation_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "milestone_id",
+          "status"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_milestone_tag_remove": {
+      "description": "WRITE: Remove the given tag names from a milestone (keeps the rest). PUT /api/milestones/:id/tags.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "milestone_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Numeric milestone id"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ],
+            "description": "Tag names to remove (array or comma string)"
+          }
+        },
+        "required": [
+          "milestone_id",
+          "tags"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_milestone_tag_set": {
+      "description": "WRITE: Replace ALL tags on a milestone with the given tag names (full set; empty clears). Unknown names reported, not auto-created. PUT /api/milestones/:id/tags.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "milestone_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Numeric milestone id"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ],
+            "description": "Tag names (array or comma string); [] / \"\" clears all"
+          }
+        },
+        "required": [
+          "milestone_id",
+          "tags"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_milestone_update": {
+      "description": "WRITE: Update milestone master data (name / description / target_date). Routes PUT /api/milestones/:id. Empty name → 400; target_date clear → auto-default. Status changes use devd_milestone_status instead.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "milestone_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Numeric milestone id"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "target_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "milestone_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_project_list": {
+      "description": "List all projects in DevDashboard. Global — no project_id required. Compact by default (DD-622, no sstd_content/prose); fields=full for everything. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "include_archived": {
+            "description": "Include archived projects (default false)",
+            "type": "boolean"
+          },
+          "fields": {
+            "description": "DD-622: compact (default, token-safe) or full",
+            "type": "string",
+            "enum": [
+              "compact",
+              "full"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "devd_project_memory_anchor_get": {
+      "description": "Get the active project-memory row addressed by its anchor (D-code), e.g. \"D01\" / \"CONTRACT-GATEWAY-PATTERN\". GET /api/project-memories/anchor/:anchor. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "anchor": {
+            "type": "string",
+            "description": "Anchor code (e.g. \"D01\")"
+          }
+        },
+        "required": [
+          "anchor"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_project_memory_anchor_patch": {
+      "description": "WRITE: Patch the active project-memory addressed by its anchor (D-code) without knowing its numeric id. PATCH /api/project-memories/anchor/:anchor. Only provided fields change.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "anchor": {
+            "description": "Stable addressable code (e.g. \"D01\")",
+            "type": "string"
+          },
+          "category": {
+            "description": "Memory category",
+            "type": "string",
+            "enum": [
+              "architecture_decision",
+              "dead_end",
+              "bug_pattern",
+              "convention",
+              "external_constraint",
+              "session_log",
+              "knowledge"
+            ]
+          },
+          "summary": {
+            "description": "Short one-line gist",
+            "type": "string"
+          },
+          "content": {
+            "description": "Full detail / context",
+            "type": "string"
+          },
+          "tags": {
+            "description": "Tags as array or space/comma string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "importance": {
+            "description": "1=high, 2=normal, 3=low",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
+          },
+          "pinned": {
+            "description": "Pin to top of lists/snapshots",
+            "type": "boolean"
+          },
+          "stability": {
+            "description": "stable=project rules, volatile=task context",
+            "type": "string",
+            "enum": [
+              "stable",
+              "volatile"
+            ]
+          },
+          "source_type": {
+            "description": "e.g. sstd | review | commit | manual",
+            "type": "string"
+          },
+          "source_ref": {
+            "description": "Reference to origin",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "devd_project_memory_delete": {
+      "description": "WRITE: Soft-delete a project-memory (sets deleted_at; DELETE /api/project-memories/:id). Excluded from list/query/snapshot afterwards.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "project_memories row id"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_project_memory_list": {
+      "description": "List project-bound memories (active only), optionally filtered by category. Compact by default (DD-622, no 64k content field); fields=full for everything, or devd_project_memory_show for one. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "category": {
+            "description": "Restrict to one category",
+            "type": "string",
+            "enum": [
+              "architecture_decision",
+              "dead_end",
+              "bug_pattern",
+              "convention",
+              "external_constraint",
+              "session_log",
+              "knowledge"
+            ]
+          },
+          "fields": {
+            "description": "DD-622: compact (default, token-safe) or full (incl. content)",
+            "type": "string",
+            "enum": [
+              "compact",
+              "full"
+            ]
+          },
+          "limit": {
+            "description": "DD-622: max rows",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "offset": {
+            "description": "DD-622: skip first N rows",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "devd_project_memory_log": {
+      "description": "WRITE: Log a project-bound memory (architecture_decision | dead_end | bug_pattern | convention | external_constraint | session_log | knowledge) into project_memories. Append-only; corrections via the supersede endpoint. Decoupled from the global ~/.claude memory.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "architecture_decision",
+              "dead_end",
+              "bug_pattern",
+              "convention",
+              "external_constraint",
+              "session_log",
+              "knowledge"
+            ],
+            "description": "Memory category"
+          },
+          "summary": {
+            "type": "string",
+            "description": "Short one-line gist (required)"
+          },
+          "content": {
+            "description": "Full detail / context",
+            "type": "string"
+          },
+          "tags": {
+            "description": "Tags as array or space/comma string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "importance": {
+            "description": "1=high, 2=normal (default), 3=low",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
+          },
+          "pinned": {
+            "description": "Pin to top of lists/snapshots",
+            "type": "boolean"
+          },
+          "anchor": {
+            "description": "Stable addressable code (e.g. \"D01\") for section-patch (MEM-11)",
+            "type": "string"
+          },
+          "stability": {
+            "description": "stable=project rules (cache-warm prefix), volatile=task context",
+            "type": "string",
+            "enum": [
+              "stable",
+              "volatile"
+            ]
+          },
+          "source_type": {
+            "description": "e.g. sstd | review | commit | manual",
+            "type": "string"
+          },
+          "source_ref": {
+            "description": "Reference to origin (e.g. \"MEM §4 D05\", issue key, commit sha)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "category",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_project_memory_query": {
+      "description": "FTS5 search over the project-bound memory store. Returns active rows (not deleted/superseded) ranked by relevance + recency, each with source_ref + validity. Special chars in the query are hardened automatically. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "q": {
+            "type": "string",
+            "description": "Search query (FTS5 over summary/content/tags)"
+          },
+          "category": {
+            "description": "Restrict to one category",
+            "type": "string",
+            "enum": [
+              "architecture_decision",
+              "dead_end",
+              "bug_pattern",
+              "convention",
+              "external_constraint",
+              "session_log",
+              "knowledge"
+            ]
+          },
+          "limit": {
+            "description": "Max hits (default 25)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "q"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_project_memory_show": {
+      "description": "Get a single project-bound memory by numeric id. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "project_memories row id"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_project_memory_supersede": {
+      "description": "WRITE: Append-only correction — creates a NEW memory row and points the old one at it via superseded_by (history preserved). POST /api/project-memories/:id/supersede. Unset fields are inherited from the existing row.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "project_memories row id to supersede"
+          },
+          "category": {
+            "description": "Memory category",
+            "type": "string",
+            "enum": [
+              "architecture_decision",
+              "dead_end",
+              "bug_pattern",
+              "convention",
+              "external_constraint",
+              "session_log",
+              "knowledge"
+            ]
+          },
+          "summary": {
+            "description": "Short one-line gist",
+            "type": "string"
+          },
+          "content": {
+            "description": "Full detail / context",
+            "type": "string"
+          },
+          "tags": {
+            "description": "Tags as array or space/comma string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "importance": {
+            "description": "1=high, 2=normal, 3=low",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
+          },
+          "pinned": {
+            "description": "Pin to top of lists/snapshots",
+            "type": "boolean"
+          },
+          "anchor": {
+            "description": "Stable addressable code (e.g. \"D01\")",
+            "type": "string"
+          },
+          "stability": {
+            "description": "stable=project rules, volatile=task context",
+            "type": "string",
+            "enum": [
+              "stable",
+              "volatile"
+            ]
+          },
+          "source_type": {
+            "description": "e.g. sstd | review | commit | manual",
+            "type": "string"
+          },
+          "source_ref": {
+            "description": "Reference to origin",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_project_memory_update": {
+      "description": "WRITE: Update an existing project-memory in place (PATCH /api/project-memories/:id). Only provided fields change. For append-only corrections that preserve history, use devd_project_memory_supersede instead.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "project_memories row id"
+          },
+          "category": {
+            "description": "Memory category",
+            "type": "string",
+            "enum": [
+              "architecture_decision",
+              "dead_end",
+              "bug_pattern",
+              "convention",
+              "external_constraint",
+              "session_log",
+              "knowledge"
+            ]
+          },
+          "summary": {
+            "description": "Short one-line gist",
+            "type": "string"
+          },
+          "content": {
+            "description": "Full detail / context",
+            "type": "string"
+          },
+          "tags": {
+            "description": "Tags as array or space/comma string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "importance": {
+            "description": "1=high, 2=normal, 3=low",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
+          },
+          "pinned": {
+            "description": "Pin to top of lists/snapshots",
+            "type": "boolean"
+          },
+          "anchor": {
+            "description": "Stable addressable code (e.g. \"D01\")",
+            "type": "string"
+          },
+          "stability": {
+            "description": "stable=project rules, volatile=task context",
+            "type": "string",
+            "enum": [
+              "stable",
+              "volatile"
+            ]
+          },
+          "source_type": {
+            "description": "e.g. sstd | review | commit | manual",
+            "type": "string"
+          },
+          "source_ref": {
+            "description": "Reference to origin",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_project_show": {
+      "description": "Get a single project by numeric id or slug. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id_or_slug": {
+            "type": "string",
+            "description": "Numeric project id or slug string (e.g. \"devd\", \"2\")"
+          }
+        },
+        "required": [
+          "id_or_slug"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_project_sstd_get": {
+      "description": "Get the SSTD (Single Source of Truth Document) markdown content of a project. Resolves numeric id or slug. Returns null + hint when no SSTD set. Read-only. Followup zu DD-213.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id_or_slug": {
+            "type": "string",
+            "description": "Numeric project id or slug string (e.g. \"devd\", \"2\")"
+          }
+        },
+        "required": [
+          "id_or_slug"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_project_sstd_set": {
+      "description": "WRITE (DEPRECATED seit MEM-18): Whole-Rewrite des Legacy-Blobs projects.sstd_content (last-write-wins, KEIN Versions-/Diff-Schutz). Fuer granulare, token-effiziente Updates stattdessen devd_sstd_slot_set / devd_sstd_slot_edit nutzen. sstd_content=null loescht den Legacy-Blob. Followup zu DD-213.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id_or_slug": {
+            "type": "string",
+            "description": "Numeric project id or slug string (e.g. \"devd\", \"2\")"
+          },
+          "sstd_content": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Markdown-Inhalt (string) zum Setzen oder null zum Loeschen"
+          }
+        },
+        "required": [
+          "id_or_slug",
+          "sstd_content"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_review_create": {
+      "description": "WRITE: Create a review round with verdict in ONE atomic POST (Backend nimmt review_status + comment direkt). Auto-Transitions: passed → issue passed (aus to_review/rejected); not_passed → issue rejected (aus to_review ODER passed — das Verdict führt, ein bereits-passed Issue wird zurückgezogen, DD#81-Trap-Rest-Fix). Comment Pflicht bei not_passed.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "id_or_key": {
+            "type": "string",
+            "description": "Issue key (e.g. \"DD-42\") or numeric backlog id"
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "not_passed"
+            ],
+            "description": "Review verdict (binär seit DD-506 — partially_passed abgeschafft)"
+          },
+          "comment": {
+            "description": "Review comment (required for not_passed)",
+            "type": "string"
+          },
+          "notes": {
+            "description": "Optional review-round notes (separate from comment)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id_or_key",
+          "verdict"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_review_reopen": {
+      "description": "WRITE: Reopen the review of a to_review issue whose last round is already decided — opens a fresh pending round and clears the sprint review-submitted marker so devd_review_create works again (no 409). Idempotent: no new round if the last round is already open. Fixes the DD#81 trap where a verdict-less sprint-review-submit locked issues in to_review with only the UI Rework button as an escape. DD-186 unchanged: adds API surface only, no permission change — setting the verdict stays a PO action.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "id_or_key": {
+            "type": "string",
+            "description": "Issue key (e.g. \"DD-42\") or numeric backlog id — must be in status to_review"
+          }
+        },
+        "required": [
+          "id_or_key"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sop_bundle": {
+      "description": "READ: SOP bundle for a lifecycle trigger. Returns the triggered SOP(s) full text plus — when sprint_key is given — a compact sprint header and an issue table with a blocked_by column (dependency build order). Mirrors `devd-cli sprint start` output, sourced from the DB (no filesystem). trigger e.g. \"sprint:start\" | \"issue:create\" | \"sprint:create\".",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "trigger": {
+            "type": "string",
+            "description": "Lifecycle trigger key, e.g. \"sprint:start\", \"issue:create\", \"sprint:create\""
+          },
+          "sprint_key": {
+            "description": "Sprint key (e.g. \"DD#20\") or numeric id — adds sprint header + issue table",
+            "type": "string"
+          }
+        },
+        "required": [
+          "trigger"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sop_collection_create": {
+      "description": "WRITE: Create a SOP-collection via POST /api/sop-collections. key (lowercase [a-z0-9-]) + name required; description optional. 409 if the key already exists.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Collection key — lowercase [a-z0-9-]"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable name, e.g. \"Backlog-Pflege\""
+          },
+          "description": {
+            "description": "Optional description",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "name"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sop_collection_export": {
+      "description": "Export a SOP-collection as a single concatenated Markdown bundle (all member SOPs, ordered). Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Collection key"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sop_collection_get": {
+      "description": "Get one SOP-collection by key with its full member SOPs (ordered). Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Collection key, e.g. \"backlog-pflege\""
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sop_collection_list": {
+      "description": "List SOP-collections (key, name, description, sopKeys[], sop_count; no SOP content). Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    "devd_sop_collection_set_items": {
+      "description": "WRITE: Set a collection's member SOPs (replace, ordered as given) via PUT /api/sop-collections/:key/items. Unknown sop_key or collection → error.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Collection key"
+          },
+          "sopKeys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Ordered list of SOP keys (replaces current membership)"
+          }
+        },
+        "required": [
+          "key",
+          "sopKeys"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sop_create": {
+      "description": "WRITE: Create a new SOP via POST /api/sops. Guarded by default — errors if the key already exists (use devd_sop_edit for line changes, or force=true to overwrite the existing SOP). Requires key + title + content. SOPs are global (no project_id).",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "SOP key — lowercase [a-z0-9-], e.g. \"report-markdown-prozess\""
+          },
+          "title": {
+            "type": "string",
+            "description": "Human-readable title, e.g. \"SOP - Report für markdowngetriebene Realisierungsprozesse\""
+          },
+          "content": {
+            "type": "string",
+            "description": "Full SOP markdown content"
+          },
+          "force": {
+            "description": "Overwrite if the key already exists (default false → conflict error)",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "content"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sop_edit": {
+      "description": "WRITE: Token-efficient line edit of a SOP (analog to devd_sstd_slot_edit) — patch/insert_after/insert_before/delete a single line instead of a whole-content rewrite. expect guards the anchor line → 409 (no write) on mismatch. PATCH /api/sops/:key/line.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "SOP key"
+          },
+          "op": {
+            "type": "string",
+            "enum": [
+              "patch",
+              "insert_after",
+              "insert_before",
+              "delete"
+            ],
+            "description": "Line operation"
+          },
+          "line": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "1-based line number (insert_after allows 0)"
+          },
+          "content": {
+            "description": "New line content (patch/insert)",
+            "type": "string"
+          },
+          "expect": {
+            "description": "Guard: current content of the anchor line (409 on mismatch)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "op",
+          "line"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sop_get": {
+      "description": "Get one SOP by key. With numbered=true the content is returned as a numbered-line array (use the line numbers for devd_sop_edit). Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "SOP key, e.g. \"sprint-durchfuehrung\""
+          },
+          "numbered": {
+            "description": "Return content as {n, text} lines for line-addressing",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sop_list": {
+      "description": "List all SOPs (metadata only — key, title, updated_at; no content). Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    "devd_sprint_activity": {
+      "description": "READ: Sprint audit-log activity (newest first). Reconciles table_name drift (sprint/sprints). GET /api/sprints/:id/activity.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "sprint_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Numeric sprint id"
+          },
+          "limit": {
+            "description": "Max rows (default 100)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          }
+        },
+        "required": [
+          "sprint_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sprint_cancel": {
+      "description": "WRITE: Cancel a sprint with mandatory notes. Wraps PATCH /api/sprints/:id/status with to=cancelled.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "sprint_key": {
+            "type": "string",
+            "description": "Sprint key (e.g. \"DD#20\") or numeric sprint id"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Cancellation reason (required)"
+          }
+        },
+        "required": [
+          "sprint_key",
+          "notes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sprint_completeness": {
+      "description": "READ: Sprint completion — issues passed/total + percent (issues-only; no story-points in the data model). GET /api/sprints/:id/completeness.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "sprint_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Numeric sprint id"
+          }
+        },
+        "required": [
+          "sprint_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sprint_context": {
+      "description": "Get full sprint context bundle formatted as Markdown — all issue fields plus per-issue user-stories (incl. QA), result fields of already-worked issues, and issue/sprint dependencies. Ideal for AI agents before starting work, no extra calls needed. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "sprint_key": {
+            "type": "string",
+            "description": "Sprint key (e.g. \"DD#20\") or numeric sprint id"
+          }
+        },
+        "required": [
+          "sprint_key"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sprint_create": {
+      "description": "WRITE: Create a new sprint in a specific project. Status starts as \"new\". Response includes `key` (e.g. \"DD#20\").",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "name": {
+            "type": "string",
+            "description": "Sprint name (required)"
+          },
+          "goal": {
+            "description": "Sprint goal — separate column",
+            "type": "string"
+          },
+          "notes": {
+            "description": "Free-text notes",
+            "type": "string"
+          },
+          "start_date": {
+            "description": "ISO date YYYY-MM-DD",
+            "type": "string"
+          },
+          "end_date": {
+            "description": "ISO date YYYY-MM-DD",
+            "type": "string"
+          },
+          "capacity": {
+            "description": "Capacity in hours/points",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "wip_limit": {
+            "description": "Max parallel in_progress issues",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "milestone_id": {
+            "description": "Optional milestone link",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sprint_delete": {
+      "description": "WRITE: Hard-delete a sprint. cascade=true (default) also deletes the sprint's issues incl. their children (no dangling rows). cascade=false keeps the old guard: 409 if issues are still assigned (unassign/move first). DELETE /api/sprints/:id[?cascade=1]. Note: cancelled is a soft state that stays in the DB — this is the hard delete.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "sprint_key": {
+            "type": "string",
+            "description": "Sprint key or numeric id"
+          },
+          "cascade": {
+            "default": true,
+            "description": "Also delete the sprint's issues (default true). false → 409 when issues exist.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "sprint_key",
+          "cascade"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sprint_dep_add": {
+      "description": "WRITE: Add a sprint dependency (predecessor must finish before successor). Routes POST /api/sprint-dependencies. DFS cycle-detection — a cycle is rejected 409 and passed through 1:1.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "predecessor_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "successor_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "predecessor_id",
+          "successor_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sprint_dep_list": {
+      "description": "List a sprint dependencies: { predecessors, successors } with dependency edge id. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "sprint_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Numeric sprint id"
+          }
+        },
+        "required": [
+          "sprint_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sprint_dep_remove": {
+      "description": "WRITE: Remove a sprint dependency edge by its dependency id (from devd_sprint_dep_list). Routes DELETE /api/sprint-dependencies/:id.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "dependency_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Dependency edge id (dep# from dep_list)"
+          }
+        },
+        "required": [
+          "dependency_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sprint_export": {
+      "description": "READ: Export one sprint (its issues) as CSV or Markdown. csv columns: id,key,title,status,type,priority,tags,completed_at. md groups issues by status. GET /api/sprints/:id/export. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "sprint_key": {
+            "type": "string",
+            "description": "Sprint key (e.g. \"DD2#22\") or numeric sprint id"
+          },
+          "format": {
+            "description": "Export format (default md)",
+            "type": "string",
+            "enum": [
+              "csv",
+              "md"
+            ]
+          }
+        },
+        "required": [
+          "sprint_key"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sprint_list": {
+      "description": "List sprints for a specific project. Server-side status + milestone filter. Each sprint has `key` field (e.g. \"DD#20\"). Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "status": {
+            "description": "Filter by status. Single (in_progress) or comma-list (in_progress,to_review). Valid: new | planned | in_progress | to_review | completed | cancelled",
+            "type": "string"
+          },
+          "milestone_id": {
+            "description": "DD-554: Filter by milestone. A numeric id, or \"none\"/\"null\" for sprints WITHOUT a milestone (unassigned).",
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "string",
+                "const": "none"
+              },
+              {
+                "type": "string",
+                "const": "null"
+              }
+            ]
+          },
+          "fields": {
+            "description": "DD-620: compact (default — identity/status fields + counts, token-safe) or full (incl. notes etc.; use devd_sprint_show for one sprint).",
+            "type": "string",
+            "enum": [
+              "compact",
+              "full"
+            ]
+          },
+          "limit": {
+            "description": "DD-622: max rows returned",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "offset": {
+            "description": "DD-622: skip the first N rows (pagination)",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "devd_sprint_reorder": {
+      "description": "WRITE: Set the display order of sprints by passing all sprint ids in the desired order. PATCH /api/sprints/reorder {ordered_ids}.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "ordered_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "description": "Sprint ids in the new order"
+          }
+        },
+        "required": [
+          "ordered_ids"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sprint_rev_results": {
+      "description": "Get review results for all issues in a sprint (passed/not_passed/pending). Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "sprint_key": {
+            "type": "string",
+            "description": "Sprint key (e.g. \"DD#20\") or numeric sprint id"
+          }
+        },
+        "required": [
+          "sprint_key"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sprint_review": {
+      "description": "WRITE: Transition a sprint from in_progress → to_review (triggers PO review phase). Sprint completion (to_review → completed) is exclusive to the PO.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "sprint_key": {
+            "type": "string",
+            "description": "Sprint key (e.g. \"DD#20\") or numeric sprint id"
+          }
+        },
+        "required": [
+          "sprint_key"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sprint_set_milestone": {
+      "description": "WRITE: Assign a sprint to a milestone, or unassign (milestone_id=null). Routes PUT /api/sprints/:id {milestone_id}. DD-173: assigning to a completed milestone → 422 (passed through). milestone_id from a different project → 400.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "sprint_key": {
+            "type": "string",
+            "description": "Sprint key (e.g. \"DD#20\") or numeric sprint id"
+          },
+          "milestone_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "sprint_key",
+          "milestone_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sprint_show": {
+      "description": "Get a single sprint with nested items (full backlog rows + review_status + screenshots). Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "sprint_key": {
+            "type": "string",
+            "description": "Sprint key (e.g. \"DD#20\") or numeric sprint id"
+          }
+        },
+        "required": [
+          "sprint_key"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sprint_start": {
+      "description": "WRITE: Transition a sprint from new → in_progress. Wraps PATCH /api/sprints/:id/status.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "sprint_key": {
+            "type": "string",
+            "description": "Sprint key (e.g. \"DD#20\") or numeric sprint id"
+          }
+        },
+        "required": [
+          "sprint_key"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sprint_tag_remove": {
+      "description": "WRITE: Remove the given tag names from a sprint (keeps the rest). PUT /api/sprints/:id/tags.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "sprint_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Numeric sprint id"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ],
+            "description": "Tag names to remove (array or comma string)"
+          }
+        },
+        "required": [
+          "sprint_id",
+          "tags"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sprint_tag_set": {
+      "description": "WRITE: Replace ALL tags on a sprint with the given tag names (full set; empty clears). Unknown names reported, not auto-created. PUT /api/sprints/:id/tags.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "sprint_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Numeric sprint id"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ],
+            "description": "Tag names (array or comma string); [] / \"\" clears all"
+          }
+        },
+        "required": [
+          "sprint_id",
+          "tags"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sprint_update": {
+      "description": "WRITE: Update sprint fields (name/goal/notes/dates/capacity/wip_limit). Only provided fields change. PUT /api/sprints/:id. Use devd_sprint_set_milestone for milestone, the status verbs for lifecycle.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "sprint_key": {
+            "type": "string",
+            "description": "Sprint key or numeric id"
+          },
+          "name": {
+            "type": "string"
+          },
+          "goal": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "start_date": {
+            "description": "ISO date YYYY-MM-DD",
+            "type": "string"
+          },
+          "end_date": {
+            "description": "ISO date YYYY-MM-DD",
+            "type": "string"
+          },
+          "capacity": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "wip_limit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "sprint_key"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sstd_get": {
+      "description": "Get the full reassembled SSTD of a project (6 Slots + Projektionen: Naechste Schritte <- offene ToDos, Session-Log <- letzte 40 session_log-Memories). Faellt auf den Legacy-Blob projects.sstd_content zurueck, solange alle Slots leer sind. Read-only (MEM-16/18).",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id_or_slug": {
+            "type": "string",
+            "description": "Numeric project id or slug string (e.g. \"devd\", \"2\")"
+          }
+        },
+        "required": [
+          "id_or_slug"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sstd_journal_add": {
+      "description": "WRITE: Append a session-log entry to a project. Alias, der ein project_memory (category=session_log, Auto-Datum) anlegt — kein eigener Journal-Store (D03-rev). Erscheint in der Session-Log-Projektion von devd_sstd_get (letzte 40) (MEM-16/18, DD2-19).",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id_or_slug": {
+            "type": "string",
+            "description": "Numeric project id or slug string (e.g. \"devd\", \"2\")"
+          },
+          "content": {
+            "type": "string",
+            "description": "Session-log entry text (wird als session_log summary gespeichert)"
+          }
+        },
+        "required": [
+          "id_or_slug",
+          "content"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sstd_slot_edit": {
+      "description": "WRITE: Line-level edit of one SSTD slot (token-effizient statt Whole-Rewrite). op=patch|insert_after|insert_before|delete, line is 1-based (insert_after erlaubt 0 = voranstellen). Optionaler expect-Guard: stimmt der aktuelle Zeileninhalt nicht, antwortet das Backend mit 409 (kein Write) (MEM-16/18).",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id_or_slug": {
+            "type": "string",
+            "description": "Numeric project id or slug string (e.g. \"devd\", \"2\")"
+          },
+          "slot_key": {
+            "type": "string",
+            "enum": [
+              "architecture",
+              "conventions",
+              "sprint_state",
+              "roadmap",
+              "cross_refs",
+              "misc"
+            ],
+            "description": "One of the 6 fixed slots"
+          },
+          "op": {
+            "type": "string",
+            "enum": [
+              "patch",
+              "insert_after",
+              "insert_before",
+              "delete"
+            ],
+            "description": "Line operation"
+          },
+          "line": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "1-based line number (insert_after also accepts 0 to prepend)"
+          },
+          "content": {
+            "description": "New line content (for patch / insert_*)",
+            "type": "string"
+          },
+          "expect": {
+            "description": "Guard: current content of the anchor line must match, else 409 (no write)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id_or_slug",
+          "slot_key",
+          "op",
+          "line"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sstd_slot_get": {
+      "description": "Get a single SSTD slot of a project. Read-only (MEM-16/18).",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id_or_slug": {
+            "type": "string",
+            "description": "Numeric project id or slug string (e.g. \"devd\", \"2\")"
+          },
+          "slot_key": {
+            "type": "string",
+            "enum": [
+              "architecture",
+              "conventions",
+              "sprint_state",
+              "roadmap",
+              "cross_refs",
+              "misc"
+            ],
+            "description": "One of the 6 fixed slots"
+          }
+        },
+        "required": [
+          "id_or_slug",
+          "slot_key"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sstd_slot_list": {
+      "description": "List all SSTD slots of a project (slot-key + raw content) in one call. Unlike devd_sstd_get (full reassembly incl. projections) this returns the raw editable slots as a list. Read-only (MEM-16/18, DD2-98).",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id_or_slug": {
+            "type": "string",
+            "description": "Numeric project id or slug string (e.g. \"devd\", \"2\")"
+          }
+        },
+        "required": [
+          "id_or_slug"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_sstd_slot_set": {
+      "description": "WRITE: Replace a whole SSTD slot (last-write-wins). Use for the initial fill or full rewrite of one slot; for line-level edits use devd_sstd_slot_edit (MEM-16/18).",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id_or_slug": {
+            "type": "string",
+            "description": "Numeric project id or slug string (e.g. \"devd\", \"2\")"
+          },
+          "slot_key": {
+            "type": "string",
+            "enum": [
+              "architecture",
+              "conventions",
+              "sprint_state",
+              "roadmap",
+              "cross_refs",
+              "misc"
+            ],
+            "description": "One of the 6 fixed slots"
+          },
+          "content": {
+            "type": "string",
+            "description": "Full new markdown content of the slot"
+          }
+        },
+        "required": [
+          "id_or_slug",
+          "slot_key",
+          "content"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_subtask_add": {
+      "description": "WRITE: Add a subtask to an issue. title is required. qa_criteria is recommended (required before marking done).",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "id_or_key": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Issue key (e.g. \"DD-42\") or numeric backlog id"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Subtask title (required)"
+          },
+          "qa_criteria": {
+            "description": "Acceptance / QA criteria — required before marking done",
+            "type": "string"
+          },
+          "position": {
+            "description": "Sort position (default appended at end)",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id_or_key",
+          "title"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_subtask_done": {
+      "description": "WRITE: Mark a subtask as done. The subtask must have qa_criteria set (enforced server-side).",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "subtask_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Numeric subtask id (ST-<id>)"
+          }
+        },
+        "required": [
+          "subtask_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_subtask_edit": {
+      "description": "WRITE: Update title, qa_criteria, or position of a subtask.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "subtask_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Numeric subtask id (ST-<id>)"
+          },
+          "title": {
+            "description": "New title",
+            "type": "string",
+            "minLength": 1
+          },
+          "qa_criteria": {
+            "description": "New QA criteria",
+            "type": "string"
+          },
+          "position": {
+            "description": "New sort position",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "subtask_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_subtask_list": {
+      "description": "READ: List all subtasks for an issue. Returns id, title, qa_criteria, status, position.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "id_or_key": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Issue key (e.g. \"DD-42\") or numeric backlog id"
+          }
+        },
+        "required": [
+          "id_or_key"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_subtask_remove": {
+      "description": "WRITE: Delete a subtask permanently.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "subtask_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Numeric subtask id (ST-<id>)"
+          }
+        },
+        "required": [
+          "subtask_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_tag_create": {
+      "description": "WRITE: Create a tag in the active project. POST /api/tags.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "name": {
+            "type": "string",
+            "description": "Tag name (unique per project)"
+          },
+          "color": {
+            "description": "Tag color (default mauve)",
+            "type": "string",
+            "enum": [
+              "blue",
+              "green",
+              "peach",
+              "mauve",
+              "teal",
+              "overlay0"
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_tag_delete": {
+      "description": "WRITE: Delete a tag (cascades — removes it from all issues). DELETE /api/tags/:id.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "tag id"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_tag_list": {
+      "description": "List tags of the active project with usage counts. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "devd_tag_update": {
+      "description": "WRITE: Rename a tag or change its color. PUT /api/tags/:id.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "tag id"
+          },
+          "name": {
+            "description": "New name",
+            "type": "string"
+          },
+          "color": {
+            "description": "New color",
+            "type": "string",
+            "enum": [
+              "blue",
+              "green",
+              "peach",
+              "mauve",
+              "teal",
+              "overlay0"
+            ]
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_todo_create": {
+      "description": "WRITE: Create a new project todo. position = MAX+1 atomic. status defaults to \"open\".",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 280,
+            "description": "Todo title (1-280 chars)"
+          },
+          "details": {
+            "description": "Optional markdown details",
+            "type": "string",
+            "maxLength": 8000
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_todo_delete": {
+      "description": "WRITE: Delete a todo. CASCADE removes all links.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_todo_link": {
+      "description": "WRITE: Attach a link to a todo. type must be spec|issue|vault|url. target is validated per type (URL pattern, issue key DD-123, path-traversal reject for spec, [[/]]-reject for vault).",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "todo_id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "spec",
+              "issue",
+              "vault",
+              "url"
+            ]
+          },
+          "target": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "todo_id",
+          "type",
+          "target"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_todo_list": {
+      "description": "List project todos. Optional status filter (open|done|cancelled). Returns each todo with its links inline. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "status": {
+            "description": "Filter by todo status",
+            "type": "string",
+            "enum": [
+              "open",
+              "done",
+              "cancelled"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "devd_todo_show": {
+      "description": "Get a single todo with links. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Numeric todo id"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_todo_update": {
+      "description": "WRITE: Update label / status / details. status must be open|done|cancelled (NOT issue lifecycle).",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 280
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "done",
+              "cancelled"
+            ]
+          },
+          "details": {
+            "description": "Set to null to clear",
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 8000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_user_note_create": {
+      "description": "WRITE: Create a user-note (rich entity for UserNotesWidget — NOT the SSTD auto-journal). title required; details (≤500), pr_url, sprints[], issues[] optional.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "Note title"
+          },
+          "details": {
+            "description": "Markdown body, ≤500 chars",
+            "type": "string"
+          },
+          "pr_url": {
+            "description": "Pull-request URL",
+            "type": "string"
+          },
+          "sprints": {
+            "description": "Sprint keys, e.g. [\"DD#47\"]",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "issues": {
+            "description": "Issue keys, e.g. [\"DD-678\",\"GF-433\"]",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_user_note_delete": {
+      "description": "WRITE: Delete a user-note by id (project-scoped). DELETE /api/user-notes/:id.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_user_note_get": {
+      "description": "Get one user-note by id (project-scoped, with parsed sprints[]/issues[]). Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_user_note_list": {
+      "description": "List user-notes of a project (id DESC). Optional FTS search over title+details. Read-only.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "search": {
+            "description": "FTS query over title+details",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "devd_user_note_update": {
+      "description": "WRITE: Partial update of a user-note (at least one field). PUT /api/user-notes/:id.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "title": {
+            "type": "string"
+          },
+          "details": {
+            "type": "string"
+          },
+          "pr_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sprints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_user_story_add": {
+      "description": "WRITE: Add a user story (Pruefgrundlage) to an issue. title is required. qa is the per-story acceptance/QA criteria (replaces the old issue-level acceptance_criteria/test_instruction, D09). us_verdict starts at open.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "id_or_key": {
+            "type": "string",
+            "description": "Issue key (e.g. \"DD-42\") or numeric backlog id"
+          },
+          "title": {
+            "type": "string",
+            "description": "User story title (required)"
+          },
+          "details": {
+            "description": "Optional detail / narrative of the story",
+            "type": "string"
+          },
+          "qa": {
+            "description": "Per-story acceptance / QA criteria (D09 Pruefgrundlage)",
+            "type": "string"
+          },
+          "position": {
+            "description": "Sort position (default appended at end)",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id_or_key",
+          "title"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_user_story_edit": {
+      "description": "WRITE: Update title, details, qa, position, or us_verdict (open|accepted|rejected) of a user story.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "user_story_id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Numeric user story id (US-<id>)"
+          },
+          "title": {
+            "description": "New title",
+            "type": "string"
+          },
+          "details": {
+            "description": "New details",
+            "type": "string"
+          },
+          "qa": {
+            "description": "New per-story QA criteria",
+            "type": "string"
+          },
+          "us_verdict": {
+            "description": "Story-level verdict badge",
+            "type": "string",
+            "enum": [
+              "open",
+              "accepted",
+              "rejected"
+            ]
+          },
+          "position": {
+            "description": "New sort position",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "user_story_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_user_story_list": {
+      "description": "READ: List all user stories for an issue. Returns id, key (US-<id>), title, details, qa, us_verdict, position.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "id_or_key": {
+            "type": "string",
+            "description": "Issue key (e.g. \"DD-42\") or numeric backlog id"
+          }
+        },
+        "required": [
+          "id_or_key"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_user_story_remove": {
+      "description": "WRITE: Delete a user story permanently.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "user_story_id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Numeric user story id (US-<id>)"
+          }
+        },
+        "required": [
+          "user_story_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_user_story_verdict": {
+      "description": "WRITE: Set the story-level verdict (open|accepted|rejected) of a user story (review context, per-US toggle).",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "user_story_id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Numeric user story id (US-<id>)"
+          },
+          "us_verdict": {
+            "type": "string",
+            "enum": [
+              "open",
+              "accepted",
+              "rejected"
+            ],
+            "description": "Story-level verdict"
+          }
+        },
+        "required": [
+          "user_story_id",
+          "us_verdict"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}
