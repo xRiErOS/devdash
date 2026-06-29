@@ -34,6 +34,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.view == viewBacklog {
 				return m, tea.Batch(loadBacklog(m.client), clear)
 			}
+			// DD2-153: im Review die Ursprungs-Sprint-Review gezielt neu laden. Sonst
+			// reloadt loadMilestones→syncSprint() den columns-SELEKTIERTEN (default
+			// ersten) Sprint und clobbert m.curSprint → Redirect auf das erste Review
+			// der Liste statt das, von dem die PO startete.
+			if m.view == viewReview && m.curSprint != nil {
+				return m, tea.Batch(loadSprint(m.client, m.curSprint.ID), clear)
+			}
 			// DD2-72: im Tree/Columns nach Issue-Anlage die Spalten/Counts auffrischen,
 			// sonst hängt die Ansicht auf veralteten Fortschrittszahlen.
 			return m, tea.Batch(loadMilestones(m.client), clear)
