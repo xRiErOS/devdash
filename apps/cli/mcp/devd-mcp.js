@@ -998,6 +998,25 @@ server.tool(
   },
 )
 
+// DD2-6: Sprint-Export (CSV/MD) zugänglich machen. Backlog-CSV bleibt entfernt
+// (DD2-123, schlecht für LLM-Parsing) — Sprint-Export behält CSV für Tabellen-Tools.
+server.tool(
+  'devd_sprint_export',
+  'READ: Export one sprint (its issues) as CSV or Markdown. csv columns: id,key,title,status,type,priority,tags,completed_at. md groups issues by status. GET /api/sprints/:id/export. Read-only.',
+  {
+    project_id: PROJECT_ID_PARAM,
+    sprint_key: z.string().describe('Sprint key (e.g. "DD2#22") or numeric sprint id'),
+    format: z.enum(['csv', 'md']).optional().describe('Export format (default md)'),
+  },
+  async ({ project_id, sprint_key, format }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    const id = await resolveSprintId(sprint_key, pid)
+    const qs = format ? `?format=${format}` : ''
+    return okTextOrError(await apiRequest('GET', `/api/sprints/${id}/export${qs}`, null, pid))
+  },
+)
+
 server.tool(
   'devd_dashboard_home',
   'READ: Global home dashboard — one tile row per non-archived project (open sprints/milestones/issues counts). GET /api/dashboard/home. Global, read-only.',

@@ -18,6 +18,7 @@
  *   devd-cli sprint complete <key|id>        # review → completed (setzt passed→done)
  *   devd-cli sprint cancel <key|id> --notes <text>
  *   devd-cli sprint rev-results <key|id>     # PO-Review-Status pro Issue
+ *   devd-cli sprint export <key|id> [--format csv|md]   # Sprint-Issues nach stdout
  *
  *   devd-cli issue list [--sprint <key|id>] [--status <s>] [--search <q>]
  *   devd-cli issue show <id|key>
@@ -2039,6 +2040,16 @@ related_issues:
     const md = await api('GET', `/api/sop-collections/${encodeURIComponent(key)}/export`)
     process.stdout.write((typeof md === 'string' ? md : JSON.stringify(md)) + '\n')
   },
+  // DD2-6: Sprint-Export (CSV/MD) nach stdout. Backlog-CSV bleibt entfernt (DD2-123);
+  // Sprint-Export behält CSV für Tabellen-/Tracking-Tools.
+  async 'sprint:export'(flags) {
+    const ref = flags._[0]
+    if (!ref) { console.error('Usage: devd-cli sprint export <key|id> [--format csv|md]   # nach stdout'); process.exit(2) }
+    const format = typeof flags.format === 'string' ? flags.format.toLowerCase() : 'md'
+    const id = await resolveSprintId(ref)
+    const out = await api('GET', `/api/sprints/${id}/export?format=${encodeURIComponent(format)}`)
+    process.stdout.write((typeof out === 'string' ? out : JSON.stringify(out)) + '\n')
+  },
 
   // ---- User-Notes (ProjectPages T-be1, D-D Modell B) — project-gescopt (X-Project-Id) ----
   async 'user-note:list'(flags) {
@@ -2218,6 +2229,7 @@ Sprints (Key wie DD#20 oder globale ID):
   devd-cli sprint complete <key|id> [--force]
   devd-cli sprint cancel <key|id> --notes <begründung>
   devd-cli sprint rev-results <key|id>      # PO-Review-Übersicht
+  devd-cli sprint export <key|id> [--format csv|md]   # Sprint-Issues nach stdout (DD2-6)
   devd-cli sprint set-milestone <key|id> <milestone-id|none>   # DD-552
   devd-cli sprint list --no-milestone [--status <s>]           # DD-554
   devd-cli sprint update <key|id> [--name <n>] [--goal <t>] [--notes <t>]
