@@ -13,7 +13,7 @@ import {
 describe('DD-561 SPRINT_STATUSES', () => {
   test('Spiegel von lifecycle.js SPRINT_STATUSES', () => {
     expect(SPRINT_STATUSES).toEqual([
-      'planning', 'active', 'review', 'completed', 'closed', 'cancelled',
+      'new', 'planned', 'in_progress', 'to_review', 'completed', 'cancelled',
     ])
   })
 })

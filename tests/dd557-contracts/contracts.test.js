@@ -90,8 +90,8 @@ describe('DD-557 sprintSetMilestoneContract', () => {
 
 describe('DD-557 parseOrThrow', () => {
   test('gibt geparste Daten bei Erfolg', () => {
-    const out = parseOrThrow(milestoneStatusContract, { status: 'active' })
-    expect(out.status).toBe('active')
+    const out = parseOrThrow(milestoneStatusContract, { status: 'in_progress' })
+    expect(out.status).toBe('in_progress')
   })
   test('wirft lesbaren Fehler mit Pfad', () => {
     expect(() => parseOrThrow(milestoneCreateContract, {})).toThrow(/name/)
