@@ -23,6 +23,10 @@ const (
 	viewManageTags    // DD2-75: Tag-Manager (projektweite Tag-CRUD)
 	viewCommandCenter // DD2-91: projektweite Issue-Such-Ansicht (Command-Center)
 	viewTutorial      // DD2-122: geführtes, seitenweises Onboarding
+	viewSSTD          // DD2-166: SSTD-Slots MasterDetail (6 Slots + 2 Projektionen)
+	viewUserNotes     // DD2-168: User-Notes MasterDetail (FTS-Suche, neovim-Edit)
+	viewToDos         // DD2-171: Projekt-ToDos MasterDetail (Suche/Sort/Filter)
+	viewDocs          // DD2-167: Dokumente-Browser (owner-gebunden, neovim-Edit)
 )
 
 // filterState hält pro Spalte, welche Werte ausgeblendet sind.
@@ -196,6 +200,43 @@ type model struct {
 	memSearching bool
 	memQuery     string
 	memCat       string // aktiver Kategorie-Filter ("" = alle)
+
+	// SSTD-Browser (DD2-166): MasterDetail über die 6 editierbaren Slots + 2
+	// read-only Projektionen. sstdEditKey merkt sich den Slot vor dem neovim-Edit.
+	sstdSlots   []api.SstdSlot
+	sstdProj    *api.SstdProjections
+	sstdList    listState
+	sstdEditKey string
+
+	// User-Notes-Browser (DD2-168): MasterDetail über user_notes mit FTS-Suche.
+	// unEditID = 0 → Create-Modus beim nächsten editorFinishedMsg, >0 → Update.
+	unList      []api.UserNote
+	unlist      listState
+	unSearching bool
+	unQuery     string
+	unEditID    int
+
+	// ToDos-Browser (DD2-171): MasterDetail über project_todos. todoAll = serverseitig
+	// status-gefilterte Liste; todoQuery filtert clientseitig über label; todoSort
+	// schaltet Reihenfolge (pos|label). todoEditID = 0 → Create-Modus.
+	todoAll       []api.Todo
+	todolist      listState
+	todoStatus    string // server-Filter: "" alle | open | done | cancelled
+	todoSearching bool
+	todoQuery     string
+	todoSort      string // "pos" (default) | "label"
+	todoEditID    int
+
+	// Dokumente-Browser (DD2-167): owner-gebunden (Meilenstein ODER Sprint, Owner
+	// kommt aus dem Tree-Kontext). docEditID = 0 → Create-Modus.
+	docList      []api.Document
+	doclist      listState
+	docOwnerType string // "milestone" | "sprint"
+	docOwnerID   int
+	docOwnerName string
+	docSearching bool
+	docQuery     string
+	docEditID    int
 
 	// Command-Center (T16): globales Action-Palette-Modal (ctrl+k / shift+k).
 	paletteOpen bool

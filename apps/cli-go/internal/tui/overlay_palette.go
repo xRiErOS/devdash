@@ -27,6 +27,10 @@ func paletteActions(m *model) []paletteAction {
 		{"create_memory", "Create new memory"},
 		{"go_reviews", "Go to: Open reviews"},
 		{"go_memory", "Go to: Memory browser"},
+		{"go_sstd", "Go to: SSTD slots"},          // DD2-166
+		{"go_notes", "Go to: User notes"},         // DD2-168
+		{"go_todos", "Go to: ToDos"},              // DD2-171
+		{"go_docs", "Go to: Documents"},           // DD2-167 (owner = focused tree node)
 		{"go_search", "Go to: Search all issues"}, // DD2-91
 		{"go_backlog", "Go to: Backlog"},
 		{"go_tags", "Go to: Tag manager"},
@@ -121,6 +125,14 @@ func (m model) dispatchPalette(id string) (tea.Model, tea.Cmd) {
 		return m.openReviewsList()
 	case "go_memory":
 		return m.openMemory()
+	case "go_sstd": // DD2-166: SSTD-Slots-Browser
+		return m.openSSTD()
+	case "go_notes": // DD2-168: User-Notes-Browser
+		return m.openUserNotes()
+	case "go_todos": // DD2-171: ToDos-Browser
+		return m.openToDos()
+	case "go_docs": // DD2-167: Dokumente-Browser (Owner aus Tree-Fokus)
+		return m.openDocsFromContext()
 	case "go_search": // DD2-91: projektweite Issue-Suche
 		return m.openSearch()
 	case "go_tutorial": // DD2-122: geführtes Onboarding

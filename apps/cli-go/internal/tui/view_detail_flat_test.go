@@ -23,11 +23,11 @@ func TestMilestoneSprintFieldSets(t *testing.T) {
 		}
 		return strings.Join(out, ",")
 	}
-	if got := keys(milestoneFields()); got != "name,description,target_date" {
-		t.Errorf("milestoneFields=%s, want name,description,target_date", got)
+	if got := keys(milestoneFields()); got != "name,description,target_date,documents" {
+		t.Errorf("milestoneFields=%s, want name,description,target_date,documents", got)
 	}
-	if got := keys(sprintFields()); got != "name,goal" {
-		t.Errorf("sprintFields=%s, want name,goal", got)
+	if got := keys(sprintFields()); got != "name,goal,documents" {
+		t.Errorf("sprintFields=%s, want name,goal,documents", got)
 	}
 }
 
@@ -48,15 +48,15 @@ func TestFlatFieldNavMilestone(t *testing.T) {
 	}
 	mi, _ = m.keyTree(key("k"))
 	m = mi.(model)
-	mi, _ = m.keyTree(key("k")) // 3 Felder → an Index 2 geklemmt
+	mi, _ = m.keyTree(key("k")) // DD2-169: 4 Felder (name/desc/target/documents) → Index 3
 	m = mi.(model)
-	if m.fieldCursor != 2 {
-		t.Errorf("k geklemmt → fieldCursor=%d, want 2", m.fieldCursor)
+	if m.fieldCursor != 3 {
+		t.Errorf("k geklemmt → fieldCursor=%d, want 3", m.fieldCursor)
 	}
 	mi, _ = m.keyTree(key("i")) // hoch
 	m = mi.(model)
-	if m.fieldCursor != 1 {
-		t.Errorf("i → fieldCursor=%d, want 1", m.fieldCursor)
+	if m.fieldCursor != 2 {
+		t.Errorf("i → fieldCursor=%d, want 2", m.fieldCursor)
 	}
 }
 
@@ -71,10 +71,10 @@ func TestFlatFieldNavSprint(t *testing.T) {
 	}
 	mi, _ = m.keyTree(key("k"))
 	m = mi.(model)
-	mi, _ = m.keyTree(key("k")) // nur 2 Felder → an Index 1 geklemmt
+	mi, _ = m.keyTree(key("k")) // DD2-169: 3 Felder (name/goal/documents) → Index 2
 	m = mi.(model)
-	if m.fieldCursor != 1 {
-		t.Errorf("k geklemmt (2 Felder) → fieldCursor=%d, want 1", m.fieldCursor)
+	if m.fieldCursor != 2 {
+		t.Errorf("k (3 Felder) → fieldCursor=%d, want 2", m.fieldCursor)
 	}
 }
 

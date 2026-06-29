@@ -93,6 +93,22 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.view == viewManageMemory {
 		return m.keyMemory(msg)
 	}
+	// SSTD-Browser (DD2-166) fängt voll (i/k Nav, enter editiert, esc/q zurück).
+	if m.view == viewSSTD {
+		return m.keySSTD(msg)
+	}
+	// User-Notes-Browser (DD2-168) fängt voll (/ tippt Suche, n/d/enter, esc/q zurück).
+	if m.view == viewUserNotes {
+		return m.keyUserNotes(msg)
+	}
+	// ToDos-Browser (DD2-171) fängt voll (/ tippt Suche, s/o/enter/e/n/d, esc/q zurück).
+	if m.view == viewToDos {
+		return m.keyToDos(msg)
+	}
+	// Dokumente-Browser (DD2-167) fängt voll (/ tippt Suche, enter/n/d, esc/q zurück).
+	if m.view == viewDocs {
+		return m.keyDocs(msg)
+	}
 	// Tag-Manager (DD2-75) fängt voll (n/e/d + esc/q zurück).
 	if m.view == viewManageTags {
 		return m.keyTags(msg)

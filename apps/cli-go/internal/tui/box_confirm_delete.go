@@ -67,8 +67,15 @@ func (m model) keyDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.delConfirm = false
 		m.status = "Deleting " + m.delName + " …"
-		if m.delKind == "issue" { // DD2-65: einzelnes Issue, kein Cascade
+		switch m.delKind {
+		case "issue": // DD2-65: einzelnes Issue, kein Cascade
 			return m, doDeleteIssue(m.client, m.delID, m.delName)
+		case "usernote": // DD2-168: User-Notiz, kein Cascade
+			return m, doDeleteUserNote(m.client, m.delID, m.delName, strings.TrimSpace(m.unQuery))
+		case "todo": // DD2-171: ToDo, kein Cascade
+			return m, doDeleteTodo(m.client, m.delID, m.delName, m.todoStatus)
+		case "document": // DD2-167: Dokument, kein Cascade
+			return m, doDeleteDocument(m.client, m.docOwnerType, m.docOwnerID, m.delID, m.delName)
 		}
 		return m, doCascadeDelete(m.client, m.delKind, m.delID, m.delName)
 	}
@@ -84,11 +91,17 @@ func (m model) deleteBox() string {
 		head = "Delete sprint"
 	case "issue":
 		head = "Delete issue"
+	case "usernote":
+		head = "Delete note"
+	case "todo":
+		head = "Delete todo"
+	case "document":
+		head = "Delete document"
 	}
 	b.WriteString(lipgloss.NewStyle().Foreground(theme.Red).Bold(true).Render(head) + "\n")
 	b.WriteString(theme.Header.Render(truncate(m.delName, 40)) + "\n\n")
-	if m.delKind == "issue" { // DD2-65: kein Cascade — schlichtes Confirm
-		b.WriteString(theme.Dim.Render("The issue will be permanently deleted.") + "\n")
+	if m.delKind == "issue" || m.delKind == "usernote" || m.delKind == "todo" || m.delKind == "document" { // kein Cascade — schlichtes Confirm
+		b.WriteString(theme.Dim.Render("This will be permanently deleted.") + "\n")
 		b.WriteString("\n" + lipgloss.NewStyle().Foreground(theme.Red).Render("Irreversible.") + "\n")
 	} else if m.delLoading {
 		b.WriteString(theme.Dim.Render("(loading scope …)") + "\n")

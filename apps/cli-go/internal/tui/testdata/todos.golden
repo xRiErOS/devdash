@@ -1,0 +1,23 @@
+> devd2                        ctrl+k:cmd  p:project  b:backlog  R:reviews  ?:help  q:quit
+dd2 — ToDos
+╭──────────────────────────────╮╭────────────────────────────────────────────────────────╮
+│ToDos ∙ all (3) ∙ pos         ││Detail                                                  │
+│───────────────────────       ││────────                                                │
+│▸ [ ] Zebra task              ││Zebra task                                              │
+│  [x] Alpha task              ││status: open                                            │
+│  [-] Mid task                ││                                                        │
+│                              ││                                                        │
+│                              ││  Some **detail** text.                                 │
+│                              ││                                                        │
+│                              ││                                                        │
+│                              ││                                                        │
+│                              ││                                                        │
+│                              ││                                                        │
+│                              ││                                                        │
+│                              ││                                                        │
+│                              ││                                                        │
+│                              ││                                                        │
+│                              ││                                                        │
+│                              ││                                                        │
+╰──────────────────────────────╯╰────────────────────────────────────────────────────────╯
+i/k:↑↓  enter:toggle  e:edit  n:new  d:del  /:search  s:status  o:sort  esc/q:back

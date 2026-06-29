@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"strings"
+
 	"devd-cli/internal/api"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
@@ -203,6 +205,76 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.mem != nil {
 			m.memDetail = msg.mem
 			m.memDetailID = msg.mem.ID
+		}
+		return m, nil
+	case sstdMsg: // DD2-166: Slots + Projektionen geladen/neu gespeichert
+		m.sstdSlots = msg.slots
+		m.sstdProj = msg.proj
+		m.sstdList.setLen(len(m.sstdEntries()))
+		if msg.notice != "" {
+			m.status = noticeText(msg.notice)
+			m.statusSticky = false
+			m.statusSeq++
+			return m, statusTimeout(m.statusSeq)
+		}
+		return m, nil
+	case userNotesMsg: // DD2-168: Notiz-Liste geladen/neu gespeichert
+		m.unList = msg.items
+		m.unlist.setLen(len(m.unList))
+		if msg.notice != "" {
+			m.status = noticeText(msg.notice)
+			m.statusSticky = false
+			m.statusSeq++
+			return m, statusTimeout(m.statusSeq)
+		}
+		return m, nil
+	case todosMsg: // DD2-171: ToDo-Liste geladen/neu gespeichert
+		m.todoAll = msg.items
+		m.todolist.setLen(len(m.filteredTodos()))
+		if msg.notice != "" {
+			m.status = noticeText(msg.notice)
+			m.statusSticky = false
+			m.statusSeq++
+			return m, statusTimeout(m.statusSeq)
+		}
+		return m, nil
+	case docsMsg: // DD2-167: Dokument-Liste geladen/neu gespeichert
+		m.docList = msg.items
+		m.doclist.setLen(len(m.filteredDocs()))
+		if msg.notice != "" {
+			m.status = noticeText(msg.notice)
+			m.statusSticky = false
+			m.statusSeq++
+			return m, statusTimeout(m.statusSeq)
+		}
+		return m, nil
+	case editorFinishedMsg: // DD2-164/166ff: neovim-Suspend zurück → view-aware speichern
+		if msg.err != nil {
+			m.status = noticeText("editor: " + msg.err.Error())
+			m.statusSticky = false
+			m.statusSeq++
+			return m, statusTimeout(m.statusSeq)
+		}
+		if !msg.changed {
+			m.status = noticeText("no changes")
+			m.statusSticky = false
+			m.statusSeq++
+			return m, statusTimeout(m.statusSeq)
+		}
+		switch m.view {
+		case viewSSTD:
+			if m.sstdEditKey != "" {
+				return m, saveSstdSlotCmd(m.client, m.sstdEditKey, msg.content)
+			}
+		case viewUserNotes:
+			title := firstLineTitle(msg.content)
+			return m, saveUserNoteCmd(m.client, m.unEditID, title, msg.content, strings.TrimSpace(m.unQuery))
+		case viewToDos:
+			label := firstLineTitle(msg.content)
+			return m, saveTodoCmd(m.client, m.todoEditID, label, msg.content, m.todoStatus)
+		case viewDocs:
+			title := firstLineTitle(msg.content)
+			return m, saveDocCmd(m.client, m.docOwnerType, m.docOwnerID, m.docEditID, title, msg.content)
 		}
 		return m, nil
 	case unassignedSprintsMsg:
