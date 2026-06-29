@@ -133,6 +133,8 @@ func (m model) viewBase() string {
 		return m.viewSSTD()
 	case viewUserNotes:
 		return m.viewUserNotes()
+	case viewToDos:
+		return m.viewToDos()
 	case viewTutorial:
 		return m.viewTutorial() // DD2-122: Onboarding
 	default:

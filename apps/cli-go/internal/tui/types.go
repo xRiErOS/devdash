@@ -25,6 +25,7 @@ const (
 	viewTutorial      // DD2-122: geführtes, seitenweises Onboarding
 	viewSSTD          // DD2-166: SSTD-Slots MasterDetail (6 Slots + 2 Projektionen)
 	viewUserNotes     // DD2-168: User-Notes MasterDetail (FTS-Suche, neovim-Edit)
+	viewToDos         // DD2-171: Projekt-ToDos MasterDetail (Suche/Sort/Filter)
 )
 
 // filterState hält pro Spalte, welche Werte ausgeblendet sind.
@@ -213,6 +214,17 @@ type model struct {
 	unSearching bool
 	unQuery     string
 	unEditID    int
+
+	// ToDos-Browser (DD2-171): MasterDetail über project_todos. todoAll = serverseitig
+	// status-gefilterte Liste; todoQuery filtert clientseitig über label; todoSort
+	// schaltet Reihenfolge (pos|label). todoEditID = 0 → Create-Modus.
+	todoAll       []api.Todo
+	todolist      listState
+	todoStatus    string // server-Filter: "" alle | open | done | cancelled
+	todoSearching bool
+	todoQuery     string
+	todoSort      string // "pos" (default) | "label"
+	todoEditID    int
 
 	// Command-Center (T16): globales Action-Palette-Modal (ctrl+k / shift+k).
 	paletteOpen bool

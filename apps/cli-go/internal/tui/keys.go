@@ -101,6 +101,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.view == viewUserNotes {
 		return m.keyUserNotes(msg)
 	}
+	// ToDos-Browser (DD2-171) fängt voll (/ tippt Suche, s/o/enter/e/n/d, esc/q zurück).
+	if m.view == viewToDos {
+		return m.keyToDos(msg)
+	}
 	// Tag-Manager (DD2-75) fängt voll (n/e/d + esc/q zurück).
 	if m.view == viewManageTags {
 		return m.keyTags(msg)

@@ -72,6 +72,8 @@ func (m model) keyDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, doDeleteIssue(m.client, m.delID, m.delName)
 		case "usernote": // DD2-168: User-Notiz, kein Cascade
 			return m, doDeleteUserNote(m.client, m.delID, m.delName, strings.TrimSpace(m.unQuery))
+		case "todo": // DD2-171: ToDo, kein Cascade
+			return m, doDeleteTodo(m.client, m.delID, m.delName, m.todoStatus)
 		}
 		return m, doCascadeDelete(m.client, m.delKind, m.delID, m.delName)
 	}
@@ -89,10 +91,12 @@ func (m model) deleteBox() string {
 		head = "Delete issue"
 	case "usernote":
 		head = "Delete note"
+	case "todo":
+		head = "Delete todo"
 	}
 	b.WriteString(lipgloss.NewStyle().Foreground(theme.Red).Bold(true).Render(head) + "\n")
 	b.WriteString(theme.Header.Render(truncate(m.delName, 40)) + "\n\n")
-	if m.delKind == "issue" || m.delKind == "usernote" { // kein Cascade — schlichtes Confirm
+	if m.delKind == "issue" || m.delKind == "usernote" || m.delKind == "todo" { // kein Cascade — schlichtes Confirm
 		b.WriteString(theme.Dim.Render("This will be permanently deleted.") + "\n")
 		b.WriteString("\n" + lipgloss.NewStyle().Foreground(theme.Red).Render("Irreversible.") + "\n")
 	} else if m.delLoading {

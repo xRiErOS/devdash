@@ -691,6 +691,77 @@ func doDeleteUserNote(c *api.Client, id int, name, search string) tea.Cmd {
 	}
 }
 
+// todosMsg trägt die geladene ToDo-Liste (DD2-171). notice != "" → Toast.
+type todosMsg struct {
+	items  []api.Todo
+	notice string
+}
+
+// loadTodos lädt die ToDos (optional status-gefiltert) (DD2-171).
+func loadTodos(c *api.Client, status string) tea.Cmd {
+	return func() tea.Msg {
+		todos, err := c.ListTodos(status)
+		if err != nil {
+			return errMsg{err}
+		}
+		return todosMsg{items: todos}
+	}
+}
+
+// toggleTodoCmd schaltet open<->done und lädt die Liste neu (DD2-171).
+func toggleTodoCmd(c *api.Client, id int, done bool, status string) tea.Cmd {
+	return func() tea.Msg {
+		if _, err := c.ToggleTodo(id, done); err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		todos, err := c.ListTodos(status)
+		if err != nil {
+			return errMsg{err}
+		}
+		return todosMsg{items: todos}
+	}
+}
+
+// saveTodoCmd legt ein ToDo an (editID==0, label aus erster Buffer-Zeile) oder
+// aktualisiert die details einer bestehenden (editID>0), dann Reload (DD2-171).
+func saveTodoCmd(c *api.Client, editID int, label, details, status string) tea.Cmd {
+	return func() tea.Msg {
+		var notice string
+		if editID > 0 {
+			d := details
+			if _, err := c.UpdateTodo(editID, api.TodoBody{Details: &d}); err != nil {
+				return noticeMsg{cleanAPIErr(err)}
+			}
+			notice = "ToDo updated"
+		} else {
+			d := details
+			if _, err := c.CreateTodo(api.TodoBody{Label: label, Details: &d}); err != nil {
+				return noticeMsg{cleanAPIErr(err)}
+			}
+			notice = "ToDo created"
+		}
+		todos, err := c.ListTodos(status)
+		if err != nil {
+			return errMsg{err}
+		}
+		return todosMsg{items: todos, notice: notice}
+	}
+}
+
+// doDeleteTodo löscht ein ToDo und lädt die Liste neu (DD2-171).
+func doDeleteTodo(c *api.Client, id int, name, status string) tea.Cmd {
+	return func() tea.Msg {
+		if err := c.DeleteTodo(id); err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		todos, err := c.ListTodos(status)
+		if err != nil {
+			return errMsg{err}
+		}
+		return todosMsg{items: todos, notice: "Deleted " + name}
+	}
+}
+
 // depsMsg trägt die geladenen Abhängigkeiten (DD2-89). key = "m:<id>"/"s:<id>"
 // (cache-Schlüssel), damit Milestone- und Sprint-Deps denselben Cache teilen.
 type depsMsg struct {

@@ -29,6 +29,7 @@ func paletteActions(m *model) []paletteAction {
 		{"go_memory", "Go to: Memory browser"},
 		{"go_sstd", "Go to: SSTD slots"},          // DD2-166
 		{"go_notes", "Go to: User notes"},         // DD2-168
+		{"go_todos", "Go to: ToDos"},              // DD2-171
 		{"go_search", "Go to: Search all issues"}, // DD2-91
 		{"go_backlog", "Go to: Backlog"},
 		{"go_tags", "Go to: Tag manager"},
@@ -127,6 +128,8 @@ func (m model) dispatchPalette(id string) (tea.Model, tea.Cmd) {
 		return m.openSSTD()
 	case "go_notes": // DD2-168: User-Notes-Browser
 		return m.openUserNotes()
+	case "go_todos": // DD2-171: ToDos-Browser
+		return m.openToDos()
 	case "go_search": // DD2-91: projektweite Issue-Suche
 		return m.openSearch()
 	case "go_tutorial": // DD2-122: geführtes Onboarding
