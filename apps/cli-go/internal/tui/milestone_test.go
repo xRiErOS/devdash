@@ -31,17 +31,6 @@ func TestColumnsSOpensMilestoneStatus(t *testing.T) {
 	}
 }
 
-func TestColumnsSDepth1NoMenu(t *testing.T) {
-	m := columnsModel()
-	m.milestones[0].Status = "new"
-	m.depth = 1
-	mi, _ := m.Update(keyMsg("s"))
-	m = mi.(model)
-	if m.msPick {
-		t.Error("s bei depth 1 öffnet das Sprint-Menü, nicht das Meilenstein-Menü (DD2-174)")
-	}
-}
-
 func TestMilestoneStatusEnterDispatches(t *testing.T) {
 	m := columnsModel()
 	m.milestones[0].Status = "new"

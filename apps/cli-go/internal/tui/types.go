@@ -12,7 +12,6 @@ type viewID int
 
 const (
 	viewHome viewID = iota // DD2-124: Startschirm/Lobby (ASCII-Logo + Projektauswahl)
-	viewColumns
 	viewDetail
 	viewBacklog
 	viewReview
@@ -20,8 +19,8 @@ const (
 	viewSprint
 	viewReviewsList
 	viewMemory
-	viewTree   // DD2-57: Tree+Detail-Layout-Prototyp
-	viewTags   // DD2-75: Tag-Manager (projektweite Tag-CRUD)
+	viewTree     // DD2-57: Tree+Detail-Layout-Prototyp
+	viewTags     // DD2-75: Tag-Manager (projektweite Tag-CRUD)
 	viewSearch   // DD2-91: projektweite Issue-Such-Ansicht (Command-Center)
 	viewTutorial // DD2-122: geführtes, seitenweises Onboarding
 )

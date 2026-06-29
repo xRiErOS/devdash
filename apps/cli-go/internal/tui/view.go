@@ -132,7 +132,7 @@ func (m model) viewBase() string {
 	case viewTutorial:
 		return m.viewTutorial() // DD2-122: Onboarding
 	default:
-		return m.viewColumns() // rendert Filter-Modal inline, wenn m.filtering
+		return m.viewTree() // DD2-111: Columns gesunset → Tree-Primat als Fallback
 	}
 }
 
@@ -260,7 +260,7 @@ func (m model) footer() string {
 	global := []keybind.Binding{keys.Filter, keys.Yank, keys.Tags, keys.Refresh, keys.Backlog, keys.Reviews, keys.Quit}
 	hint := renderBindings(append(local, global...))
 	// DD2-73: auf schmalen Terminals umbrechen statt in die Pane-Spalten überlaufen
-	// (analog chrome()). viewColumns rechnet die Footer-Höhe in die Body-Höhe ein.
+	// (analog chrome()). Der Tree rechnet die Footer-Höhe in die Body-Höhe ein.
 	return theme.Dim.Render(wrapText(hint, m.termWidth()))
 }
 
@@ -334,7 +334,7 @@ func (m model) masterDetailWidths(w int) (lw, rw int) {
 func (m model) viewBordered() bool {
 	switch m.view {
 	case viewDetail, viewMilestone, viewSprint, viewReviewsList, viewTags, // DD2-68 chrome-Subset
-		viewHome, viewColumns, viewBacklog, viewReview, viewTree, // DD2-84 vollständiger Satz
+		viewHome, viewBacklog, viewReview, viewTree, // DD2-84 vollständiger Satz
 		viewSearch: // DD2-91 Rework: Such-Ansicht trägt den App-Außenrahmen (Chrome-Parität)
 		return true
 	}

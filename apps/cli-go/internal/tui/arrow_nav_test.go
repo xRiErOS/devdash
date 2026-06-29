@@ -22,31 +22,6 @@ func step(m model, msg tea.KeyMsg) model {
 	return mi.(model)
 }
 
-// Columns: → drillt rein, ↓ bewegt Cursor, ← drillt raus — alles via Pfeiltaste.
-func TestArrowColumnsNav(t *testing.T) {
-	m := columnsModel()
-	m = step(m, right())
-	if m.depth != 1 {
-		t.Fatalf("→ depth=%d, want 1", m.depth)
-	}
-	m = step(m, down())
-	if m.slist.cursor != 1 {
-		t.Errorf("↓ slist.cursor=%d, want 1", m.slist.cursor)
-	}
-	m = step(m, left())
-	if m.depth != 0 {
-		t.Errorf("← depth=%d, want 0", m.depth)
-	}
-	m = step(m, down())
-	if m.mlist.cursor != 1 {
-		t.Errorf("↓ mlist.cursor=%d, want 1", m.mlist.cursor)
-	}
-	m = step(m, up())
-	if m.mlist.cursor != 0 {
-		t.Errorf("↑ mlist.cursor=%d, want 0", m.mlist.cursor)
-	}
-}
-
 // Tree (Primat-View): ↓/↑ bewegen den Knoten-Cursor, → expandiert, ← kollabiert.
 func TestArrowTreeNav(t *testing.T) {
 	m := treeModel()

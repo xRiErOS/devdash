@@ -50,7 +50,7 @@ func (m model) tutorialPages() []tutorialPage {
 
 // openTutorial öffnet das Tutorial auf Seite 1 und merkt sich die Heimat-View.
 func (m model) openTutorial() (tea.Model, tea.Cmd) {
-	if m.view == viewTree || m.view == viewColumns {
+	if m.view == viewTree {
 		m.topReturn = m.view
 	}
 	m.tutorialPage = 0

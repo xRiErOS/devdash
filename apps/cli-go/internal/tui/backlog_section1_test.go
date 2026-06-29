@@ -53,7 +53,7 @@ func TestBacklogEditEmptyPoNotes(t *testing.T) {
 		blist:   listState{length: 1, cursor: 0},
 		accOpen: 1,
 	}
-	mi, _ := m.keyBacklog(key("l")) // Detail-Fokus (Übersicht, sec 0)
+	mi, _ := m.keyBacklog(key("l"))         // Detail-Fokus (Übersicht, sec 0)
 	mi, _ = mi.(model).keyBacklog(key("k")) // → Section 1
 	mi, _ = mi.(model).keyBacklog(key("l")) // Feld-Ebene
 	mfocus := mi.(model)

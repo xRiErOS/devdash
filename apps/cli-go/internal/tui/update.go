@@ -66,7 +66,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, statusTimeout(m.statusSeq) // DD2-35: Auto-Clear
 	case noticeMsg:
 		m.status = noticeText(msg.text) // Sapphire-Hinweis (Aktions-Fehler/Info)
-		m.statusSticky = false // DD2-93: neuer regulärer Status hebt den Sticky-Schutz auf
+		m.statusSticky = false          // DD2-93: neuer regulärer Status hebt den Sticky-Schutz auf
 		m.statusSeq++
 		return m, statusTimeout(m.statusSeq) // DD2-35: Auto-Clear
 	case userStoriesMsg:
@@ -334,8 +334,6 @@ func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		switch m.view {
 		case viewTree:
 			return m.mouseTreeClick(msg)
-		case viewColumns:
-			return m.mouseColumnFocus(msg)
 		}
 	}
 	return m, nil
@@ -361,30 +359,6 @@ func (m model) mouseTreeClick(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		m.treeCursor = idx
 	}
 	return m, nil
-}
-
-// mouseColumnFocus setzt im Ranger-Columns-Layout den Pane-Fokus per X (DD2-51).
-// Sichtbare Panes beginnen bei m.depth; die geklickte Spalte wird zur Fokus-Ebene.
-func (m model) mouseColumnFocus(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
-	w := m.termWidth()
-	n := 3 // Ranger zeigt max. 3 Spalten
-	colW := (w - n*2) / n
-	if colW < 1 {
-		return m, nil
-	}
-	pane := msg.X / (colW + 2)
-	if pane < 0 || pane > 2 {
-		return m, nil
-	}
-	target := m.depth + pane
-	if target > 2 {
-		target = 2
-	}
-	if target == m.depth {
-		return m, nil
-	}
-	m.depth = target
-	return m, m.syncSprint()
 }
 
 // updateForm leitet Messages ans laufende huh-Formular weiter und feuert nach

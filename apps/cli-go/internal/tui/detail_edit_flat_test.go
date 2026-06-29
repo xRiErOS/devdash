@@ -15,8 +15,8 @@ import (
 // mit dem aktuellen Wert; der Edit-State trägt entity=milestone.
 func TestFlatEditOpensFormMilestone(t *testing.T) {
 	m := detailFocusModel()
-	m.treeCursor = 0 // Meilenstein M1
-	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter}) // → Detail-Fokus, Feld 0 (name)
+	m.treeCursor = 0                                           // Meilenstein M1
+	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter})         // → Detail-Fokus, Feld 0 (name)
 	mi, _ = mi.(model).keyTree(tea.KeyMsg{Type: tea.KeyEnter}) // → editField-Form
 	mm := mi.(model)
 	if mm.form == nil || mm.formKind != "editField" {
@@ -33,7 +33,7 @@ func TestFlatEditOpensFormMilestone(t *testing.T) {
 // l/→ auf einem Sprint-Feld (goal) öffnet die Form mit entity=sprint.
 func TestFlatEditOpensFormSprint(t *testing.T) {
 	m := detailFocusModel()
-	m.treeCursor = 1 // Sprint s10 (S1)
+	m.treeCursor = 1                                   // Sprint s10 (S1)
 	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter}) // Detail-Fokus, Feld 0
 	mi, _ = mi.(model).keyTree(key("k"))               // Feld 1 = goal
 	mi, _ = mi.(model).keyTree(key("l"))               // l/→ editiert das Feld

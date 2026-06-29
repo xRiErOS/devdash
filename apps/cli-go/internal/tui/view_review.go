@@ -562,4 +562,134 @@ func (m model) filterBox() string {
 	return modalPanel("Filter ∙ "+col, body, "", clampModalWidth(38, m.width), theme.Mauve)
 }
 
+// --- Review-Cockpit (Vollbild-Render) ---
+
+// viewReview ist das Review-Cockpit als echtes Master-Detail (DD2-67): links die
+// Issue-Liste (Master) mit umgebrochenem Titel + Verdikt-Dot, rechts das Detail
+// des selektierten Issues als Tree-Accordion (Ziffern-Toggle) mit Status- und
+// User-Story-Dots im Header. Kopf: globaler Header + Sprint-Titel + Review-Summary
+// (★ DD2-70 Abschluss-Bereitschaft); Footer: reviewHints + Status.
+func (m model) viewReview() string {
+	if m.curSprint == nil {
+		return m.framed("Review", theme.Dim.Render("(loading …)"), "esc/q: back")
+	}
+	s := m.curSprint
+	w := m.termWidth()
+
+	head := m.header() + "\n" + theme.Header.Render(m.screenTitle("Review "+s.Key)) +
+		theme.Dim.Render(fmt.Sprintf("   %s · %d/%d", statusText(s.Status), s.DoneCount, s.ItemCount))
+	summary := m.reviewSummary()
+	foot := theme.Muted.Render(wrapText(m.reviewHints(), w))
+	statusLine := m.statusBar("")
+
+	// Pane-Innenhöhe = Gesamthöhe minus Kopf/Summary/Footer/Status/Trennzeilen,
+	// minus 2 für den Pane-Border (der außen wächst → Gesamthöhe = innerH+2).
+	chromeH := lipgloss.Height(head) + lipgloss.Height(summary) +
+		lipgloss.Height(foot) + lipgloss.Height(statusLine) + 3
+	h := m.frameH() - chromeH - 2 // DD2-84: Innenhöhe (App-Außenrahmen reserviert)
+	if h < 6 {
+		h = m.bodyHeight() // Höhe unbekannt (Init/Tests) → großzügiger Fallback
+	}
+
+	// Master schmaler, Detail breiter; Border frisst je 2 Spalten (Golden Rule #1/#4).
+	leftW := w*42/100 - 2
+	if leftW < 24 {
+		leftW = 24
+	}
+	rightW := w - leftW - 4
+	if rightW < 24 {
+		rightW = 24
+	}
+
+	left := m.reviewMasterPane(leftW, h)
+	right := m.reviewDetailPane(m.reviewItem(), rightW, h)
+	body := lipgloss.JoinHorizontal(lipgloss.Top, left, right)
+
+	// DD2-84: gerahmter App-Außenrahmen; User-Story-Modal schwebt danach zentriert.
+	frame := m.outerBorder(head + "\n" + summary + "\n" + body + "\n" + foot + "\n" + statusLine)
+	if m.usOpen {
+		return placeOverlay(frame, m.userStoryModal(), m.width, m.height)
+	}
+	return frame
+}
+
+// reviewMasterPane rendert die Master-Liste (DD2-67 Rework #1/#2): je Issue ein
+// Verdikt-Dot + Key, darunter der auf Pane-Breite UMGEBROCHENE Titel (kein
+// horizontales Truncaten). Die Selektion hebt den ganzen Block akzentuiert hervor.
+func (m model) reviewMasterPane(w, h int) string {
+	header := []string{
+		theme.Header.Render(truncate(fmt.Sprintf("Issues (%d)", len(m.curSprint.Items)), w)),
+		theme.Dim.Render(strings.Repeat("─", min(w, 14))),
+	}
+	var body []string
+	cursorLine := 0
+	for i, it := range m.curSprint.Items {
+		sel := i == m.rlist.cursor
+		if sel {
+			cursorLine = len(body) // Body-Zeilenindex des selektierten Issues
+		}
+		cur := "  "
+		key := theme.Key.Render(it.Key)
+		if sel {
+			cur = theme.Accent.Render("▸ ")
+			key = theme.Header.Render(it.Key)
+		}
+		body = append(body, truncate(cur+verdictDot(it)+" "+key, w))
+		for _, tl := range strings.Split(wrapText(it.Title, w-4), "\n") {
+			styled := theme.Dim.Render(tl)
+			if sel {
+				styled = tl
+			}
+			body = append(body, "    "+styled)
+		}
+	}
+	// Master-Liste um den Cursor fenstern, damit das selektierte Issue sichtbar
+	// bleibt — borderedPane cappte vorher hart auf die ersten h Zeilen (selektiertes
+	// Issue verschwand unten bei langen Sprints, z.B. DD2#25 mit 16 Issues).
+	avail := h - len(header)
+	if avail < 1 {
+		avail = 1
+	}
+	body = windowAround(body, avail, cursorLine)
+	return borderedPane(append(header, body...), w, h, theme.Mauve)
+}
+
+// reviewDetailPane rendert das Detail des selektierten Issues als Tree-Accordion
+// (DD2-67 Rework #3): Header mit Issue-Key + Result-/User-Story-Dot (#4) + Meta-
+// Zeile, darunter die ziffern-toggelbaren Sektionen (issueSections/renderAccordion),
+// via m.scroll fensterbar.
+func (m model) reviewDetailPane(it *api.Issue, w, h int) string {
+	if it == nil {
+		return borderedPane([]string{theme.Dim.Render("(no issue selected)")}, w, h, theme.Overlay)
+	}
+	header := []string{
+		truncate(theme.Header.Render(it.Key+" — "+it.Title), w),
+		truncate(theme.StatusStyle(it.Status).Render(it.Status)+"  "+
+			theme.TypeIcon(it.Type)+" "+it.Type+"  "+theme.Priority(it.Priority)+"  "+reviewBadge(*it), w),
+	}
+	// DD2-117: Kontext-Meta (Milestone/Sprint/Tags) wie im Issue-Detail einblenden —
+	// gibt dem PO beim Review die Einordnung, ohne die View zu verlassen. Leere Werte
+	// fallen via metaStrip weg; ist alles leer, bleibt die Zeile ganz aus.
+	if deref(it.Milestone) != "" || deref(it.SprintKey) != "" || len(it.Tags) > 0 {
+		header = append(header, truncate(metaStrip([]metaPair{
+			{deref(it.Milestone), "milestone"},
+			{deref(it.SprintKey), "sprint"},
+			{tagsInline(it.Tags), "tags"},
+		}, "", w), w))
+	}
+	header = append(header,
+		truncate(theme.Dim.Render("Result ")+resultDot(*it)+theme.Dim.Render("   User-Stories ")+usSummaryDot(*it), w),
+		theme.Dim.Render(strings.Repeat("─", min(w, 24))),
+	)
+	acc := renderAccordion(m.issueSections(*it, w-2, false), m.accOpen, w, detailFocusView{}) // read-only Preview (DD2-144)
+	accLines := strings.Split(acc, "\n")
+	bodyH := h - len(header)
+	if bodyH < 1 {
+		bodyH = 1
+	}
+	off := clampInt(m.scroll, 0, maxInt(len(accLines)-bodyH, 0))
+	lines := append(header, accLines[off:]...)
+	return borderedPane(lines, w, h, theme.Overlay)
+}
+
 // --- Helfer ---

@@ -8,6 +8,7 @@ package tui
 // wie das Issue (D08-Balken, Mauve-aktiv). Guardrail: tui-plan.md.
 
 import (
+	"fmt"
 	"strings"
 
 	"devd-cli/internal/api"
@@ -256,4 +257,78 @@ func sprintFieldValues(sp api.Sprint, fields []detailField) []string {
 		out[i] = sprintFieldValue(sp, f.key)
 	}
 	return out
+}
+
+// --- Meilenstein-Detail (Vollbild, #1) ---
+
+func (m model) viewMilestone() string {
+	ms := m.selMilestone()
+	if ms == nil {
+		return "\n  (no milestone)\n"
+	}
+	var b strings.Builder
+	b.WriteString(theme.Header.Render(ms.Name) + "\n")
+	status := statusText(ms.Status)
+	if ms.Deferred == 1 {
+		status += " " + theme.Dim.Render("⏸ deferred")
+	}
+	slots := []hslot{
+		{"Status", status},
+		{"Progress", fmt.Sprintf("%d/%d", ms.Done, ms.Total)},
+		{"Target", deref(ms.TargetDate)},
+	}
+	if d := deref(ms.Description); d != "" {
+		b.WriteString("\n" + theme.Dim.Render("Description:") + "\n" + d + "\n")
+	}
+	b.WriteString("\n" + theme.Dim.Render(fmt.Sprintf("Sprints (%d):", len(ms.Sprints))) + "\n")
+	for _, s := range ms.Sprints {
+		goal := ""
+		if g := deref(s.Goal); g != "" {
+			goal = "  " + theme.Dim.Render("— "+truncate(g, 50))
+		}
+		b.WriteString(fmt.Sprintf("  %-8s %s  %s%s\n", s.Key, statusText(s.Status), truncate(s.Name, 30), goal))
+	}
+	return m.chrome("Milestone", slots, b.String(),
+		"S: status   a: assign sprints   y: copy   i/k: scroll   esc/q: back")
+}
+
+// --- Sprint-Detail (Vollbild) ---
+
+func (m model) viewSprint() string {
+	s := m.selSprint()
+	if s == nil {
+		return "\n  (no sprint)\n"
+	}
+	// Items aus curSprint (geladen), sonst Embedded.
+	items := s.Items
+	if m.curSprint != nil && m.curSprint.ID == s.ID {
+		items = m.curSprint.Items
+	}
+	slots := []hslot{
+		{"Status", statusText(s.Status)},
+		{"Milestone", sprintMilestoneName(s, m.selMilestone())},
+		{"Progress", fmt.Sprintf("%d/%d", s.DoneCount, s.ItemCount)},
+	}
+	var b strings.Builder
+	b.WriteString(theme.Header.Render(s.Name) + "\n")
+	if g := deref(s.Goal); g != "" {
+		b.WriteString("\n" + theme.Accent.Render("Goal:") + "\n" + g + "\n")
+	}
+
+	b.WriteString("\n" + theme.Dim.Render(fmt.Sprintf("Issues (%d):", len(items))) + "\n")
+	b.WriteString("  " + issueColHeader() + "\n")
+	for _, it := range items {
+		typePrio := theme.TypeIcon(it.Type) + " " + theme.Priority(it.Priority)
+		b.WriteString("  " + cockpitRow(
+			typePrio, it.Key, truncate(it.Title, colTitle),
+			statusText(it.Status), reviewBadge(it), resultDot(it)) + "\n")
+	}
+	if len(items) > 0 {
+		old := m.curSprint
+		m.curSprint = &api.Sprint{ID: s.ID, Items: items}
+		b.WriteString("\n" + m.reviewSummary() + "\n")
+		m.curSprint = old
+	}
+	return m.chrome("Sprint "+s.Key, slots, b.String(),
+		"R: review cockpit   m: milestone   y: copy   i/k: scroll   esc/q: back")
 }

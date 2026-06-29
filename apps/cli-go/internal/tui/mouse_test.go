@@ -77,19 +77,6 @@ func TestMouseClickRightPaneIgnored(t *testing.T) {
 	}
 }
 
-func TestMouseColumnFocusByX(t *testing.T) {
-	m := treeModel()
-	m.view = viewColumns
-	m.width, m.height = 90, 22
-	m.depth = 0
-
-	// colW = (90 - 6)/3 = 28; pane-Stride = 30. X=35 → pane 1 → depth 1.
-	mi, _ := m.handleMouse(click(35, 5))
-	if got := mi.(model).depth; got != 1 {
-		t.Errorf("Klick in Pane 1 → depth=%d, want 1", got)
-	}
-}
-
 func TestMouseIgnoredWhenSearching(t *testing.T) {
 	m := treeModel()
 	m.treeExpMile[1] = true

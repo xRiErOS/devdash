@@ -24,16 +24,6 @@ func TestColumnsDOpensDeleteMilestone(t *testing.T) {
 	}
 }
 
-func TestColumnsDDepth1Sprint(t *testing.T) {
-	m := columnsModel()
-	m.depth = 1
-	mi, _ := m.Update(keyMsg("d"))
-	m = mi.(model)
-	if m.delKind != "sprint" || m.delID != 10 {
-		t.Errorf("d (depth 1) → kind=%q id=%d, want sprint/10", m.delKind, m.delID)
-	}
-}
-
 func TestDeletePreviewFillsCounts(t *testing.T) {
 	m := columnsModel()
 	mi, _ := m.Update(keyMsg("d"))

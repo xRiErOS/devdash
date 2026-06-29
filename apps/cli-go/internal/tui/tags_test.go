@@ -83,11 +83,11 @@ func TestTagManagerDeleteConfirmFlow(t *testing.T) {
 }
 
 func TestTagManagerEscReturnsToSource(t *testing.T) {
-	m := model{view: viewTags, tagReturn: viewColumns}
+	m := model{view: viewTags, tagReturn: viewTree}
 	mi, _ := m.keyTags(tea.KeyMsg{Type: tea.KeyEsc})
 	m = mi.(model)
-	if m.view != viewColumns {
-		t.Errorf("esc → view=%d, want viewColumns (tagReturn)", m.view)
+	if m.view != viewTree {
+		t.Errorf("esc → view=%d, want viewTree (tagReturn)", m.view)
 	}
 }
 

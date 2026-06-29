@@ -2,31 +2,12 @@ package tui
 
 // DD2-85: Die Delete-Action darf NIE einen rohen API-Call-String im UI zeigen —
 // sie öffnet immer einen sauberen Confirm. Regression-Netz für alle Issue-d-Pfade
-// (Backlog, Tree-Detail, Columns-Ranger). Root-Cause war das fehlende DD2-65.
+// (Backlog-Liste, Tree-Detail-Fokus). Root-Cause war das fehlende DD2-65.
 
 import (
 	"strings"
 	"testing"
-
-	"devd-cli/internal/api"
 )
-
-// Columns-Ranger: d auf einem Issue (depth 2) öffnet den Confirm statt eines no-op
-// oder rohen Request-Strings.
-func TestColumnsIssueDeleteConfirm(t *testing.T) {
-	m := columnsModel()
-	m.depth = 2
-	m.curSprint = &api.Sprint{ID: 10, Items: []api.Issue{
-		{ID: 7, Key: "SPF-7", Title: "Crash", Status: "new", Type: "bug"},
-	}}
-	m.ilist.setLen(1)
-	mi, _ := m.keyColumns(key("d"))
-	mm := mi.(model)
-	if !mm.delConfirm || mm.delKind != "issue" || mm.delID != 7 {
-		t.Fatalf("Columns d@depth2 → delConfirm=%v kind=%q id=%d, want true/issue/7",
-			mm.delConfirm, mm.delKind, mm.delID)
-	}
-}
 
 // Der Confirm-Dialog zeigt keinen rohen API-/HTTP-Pfad (DD2-85-Kern).
 func TestDeleteBoxNoRawAPICall(t *testing.T) {

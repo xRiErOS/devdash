@@ -136,8 +136,6 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	switch m.view {
-	case viewColumns:
-		return m.keyColumns(msg)
 	case viewDetail:
 		if m.keyScroll(k) { // DD2-30: scrollbarer Detail-Body
 			return m, nil
@@ -214,7 +212,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // openReviewsList öffnet die Liste offener Review-Sprints (T17). Merkt die
 // Quell-View (Tree/Columns), damit q/esc dorthin zurückkehrt (DD2-61 Primat).
 func (m model) openReviewsList() (tea.Model, tea.Cmd) {
-	if m.view == viewTree || m.view == viewColumns {
+	if m.view == viewTree {
 		m.topReturn = m.view
 	}
 	m.view = viewReviewsList
@@ -224,13 +222,13 @@ func (m model) openReviewsList() (tea.Model, tea.Cmd) {
 }
 
 // openBacklog öffnet die Backlog-Liste und merkt die Quell-View (Tree/Columns)
-// für die Rückkehr (DD2-61 Primat) — geteilt von keyTree und keyColumns.
+// für die Rückkehr (DD2-61 Primat) — geteilt von keyTree und Backlog-Einstiegen.
 func (m model) openBacklog() (tea.Model, tea.Cmd) {
-	if m.view == viewTree || m.view == viewColumns {
+	if m.view == viewTree {
 		m.topReturn = m.view
 	}
 	m.view = viewBacklog
-	m.detailFocus = false       // DD2-32: Einstieg immer im Listen-Fokus
+	m.detailFocus = false         // DD2-32: Einstieg immer im Listen-Fokus
 	m.secCursor, m.accOpen = 0, 1 // Detail-Preview: erste Content-Section offen
 	m.detailLevel, m.fieldCursor = 0, 0
 	return m, loadBacklog(m.client)
@@ -281,109 +279,8 @@ func (m model) filteredProjects() []api.Project {
 	return out
 }
 
-func (m model) keyColumns(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch navKey(msg.String()) {
-	case "up":
-		m.focusList().move(-1)
-		return m, m.onFocusMove()
-	case "down":
-		m.focusList().move(1)
-		return m, m.onFocusMove()
-	case "right":
-		if m.depth < 2 {
-			m.depth++
-			return m, m.syncSprint()
-		}
-	case "left":
-		if m.depth > 0 {
-			m.depth--
-		}
-		return m, nil
-	}
-	if keybind.Matches(msg, keys.Refresh) { // DD2-72: manueller Daten-Reload (Spalten + selektierter Sprint)
-		var ids []int
-		if s := m.selSprint(); s != nil {
-			ids = append(ids, s.ID)
-		}
-		return m, doRefresh(m.client, ids)
-	}
-	switch { // DD2-174: key.Matches statt raw strings
-	case keybind.Matches(msg, keys.Back): // DD2-124: Esc aus Projekt-View → Lobby (Esc-Spine)
-		return m.goHome()
-	case keybind.Matches(msg, keys.Enter):
-		if m.depth == 0 && m.selMilestone() != nil {
-			m.view = viewMilestone
-			m.scroll = 0
-		} else if m.depth == 1 && m.selSprint() != nil {
-			m.view = viewSprint
-			m.scroll = 0
-			return m, m.syncSprint()
-		} else if m.depth == 2 && m.selIssue() != nil {
-			m.view = viewDetail
-			m.scroll = 0
-		}
-	case keybind.Matches(msg, keys.Filter):
-		return m.openFilter()
-	case keybind.Matches(msg, keys.Yank):
-		return m.yankContext()
-	case keybind.Matches(msg, keys.Backlog):
-		return m.openBacklog()
-	case keybind.Matches(msg, keys.Status):
-		// DD2-174: s öffnet je Ebene das richtige Status-Menü (S/s zusammengeführt) —
-		// Meilenstein (depth 0) / Sprint (depth 1) / Issue (depth 2).
-		switch m.depth {
-		case 0:
-			if m.selMilestone() != nil {
-				return m.openMilestoneStatus()
-			}
-		case 1:
-			if sp := m.selSprint(); sp != nil {
-				return m.openSprintStatus(sp.ID, sp.Status)
-			}
-		case 2:
-			if it := m.selIssue(); it != nil {
-				sid := 0
-				if m.curSprint != nil {
-					sid = m.curSprint.ID
-				}
-				return m.openIssueStatus(it, sid)
-			}
-		}
-	case keybind.Matches(msg, keys.Delete): // T02b: Cascade-Delete Meilenstein/Sprint; DD2-65/DD2-85: Issue einzeln
-		if m.depth == 0 {
-			if ms := m.selMilestone(); ms != nil {
-				return m.openDelete("milestone", ms.ID, ms.Name)
-			}
-		} else if m.depth == 1 {
-			if sp := m.selSprint(); sp != nil {
-				return m.openDelete("sprint", sp.ID, sp.Name)
-			}
-		} else if m.depth == 2 {
-			if it := m.selIssue(); it != nil {
-				return m.openDelete("issue", it.ID, it.Key+" "+it.Title)
-			}
-		}
-	case keybind.Matches(msg, keys.TagAssign): // DD2-33: Tag-Picker für die fokussierte Ebene
-		switch m.depth {
-		case 0:
-			if ms := m.selMilestone(); ms != nil {
-				return m.openTagPicker("milestone", ms.ID, ms.Name, nil)
-			}
-		case 1:
-			if sp := m.selSprint(); sp != nil {
-				return m.openTagPicker("sprint", sp.ID, sp.Name, nil)
-			}
-		case 2:
-			if it := m.selIssue(); it != nil {
-				return m.openTagPicker("issue", it.ID, it.Key+" "+it.Title, it.Tags)
-			}
-		}
-	}
-	return m, nil
-}
-
 // openSprintStatus öffnet das Sprint-Status-Menü für einen Ziel-Sprint
-// (Cockpit S oder Columns s, T05) — lifecycle-gültige Transitions.
+// (Cockpit S oder Tree, T05) — lifecycle-gültige Transitions.
 func (m model) openSprintStatus(id int, status string) (tea.Model, tea.Cmd) {
 	opts := sprintTransitions[status]
 	if len(opts) == 0 {
@@ -400,7 +297,7 @@ func (m model) openSprintStatus(id int, status string) (tea.Model, tea.Cmd) {
 }
 
 // openIssueStatus öffnet das Issue-Status-Menü für ein beliebiges Issue —
-// view-übergreifend (Review-Cockpit ODER Columns/Detail, DD2-29). sprintID ist
+// view-übergreifend (Review-Cockpit ODER Detail/Tree, DD2-29). sprintID ist
 // der Refresh-Kontext (0 wenn kein Sprint geladen).
 func (m model) openIssueStatus(it *api.Issue, sprintID int) (tea.Model, tea.Cmd) {
 	if it == nil {
@@ -422,15 +319,15 @@ func (m model) openIssueStatus(it *api.Issue, sprintID int) (tea.Model, tea.Cmd)
 	return m, nil
 }
 
-// openMilestoneStatus öffnet das Meilenstein-Status-Menü (T01) für den in den
-// Columns selektierten Meilenstein.
+// openMilestoneStatus öffnet das Meilenstein-Status-Menü (T01) für den
+// selektierten Meilenstein.
 func (m model) openMilestoneStatus() (tea.Model, tea.Cmd) {
 	return m.openMilestoneStatusFor(m.selMilestone())
 }
 
 // openMilestoneStatusFor öffnet das Menü für einen beliebigen Meilenstein (Tree:
-// Knoten unter dem Cursor; Columns: Selektion). Ziel-Daten werden kopiert, damit
-// der Confirm/Render nicht auf selMilestone angewiesen ist (view-übergreifend).
+// Knoten unter dem Cursor). Ziel-Daten werden kopiert, damit der Confirm/Render
+// nicht auf selMilestone angewiesen ist (view-übergreifend).
 func (m model) openMilestoneStatusFor(ms *api.Milestone) (tea.Model, tea.Cmd) {
 	if ms == nil {
 		return m, nil

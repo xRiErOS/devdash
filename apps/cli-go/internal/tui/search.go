@@ -19,7 +19,7 @@ import (
 // openSearch öffnet die Such-Ansicht und lädt projektweit alle Issues nach,
 // falls noch nicht geschehen (sonst nur der Lazy-Tree-Cache).
 func (m model) openSearch() (tea.Model, tea.Cmd) {
-	if m.view == viewTree || m.view == viewColumns {
+	if m.view == viewTree {
 		m.topReturn = m.view
 	}
 	m.view = viewSearch

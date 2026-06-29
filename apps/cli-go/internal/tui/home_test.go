@@ -10,15 +10,9 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// DD2-124: Esc-Spine — aus Columns/Tree/Backlog landet Esc in der Lobby (viewHome).
+// DD2-124: Esc-Spine — aus Tree/Backlog landet Esc in der Lobby (viewHome).
 func TestEscSpineToHome(t *testing.T) {
 	key := func(s string) tea.KeyMsg { return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)} }
-
-	// Columns → Home
-	mc := columnsModel()
-	if got, _ := mc.keyColumns(key("esc")); got.(model).view != viewHome {
-		t.Errorf("Columns esc → view=%d, want viewHome", got.(model).view)
-	}
 
 	// Tree (kein Filter/Detail-Fokus) → Home
 	mt := columnsModel()

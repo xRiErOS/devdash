@@ -30,9 +30,9 @@ func paletteActions(m *model) []paletteAction {
 		{"go_search", "Go to: Search all issues"}, // DD2-91
 		{"go_backlog", "Go to: Backlog"},
 		{"go_tags", "Go to: Tag manager"},
-		{"go_settings", "Settings"}, // DD2-125: edit user config
+		{"go_settings", "Settings"},              // DD2-125: edit user config
 		{"go_tutorial", "Tutorial: guided tour"}, // DD2-122
-		{"test_form", "Test Form"}, // Styling-Sandbox (kein Persist)
+		{"test_form", "Test Form"},               // Styling-Sandbox (kein Persist)
 	}
 	if m.global != nil {
 		acts = append(acts, paletteAction{"go_project", "Switch project"})

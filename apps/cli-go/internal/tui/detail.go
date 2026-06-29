@@ -8,6 +8,7 @@ package tui
 
 import (
 	"strconv"
+	"strings"
 
 	"devd-cli/internal/api"
 	"devd-cli/internal/theme"
@@ -324,4 +325,45 @@ func paneBorderColors(detailFocus bool) (left, right lipgloss.Color) {
 		return theme.Overlay, theme.Mauve
 	}
 	return theme.Mauve, theme.Overlay
+}
+
+// --- Issue-Detail (Vollbild, #5 Rahmen, #6 alle Felder, #9 Titel) ---
+
+func (m model) viewDetail() string {
+	it := m.selIssue()
+	if it == nil {
+		return "\n  (no issue)\n"
+	}
+	tags := ""
+	if len(it.Tags) > 0 {
+		names := make([]string, len(it.Tags))
+		for i, t := range it.Tags {
+			names[i] = t.Name
+		}
+		tags = strings.Join(names, ", ")
+	}
+	slots := []hslot{
+		{"Status", statusText(it.Status)},
+		{"Type", theme.TypeIcon(it.Type) + " " + theme.TypeStyle(it.Type).Render(it.Type)},
+		{"Prio", theme.Priority(it.Priority)},
+		{"Milestone", deref(it.Milestone)},
+		{"Sprint", deref(it.SprintKey)},
+		{"Tags", tags},
+	}
+	var b strings.Builder
+	b.WriteString(theme.Header.Render(it.Title) + "\n")
+	b.WriteString(issueFields(it))
+
+	stamp := []string{}
+	if s := deref(it.CreatedAt); s != "" {
+		stamp = append(stamp, "erstellt "+s)
+	}
+	if s := deref(it.RefinedAt); s != "" {
+		stamp = append(stamp, "refined "+s)
+	}
+	if len(stamp) > 0 {
+		b.WriteString("\n" + theme.Dim.Render(strings.Join(stamp, " ∙ ")) + "\n")
+	}
+	return m.chrome("Issue "+it.Key, slots, b.String(),
+		"s: status   i/k: scroll   g/G: start/end   esc/q: back")
 }

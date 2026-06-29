@@ -12,11 +12,11 @@ func TestFuzzyMatch(t *testing.T) {
 		query, target string
 		want          bool
 	}{
-		{"", "Neues Issue anlegen", true},           // leer matcht alles
-		{"issue", "Neues Issue anlegen", true},      // direkter Teilstring
-		{"nia", "Neues Issue anlegen", true},        // Subsequenz N..I..A
-		{"sprint", "Create new sprint", true},    // case-insensitiv
-		{"zzz", "Neues Issue anlegen", false},       // kein Match
+		{"", "Neues Issue anlegen", true},      // leer matcht alles
+		{"issue", "Neues Issue anlegen", true}, // direkter Teilstring
+		{"nia", "Neues Issue anlegen", true},   // Subsequenz N..I..A
+		{"sprint", "Create new sprint", true},  // case-insensitiv
+		{"zzz", "Neues Issue anlegen", false},  // kein Match
 		{"mile", "Create new milestone", true}, // Umlaut-frei, Substring
 	}
 	for _, c := range cases {
@@ -28,7 +28,7 @@ func TestFuzzyMatch(t *testing.T) {
 
 func paletteModel() model {
 	m := newModel(api.NewClient("9"), &api.Project{ID: 9, Slug: "sprout", Prefix: "SPF"}, api.NewClient(""))
-	m.view = viewColumns
+	m.view = viewTree
 	return m
 }
 

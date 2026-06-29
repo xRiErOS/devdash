@@ -25,18 +25,6 @@ func reproColumnsModel(view viewID, depth int) model {
 	return m
 }
 
-// DD2-29: s in den Ranger-Columns (depth 2 = Issue) muss das Status-Menü öffnen.
-func TestReproColumnsSOpensIssueStatus(t *testing.T) {
-	m := reproColumnsModel(viewColumns, 2)
-	if m.selIssue() == nil {
-		t.Fatalf("Vorbedingung: selIssue() ist nil — Fixture falsch")
-	}
-	nm, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("s")})
-	if !nm.(model).statusPick {
-		t.Error("s bei depth==2 öffnet das Issue-Status-Menü NICHT (statusPick=false)")
-	}
-}
-
 // DD2-29: s im Issue-Detail muss das Status-Menü öffnen.
 func TestReproDetailSOpensIssueStatus(t *testing.T) {
 	m := reproColumnsModel(viewDetail, 2)

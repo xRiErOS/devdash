@@ -359,33 +359,6 @@ func (m model) keyUserStory(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// focusList liefert die Liste der aktuellen Fokus-Ebene.
-func (m *model) focusList() *listState {
-	switch m.depth {
-	case 0:
-		return &m.mlist
-	case 1:
-		return &m.slist
-	default:
-		return &m.ilist
-	}
-}
-
-// onFocusMove hält abhängige Ebenen konsistent + triggert Lazy-Loads.
-func (m *model) onFocusMove() tea.Cmd {
-	switch m.depth {
-	case 0:
-		m.slist.reset()
-		m.ilist.reset()
-		m.slist.setLen(len(m.visSprints()))
-		return m.syncSprint()
-	case 1:
-		m.ilist.reset()
-		return m.syncSprint()
-	}
-	return nil
-}
-
 // keyScroll behandelt Scroll-Tasten in den statischen Detail-Views (DD2-25/30):
 // i/k/↑↓ zeilenweise, ctrl+d/u + pgdn/pgup seitenweise, g/G an den Anfang/Ende.
 // ok=true wenn die Taste als Scroll konsumiert wurde. scrollView klemmt das Maximum.
