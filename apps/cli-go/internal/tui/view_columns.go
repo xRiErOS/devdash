@@ -436,9 +436,21 @@ func (m model) reviewDetailPane(it *api.Issue, w, h int) string {
 		truncate(theme.Header.Render(it.Key+" — "+it.Title), w),
 		truncate(theme.StatusStyle(it.Status).Render(it.Status)+"  "+
 			theme.TypeIcon(it.Type)+" "+it.Type+"  "+theme.Priority(it.Priority)+"  "+reviewBadge(*it), w),
+	}
+	// DD2-117: Kontext-Meta (Milestone/Sprint/Tags) wie im Issue-Detail einblenden —
+	// gibt dem PO beim Review die Einordnung, ohne die View zu verlassen. Leere Werte
+	// fallen via metaStrip weg; ist alles leer, bleibt die Zeile ganz aus.
+	if deref(it.Milestone) != "" || deref(it.SprintKey) != "" || len(it.Tags) > 0 {
+		header = append(header, truncate(metaStrip([]metaPair{
+			{deref(it.Milestone), "milestone"},
+			{deref(it.SprintKey), "sprint"},
+			{tagsInline(it.Tags), "tags"},
+		}, "", w), w))
+	}
+	header = append(header,
 		truncate(theme.Dim.Render("Result ")+resultDot(*it)+theme.Dim.Render("   User-Stories ")+usSummaryDot(*it), w),
 		theme.Dim.Render(strings.Repeat("─", min(w, 24))),
-	}
+	)
 	acc := renderAccordion(m.issueSections(*it, w-2, false), m.accOpen, w, detailFocusView{}) // read-only Preview (DD2-144)
 	accLines := strings.Split(acc, "\n")
 	bodyH := h - len(header)
