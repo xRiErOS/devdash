@@ -85,6 +85,14 @@ export function canTransition(from, to, ctx = {}) {
     refined: {
       new: () => null,
       planned: () => {
+        // DD2-113 (PO-Entscheidung 2026-06-29): goal+background sind Pflicht vor planned.
+        // Greift v.a. bei direkt als 'refined' angelegten Issues (ISSUE_CREATE_STATUSES =
+        // ['new','refined']), die den new→refined-Guard umgangen haben. Spiegelt bewusst die
+        // new→refined-Bedingung. Reopen-Pfade (done/passed → planned) laufen oberhalb dieser
+        // Map und bleiben unberührt.
+        if (!ctx.goal || !ctx.background) {
+          return 'goal und background müssen befüllt sein'
+        }
         if (ctx.assigned_sprint == null) {
           return 'assigned_sprint muss gesetzt sein'
         }
