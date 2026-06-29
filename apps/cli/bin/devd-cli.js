@@ -2148,41 +2148,6 @@ related_issues:
     console.log(`✓ User-Note #${id} gelöscht`)
   },
 
-  // ---- Component-Notes (DD-629) — projekt-pfad-gescopt (numerische project_id); spiegelt REST ----
-  async 'component-note:list'(flags) {
-    const p = await resolveProject(flags.project || PROJECT_ID)
-    const rows = await api('GET', `/api/projects/${p.id}/component-notes`)
-    console.log(pad('SLUG', 32), 'UPDATED')
-    console.log('─'.repeat(60))
-    for (const n of rows) console.log(pad(trunc(n.slug, 30), 32), n.updated_at || '-')
-    console.log(`\n${rows.length} Component-Notes (project ${p.id})`)
-  },
-  async 'component-note:show'(flags) {
-    const slug = flags._[0]
-    if (!slug) { console.error('Usage: devd-cli component-note show <slug> [--project <id|slug>]'); process.exit(2) }
-    const p = await resolveProject(flags.project || PROJECT_ID)
-    const n = await api('GET', `/api/projects/${p.id}/component-notes/${encodeURIComponent(slug)}`)
-    console.log(`# ${n.slug}  (project ${p.id})\n`)
-    process.stdout.write((n.content || '') + '\n')
-  },
-  async 'component-note:set'(flags) {
-    const slug = flags._[0]
-    if (!slug || (typeof flags.content !== 'string' && typeof flags.file !== 'string')) {
-      console.error('Usage: devd-cli component-note set <slug> --content "<text>" | --file <path> [--project <id|slug>]'); process.exit(2)
-    }
-    const p = await resolveProject(flags.project || PROJECT_ID)
-    const content = typeof flags.file === 'string' ? readFileSync(flags.file, 'utf8') : flags.content
-    const n = await api('PUT', `/api/projects/${p.id}/component-notes/${encodeURIComponent(slug)}`, { content })
-    console.log(`✓ Component-Note '${n.slug}' gespeichert (${String(content).length} Zeichen, project ${p.id})`)
-  },
-  async 'component-note:delete'(flags) {
-    const slug = flags._[0]
-    if (!slug) { console.error('Usage: devd-cli component-note delete <slug> [--project <id|slug>]'); process.exit(2) }
-    const p = await resolveProject(flags.project || PROJECT_ID)
-    await api('DELETE', `/api/projects/${p.id}/component-notes/${encodeURIComponent(slug)}`)
-    console.log(`✓ Component-Note '${slug}' gelöscht (project ${p.id})`)
-  },
-
   // ---- SSTD-Slots (MEM-17) — pfad-gescopt über Projekt-ID; spiegelt MEM-16-REST ----
   async 'sstd:show'(flags) {
     const idOrSlug = flags._[0]
@@ -2394,12 +2359,6 @@ Issues (Key wie DD-161 oder globale ID):
   devd-cli sop edit <key> --op patch|insert_after|insert_before|delete --line <n> [--content <text>] [--expect <line>]
   devd-cli sop set <key> --content "<text>" | --file <path>   # Whole-Rewrite (Fallback)
   devd-cli sop create <key> --title "<text>" --content "<text>" | --file <path> [--force]   # neue SOP anlegen (Guard gegen Überschreiben)
-
-Component-Notes (DD-629 — projekt-gescopt):
-  devd-cli component-note list [--project <id|slug>]
-  devd-cli component-note show <slug> [--project <id|slug>]
-  devd-cli component-note set <slug> --content "<text>" | --file <path> [--project <id|slug>]
-  devd-cli component-note delete <slug> [--project <id|slug>]
 
   devd-cli issue dep rm <key|id> --on <key|id>                    # Kante entfernen
 

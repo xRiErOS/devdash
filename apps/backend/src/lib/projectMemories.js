@@ -1,7 +1,7 @@
 // MEM-9 (MEM#5): project_memories Helper — projektgebundenes Memory als Master.
 // Entkoppelt vom globalen ~/.claude/memory.db. FTS5-first (NAS-tauglich, kein Ollama/sqlite-vec).
 // Append-only: Korrektur via supersedeMemory (kein stilles Überschreiben). Soft-Delete via deleted_at.
-// Pure Funktionen ohne Express-Abhängigkeit. Reuse-Pattern aus componentNotes.js / projectTodos.js.
+// Pure Funktionen ohne Express-Abhängigkeit. Reuse-Pattern aus projectTodos.js.
 
 // DD-563 (Sprint DD#78, Triplet 4/6): Kategorie-Enum als Single Source aus dem Contract.
 // Reihenfolge load-bearing — die `category muss eine von: ${CATEGORIES.join(', ')}`-Message

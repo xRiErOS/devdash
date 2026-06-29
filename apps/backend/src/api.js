@@ -55,7 +55,6 @@ import {
   ProjectSlotError,
 } from './lib/sstdSlots.js'
 import { validateSpecPath, MilestoneSpecPathError } from './lib/milestoneSpecPath.js'
-import { listNotes as listComponentNotes, getNote as getComponentNote, upsertNote as upsertComponentNote, deleteNote as deleteComponentNote, ComponentNoteError } from './lib/componentNotes.js'
 import { listMemories as listProjectMemories, getMemory as getProjectMemory, createMemory as createProjectMemory, updateMemory as updateProjectMemory, deleteMemory as deleteProjectMemory, supersedeMemory as supersedeProjectMemory, searchMemories as searchProjectMemories, getMemoryByAnchor as getProjectMemoryByAnchor, patchByAnchor as patchProjectMemoryByAnchor, ProjectMemoryError } from './lib/projectMemories.js'
 import { renderSnapshot as renderProjectMemorySnapshot, renderSplitSnapshot as renderProjectMemorySplitSnapshot } from './lib/projectMemorySnapshot.js'
 import { cascadeDeleteSprints, milestoneDeletePreview, sprintDocumentCount } from './lib/cascadeDelete.js'
@@ -4417,75 +4416,6 @@ app.delete('/api/projects/:project_id/todos/:tid/links/:lid', (req, res) => {
     res.status(204).end()
   } catch (e) {
     return _sendTodoError(res, e)
-  }
-})
-
-// ============================================================
-// DD-273 (M3-S02 T01): component_notes — Debug-Mode-Notes pro data-ui-Slug.
-// Wiki 40.03 Baustein Notes-Panel. Auth: read = ANY, write = ANY (Dev-Tool, kein Audit-Log).
-// ============================================================
-
-function _sendComponentNoteError(res, e) {
-  if (e instanceof ComponentNoteError) {
-    return res.status(e.statusCode).json({ error: e.message, code: e.code, field: e.field })
-  }
-  console.error('[component-notes] unexpected error', e)
-  return res.status(500).json({ error: 'Internal Server Error' })
-}
-
-app.get('/api/projects/:project_id/component-notes', (req, res) => {
-  const projectId = Number(req.params.project_id)
-  if (!Number.isInteger(projectId) || projectId <= 0) {
-    return res.status(400).json({ error: 'project_id muss positive Ganzzahl sein' })
-  }
-  try {
-    res.json(listComponentNotes(db, projectId))
-  } catch (e) {
-    return _sendComponentNoteError(res, e)
-  }
-})
-
-app.get('/api/projects/:project_id/component-notes/:slug', (req, res) => {
-  const projectId = Number(req.params.project_id)
-  if (!Number.isInteger(projectId) || projectId <= 0) {
-    return res.status(400).json({ error: 'project_id muss positive Ganzzahl sein' })
-  }
-  try {
-    const note = getComponentNote(db, projectId, req.params.slug)
-    if (!note) return res.status(404).json({ error: 'Note nicht gefunden', code: 'NOTE_NOT_FOUND' })
-    res.json(note)
-  } catch (e) {
-    return _sendComponentNoteError(res, e)
-  }
-})
-
-app.put('/api/projects/:project_id/component-notes/:slug', (req, res) => {
-  const projectId = Number(req.params.project_id)
-  if (!Number.isInteger(projectId) || projectId <= 0) {
-    return res.status(400).json({ error: 'project_id muss positive Ganzzahl sein' })
-  }
-  const body = req.body || {}
-  if (!Object.prototype.hasOwnProperty.call(body, 'content')) {
-    return res.status(400).json({ error: 'content-Feld fehlt im Body', code: 'CONTENT_MISSING', field: 'content' })
-  }
-  try {
-    const note = upsertComponentNote(db, projectId, req.params.slug, body.content)
-    res.json(note)
-  } catch (e) {
-    return _sendComponentNoteError(res, e)
-  }
-})
-
-app.delete('/api/projects/:project_id/component-notes/:slug', (req, res) => {
-  const projectId = Number(req.params.project_id)
-  if (!Number.isInteger(projectId) || projectId <= 0) {
-    return res.status(400).json({ error: 'project_id muss positive Ganzzahl sein' })
-  }
-  try {
-    deleteComponentNote(db, projectId, req.params.slug)
-    res.status(204).end()
-  } catch (e) {
-    return _sendComponentNoteError(res, e)
   }
 })
 

@@ -605,6 +605,49 @@ server.tool(
 )
 
 server.tool(
+  'devd_backlog_list',
+  'DD2-110: List the REAL backlog of a project — open, unplanned work only. Backlog = status "new" OR (status "planned" AND no sprint assigned), mirroring the TUI backlog view (messages.go). Unlike devd_issue_list (which returns ALL issues when unfiltered), this captures the backlog semantics in one call (two backend queries, merged + deduped). refined is excluded (roadmap/milestone-managed). Each item has `key`. Read-only.',
+  {
+    project_id: PROJECT_ID_PARAM,
+    type: z.enum(ISSUE_TYPES).optional().describe('Filter by issue type'),
+    search: z.string().optional().describe('Full-text search across title, context_notes, goal, background'),
+    fields: z.enum(['compact', 'full']).optional().describe('compact (default — token-safe) or full'),
+    limit: z.number().int().min(1).optional().describe('Max rows returned (applied after merge)'),
+  },
+  async ({ project_id, type, search, fields, limit }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    // Backlog-Semantik (TUI-autoritativ): status=new ∪ (status=planned ∧ sprint=null).
+    // Backend /api/backlog komponiert status+sprint_id mit AND → zwei Calls + Merge.
+    const base = new URLSearchParams()
+    if (type) base.set('type', type)
+    if (search) base.set('search', search)
+    if (fields) base.set('fields', fields)
+    const qNew = new URLSearchParams(base)
+    qNew.set('status', 'new')
+    const qPlanned = new URLSearchParams(base)
+    qPlanned.set('status', 'planned')
+    qPlanned.set('sprint_id', 'null')
+    const [newItems, plannedItems] = await Promise.all([
+      apiRequest('GET', `/api/backlog?${qNew.toString()}`, null, pid),
+      apiRequest('GET', `/api/backlog?${qPlanned.toString()}`, null, pid),
+    ])
+    if (newItems && newItems.error) return ok(newItems)
+    if (plannedItems && plannedItems.error) return ok(plannedItems)
+    // Merge + Dedup nach key (Status-disjunkt → Dedup nur Sicherheitsnetz). new zuerst.
+    const seen = new Set()
+    const merged = []
+    for (const it of [...(newItems || []), ...(plannedItems || [])]) {
+      const k = it.key ?? it.id
+      if (seen.has(k)) continue
+      seen.add(k)
+      merged.push(it)
+    }
+    return ok(limit !== undefined ? merged.slice(0, limit) : merged)
+  },
+)
+
+server.tool(
   'devd_issue_lost',
   'DD-555: Find lost issues — non-terminal issues (status ∉ done/passed/cancelled) still assigned to a COMPLETED sprint. Data-hygiene query, project-scoped. Each hit has issue key, sprint key and status. Read-only.',
   {
@@ -910,62 +953,6 @@ server.tool(
   },
 )
 
-// DD-629: component-notes CLI+MCP. Die REST-Route ist PATH-gescopt auf eine NUMERISCHE
-// project_id (Slug wird dort nicht resolved) → erst auf die numerische id auflösen
-// (GET /api/projects/:id resolved Slug via DD-390), dann den Pfad bauen.
-async function resolveNumericProjectId(project_id) {
-  const ref = resolveProjectId(project_id)
-  if (typeof ref === 'object' && ref.error) return ref
-  const proj = await apiRequest('GET', `/api/projects/${encodeURIComponent(String(ref))}`)
-  if (proj && proj.error) return proj
-  return proj.id
-}
-
-server.tool(
-  'devd_component_note_list',
-  'List component-notes (slug + updated_at) of a project. GET /api/projects/:pid/component-notes. Read-only.',
-  { project_id: PROJECT_ID_PARAM },
-  async ({ project_id }) => {
-    const npid = await resolveNumericProjectId(project_id)
-    if (npid && npid.error) return ok(npid)
-    return ok(await apiRequest('GET', `/api/projects/${npid}/component-notes`))
-  },
-)
-
-server.tool(
-  'devd_component_note_get',
-  'Get one component-note by slug. GET /api/projects/:pid/component-notes/:slug. Read-only.',
-  { project_id: PROJECT_ID_PARAM, slug: z.string().describe('Component-note slug') },
-  async ({ project_id, slug }) => {
-    const npid = await resolveNumericProjectId(project_id)
-    if (npid && npid.error) return ok(npid)
-    return ok(await apiRequest('GET', `/api/projects/${npid}/component-notes/${encodeURIComponent(slug)}`))
-  },
-)
-
-server.tool(
-  'devd_component_note_set',
-  'WRITE: Upsert a component-note (create or overwrite by slug). PUT /api/projects/:pid/component-notes/:slug {content}.',
-  { project_id: PROJECT_ID_PARAM, slug: z.string().describe('Component-note slug'), content: z.string().describe('Note content (markdown)') },
-  async ({ project_id, slug, content }) => {
-    const npid = await resolveNumericProjectId(project_id)
-    if (npid && npid.error) return ok(npid)
-    return ok(await apiRequest('PUT', `/api/projects/${npid}/component-notes/${encodeURIComponent(slug)}`, { content }))
-  },
-)
-
-server.tool(
-  'devd_component_note_delete',
-  'WRITE: Delete a component-note by slug. DELETE /api/projects/:pid/component-notes/:slug.',
-  { project_id: PROJECT_ID_PARAM, slug: z.string().describe('Component-note slug') },
-  async ({ project_id, slug }) => {
-    const npid = await resolveNumericProjectId(project_id)
-    if (npid && npid.error) return ok(npid)
-    const data = await apiRequest('DELETE', `/api/projects/${npid}/component-notes/${encodeURIComponent(slug)}`, null)
-    if (data && data.error) return ok(data)
-    return ok({ deleted: true, slug })
-  },
-)
 
 // DD-628: Lean Read-Context-Tools — AI-Kontext in einem Call. Read-only. Der generische
 // Response-Cap (DD-623) schützt diese potenziell großen Outputs automatisch.
@@ -1603,25 +1590,34 @@ server.tool(
   },
 )
 
+// DD2-99: Outcome-Type-Vokabular inline (kein Contract) — enum-validiert, default feat.
+const SET_RESULT_OUTCOME_TYPES = ['feat', 'fix', 'refactor', 'chore', 'docs']
+
 server.tool(
   'devd_issue_set_result',
   'WRITE: Set the structured sprint result on an issue. Builds the YAML+Markdown result string and writes it via PUT /api/backlog/:id {result}. commits is required (D02). Use after sprint work is done, before sprint complete.',
   {
     project_id: PROJECT_ID_PARAM,
-    id_or_key: z.string().describe('Issue key (e.g. "DD-42") or numeric backlog id'),
+    id_or_key: z.string({ error: 'id_or_key ist Pflichtfeld' }).trim().min(1, { error: 'id_or_key darf nicht leer sein' }).describe('Issue key (e.g. "DD-42") or numeric backlog id'),
+    // DD2-99: enum statt Free-String — ungültiger Typ schlägt klar an der Grenze fehl.
     outcome_type: z
-      .string()
+      .enum(SET_RESULT_OUTCOME_TYPES, { error: 'outcome_type muss feat|fix|refactor|chore|docs sein' })
       .optional()
       .describe('Outcome type: feat | fix | refactor | chore | docs (default: feat)'),
+    // DD2-99: non-empty Pflicht — leere Summary erzeugte zuvor ein nutzloses Result.
     outcome_summary: z
-      .string()
+      .string({ error: 'outcome_summary ist Pflichtfeld' })
+      .trim()
+      .min(1, { error: 'outcome_summary darf nicht leer sein' })
       .describe('Short summary of what was achieved (required)'),
     files_changed: z
       .array(z.string())
       .optional()
       .describe('List of changed file paths'),
+    // DD2-99: mind. 1 non-empty Commit (D02) — [] erzeugte zuvor einen leeren YAML-Eintrag.
     commits: z
-      .array(z.string())
+      .array(z.string().trim().min(1, { error: 'commit darf nicht leer sein' }), { error: 'commits muss ein Array sein' })
+      .min(1, { error: 'commits ist Pflicht — mind. 1 Eintrag (D02)' })
       .describe('List of commit SHAs or short descriptions (required — D02)'),
     breaking_changes: z
       .boolean()
@@ -1651,6 +1647,11 @@ server.tool(
     if (typeof pid === 'object' && pid.error) return ok(pid)
     const id = await resolveIssueId(id_or_key, pid)
     const issue = await apiRequest('GET', `/api/backlog/${id}`, null, pid)
+    // DD2-99: Issue nicht auflösbar/nicht gefunden → klar abbrechen, statt ein
+    // Result mit `#undefined`-related_issues zu bauen und blind zu PUTten.
+    if (!issue || issue.error || issue.id == null) {
+      return ok(issue && issue.error ? issue : { error: true, message: `Issue ${id_or_key} nicht gefunden` })
+    }
 
     // Build issue key for related_issues block
     const issueKey = (issue.project_prefix && issue.project_number != null)
@@ -1697,17 +1698,24 @@ ${vorgehenText}
 // ---------------------------------------------------------------------------
 // DD-565 (Triplet 6/6): bewusst KEIN Import aus contracts/subtask.contracts.js. Die
 // devd_subtask_*-Tools tragen kein dedupbares Enum/Konstanten-Literal — Status ist als fixes
-// `{ status: 'done' }` im done-Handler hartkodiert, title/qa_criteria/position sind reine
-// z.-Param-Typen. tests/sma-mcp-parity/subtasks.test.js ist zudem ein Source-Shape-Guard, der den
-// Klartext dieses Blocks (title/qa_criteria/done/id_or_key + Route-Strings) assertet. Die Single
-// Source der Subtask-Werte liegt in contracts/subtask.contracts.js + server/lib/subtasks.js.
+// `{ status: 'done' }` im done-Handler hartkodiert. tests/sma-mcp-parity/subtasks.test.js ist
+// zudem ein Source-Shape-Guard, der den Klartext dieses Blocks (title/qa_criteria/done/id_or_key
+// + Route-Strings) assertet. Die Single Source der Subtask-Werte liegt in
+// contracts/subtask.contracts.js + server/lib/subtasks.js.
+//
+// DD2-97: Input-Boundary gehärtet (klare Fehler an der MCP-Grenze statt Round-Trip): id_or_key
+// non-empty, title non-empty (trim+min(1), spiegelt 'title ist Pflichtfeld'), subtask_id positive
+// Ganzzahl. Bewusst inline (Contract-Entscheidung DD-562/563/564: kein Contract-Import in MCP) —
+// und KEINE künstlichen Längen-Caps, da die REST-Lib keine hat (sonst MCP/REST-Drift). Die
+// werfende Business-Autorität (qa_criteria-auf-done 422, status-nur-open-beim-Anlegen 400,
+// Parent-Existenz 404) bleibt in server/lib/subtasks.js.
 
 server.tool(
   'devd_subtask_list',
   'READ: List all subtasks for an issue. Returns id, title, qa_criteria, status, position.',
   {
     project_id: PROJECT_ID_PARAM,
-    id_or_key: z.string().describe('Issue key (e.g. "DD-42") or numeric backlog id'),
+    id_or_key: z.string({ error: 'id_or_key ist Pflichtfeld' }).trim().min(1, { error: 'id_or_key darf nicht leer sein' }).describe('Issue key (e.g. "DD-42") or numeric backlog id'),
   },
   async ({ project_id, id_or_key }) => {
     const pid = resolveProjectId(project_id)
@@ -1723,10 +1731,10 @@ server.tool(
   'WRITE: Add a subtask to an issue. title is required. qa_criteria is recommended (required before marking done).',
   {
     project_id: PROJECT_ID_PARAM,
-    id_or_key: z.string().describe('Issue key (e.g. "DD-42") or numeric backlog id'),
-    title: z.string().describe('Subtask title (required)'),
+    id_or_key: z.string({ error: 'id_or_key ist Pflichtfeld' }).trim().min(1, { error: 'id_or_key darf nicht leer sein' }).describe('Issue key (e.g. "DD-42") or numeric backlog id'),
+    title: z.string({ error: 'title ist Pflichtfeld' }).trim().min(1, { error: 'title ist Pflichtfeld' }).describe('Subtask title (required)'),
     qa_criteria: z.string().optional().describe('Acceptance / QA criteria — required before marking done'),
-    position: z.number().int().optional().describe('Sort position (default appended at end)'),
+    position: z.number().int({ error: 'position muss eine Ganzzahl sein' }).optional().describe('Sort position (default appended at end)'),
   },
   async ({ project_id, id_or_key, title, qa_criteria, position }) => {
     const pid = resolveProjectId(project_id)
@@ -1745,7 +1753,7 @@ server.tool(
   'WRITE: Mark a subtask as done. The subtask must have qa_criteria set (enforced server-side).',
   {
     project_id: PROJECT_ID_PARAM,
-    subtask_id: z.number().int().describe('Numeric subtask id (ST-<id>)'),
+    subtask_id: z.number().int().positive({ error: 'subtask_id muss eine positive Ganzzahl sein' }).describe('Numeric subtask id (ST-<id>)'),
   },
   async ({ project_id, subtask_id }) => {
     const pid = resolveProjectId(project_id)
@@ -1760,10 +1768,10 @@ server.tool(
   'WRITE: Update title, qa_criteria, or position of a subtask.',
   {
     project_id: PROJECT_ID_PARAM,
-    subtask_id: z.number().int().describe('Numeric subtask id (ST-<id>)'),
-    title: z.string().optional().describe('New title'),
+    subtask_id: z.number().int().positive({ error: 'subtask_id muss eine positive Ganzzahl sein' }).describe('Numeric subtask id (ST-<id>)'),
+    title: z.string().trim().min(1, { error: 'title darf nicht leer sein' }).optional().describe('New title'),
     qa_criteria: z.string().optional().describe('New QA criteria'),
-    position: z.number().int().optional().describe('New sort position'),
+    position: z.number().int({ error: 'position muss eine Ganzzahl sein' }).optional().describe('New sort position'),
   },
   async ({ project_id, subtask_id, title, qa_criteria, position }) => {
     const pid = resolveProjectId(project_id)
@@ -1782,7 +1790,7 @@ server.tool(
   'WRITE: Delete a subtask permanently.',
   {
     project_id: PROJECT_ID_PARAM,
-    subtask_id: z.number().int().describe('Numeric subtask id (ST-<id>)'),
+    subtask_id: z.number().int().positive({ error: 'subtask_id muss eine positive Ganzzahl sein' }).describe('Numeric subtask id (ST-<id>)'),
   },
   async ({ project_id, subtask_id }) => {
     const pid = resolveProjectId(project_id)
