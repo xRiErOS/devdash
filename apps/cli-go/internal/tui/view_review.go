@@ -315,6 +315,24 @@ func (m model) reviewStandClip() string {
 		}
 		b.WriteString(fmt.Sprintf("| %s | %s | %s | %s | %s |\n", it.Key, it.Title, it.Status, verdict, result))
 	}
+	// DD2-152: Reject-Kommentare je not_passed-Issue UNTER der Tabelle anhängen. Der
+	// Handover-Markdown (y → Clipboard) trägt damit die Ablehnungsgründe direkt — der
+	// KI-Agent muss sie für das Rework nicht separat per Tool nachladen.
+	var rej strings.Builder
+	for _, it := range s.Items {
+		if deref(it.ReviewStatus) != "not_passed" {
+			continue
+		}
+		comment := strings.TrimSpace(deref(it.ReviewComment))
+		if comment == "" {
+			comment = "(no comment)"
+		}
+		rej.WriteString(fmt.Sprintf("\n### %s — %s\n%s\n", it.Key, it.Title, comment))
+	}
+	if rej.Len() > 0 {
+		b.WriteString("\n## Reject comments\n")
+		b.WriteString(rej.String())
+	}
 	return b.String()
 }
 

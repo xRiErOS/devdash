@@ -85,6 +85,38 @@ func TestReviewStandClipRendersMarkdown(t *testing.T) {
 	}
 }
 
+// DD2-152: der Yank-Handover trägt je not_passed-Issue den Reject-Kommentar UNTER
+// der Tabelle (spart dem KI-Agenten den separaten Tool-Aufruf beim Rework).
+func TestReviewStandClipIncludesRejectComments(t *testing.T) {
+	m := reviewModel()
+	m.curSprint.Items = []api.Issue{
+		{Key: "SPF-1", Title: "A", Status: "passed", ReviewStatus: strptr("passed"), Result: strptr("done")},
+		{Key: "SPF-2", Title: "B", Status: "rejected", ReviewStatus: strptr("not_passed"), ReviewComment: strptr("Edge-Case X fehlt")},
+	}
+	out := m.reviewStandClip()
+	for _, want := range []string{"## Reject comments", "### SPF-2 — B", "Edge-Case X fehlt"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("reviewStandClip fehlt Reject-Sektion %q\n%s", want, out)
+		}
+	}
+	// passed-Issue darf NICHT in der Reject-Sektion auftauchen.
+	if strings.Contains(out, "### SPF-1") {
+		t.Errorf("passed-Issue SPF-1 fälschlich in Reject-Kommentaren\n%s", out)
+	}
+}
+
+// not_passed ohne Kommentar → Platzhalter statt leerer Eintrag.
+func TestReviewStandClipRejectWithoutComment(t *testing.T) {
+	m := reviewModel()
+	m.curSprint.Items = []api.Issue{
+		{Key: "SPF-3", Title: "C", Status: "rejected", ReviewStatus: strptr("not_passed")},
+	}
+	out := m.reviewStandClip()
+	if !strings.Contains(out, "### SPF-3 — C") || !strings.Contains(out, "(no comment)") {
+		t.Errorf("Reject ohne Kommentar sollte Platzhalter zeigen\n%s", out)
+	}
+}
+
 func TestStatusMenuOpensAndDispatches(t *testing.T) {
 	m := reviewModel()
 	mi, _ := m.Update(keyMsg("s"))
