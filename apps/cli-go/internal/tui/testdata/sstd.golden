@@ -1,0 +1,23 @@
+> devd2                        ctrl+k:cmd  p:project  b:backlog  R:reviews  ?:help  q:quit
+dd2 — SSTD
+╭──────────────────────────────╮╭────────────────────────────────────────────────────────╮
+│Slots ∙ 6 + 2 proj (8)        ││Architecture                                            │
+│────────────────────────      ││──────────────                                          │
+│▸   Architecture              ││                                                        │
+│    Conventions ·empty        ││  # Architecture                                        │
+│    Sprint State              ││                                                        │
+│    Roadmap ·empty            ││  Layered client/server.                                │
+│    Cross-Refs ·empty         ││                                                        │
+│    Misc ·empty               ││                                                        │
+│  ◦ Next Steps                ││                                                        │
+│  ◦ Session Log               ││                                                        │
+│                              ││                                                        │
+│                              ││                                                        │
+│                              ││                                                        │
+│                              ││                                                        │
+│                              ││                                                        │
+│                              ││                                                        │
+│                              ││                                                        │
+│                              ││                                                        │
+╰──────────────────────────────╯╰────────────────────────────────────────────────────────╯
+i/k:↑↓  enter:edit (neovim)  esc/q:back

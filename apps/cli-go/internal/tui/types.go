@@ -23,6 +23,7 @@ const (
 	viewManageTags    // DD2-75: Tag-Manager (projektweite Tag-CRUD)
 	viewCommandCenter // DD2-91: projektweite Issue-Such-Ansicht (Command-Center)
 	viewTutorial      // DD2-122: geführtes, seitenweises Onboarding
+	viewSSTD          // DD2-166: SSTD-Slots MasterDetail (6 Slots + 2 Projektionen)
 )
 
 // filterState hält pro Spalte, welche Werte ausgeblendet sind.
@@ -196,6 +197,13 @@ type model struct {
 	memSearching bool
 	memQuery     string
 	memCat       string // aktiver Kategorie-Filter ("" = alle)
+
+	// SSTD-Browser (DD2-166): MasterDetail über die 6 editierbaren Slots + 2
+	// read-only Projektionen. sstdEditKey merkt sich den Slot vor dem neovim-Edit.
+	sstdSlots   []api.SstdSlot
+	sstdProj    *api.SstdProjections
+	sstdList    listState
+	sstdEditKey string
 
 	// Command-Center (T16): globales Action-Palette-Modal (ctrl+k / shift+k).
 	paletteOpen bool

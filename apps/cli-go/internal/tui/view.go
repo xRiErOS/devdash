@@ -129,6 +129,8 @@ func (m model) viewBase() string {
 		return m.viewManageTags() // DD2-75: Tag-Manager
 	case viewCommandCenter:
 		return m.viewCommandCenter() // DD2-91: projektweite Suche
+	case viewSSTD:
+		return m.viewSSTD()
 	case viewTutorial:
 		return m.viewTutorial() // DD2-122: Onboarding
 	default:

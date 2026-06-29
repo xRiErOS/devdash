@@ -27,6 +27,7 @@ func paletteActions(m *model) []paletteAction {
 		{"create_memory", "Create new memory"},
 		{"go_reviews", "Go to: Open reviews"},
 		{"go_memory", "Go to: Memory browser"},
+		{"go_sstd", "Go to: SSTD slots"},          // DD2-166
 		{"go_search", "Go to: Search all issues"}, // DD2-91
 		{"go_backlog", "Go to: Backlog"},
 		{"go_tags", "Go to: Tag manager"},
@@ -121,6 +122,8 @@ func (m model) dispatchPalette(id string) (tea.Model, tea.Cmd) {
 		return m.openReviewsList()
 	case "go_memory":
 		return m.openMemory()
+	case "go_sstd": // DD2-166: SSTD-Slots-Browser
+		return m.openSSTD()
 	case "go_search": // DD2-91: projektweite Issue-Suche
 		return m.openSearch()
 	case "go_tutorial": // DD2-122: geführtes Onboarding

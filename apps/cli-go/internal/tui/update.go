@@ -205,6 +205,37 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.memDetailID = msg.mem.ID
 		}
 		return m, nil
+	case sstdMsg: // DD2-166: Slots + Projektionen geladen/neu gespeichert
+		m.sstdSlots = msg.slots
+		m.sstdProj = msg.proj
+		m.sstdList.setLen(len(m.sstdEntries()))
+		if msg.notice != "" {
+			m.status = noticeText(msg.notice)
+			m.statusSticky = false
+			m.statusSeq++
+			return m, statusTimeout(m.statusSeq)
+		}
+		return m, nil
+	case editorFinishedMsg: // DD2-164/166ff: neovim-Suspend zurück → view-aware speichern
+		if msg.err != nil {
+			m.status = noticeText("editor: " + msg.err.Error())
+			m.statusSticky = false
+			m.statusSeq++
+			return m, statusTimeout(m.statusSeq)
+		}
+		if !msg.changed {
+			m.status = noticeText("no changes")
+			m.statusSticky = false
+			m.statusSeq++
+			return m, statusTimeout(m.statusSeq)
+		}
+		switch m.view {
+		case viewSSTD:
+			if m.sstdEditKey != "" {
+				return m, saveSstdSlotCmd(m.client, m.sstdEditKey, msg.content)
+			}
+		}
+		return m, nil
 	case unassignedSprintsMsg:
 		m.maSprints = msg.items
 		m.maMenu.setLen(len(m.maSprints))
