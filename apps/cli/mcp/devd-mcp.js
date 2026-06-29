@@ -1097,16 +1097,32 @@ server.tool(
 
 server.tool(
   'devd_sprint_delete',
-  'WRITE: Delete a sprint. The backend blocks deletion while it still has issues (409) — unassign/move them first. DELETE /api/sprints/:id.',
+  'WRITE: Hard-delete a sprint. cascade=true (default) also deletes the sprint\'s issues incl. their children (no dangling rows). cascade=false keeps the old guard: 409 if issues are still assigned (unassign/move first). DELETE /api/sprints/:id[?cascade=1]. Note: cancelled is a soft state that stays in the DB — this is the hard delete.',
   {
     project_id: PROJECT_ID_PARAM,
     sprint_key: z.string().describe('Sprint key or numeric id'),
+    cascade: z.boolean().optional().default(true).describe('Also delete the sprint\'s issues (default true). false → 409 when issues exist.'),
   },
-  async ({ project_id, sprint_key }) => {
+  async ({ project_id, sprint_key, cascade = true }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
     const id = await resolveSprintId(sprint_key, pid)
-    return ok(await apiRequest('DELETE', `/api/sprints/${id}`, null, pid))
+    return ok(await apiRequest('DELETE', `/api/sprints/${id}${cascade ? '?cascade=1' : ''}`, null, pid))
+  },
+)
+
+server.tool(
+  'devd_milestone_delete',
+  'WRITE: Hard-delete a milestone. cascade=true (default) also deletes all of the milestone\'s sprints and their issues incl. children (no dangling rows). cascade=false only deletes the milestone and detaches its sprints (milestone_id → NULL). DELETE /api/milestones/:id[?cascade=1]. Note: cancelled is a soft state that stays in the DB — this is the hard delete.',
+  {
+    project_id: PROJECT_ID_PARAM,
+    milestone_id: z.coerce.number().int().positive().describe('Numeric milestone id'),
+    cascade: z.boolean().optional().default(true).describe('Also delete the milestone\'s sprints + their issues (default true). false → detach sprints only.'),
+  },
+  async ({ project_id, milestone_id, cascade = true }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    return ok(await apiRequest('DELETE', `/api/milestones/${milestone_id}${cascade ? '?cascade=1' : ''}`, null, pid))
   },
 )
 
