@@ -31,6 +31,22 @@ func (c *Client) AddUserStory(issueID int, title, qa string) (*UserStory, error)
 	return &us, json.Unmarshal(data, &us)
 }
 
+// EditUserStory ändert Titel und/oder QA einer bestehenden User-Story (DD2-144).
+// Spiegelt PATCH /api/user-stories/:id (updateUserStory: title, qa, details).
+// qa wird immer mitgeschickt (auch leer → leeren), title nur wenn nicht leer.
+func (c *Client) EditUserStory(usID int, title, qa string) (*UserStory, error) {
+	body := map[string]any{"qa": qa}
+	if title != "" {
+		body["title"] = title
+	}
+	data, err := c.Do("PATCH", fmt.Sprintf("/api/user-stories/%d", usID), body)
+	if err != nil {
+		return nil, err
+	}
+	var us UserStory
+	return &us, json.Unmarshal(data, &us)
+}
+
 // SetUserStoryVerdict setzt das Verdikt einer User-Story (open|accepted|rejected).
 func (c *Client) SetUserStoryVerdict(usID int, verdict string) (*UserStory, error) {
 	data, err := c.Do("PATCH", fmt.Sprintf("/api/user-stories/%d/verdict", usID), map[string]any{"us_verdict": verdict})

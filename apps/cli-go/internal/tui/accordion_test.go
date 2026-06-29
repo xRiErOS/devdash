@@ -44,7 +44,7 @@ func TestIssueSectionsPresentOnly(t *testing.T) {
 	it := api.Issue{Key: "DD2-1", Title: "T", Type: "bug", Priority: 1, Status: "in_progress",
 		Goal: &g, Description: &d, PoNotes: &po, Background: &bg}
 	m := treeModel()
-	secs := m.issueSections(it, 60)
+	secs := m.issueSections(it, 60, false)
 
 	if len(secs) != 2 {
 		t.Fatalf("Sektionen=%d, want 2 (Goal/Po + Background); Result/Review fehlen", len(secs))

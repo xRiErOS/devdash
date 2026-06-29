@@ -8,6 +8,7 @@ package tui
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"devd-cli/internal/api"
@@ -59,12 +60,29 @@ func placeholderOr(s string) string {
 	return s
 }
 
-// issueSections baut die vorhandenen Detail-Sektionen eines Issues in fester
-// Reihenfolge (Vorschlag DD2-50): 1=Goal/Beschreibung|PO-Notes, 2=Background/
-// Context, 3=Relevant Files, 4=User-Stories, 5=Result, 6=Review. bodyW = Innen-
-// breite der Body-Box (Border zieht außen 2 ab — s. renderAccordion). Alle Bodies
-// werden hier explizit auf bodyW umgebrochen (kein Auto-Wrap in der Box, #2).
-func (m model) issueSections(it api.Issue, bodyW int) []accordionSection {
+// userStoryFields baut die navigierbaren Felder der User-Story-Section (DD2-144):
+// ein Feld je Story (key "us:<id>", Label = gekürzter Titel) + eine Add-Zeile
+// (key "us:new"). editor "userstory" routet enter in die US-Form statt scalar-Edit.
+func userStoryFields(stories []api.UserStory) []detailField {
+	fields := make([]detailField, 0, len(stories)+1)
+	for _, us := range stories {
+		fields = append(fields, detailField{"us:" + strconv.Itoa(us.ID), truncate(us.Title, 22), "userstory"})
+	}
+	return append(fields, detailField{"us:new", "+ Add", "userstory"})
+}
+
+// issueSections baut die Detail-Sektionen eines Issues in fester Reihenfolge
+// (Vorschlag DD2-50): 1=Goal/Beschreibung|PO-Notes, 2=Background/Context,
+// 3=Relevant Files, 4=User-Stories, 5=Result, 6=Review. bodyW = Innenbreite der
+// Body-Box (Border zieht außen 2 ab — s. renderAccordion). Alle Bodies werden hier
+// explizit auf bodyW umgebrochen (kein Auto-Wrap in der Box, #2).
+//
+// full (DD2-144): true für die editierbaren Detail-Flächen (Backlog/Tree-Fokus) —
+// dann sind Background/Context/Relevant-Files/User-Stories IMMER vorhanden (auch
+// leer, mit Platzhalter + Edit-Feldern), damit der PO alle Felder nachtragen und
+// User-Stories anlegen kann (US-115). false für read-only Previews (Review-Cockpit)
+// — dort nur befüllte Sektionen, unverändert.
+func (m model) issueSections(it api.Issue, bodyW int, full bool) []accordionSection {
 	var secs []accordionSection
 
 	// Sektion 1: zweispaltig — links Goal+Beschreibung, rechts PO-Notes (PO-Wunsch).
@@ -90,39 +108,48 @@ func (m model) issueSections(it api.Issue, bodyW int) []accordionSection {
 		secs = append(secs, accordionSection{"Goal / Description ∙ PO notes", body, fields})
 	}
 
-	// Sektion 2: Background + Context Notes (einspaltig).
-	if bg, cn := deref(it.Background), deref(it.ContextNotes); bg != "" || cn != "" {
+	// Sektion 2: Background + Context Notes (einspaltig). full → immer editierbar
+	// (auch leer, mit Platzhalter), sonst nur wenn befüllt.
+	if bg, cn := deref(it.Background), deref(it.ContextNotes); full || bg != "" || cn != "" {
 		var parts []string
 		var fields []detailField
-		if bg != "" {
-			parts = append(parts, subhead("Background", bg))
+		if full || bg != "" {
+			parts = append(parts, subhead("Background", placeholderOr(bg)))
 			fields = append(fields, detailField{"background", "Background", "text"})
 		}
-		if cn != "" {
-			parts = append(parts, subhead("Context Notes", cn))
+		if full || cn != "" {
+			parts = append(parts, subhead("Context Notes", placeholderOr(cn)))
 			fields = append(fields, detailField{"context_notes", "Context Notes", "text"})
 		}
 		secs = append(secs, accordionSection{"Background / Context", wrapText(strings.Join(parts, "\n\n"), bodyW), fields})
 	}
 
-	// Sektion 3: Relevant Files.
-	if rf := deref(it.RelevantFiles); rf != "" {
-		secs = append(secs, accordionSection{"Relevant Files", wrapText(rf, bodyW),
+	// Sektion 3: Relevant Files. full → immer editierbar (auch leer).
+	if rf := deref(it.RelevantFiles); full || rf != "" {
+		secs = append(secs, accordionSection{"Relevant Files", wrapText(placeholderOr(rf), bodyW),
 			[]detailField{{"relevant_files", "Relevant Files", "text"}}})
 	}
 
-	// Sektion 4: User-Stories mit Verdikt + QA.
-	if len(it.UserStories) > 0 {
+	// Sektion 4: User-Stories mit Verdikt + QA. full → immer vorhanden inkl.
+	// Add-/Edit-Feldern (DD2-144), sonst nur wenn vorhanden (read-only Preview).
+	if full || len(it.UserStories) > 0 {
 		var b strings.Builder
+		if len(it.UserStories) == 0 {
+			b.WriteString(theme.Muted.Render("(none yet — enter on + Add)"))
+		}
 		for _, us := range it.UserStories {
 			b.WriteString(usVerdictBox(us.Verdict) + " " + us.Title + "\n")
 			if qa := deref(us.QA); qa != "" {
 				b.WriteString(theme.Dim.Render("    QA: "+qa) + "\n")
 			}
 		}
-		secs = append(secs, accordionSection{
+		sec := accordionSection{
 			title: fmt.Sprintf("User-Stories (%d)", len(it.UserStories)),
-			body:  wrapText(strings.TrimRight(b.String(), "\n"), bodyW)})
+			body:  wrapText(strings.TrimRight(b.String(), "\n"), bodyW)}
+		if full {
+			sec.fields = userStoryFields(it.UserStories)
+		}
+		secs = append(secs, sec)
 	}
 
 	// Sektion 5: Result (read-only, nur Review — D06).

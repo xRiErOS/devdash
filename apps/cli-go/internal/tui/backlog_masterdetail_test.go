@@ -63,15 +63,20 @@ func TestBacklogDetailSectionNav(t *testing.T) {
 	if m.secCursor != 2 || m.accOpen != 2 {
 		t.Errorf("k → secCursor=%d accOpen=%d, want 2/2", m.secCursor, m.accOpen)
 	}
-	mi, _ = m.keyBacklog(key("k")) // am Ende geklemmt
-	m = mi.(model)
-	if m.secCursor != 2 {
-		t.Errorf("k geklemmt → secCursor=%d, want 2", m.secCursor)
+	// Am Ende geklemmt: bis zur letzten Section laufen (DD2-144 fügt Relevant-Files/
+	// User-Stories hinzu → Anzahl dynamisch).
+	last := len(m.focusSections()) - 1
+	for j := 0; j < last+2; j++ {
+		mi, _ = m.keyBacklog(key("k"))
+		m = mi.(model)
+	}
+	if m.secCursor != last {
+		t.Errorf("k geklemmt → secCursor=%d, want %d", m.secCursor, last)
 	}
 	mi, _ = m.keyBacklog(key("i")) // hoch zurück
 	m = mi.(model)
-	if m.secCursor != 1 || m.accOpen != 1 {
-		t.Errorf("i → secCursor=%d accOpen=%d, want 1/1", m.secCursor, m.accOpen)
+	if m.secCursor != last-1 || m.accOpen != last-1 {
+		t.Errorf("i → secCursor=%d accOpen=%d, want %d/%d", m.secCursor, m.accOpen, last-1, last-1)
 	}
 }
 

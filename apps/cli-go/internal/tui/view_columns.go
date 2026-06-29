@@ -439,7 +439,7 @@ func (m model) reviewDetailPane(it *api.Issue, w, h int) string {
 		truncate(theme.Dim.Render("Result ")+resultDot(*it)+theme.Dim.Render("   User-Stories ")+usSummaryDot(*it), w),
 		theme.Dim.Render(strings.Repeat("─", min(w, 24))),
 	}
-	acc := renderAccordion(m.issueSections(*it, w-2), m.accOpen, w, detailFocusView{})
+	acc := renderAccordion(m.issueSections(*it, w-2, false), m.accOpen, w, detailFocusView{}) // read-only Preview (DD2-144)
 	accLines := strings.Split(acc, "\n")
 	bodyH := h - len(header)
 	if bodyH < 1 {

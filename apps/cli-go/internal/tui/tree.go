@@ -483,7 +483,7 @@ func (m model) treeDetail(n treeNode, w int) string {
 		// steht (secCursor ≥ 1); sec = secCursor-1 (Übersicht ist Index 0).
 		focus := detailFocusView{active: m.detailFocus && m.secCursor >= 1,
 			level: m.detailLevel, sec: m.secCursor - 1, field: m.fieldCursor}
-		b.WriteString(renderAccordion(m.issueSections(it, w-2), m.accOpen, w, focus))
+		b.WriteString(renderAccordion(m.issueSections(it, w-2, true), m.accOpen, w, focus)) // full (DD2-144)
 	default:
 		b.WriteString(theme.Dim.Render("(nothing selected — l/→ expands)"))
 	}
