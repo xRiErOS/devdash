@@ -313,7 +313,7 @@ func (m model) backlogDetail(it api.Issue, w int) string {
 	// ≥ 1); sec = secCursor-1 (Übersicht ist Index 0). Wie treeDetail (DD2-76/77).
 	focus := detailFocusView{active: m.detailFocus && m.secCursor >= 1,
 		level: m.detailLevel, sec: m.secCursor - 1, field: m.fieldCursor}
-	b.WriteString(renderAccordion(m.issueSections(it, w-2), m.accOpen, w, focus))
+	b.WriteString(renderAccordion(m.issueSections(it, w-2, true), m.accOpen, w, focus)) // full (DD2-144)
 	return b.String()
 }
 

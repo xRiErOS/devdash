@@ -54,7 +54,7 @@ func (m model) focusSections() []accordionSection {
 	}
 	_, _, _, rw, _ := m.treeLayout()
 	secs := []accordionSection{{title: "Overview", fields: kopfFields()}}
-	return append(secs, m.issueSections(*it, rw-4)...)
+	return append(secs, m.issueSections(*it, rw-4, true)...) // full: alle Felder editierbar (DD2-144)
 }
 
 // currentFieldValue liefert den aktuellen Wert eines Contract-Felds als String
@@ -131,6 +131,31 @@ func (m *model) mergeIssueIntoCache(src *api.Issue) {
 		if m.backlog[i].ID == src.ID {
 			mergeIssueCore(&m.backlog[i], src)
 		}
+	}
+}
+
+// mergeUserStories spiegelt die frische US-Liste eines Issues in alle Caches:
+// Review-Abnahme-Modal (usList/uslist), Cockpit-Sprint, Backlog und Tree — kein
+// Refetch (DD2-144). curSprint deckt DD2-67 #4 ab (US-Dot schlägt live um).
+func (m *model) mergeUserStories(issueID int, items []api.UserStory) {
+	if issueID == m.usIssueID {
+		m.usList = items
+		m.uslist.setLen(len(items))
+	}
+	apply := func(list []api.Issue) {
+		for i := range list {
+			if list[i].ID == issueID {
+				list[i].UserStories = items
+			}
+		}
+	}
+	if m.curSprint != nil {
+		apply(m.curSprint.Items)
+	}
+	apply(m.backlog)
+	apply(m.treeFilterIssues)
+	for sid := range m.treeIssues {
+		apply(m.treeIssues[sid])
 	}
 }
 
@@ -234,7 +259,11 @@ func (m model) keyDetailFocus(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		if it := m.focusedIssue(); it != nil {
-			return m.openEditField(*it, secs[m.secCursor].fields[m.fieldCursor])
+			f := secs[m.secCursor].fields[m.fieldCursor]
+			if f.editor == "userstory" { // DD2-144: US-Felder → US-Form statt scalar-Edit
+				return m.openUserStoryForm(*it, f)
+			}
+			return m.openEditField(*it, f)
 		}
 		return m, nil
 	}

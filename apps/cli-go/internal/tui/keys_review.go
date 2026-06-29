@@ -180,6 +180,17 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.status = noticeText(fmt.Sprintf("Review state copied (%s, %d issues)", m.curSprint.Key, len(m.curSprint.Items)))
 		}
 		return m, nil
+	case "H": // DD2-105: Sprint-Review-Handover-Artefakt (aktionsfähiges Markdown) yanken
+		if m.curSprint == nil {
+			return m, nil
+		}
+		if err := clip.Copy(m.reviewHandoverClip()); err != nil {
+			m.errNote = "Clipboard-Fehler: " + err.Error()
+		} else {
+			m.errNote = ""
+			m.status = noticeText(fmt.Sprintf("Review handover copied (%s)", m.curSprint.Key))
+		}
+		return m, nil
 	case "P": // DD2-44: Review-Pass markieren (review_submitted_at) — „Review-Durchgang
 		// fertig"-Marker. Backend ist idempotent; entsperrt keinen Auto-Close.
 		if m.curSprint == nil {

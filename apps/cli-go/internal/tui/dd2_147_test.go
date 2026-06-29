@@ -18,7 +18,7 @@ func TestIssueSectionsShowsPoNotesAndGoal(t *testing.T) {
 	goal := "Login funktioniert end-to-end"
 	it := api.Issue{Key: "DD2-1", Title: "X", Goal: &goal, PoNotes: &po}
 
-	secs := m.issueSections(it, 80)
+	secs := m.issueSections(it, 80, false)
 	if len(secs) == 0 {
 		t.Fatal("issueSections lieferte keine Sektionen")
 	}

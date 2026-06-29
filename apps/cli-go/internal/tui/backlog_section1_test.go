@@ -15,7 +15,7 @@ import (
 // po_notes als editierbare Felder.
 func TestSection1AlwaysPresent(t *testing.T) {
 	it := api.Issue{Key: "DD2-9", Title: "Leer", Type: "bug", Priority: 1, Status: "new"}
-	secs := (model{}).issueSections(it, 60)
+	secs := (model{}).issueSections(it, 60, false)
 	if len(secs) == 0 || secs[0].title != "Goal / Description ∙ PO notes" {
 		t.Fatalf("Section 1 fehlt bei feldlosem Issue: %+v", secs)
 	}
@@ -34,7 +34,7 @@ func TestSection1AlwaysPresent(t *testing.T) {
 func TestSection1DescriptionOnlyWhenSet(t *testing.T) {
 	d := "alt"
 	it := api.Issue{Key: "DD2-9", Title: "T", Type: "bug", Priority: 1, Description: &d}
-	secs := (model{}).issueSections(it, 60)
+	secs := (model{}).issueSections(it, 60, false)
 	keys := make([]string, len(secs[0].fields))
 	for i, f := range secs[0].fields {
 		keys[i] = f.key

@@ -454,6 +454,27 @@ function tagsForMilestone(milestoneId) {
   `).all(milestoneId)
 }
 
+// DD2-143: Batch-Variante (mirror tagsForBacklog) — Tags vieler Milestones in
+// einem Query, map milestone_id → [{id,name,color}]. Vermeidet N+1 beim Embedden
+// der Tags in die GET /api/milestones Liste (TUI msRows / RoadmapBoard).
+function tagsForMilestones(ids) {
+  if (!ids.length) return new Map()
+  const placeholders = ids.map(() => '?').join(',')
+  const rows = db.prepare(`
+    SELECT mt.milestone_id, t.id, t.name, t.color
+    FROM milestone_tags mt
+    JOIN tags t ON t.id = mt.tag_id
+    WHERE mt.milestone_id IN (${placeholders})
+    ORDER BY t.name
+  `).all(...ids)
+  const map = new Map()
+  for (const r of rows) {
+    if (!map.has(r.milestone_id)) map.set(r.milestone_id, [])
+    map.get(r.milestone_id).push({ id: r.id, name: r.name, color: r.color })
+  }
+  return map
+}
+
 // GF-2 Wave D / D1: generischer Replace-Handler für Entity-Tags (mirror PUT /api/backlog/:id/tags).
 // table = sprint_tags|milestone_tags, fkCol = sprint_id|milestone_id, parentTable = sprints|milestones.
 function replaceEntityTags(req, res, { parentTable, table, fkCol, read }) {
@@ -1776,6 +1797,9 @@ app.get('/api/milestones', (req, res) => {
     return { total, done, cancelled, terminal_count: done + cancelled }
   }
 
+  // DD2-143: Tags aller Milestones in einem Query (kein N+1), in den Bucket embedden.
+  const milestoneTagMap = tagsForMilestones(milestones.map(m => m.id))
+
   const newBucket = (milestone) => {
     const sprints = milestone?.id
       ? (sprintsByMilestone.get(milestone.id) || [])
@@ -1784,6 +1808,7 @@ app.get('/api/milestones', (req, res) => {
     const bucket = {
       ...milestone,
       sprints,
+      tags: milestone?.id ? (milestoneTagMap.get(milestone.id) || []) : [],
       ...counts,
     }
     // DD-293 R2: backfill_sprints[] nur im noneBucket (Milestone-Buckets
