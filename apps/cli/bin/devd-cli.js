@@ -47,7 +47,6 @@
  * Env:
  *   DEVD_API_URL      — Default http://100.71.39.53:3001 (Synology NAS via Tailnet)
  *   DEVD_PROJECT_ID   — Default 2 (devd)
- *   DEVD_ARCHON_TOKEN — privilegierte Status-Wechsel
  *   DEVD_API_TOKEN    — DD-285 Defense-in-Depth Token; als X-Devd-Token-Header
  *                       bei jeder Anfrage gesendet (Pflicht in Production wenn
  *                       Backend DEVD_API_TOKEN gesetzt hat)
@@ -127,7 +126,6 @@ import { createApiClient } from '../lib/apiClient.js'
 const API = process.env.DEVD_API_URL || 'http://100.71.39.53:3001'
 const DEVD_UI_URL = (process.env.DEVD_UI_URL || 'https://devdash.familie-riedel.org').replace(/\/$/, '')
 const PROJECT_ID = process.env.DEVD_PROJECT_ID || '2'
-const ARCHON_TOKEN = process.env.DEVD_ARCHON_TOKEN || ''
 const DEVD_API_TOKEN = process.env.DEVD_API_TOKEN || ''
 
 // DD-tui-phase1 (D01): geteilter Client; headers()/api() delegieren hierher.
@@ -135,7 +133,6 @@ const _client = createApiClient({
   baseUrl: API,
   projectId: PROJECT_ID,
   token: DEVD_API_TOKEN,
-  archonToken: ARCHON_TOKEN,
 })
 
 // DD-519 (D50a): SOP-Bundle ausschliesslich aus dem DB-Store (/api/sops/bundle) — der
@@ -2442,7 +2439,6 @@ Env:
   DEVD_API_URL=${API}
   DEVD_UI_URL=${DEVD_UI_URL}
   DEVD_PROJECT_ID=${PROJECT_ID}
-  DEVD_ARCHON_TOKEN=${ARCHON_TOKEN ? '(set)' : '(unset)'}
   DEVD_API_TOKEN=${DEVD_API_TOKEN ? '(set)' : '(unset)'}
   EDITOR=${process.env.EDITOR || 'vi (default)'}
 `)

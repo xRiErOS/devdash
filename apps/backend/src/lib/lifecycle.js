@@ -40,10 +40,8 @@ export const MILESTONE_STATUS_FILTERS = new Set([
 /**
  * canTransition(from, to, ctx) → { allowed: boolean, reason: string }
  *
- * Archon deferred (siehe ADR Archon und LivePreview deferred 2026-04-26):
- * Lifecycle erlaubt manuelle Übergänge ohne Archon-Token. Wenn Archon
- * reaktiviert wird, kann man optional `ctx.requireArchon=true` einführen
- * und zusätzliche Checks ergänzen.
+ * Lifecycle erlaubt manuelle Übergänge (DD2-172: Archon-Subsystem entfernt;
+ * es gibt keinen Token-/Automatik-Pfad mehr — alle Übergänge sind PO-getrieben).
  *
  * ctx shape:
  *   goal               string|null   — backlog.goal
