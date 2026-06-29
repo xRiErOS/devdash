@@ -27,7 +27,7 @@ func (m model) tutorialPages() []tutorialPage {
 			"Navigation uses the jkli direction cross:\n" +
 			"  i = up    k = down    j = left / back    l = right / in\n" +
 			"Arrow keys are equivalent everywhere.\n\n" +
-			"l / → / space: next page    j / ← : previous    esc / q: leave",
+			"l / → / ctrl+l: next page    j / ← / ctrl+j: previous    esc / q: leave",
 	}}
 	for _, g := range keys.helpGroups() {
 		var b strings.Builder
@@ -59,8 +59,9 @@ func (m model) openTutorial() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// keyTutorial blättert die Seiten (l/→/space/k vor, j/←/i zurück) und verlässt
-// das Tutorial (esc/q → topReturn). g/G springt an Anfang/Ende.
+// keyTutorial blättert die Seiten (l/→/ctrl+l/k vor, j/←/ctrl+j/i zurück) und
+// verlässt das Tutorial (esc/q → topReturn). g/G springt an Anfang/Ende.
+// DD2-174: explizite Next/Prev sind ctrl+l/ctrl+j (vorher space/p) — space frei.
 func (m model) keyTutorial(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	n := len(m.tutorialPages())
 	switch msg.String() {
@@ -74,12 +75,12 @@ func (m model) keyTutorial(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "G", "end":
 		m.tutorialPage = n - 1
 		return m, nil
-	case " ", "n":
+	case "ctrl+l":
 		if m.tutorialPage < n-1 {
 			m.tutorialPage++
 		}
 		return m, nil
-	case "p":
+	case "ctrl+j":
 		if m.tutorialPage > 0 {
 			m.tutorialPage--
 		}
@@ -112,7 +113,7 @@ func (m model) viewTutorial() string {
 	head := m.header() + "\n" + theme.Header.Render(m.screenTitle("Tutorial"))
 	title := theme.Accent.Render(p.title)
 	body := wrapText(p.body, min(w-4, 76))
-	nav := theme.Dim.Render(fmt.Sprintf("Page %d/%d   l/→/space: next   j/←: back   g/G: first/last   esc/q: close",
+	nav := theme.Dim.Render(fmt.Sprintf("Page %d/%d   l/→/ctrl+l: next   j/←/ctrl+j: back   g/G: first/last   esc/q: close",
 		m.tutorialPage+1, len(pages)))
 	return head + "\n\n" + title + "\n\n" + body + "\n\n" + nav
 }

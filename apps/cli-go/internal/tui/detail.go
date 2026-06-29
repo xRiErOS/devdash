@@ -11,6 +11,7 @@ import (
 
 	"devd-cli/internal/api"
 	"devd-cli/internal/theme"
+	keybind "github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -202,28 +203,28 @@ func (m model) keyDetailFocus(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 	m.clampDetailCursor(secs)
 
-	switch msg.String() {
-	case "ctrl+c", "q":
+	switch {
+	case keybind.Matches(msg, keys.Quit):
 		return m.requestQuit() // DD2-49
-	case "esc":
+	case keybind.Matches(msg, keys.Back):
 		m.exitDetailFocus()
 		return m, nil
-	case "t": // DD2-33: Tag-Picker für das fokussierte Issue
+	case keybind.Matches(msg, keys.TagAssign): // DD2-33: Tag-Picker für das fokussierte Issue
 		if it := m.focusedIssue(); it != nil {
 			return m.openTagPicker("issue", it.ID, it.Key+" "+it.Title, it.Tags)
 		}
 		return m, nil
-	case "d": // DD2-65: fokussiertes Issue löschen (Confirm)
+	case keybind.Matches(msg, keys.Delete): // DD2-65: fokussiertes Issue löschen (Confirm)
 		if it := m.focusedIssue(); it != nil {
 			return m.openDelete("issue", it.ID, it.Key+" "+it.Title)
 		}
 		return m, nil
-	case "S": // DD2-136: fokussiertes Issue einem Sprint zuweisen
+	case keybind.Matches(msg, keys.Assign): // DD2-136/174: fokussiertes Issue einem Sprint zuweisen (a, war S)
 		if it := m.focusedIssue(); it != nil {
 			return m.openAssignSprint(it.ID)
 		}
 		return m, nil
-	case "enter":
+	case keybind.Matches(msg, keys.Enter):
 		// Section-Ebene → in die Section rein (wie l/→); Feld-Ebene → editField-Form
 		// für das aktive Feld öffnen (D04).
 		if m.detailLevel == 0 {

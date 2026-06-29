@@ -12,7 +12,7 @@ import (
 func TestSprintDetailMOpensPicker(t *testing.T) {
 	m := columnsModel()
 	m.view = viewSprint
-	mi, _ := m.Update(keyMsg("m"))
+	mi, _ := m.Update(keyMsg("a")) // DD2-174: Assign=a (war m)
 	m = mi.(model)
 	if !m.smPick {
 		t.Fatal("m in Sprint-Details öffnet keinen Meilenstein-Picker")
@@ -31,7 +31,7 @@ func TestSprintDetailMOpensPicker(t *testing.T) {
 func TestSprintMilestonePickerEnterDispatches(t *testing.T) {
 	m := columnsModel()
 	m.view = viewSprint
-	mi, _ := m.Update(keyMsg("m"))
+	mi, _ := m.Update(keyMsg("a")) // DD2-174: Assign=a (war m)
 	m = mi.(model)
 	mi, _ = m.Update(keyMsg("k")) // auf erste echte Meilenstein-Option
 	m = mi.(model)

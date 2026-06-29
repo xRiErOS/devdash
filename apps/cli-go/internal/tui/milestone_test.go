@@ -21,10 +21,10 @@ func TestMilestoneTransitions(t *testing.T) {
 func TestColumnsSOpensMilestoneStatus(t *testing.T) {
 	m := columnsModel()
 	m.milestones[0].Status = "planning"
-	mi, _ := m.Update(keyMsg("S"))
+	mi, _ := m.Update(keyMsg("s"))
 	m = mi.(model)
 	if !m.msPick {
-		t.Fatal("S (depth 0) öffnet kein Meilenstein-Status-Menü")
+		t.Fatal("s (depth 0, DD2-174) öffnet kein Meilenstein-Status-Menü")
 	}
 	if m.msTargetID != m.milestones[0].ID {
 		t.Errorf("msTargetID=%d, want %d", m.msTargetID, m.milestones[0].ID)
@@ -35,17 +35,17 @@ func TestColumnsSDepth1NoMenu(t *testing.T) {
 	m := columnsModel()
 	m.milestones[0].Status = "planning"
 	m.depth = 1
-	mi, _ := m.Update(keyMsg("S"))
+	mi, _ := m.Update(keyMsg("s"))
 	m = mi.(model)
 	if m.msPick {
-		t.Error("S bei depth>0 sollte kein Meilenstein-Menü öffnen (Sprint-Ebene)")
+		t.Error("s bei depth 1 öffnet das Sprint-Menü, nicht das Meilenstein-Menü (DD2-174)")
 	}
 }
 
 func TestMilestoneStatusEnterDispatches(t *testing.T) {
 	m := columnsModel()
 	m.milestones[0].Status = "planning"
-	mi, _ := m.Update(keyMsg("S"))
+	mi, _ := m.Update(keyMsg("s"))
 	m = mi.(model)
 	mi, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = mi.(model)
@@ -60,7 +60,7 @@ func TestMilestoneStatusEnterDispatches(t *testing.T) {
 func TestMilestoneStatusNoTransitionNotice(t *testing.T) {
 	m := columnsModel()
 	m.milestones[0].Status = "closed" // nicht in der Transitions-Map
-	mi, _ := m.Update(keyMsg("S"))
+	mi, _ := m.Update(keyMsg("s"))
 	m = mi.(model)
 	if m.msPick {
 		t.Error("kein Menü bei fehlenden Übergängen")

@@ -374,7 +374,7 @@ func (m model) userStoryModal() string {
 		}
 	}
 	content := b.String()
-	footer := theme.Dim.Render("a:accept  r:reject  o:open  i/k:↑↓  enter/esc:close")
+	footer := theme.Dim.Render("a:accept  x:reject  o:open  i/k:↑↓  enter/esc:close")
 	// DD2-90 Rework: Höhen-Guard — sehr lange Texte sollen das Modal nicht über den
 	// Schirm hinaus wachsen lassen (placeOverlay clippt sonst unten weg). Überlauf →
 	// Hinweis auf den Detail-Pane (dort voller, scrollbarer Text). Footer bleibt sichtbar.

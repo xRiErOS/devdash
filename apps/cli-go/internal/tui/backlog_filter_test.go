@@ -128,12 +128,12 @@ func TestBacklogFilterToggle(t *testing.T) {
 	}
 }
 
-// S3: `s` öffnet den Sortier-Picker, enter wählt.
+// S3: `S` öffnet den Sortier-Picker, enter wählt (DD2-174: Sort=S, war s).
 func TestBacklogSortPicker(t *testing.T) {
-	mi, _ := backlogFilterModel().keyBacklog(key("s"))
+	mi, _ := backlogFilterModel().keyBacklog(key("S"))
 	m := mi.(model)
 	if !m.blSortOpen {
-		t.Fatal("s sollte den Sortier-Picker öffnen")
+		t.Fatal("S sollte den Sortier-Picker öffnen")
 	}
 	// Auf "title" navigieren (Index 1, DD2-137) und wählen.
 	m.blSortMenu.cursor = 1
