@@ -43,10 +43,10 @@ func TestOpenTagManagerSetsView(t *testing.T) {
 
 func TestTagManagerNewOpensCreateForm(t *testing.T) {
 	m := model{view: viewTags}
-	mi, _ := m.keyTags(runes("n"))
+	mi, _ := m.keyTags(runes("c")) // DD2-174: Create ist global c (war n)
 	m = mi.(model)
 	if m.form == nil || m.formKind != "tagCreate" {
-		t.Fatalf("n → form=%v kind=%q, want tagCreate", m.form != nil, m.formKind)
+		t.Fatalf("c → form=%v kind=%q, want tagCreate", m.form != nil, m.formKind)
 	}
 	if m.tagEditID != 0 {
 		t.Errorf("create: tagEditID=%d, want 0", m.tagEditID)

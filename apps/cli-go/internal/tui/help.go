@@ -31,7 +31,7 @@ func shortcutMarkdown() string {
 		}
 	}
 	b.WriteString("\n## Context notes\n\n")
-	b.WriteString("- `s` / `S` / `d` / `m` / `a` act on the **focused node** ")
+	b.WriteString("- `s` / `a` / `c` / `d` act on the **focused node** ")
 	b.WriteString("(milestone / sprint / issue) — depending on depth or tree selection.\n")
 	b.WriteString("- `q` / `ctrl+c` open the quit confirm at top level (DD2-49); ")
 	b.WriteString("in sub-forms/modals they cancel directly.\n")

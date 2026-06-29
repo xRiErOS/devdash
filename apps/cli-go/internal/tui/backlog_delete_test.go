@@ -26,16 +26,16 @@ func TestBacklogDeleteOpensConfirm(t *testing.T) {
 	}
 }
 
-// y im Confirm löst den Delete aus (Dialog zu, Cmd gesetzt).
+// enter im Confirm löst den Delete aus (Dialog zu, Cmd gesetzt) — DD2-174.
 func TestBacklogDeleteConfirmFires(t *testing.T) {
 	mi, _ := backlogMDModel().keyBacklog(key("d"))
 	m := mi.(model)
-	md, cmd := m.keyDelete(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("y")})
+	md, cmd := m.keyDelete(tea.KeyMsg{Type: tea.KeyEnter})
 	if md.(model).delConfirm {
-		t.Error("y sollte den Confirm schließen")
+		t.Error("enter sollte den Confirm schließen")
 	}
 	if cmd == nil {
-		t.Error("y sollte den Delete-Cmd auslösen")
+		t.Error("enter sollte den Delete-Cmd auslösen")
 	}
 }
 

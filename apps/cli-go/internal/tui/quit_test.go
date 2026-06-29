@@ -53,12 +53,12 @@ func TestQuitConfirmFlow(t *testing.T) {
 		t.Error("esc sollte confirmQuit zurücksetzen")
 	}
 
-	// q, dann y → beenden
+	// q, dann enter → beenden (DD2-174: nur enter confirmt, kein y mehr)
 	mi, _ = m.Update(keyMsg("q"))
 	m = mi.(model)
-	_, cmd = m.Update(keyMsg("y"))
+	_, cmd = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	if !isQuit(cmd) {
-		t.Error("y im Confirm sollte tea.Quit auslösen")
+		t.Error("enter im Confirm sollte tea.Quit auslösen")
 	}
 }
 
@@ -70,9 +70,9 @@ func TestQuitConfirmCtrlC(t *testing.T) {
 	if !m.confirmQuit || isQuit(cmd) {
 		t.Fatalf("ctrl+c sollte Confirm öffnen, nicht beenden (confirmQuit=%v)", m.confirmQuit)
 	}
-	_, cmd = m.Update(keyMsg("y"))
+	_, cmd = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	if !isQuit(cmd) {
-		t.Error("y nach ctrl+c sollte beenden")
+		t.Error("enter nach ctrl+c sollte beenden")
 	}
 }
 
@@ -95,8 +95,9 @@ func TestQuitConfirmFromTree(t *testing.T) {
 	}
 }
 
-// Sub-Modal (Cascade-Delete-Confirm) fängt q selbst ab und bricht ab — KEIN
-// zweiter Beenden-Prompt darüber.
+// Sub-Modal (Cascade-Delete-Confirm) schluckt q selbst — KEIN zweiter Beenden-
+// Prompt darüber. DD2-174: q ist kein Dialog-Cancel mehr (nur esc/n); q ist im
+// Dialog also ein No-Op, esc bricht ab.
 func TestQuitNotTriggeredInSubModal(t *testing.T) {
 	m := columnsModel()
 	m.delConfirm = true // simuliert offenen Delete-Dialog
@@ -105,10 +106,12 @@ func TestQuitNotTriggeredInSubModal(t *testing.T) {
 	if m.confirmQuit {
 		t.Error("q im Delete-Dialog darf keinen Beenden-Confirm öffnen")
 	}
-	if m.delConfirm {
-		t.Error("q sollte den Delete-Dialog abbrechen")
-	}
 	if isQuit(cmd) {
 		t.Error("q im Delete-Dialog darf nicht beenden")
+	}
+	// esc bricht den Dialog ab (DD2-174)
+	mi, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	if mi.(model).delConfirm {
+		t.Error("esc sollte den Delete-Dialog abbrechen")
 	}
 }

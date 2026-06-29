@@ -1,14 +1,16 @@
 package tui
 
 // assign.go — Sprint↔Meilenstein-Zuweisung (T03).
-//   Flow A: m in Sprint-Details → Single-Select-Picker (Meilenstein wählen / lösen).
+//   Flow A: a in Sprint-Details → Single-Select-Picker (Meilenstein wählen / lösen).
 //   Flow B: a in Meilenstein-Detail → Checkliste der Sprints ohne Meilenstein,
 //           mehrere ankreuzen, enter hängt alle an den Meilenstein.
+//   DD2-174: Assign ist global a (vorher m für Flow A) — m entfällt.
 
 import (
 	"fmt"
 
 	"devd-cli/internal/theme"
+	keybind "github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -51,12 +53,12 @@ func (m model) keySprintMilestone(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.smMenu.move(1)
 		return m, nil
 	}
-	switch msg.String() {
-	case "esc", "q", "m":
+	switch { // DD2-174: a (Assign) öffnet/schließt diesen Picker, m entfällt
+	case keybind.Matches(msg, keys.Back), keybind.Matches(msg, keys.Assign), msg.String() == "q":
 		m.smPick = false
 		m.status = ""
 		return m, nil
-	case "enter":
+	case keybind.Matches(msg, keys.Enter):
 		m.smPick = false
 		if m.smMenu.cursor < 0 || m.smMenu.cursor >= len(m.smOpts) {
 			return m, nil
@@ -108,18 +110,18 @@ func (m model) keyMilestoneAssign(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.maMenu.move(1)
 		return m, nil
 	}
-	switch msg.String() {
-	case "esc", "q", "a":
+	switch {
+	case keybind.Matches(msg, keys.Back), keybind.Matches(msg, keys.Assign), msg.String() == "q":
 		m.maPick = false
 		m.status = ""
 		return m, nil
-	case " ", "x":
+	case keybind.Matches(msg, keys.Toggle):
 		if m.maMenu.cursor >= 0 && m.maMenu.cursor < len(m.maSprints) {
 			id := m.maSprints[m.maMenu.cursor].ID
 			m.maChecked[id] = !m.maChecked[id]
 		}
 		return m, nil
-	case "enter":
+	case keybind.Matches(msg, keys.Enter):
 		var ids []int
 		for _, s := range m.maSprints {
 			if m.maChecked[s.ID] {

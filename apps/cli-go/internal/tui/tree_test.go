@@ -62,9 +62,10 @@ func TestTreeStatusShortcuts(t *testing.T) {
 		return m
 	}
 
-	// Cursor 0 = Meilenstein → S öffnet Meilenstein-Status-Menü (aktueller Status mit).
-	if mi, _ := mk(0).keyTree(key("S")); !mi.(model).msPick || mi.(model).msTargetStatus != "active" {
-		t.Errorf("S auf Meilenstein: msPick=%v status=%q", mi.(model).msPick, mi.(model).msTargetStatus)
+	// DD2-174: s öffnet je Node-Typ das Status-Menü. Cursor 0 = Meilenstein → s
+	// öffnet Meilenstein-Status-Menü (aktueller Status mit).
+	if mi, _ := mk(0).keyTree(key("s")); !mi.(model).msPick || mi.(model).msTargetStatus != "active" {
+		t.Errorf("s auf Meilenstein: msPick=%v status=%q", mi.(model).msPick, mi.(model).msTargetStatus)
 	}
 	// Cursor 1 = Sprint S1 (active) → s öffnet Sprint-Menü mit review-Transition.
 	sp, _ := mk(1).keyTree(key("s"))
@@ -85,9 +86,9 @@ func TestTreeStatusShortcuts(t *testing.T) {
 	if mi, _ := mk(2).keyTree(key("s")); !mi.(model).statusPick {
 		t.Errorf("s auf Issue sollte statusPick öffnen")
 	}
-	// S auf Sprint-Knoten = no-op (nur Meilenstein).
+	// DD2-174: S ist jetzt Sort (im Tree unbelegt) — kein Status mehr, also no-op.
 	if mi, _ := mk(1).keyTree(key("S")); mi.(model).msPick {
-		t.Errorf("S auf Sprint sollte kein Meilenstein-Menü öffnen")
+		t.Errorf("S (Sort) auf Sprint sollte kein Meilenstein-Menü öffnen")
 	}
 }
 

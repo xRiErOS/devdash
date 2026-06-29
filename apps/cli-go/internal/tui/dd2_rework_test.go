@@ -108,20 +108,20 @@ func TestCreateConfirmGatesCreation(t *testing.T) {
 		}
 	}
 
-	// y feuert exakt den geparkten pendingCreate-Cmd und schließt den Confirm.
+	// enter feuert exakt den geparkten pendingCreate-Cmd und schließt den Confirm (DD2-174).
 	fired := false
 	m := model{createConfirm: true, createLabel: "Issue (bug): x",
 		pendingCreate: func() tea.Msg { fired = true; return nil }}
-	mm, cmd := m.keyCreateConfirm(runeKey("y"))
+	mm, cmd := m.keyCreateConfirm(tea.KeyMsg{Type: tea.KeyEnter})
 	if mm.(model).createConfirm {
-		t.Error("y soll den Confirm schließen")
+		t.Error("enter soll den Confirm schließen")
 	}
 	if cmd == nil {
-		t.Fatal("y soll den geparkten Create-Cmd feuern")
+		t.Fatal("enter soll den geparkten Create-Cmd feuern")
 	}
 	cmd()
 	if !fired {
-		t.Error("y soll exakt pendingCreate auslösen")
+		t.Error("enter soll exakt pendingCreate auslösen")
 	}
 
 	// n bricht ab, ohne anzulegen.
