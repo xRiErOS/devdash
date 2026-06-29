@@ -61,7 +61,11 @@ import { validateSpecPath, MilestoneSpecPathError } from './lib/milestoneSpecPat
 import { listNotes as listComponentNotes, getNote as getComponentNote, upsertNote as upsertComponentNote, deleteNote as deleteComponentNote, ComponentNoteError } from './lib/componentNotes.js'
 import { listMemories as listProjectMemories, getMemory as getProjectMemory, createMemory as createProjectMemory, updateMemory as updateProjectMemory, deleteMemory as deleteProjectMemory, supersedeMemory as supersedeProjectMemory, searchMemories as searchProjectMemories, getMemoryByAnchor as getProjectMemoryByAnchor, patchByAnchor as patchProjectMemoryByAnchor, ProjectMemoryError } from './lib/projectMemories.js'
 import { renderSnapshot as renderProjectMemorySnapshot, renderSplitSnapshot as renderProjectMemorySplitSnapshot } from './lib/projectMemorySnapshot.js'
-import { cascadeDeleteSprints, milestoneDeletePreview } from './lib/cascadeDelete.js'
+import { cascadeDeleteSprints, milestoneDeletePreview, sprintDocumentCount } from './lib/cascadeDelete.js'
+import {
+  DocumentError,
+  createDocument, listDocuments, getDocument, updateDocument, deleteDocument,
+} from './lib/documents.js'
 import { listTags as listMemoryTags, createTag as createMemoryTag, renameTag as renameMemoryTag, deleteTag as deleteMemoryTag, pruneTagsNotInRegistry as pruneMemoryTags } from './lib/memoryTags.js'
 import { listIssueDependencies, countIssueDependencies } from './lib/issueDependencies.js'
 import { resolveIssueByNumber } from './lib/issueResolve.js'
@@ -1248,6 +1252,57 @@ app.delete('/api/user-notes/:id', (req, res) => {
   if (!ok) return res.status(404).json({ error: 'user_note nicht gefunden', code: 'NOTE_NOT_FOUND' })
   res.status(204).end()
 })
+
+// --- documents (DD2-21) — Markdown-Dokumente an Meilensteine ODER Sprints (DB-Blob).
+// Owner kommt aus der Route (/api/milestones/:id/documents bzw. /api/sprints/:id/documents),
+// nicht aus dem Body. ON DELETE CASCADE räumt sie beim Löschen des Owners. ---
+function _sendDocumentError(res, e) {
+  if (e instanceof DocumentError) {
+    return res.status(e.statusCode).json({ error: e.message, code: e.code, field: e.field })
+  }
+  console.error('[documents] unexpected error', e)
+  return res.status(500).json({ error: 'Internal server error' })
+}
+
+// Verifiziert, dass der Owner (milestone|sprint) existiert; sonst 404 + null.
+function _resolveDocOwner(res, type, idParam) {
+  const id = Number(idParam)
+  const table = type === 'milestone' ? 'milestones' : 'sprints'
+  const row = db.prepare(`SELECT id FROM ${table} WHERE id = ?`).get(id)
+  if (!row) { res.status(404).json({ error: `${type} not found` }); return null }
+  return { type, id }
+}
+
+function _registerDocumentRoutes(type, base) {
+  app.get(`${base}/:id/documents`, (req, res) => {
+    const owner = _resolveDocOwner(res, type, req.params.id); if (!owner) return
+    res.json(listDocuments(db, owner))
+  })
+  app.post(`${base}/:id/documents`, (req, res) => {
+    const owner = _resolveDocOwner(res, type, req.params.id); if (!owner) return
+    try { res.status(201).json(createDocument(db, owner, req.body || {})) }
+    catch (e) { return _sendDocumentError(res, e) }
+  })
+  app.get(`${base}/:id/documents/:docId`, (req, res) => {
+    const owner = _resolveDocOwner(res, type, req.params.id); if (!owner) return
+    const doc = getDocument(db, owner, Number(req.params.docId))
+    if (!doc) return res.status(404).json({ error: 'document nicht gefunden', code: 'DOC_NOT_FOUND' })
+    res.json(doc)
+  })
+  app.put(`${base}/:id/documents/:docId`, (req, res) => {
+    const owner = _resolveDocOwner(res, type, req.params.id); if (!owner) return
+    try { res.json(updateDocument(db, owner, Number(req.params.docId), req.body || {})) }
+    catch (e) { return _sendDocumentError(res, e) }
+  })
+  app.delete(`${base}/:id/documents/:docId`, (req, res) => {
+    const owner = _resolveDocOwner(res, type, req.params.id); if (!owner) return
+    const ok = deleteDocument(db, owner, Number(req.params.docId))
+    if (!ok) return res.status(404).json({ error: 'document nicht gefunden', code: 'DOC_NOT_FOUND' })
+    res.status(204).end()
+  })
+}
+_registerDocumentRoutes('milestone', '/api/milestones')
+_registerDocumentRoutes('sprint', '/api/sprints')
 
 app.delete('/api/projects/:id', (req, res) => {
   const id = Number(req.params.id)
@@ -3597,7 +3652,8 @@ app.get('/api/sprints/:id/delete-preview', (req, res) => {
   const sprint = db.prepare('SELECT id, name FROM sprints WHERE id = ?').get(req.params.id)
   if (!sprint) return res.status(404).json({ error: 'Sprint not found' })
   const issues = db.prepare('SELECT COUNT(*) AS c FROM backlog WHERE assigned_sprint = ?').get(req.params.id).c
-  res.json({ sprint_id: Number(req.params.id), sprint_name: sprint.name, issues, documents: 0 })
+  const documents = sprintDocumentCount(db, Number(req.params.id))
+  res.json({ sprint_id: Number(req.params.id), sprint_name: sprint.name, issues, documents })
 })
 
 app.delete('/api/sprints/:id', (req, res) => {
@@ -3606,6 +3662,7 @@ app.delete('/api/sprints/:id', (req, res) => {
   const cascade = req.query.cascade === '1' || req.query.cascade === 'true'
 
   const itemCount = db.prepare('SELECT COUNT(*) AS c FROM backlog WHERE assigned_sprint = ?').get(req.params.id).c
+  const docCount = sprintDocumentCount(db, Number(req.params.id))
   // Ohne ?cascade=1 bleibt das alte Schutz-Verhalten: 409 wenn Items zugewiesen.
   if (!cascade && itemCount > 0) {
     return res.status(409).json({
@@ -3626,7 +3683,7 @@ app.delete('/api/sprints/:id', (req, res) => {
   })()
 
   // deleted_id bleibt für Rückwärtskompatibilität (OpenAPI-Schema + alt-CLI).
-  res.json({ ok: true, deleted_id: Number(req.params.id), deleted: { sprint_id: Number(req.params.id), issues: itemCount, documents: 0 } })
+  res.json({ ok: true, deleted_id: Number(req.params.id), deleted: { sprint_id: Number(req.params.id), issues: itemCount, documents: docCount } })
 })
 
 // Helper — DD-Erik-Feedback: backlog.milestone als denormalisierten Cache der

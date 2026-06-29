@@ -29,12 +29,22 @@ export function cascadeDeleteSprints(db, sprintIds) {
 }
 
 // milestoneDeletePreview zählt (read-only), was ein Cascade-Delete mitnähme.
-// documents=0 bis das Dokumenten-Subsystem (DD2-21) existiert (T02c).
+// DD2-21: documents = eigene Meilenstein-Dokumente + Dokumente aller seiner Sprints
+// (beide verschwinden via ON DELETE CASCADE, sobald Meilenstein/Sprint gelöscht werden).
 export function milestoneDeletePreview(db, id) {
   const sprintIds = db.prepare('SELECT id FROM sprints WHERE milestone_id = ?').all(id).map(s => s.id)
   let issues = 0
   for (const sid of sprintIds) {
     issues += db.prepare('SELECT COUNT(*) AS c FROM backlog WHERE assigned_sprint = ?').get(sid).c
   }
-  return { sprints: sprintIds.length, issues, documents: 0, sprintIds }
+  let documents = db.prepare('SELECT COUNT(*) AS c FROM documents WHERE milestone_id = ?').get(id).c
+  for (const sid of sprintIds) {
+    documents += db.prepare('SELECT COUNT(*) AS c FROM documents WHERE sprint_id = ?').get(sid).c
+  }
+  return { sprints: sprintIds.length, issues, documents, sprintIds }
+}
+
+// DD2-21: Anzahl Dokumente eines Sprints (für den Sprint-Delete-Preview).
+export function sprintDocumentCount(db, sprintId) {
+  return db.prepare('SELECT COUNT(*) AS c FROM documents WHERE sprint_id = ?').get(sprintId).c
 }

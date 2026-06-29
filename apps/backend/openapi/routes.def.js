@@ -10,3 +10,4 @@ import './routes/milestones.routes.js';
 import './routes/memory.routes.js';
 import './routes/sops.routes.js';
 import './routes/user-notes.routes.js';
+import './routes/documents.routes.js';

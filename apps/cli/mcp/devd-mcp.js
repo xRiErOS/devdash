@@ -1017,6 +1017,96 @@ server.tool(
   },
 )
 
+// DD2-21: Dokumenten-Subsystem (Markdown-Docs an Meilensteine/Sprints, DB-Blob).
+// Owner = milestone_id ODER sprint_key (genau einer). project_id nur für sprint_key-Resolve.
+const DOC_OWNER_PARAMS = {
+  project_id: PROJECT_ID_PARAM,
+  milestone_id: z.number().int().positive().optional().describe('Owner: Meilenstein-id (ODER sprint_key)'),
+  sprint_key: z.string().optional().describe('Owner: Sprint-Key/-id (ODER milestone_id)'),
+}
+async function docOwnerBase(milestone_id, sprint_key, pid) {
+  if (milestone_id != null) return `/api/milestones/${milestone_id}`
+  if (sprint_key != null) return `/api/sprints/${await resolveSprintId(sprint_key, pid)}`
+  return null
+}
+const DOC_OWNER_ERR = { error: true, message: 'Owner erforderlich: milestone_id ODER sprint_key' }
+
+server.tool(
+  'devd_document_list',
+  'READ: List markdown documents attached to a milestone or sprint (id DESC). Owner = milestone_id OR sprint_key. Read-only.',
+  DOC_OWNER_PARAMS,
+  async ({ project_id, milestone_id, sprint_key }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    const base = await docOwnerBase(milestone_id, sprint_key, pid)
+    if (!base) return ok(DOC_OWNER_ERR)
+    return ok(await apiRequest('GET', `${base}/documents`, null, pid))
+  },
+)
+
+server.tool(
+  'devd_document_get',
+  'READ: Get one document (with markdown body) by id, scoped to its milestone/sprint owner. Read-only.',
+  { ...DOC_OWNER_PARAMS, doc_id: z.number().int().positive() },
+  async ({ project_id, milestone_id, sprint_key, doc_id }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    const base = await docOwnerBase(milestone_id, sprint_key, pid)
+    if (!base) return ok(DOC_OWNER_ERR)
+    return ok(await apiRequest('GET', `${base}/documents/${doc_id}`, null, pid))
+  },
+)
+
+server.tool(
+  'devd_document_create',
+  'WRITE: Attach a markdown document to a milestone or sprint. title required; body (markdown, DB-blob) + file_path optional.',
+  {
+    ...DOC_OWNER_PARAMS,
+    title: z.string().describe('Document title'),
+    body: z.string().optional().describe('Markdown body (stored as DB-blob)'),
+    file_path: z.string().nullable().optional().describe('Optional repo-relative origin hint'),
+  },
+  async ({ project_id, milestone_id, sprint_key, title, body, file_path }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    const base = await docOwnerBase(milestone_id, sprint_key, pid)
+    if (!base) return ok(DOC_OWNER_ERR)
+    return ok(await apiRequest('POST', `${base}/documents`, { title, body, file_path }, pid))
+  },
+)
+
+server.tool(
+  'devd_document_update',
+  'WRITE: Partial update of a document (at least one of title/body/file_path). PUT /api/{milestones|sprints}/:id/documents/:docId.',
+  {
+    ...DOC_OWNER_PARAMS,
+    doc_id: z.number().int().positive(),
+    title: z.string().optional(),
+    body: z.string().optional(),
+    file_path: z.string().nullable().optional(),
+  },
+  async ({ project_id, milestone_id, sprint_key, doc_id, ...patch }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    const base = await docOwnerBase(milestone_id, sprint_key, pid)
+    if (!base) return ok(DOC_OWNER_ERR)
+    return ok(await apiRequest('PUT', `${base}/documents/${doc_id}`, patch, pid))
+  },
+)
+
+server.tool(
+  'devd_document_delete',
+  'WRITE: Delete a document by id (scoped to its milestone/sprint owner).',
+  { ...DOC_OWNER_PARAMS, doc_id: z.number().int().positive() },
+  async ({ project_id, milestone_id, sprint_key, doc_id }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    const base = await docOwnerBase(milestone_id, sprint_key, pid)
+    if (!base) return ok(DOC_OWNER_ERR)
+    return ok(await apiRequest('DELETE', `${base}/documents/${doc_id}`, null, pid))
+  },
+)
+
 server.tool(
   'devd_dashboard_home',
   'READ: Global home dashboard — one tile row per non-archived project (open sprints/milestones/issues counts). GET /api/dashboard/home. Global, read-only.',

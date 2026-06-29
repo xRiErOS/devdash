@@ -409,6 +409,19 @@ async function resolveSprintId(input) {
   return matched.id
 }
 
+// DD2-21: Owner-Basis-URL für doc-Befehle aus --milestone <id> ODER --sprint <key|id>.
+async function docOwnerBase(flags) {
+  if (typeof flags.milestone === 'string' || typeof flags.milestone === 'number') {
+    return { base: `/api/milestones/${Number(flags.milestone)}`, label: `milestone ${flags.milestone}` }
+  }
+  if (typeof flags.sprint === 'string' || typeof flags.sprint === 'number') {
+    const id = await resolveSprintId(flags.sprint)
+    return { base: `/api/sprints/${id}`, label: `sprint ${flags.sprint}` }
+  }
+  console.error('Owner erforderlich: --milestone <id> ODER --sprint <key|id>')
+  process.exit(2)
+}
+
 // Resolves an issue reference (key wie "DD-161"/"dd161" oder globale id) zu numerischer id.
 // DD-611: tolerant via parseRef. Issue-Keys tragen einen Prefix (kein bare "#161").
 async function resolveIssueId(input) {
@@ -2051,6 +2064,53 @@ related_issues:
     process.stdout.write((typeof out === 'string' ? out : JSON.stringify(out)) + '\n')
   },
 
+  // ---- Documents (DD2-21) — Markdown-Docs an Meilensteine/Sprints (DB-Blob).
+  // Owner via --milestone <id> ODER --sprint <key|id>. show=Glow, edit=$EDITOR. ----
+  async 'doc:list'(flags) {
+    const o = await docOwnerBase(flags)
+    const rows = await api('GET', `${o.base}/documents`)
+    console.log(pad('ID', 5), pad('TITLE', 50), 'UPDATED')
+    console.log('─'.repeat(78))
+    for (const d of rows) console.log(pad(d.id, 5), pad(trunc(d.title, 48), 50), d.updated_at || '')
+    console.log(`\n${rows.length} Dokument(e) — ${o.label}`)
+  },
+  async 'doc:show'(flags) {
+    const docId = Number(flags._[0])
+    if (!docId) { console.error('Usage: devd-cli doc show <docId> --milestone <id>|--sprint <key|id>'); process.exit(2) }
+    const o = await docOwnerBase(flags)
+    const d = await api('GET', `${o.base}/documents/${docId}`)
+    const glow = spawnSync('glow', ['-'], { input: d.body || '', stdio: ['pipe', 'inherit', 'inherit'] })
+    if (glow.error) process.stdout.write((d.body || '') + '\n')   // glow nicht installiert → roh
+  },
+  async 'doc:add'(flags) {
+    const o = await docOwnerBase(flags)
+    if (typeof flags.title !== 'string') { console.error('Usage: devd-cli doc add --milestone <id>|--sprint <key|id> --title "<t>" [--body <text>|--file <path>] [--file-path <p>]'); process.exit(2) }
+    let body = ''
+    if (typeof flags.body === 'string') body = flags.body
+    else if (typeof flags.file === 'string') body = readFileSync(flags.file, 'utf8')
+    const payload = { title: flags.title, body }
+    if (typeof flags['file-path'] === 'string') payload.file_path = flags['file-path']
+    const d = await api('POST', `${o.base}/documents`, payload)
+    console.log(`✓ Dokument #${d.id} angelegt — ${o.label}`)
+  },
+  async 'doc:edit'(flags) {
+    const docId = Number(flags._[0])
+    if (!docId) { console.error('Usage: devd-cli doc edit <docId> --milestone <id>|--sprint <key|id>   # öffnet $EDITOR'); process.exit(2) }
+    const o = await docOwnerBase(flags)
+    const d = await api('GET', `${o.base}/documents/${docId}`)
+    const updated = editInEditor(`doc-${docId}`, d.body || '')
+    if (updated == null) { console.log('Keine Änderung — nichts gespeichert.'); return }
+    const r = await api('PUT', `${o.base}/documents/${docId}`, { body: updated })
+    console.log(`✓ Dokument #${r.id} aktualisiert (${updated.length} Zeichen)`)
+  },
+  async 'doc:delete'(flags) {
+    const docId = Number(flags._[0])
+    if (!docId) { console.error('Usage: devd-cli doc delete <docId> --milestone <id>|--sprint <key|id>'); process.exit(2) }
+    const o = await docOwnerBase(flags)
+    await api('DELETE', `${o.base}/documents/${docId}`)
+    console.log(`✓ Dokument #${docId} gelöscht`)
+  },
+
   // ---- User-Notes (ProjectPages T-be1, D-D Modell B) — project-gescopt (X-Project-Id) ----
   async 'user-note:list'(flags) {
     const projectId = flags.project ? flags.project : PROJECT_ID
@@ -2236,6 +2296,13 @@ Sprints (Key wie DD#20 oder globale ID):
                                   [--start-date <d>] [--end-date <d>] [--capacity <n>] [--wip-limit <n>]   # DD-626
   devd-cli sprint reorder --ids 12,9,15                        # DD-626: neue Reihenfolge (Sprint-IDs)
   devd-cli sprint delete <key|id>                             # DD-626 (409 wenn Issues zugewiesen)
+
+Dokumente (DD2-21 — Markdown-Docs an Meilensteine/Sprints, DB-Blob):
+  devd-cli doc list   --milestone <id> | --sprint <key|id>
+  devd-cli doc show   <docId> --milestone <id> | --sprint <key|id>   # via Glow (Fallback: roh)
+  devd-cli doc add    --milestone <id> | --sprint <key|id> --title "<t>" [--body <text>|--file <pfad>] [--file-path <p>]
+  devd-cli doc edit   <docId> --milestone <id> | --sprint <key|id>   # öffnet $EDITOR auf dem Body
+  devd-cli doc delete <docId> --milestone <id> | --sprint <key|id>
 
 Milestones (numerische ID — Contract-validiert, DD-553/556):
   devd-cli milestone list [--status open|planning|active|completed|cancelled|all]
