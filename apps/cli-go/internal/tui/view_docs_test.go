@@ -96,6 +96,25 @@ func TestDocsSaveDispatch(t *testing.T) {
 	}
 }
 
+// DD2-169: das Documents-Feld im Meilenstein-/Sprint-Flat-Detail öffnet den
+// owner-gebundenen Docs-Browser statt eines skalaren Edits.
+func TestFlatDocumentsFieldOpensBrowser(t *testing.T) {
+	m := goldenTreeModel()
+	m.treeCursor = 0 // milestone node
+	nm, cmd := m.editFlatField(detailField{"documents", "Documents", "docs"})
+	got := nm.(model)
+	if got.view != viewDocs || got.docOwnerType != "milestone" || cmd == nil {
+		t.Fatalf("documents field should open docs browser for milestone: view=%v owner=%q", got.view, got.docOwnerType)
+	}
+
+	m2 := goldenTreeModel()
+	m2.treeCursor = 1 // sprint node
+	nm2, _ := m2.editFlatField(detailField{"documents", "Documents", "docs"})
+	if nm2.(model).docOwnerType != "sprint" {
+		t.Fatalf("documents field on sprint should bind sprint owner, got %q", nm2.(model).docOwnerType)
+	}
+}
+
 func TestGoldenDocs(t *testing.T) {
 	assertGolden(t, "docs", docsTestModel().View())
 }

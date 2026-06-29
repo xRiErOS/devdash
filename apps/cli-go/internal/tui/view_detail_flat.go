@@ -27,6 +27,9 @@ func milestoneFields() []detailField {
 		{"name", "Name", "input"},
 		{"description", "Description", "text"},
 		{"target_date", "Target date", "input"},
+		// DD2-169: Dokumente-Zugriff NACH Description — editor "docs" → enter
+		// öffnet den owner-gebundenen Docs-Browser (kein scalar-Edit).
+		{"documents", "Documents", "docs"},
 	}
 }
 
@@ -34,6 +37,7 @@ func sprintFields() []detailField {
 	return []detailField{
 		{"name", "Name", "input"},
 		{"goal", "Goal", "text"},
+		{"documents", "Documents", "docs"}, // DD2-169: Docs-Browser des Sprints
 	}
 }
 
@@ -47,6 +51,8 @@ func milestoneFieldValue(ms api.Milestone, key string) string {
 		return deref(ms.Description)
 	case "target_date":
 		return deref(ms.TargetDate)
+	case "documents":
+		return "(enter to browse documents)"
 	}
 	return ""
 }
@@ -57,6 +63,8 @@ func sprintFieldValue(sp api.Sprint, key string) string {
 		return sp.Name
 	case "goal":
 		return deref(sp.Goal)
+	case "documents":
+		return "(enter to browse documents)"
 	}
 	return ""
 }
@@ -170,6 +178,11 @@ func (m model) editFlatField(f detailField) (tea.Model, tea.Cmd) {
 	n := m.focusedNode()
 	if n == nil {
 		return m, nil
+	}
+	// DD2-169: das Documents-Feld editiert nicht skalar, sondern öffnet den
+	// owner-gebundenen Docs-Browser (read via glow, edit via neovim, create/delete).
+	if f.editor == "docs" {
+		return m.openDocsFromContext()
 	}
 	switch n.kind {
 	case tkMile:
