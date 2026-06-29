@@ -84,9 +84,30 @@ func (m *model) treeActive() bool {
 	return m.treeFilterActive() || strings.TrimSpace(m.treeQuery) != ""
 }
 
+// treeStatusVisible entscheidet die Status-Sichtbarkeit eines Tree-Knotens
+// (DD2-154). Eine explizite fStatus-Whitelist (Filter-Menü, Taste f) sticht den
+// Default; sonst greift der per-kind Default-Hidden-Set (fMile/fSprint/fIssue),
+// der completed/cancelled ausblendet. Single Source für Default- UND Filter-Pfad,
+// damit der frisch geöffnete Browser dieselbe Policy zeigt wie die Suche.
+func (m *model) treeStatusVisible(kind treeKind, status string) bool {
+	if len(m.fStatus) > 0 {
+		return m.fStatus[status] // explizite Whitelist gewinnt
+	}
+	switch kind {
+	case tkSprint:
+		return m.fSprint.shown(status)
+	case tkIssue:
+		return m.fIssue.shown(status)
+	default:
+		return m.fMile.shown(status)
+	}
+}
+
 // treeNodes flacht den Baum entsprechend der Expansions-Sets in eine sichtbare
 // Zeilenliste. Issues werden lazy aus treeIssues[sprintID] gezogen. Bei aktivem
 // Filter/Suche (treeActive) ersetzt die Filter-Flachung die Expansions-Logik.
+// Auch ohne Filter blendet der Default completed/cancelled aus (DD2-154,
+// treeStatusVisible) — sonst zeigt der frisch geöffnete Browser alles.
 func (m *model) treeNodes() []treeNode {
 	if m.treeActive() {
 		return m.treeNodesFiltered()
@@ -94,6 +115,12 @@ func (m *model) treeNodes() []treeNode {
 	var nodes []treeNode
 	for mi := range m.milestones {
 		ms := &m.milestones[mi]
+		if !m.treeStatusVisible(tkMile, ms.Status) {
+			continue
+		}
+		if len(m.fStatus) == 0 && ms.Deferred == 1 && !m.fMile.shown(deferredKey) {
+			continue // zurückgestellte Meilensteine default verborgen (Parität visMilestonesRaw)
+		}
 		nodes = append(nodes, treeNode{kind: tkMile, mileIdx: mi, depth: 0,
 			expand: len(ms.Sprints) > 0, open: m.treeExpMile[ms.ID]})
 		if !m.treeExpMile[ms.ID] {
@@ -101,6 +128,9 @@ func (m *model) treeNodes() []treeNode {
 		}
 		for si := range ms.Sprints {
 			sp := &ms.Sprints[si]
+			if !m.treeStatusVisible(tkSprint, sp.Status) {
+				continue
+			}
 			nodes = append(nodes, treeNode{kind: tkSprint, mileIdx: mi, sprIdx: si,
 				sprintID: sp.ID, depth: 1, expand: true, open: m.treeExpSprint[sp.ID]})
 			if !m.treeExpSprint[sp.ID] {
@@ -111,13 +141,17 @@ func (m *model) treeNodes() []treeNode {
 				nodes = append(nodes, treeNode{kind: tkInfo, depth: 2, label: "(loading …)"})
 				continue
 			}
-			if len(items) == 0 {
-				nodes = append(nodes, treeNode{kind: tkInfo, depth: 2, label: "(no issues)"})
-				continue
-			}
+			shown := 0
 			for ii := range items {
+				if !m.treeStatusVisible(tkIssue, items[ii].Status) {
+					continue
+				}
 				nodes = append(nodes, treeNode{kind: tkIssue, mileIdx: mi, sprIdx: si,
 					sprintID: sp.ID, issIdx: ii, depth: 2, issue: &items[ii]})
+				shown++
+			}
+			if shown == 0 { // leer ODER alle gefiltert → Platzhalter (kein leerer Ast)
+				nodes = append(nodes, treeNode{kind: tkInfo, depth: 2, label: "(no issues)"})
 			}
 		}
 	}
@@ -134,7 +168,6 @@ func (m *model) treeNodesFiltered() []treeNode {
 	artAll := len(m.fArt) == 0
 	showKind := func(k treeKind) bool { return artAll || m.fArt[k] }
 	typeOK := func(t string) bool { return len(m.fType) == 0 || m.fType[t] }
-	statusOK := func(s string) bool { return len(m.fStatus) == 0 || m.fStatus[s] }
 	matchText := func(s string) bool { return q == "" || strings.Contains(strings.ToLower(s), q) }
 	tagOK := func(tags []api.Tag) bool { // DD2-116: Issue hat ≥1 gewähltes Tag (sonst alle ok)
 		if len(m.fTags) == 0 {
@@ -165,16 +198,16 @@ func (m *model) treeNodesFiltered() []treeNode {
 	var nodes []treeNode
 	for mi := range m.milestones {
 		ms := &m.milestones[mi]
-		mileHit := showKind(tkMile) && statusOK(ms.Status) && matchText(ms.Name)
+		mileHit := showKind(tkMile) && m.treeStatusVisible(tkMile, ms.Status) && matchText(ms.Name)
 		var subs []treeNode
 		for si := range ms.Sprints {
 			sp := &ms.Sprints[si]
-			spHit := showKind(tkSprint) && statusOK(sp.Status) && matchText(sp.Key+" "+sp.Name)
+			spHit := showKind(tkSprint) && m.treeStatusVisible(tkSprint, sp.Status) && matchText(sp.Key+" "+sp.Name)
 			items := bySprint[sp.ID]
 			var iss []treeNode
 			for ii := range items {
 				it := &items[ii]
-				if showKind(tkIssue) && typeOK(it.Type) && statusOK(it.Status) && tagOK(it.Tags) && matchText(it.Key+" "+it.Title) {
+				if showKind(tkIssue) && typeOK(it.Type) && m.treeStatusVisible(tkIssue, it.Status) && tagOK(it.Tags) && matchText(it.Key+" "+it.Title) {
 					iss = append(iss, treeNode{kind: tkIssue, mileIdx: mi, sprIdx: si,
 						sprintID: sp.ID, issIdx: ii, depth: 2, issue: it})
 				}

@@ -37,9 +37,11 @@ func newModel(client *api.Client, project *api.Project, global *api.Client) mode
 	m.fStatus = map[string]bool{}
 	m.fTags = map[string]bool{}
 	m.depsCache = map[string]*api.Dependencies{}
-	// DD2-154: Project-Browser blendet abgeschlossene Einträge über ALLE Spalten
-	// standardmäßig aus (completed/cancelled — nach DD2-155 ist auch das Issue-Terminal
-	// „completed", nicht mehr „done"). Per Filter-Menü (f) jederzeit wieder einblendbar.
+	// DD2-154: Project-Browser-Tree (view_browse_project) blendet abgeschlossene
+	// Einträge über ALLE Ebenen (Meilenstein/Sprint/Issue) standardmäßig aus
+	// (completed/cancelled — nach DD2-155 ist auch das Issue-Terminal „completed",
+	// nicht mehr „done"). Diese hidden-Sets sind die Default-Quelle für
+	// treeStatusVisible; per Filter-Menü (f, fStatus-Whitelist) wieder einblendbar.
 	m.fMile = filterState{hidden: map[string]bool{"completed": true, "cancelled": true, deferredKey: true}}
 	m.fSprint = filterState{hidden: map[string]bool{"completed": true, "cancelled": true}}
 	m.fIssue = filterState{hidden: map[string]bool{"cancelled": true, "completed": true}}
