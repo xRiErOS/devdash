@@ -1008,8 +1008,8 @@ app.get('/api/projects/:id/sstd/slots', (req, res) => {
   }
 })
 
-// DD-361: Read-Only-Projektionen (Nächste Schritte ← offene project_todos; Journal ←
-// letzte 40 session_notes). Liefert die beiden NICHT editierbaren Read-All-Sektionen als
+// DD-361: Read-Only-Projektionen (Nächste Schritte ← offene project_todos; Session-Log ←
+// letzte 40 session_log-Memories, DD2-19). Liefert die beiden NICHT editierbaren Read-All-Sektionen als
 // fertiges Markdown, damit der SSTD-Tab sie separat von den 6 Slots rendern kann.
 // MUSS vor '/api/projects/:id/sstd/slots/:key' stehen — sonst matcht Express ':key'='projections'.
 app.get('/api/projects/:id/sstd/projections', (req, res) => {

@@ -571,52 +571,6 @@
         }
       }
     },
-    "/api/planning-prompt": {
-      "get": {
-        "tags": [
-          "system"
-        ],
-        "summary": "Sprint-Planning-Prompt als Markdown rendern (refined Issues + Projektkontext).",
-        "parameters": [
-          {
-            "name": "capacity",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "files",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "project_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/archon-runs": {
       "get": {
         "tags": [
@@ -3051,16 +3005,6 @@
                       }
                     ]
                   },
-                  "description": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
                   "files": {
                     "type": "array",
                     "items": {
@@ -3484,16 +3428,6 @@
                     ]
                   },
                   "result": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "description": {
                     "anyOf": [
                       {
                         "type": "string"
@@ -7597,7 +7531,8 @@
                       "bug_pattern",
                       "convention",
                       "external_constraint",
-                      "session_note"
+                      "session_log",
+                      "knowledge"
                     ]
                   },
                   "summary": {
@@ -7906,7 +7841,8 @@
                       "bug_pattern",
                       "convention",
                       "external_constraint",
-                      "session_note"
+                      "session_log",
+                      "knowledge"
                     ]
                   },
                   "summary": {
@@ -8108,7 +8044,8 @@
                       "bug_pattern",
                       "convention",
                       "external_constraint",
-                      "session_note"
+                      "session_log",
+                      "knowledge"
                     ]
                   },
                   "summary": {
@@ -8299,7 +8236,8 @@
                       "bug_pattern",
                       "convention",
                       "external_constraint",
-                      "session_note"
+                      "session_log",
+                      "knowledge"
                     ]
                   },
                   "summary": {

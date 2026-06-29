@@ -37,6 +37,7 @@ describe('DD-361 — SSTD-Projektionen (renderNextSteps/renderJournal exportiert
     applyMigration(db, '041_v3_project_memories.sql', { logDir })
     applyMigration(db, '042_v3_project_memory_anchor_stability.sql', { logDir })
     applyMigration(db, '043_v3_sstd_slots.sql', { logDir })
+    applyMigration(db, '065_v3_dd2_19_memory_categories.sql', { logDir })
   })
 
   afterEach(() => {
@@ -65,15 +66,15 @@ describe('DD-361 — SSTD-Projektionen (renderNextSteps/renderJournal exportiert
     expect(renderNextSteps(db, PROJECT_ID)).toBeNull()
   })
 
-  // (b) renderJournal listet session_notes.
-  test('renderJournal listet session_notes als Journal-Einträge', () => {
-    createMemory(db, PROJECT_ID, { category: 'session_note', summary: 'Heute DD-361 begonnen' })
+  // (b) renderJournal listet session_log-Einträge.
+  test('renderJournal listet session_log als Session-Log-Einträge', () => {
+    createMemory(db, PROJECT_ID, { category: 'session_log', summary: 'Heute DD-361 begonnen' })
     const md = renderJournal(db, PROJECT_ID)
     expect(md).toContain(`## ${PROJECTION_TITLES.journal}`)
     expect(md).toContain('- Heute DD-361 begonnen')
   })
 
-  test('renderJournal gibt null zurück, wenn keine session_notes existieren', () => {
+  test('renderJournal gibt null zurück, wenn keine session_log-Memories existieren', () => {
     expect(renderJournal(db, PROJECT_ID)).toBeNull()
   })
 })

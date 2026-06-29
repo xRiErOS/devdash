@@ -2187,13 +2187,13 @@ related_issues:
     }
     const p = await resolveProject(idOrSlug)
     if (typeof flags.add === 'string') {
-      // Journal-Eintrag = session_note Project-Memory (kein eigener Store, D03-rev).
+      // Session-Log-Eintrag = session_log Project-Memory (kein eigener Store, D03-rev; DD2-19).
       parseOrThrow(journalAddContract, { text: flags.add }, 'sstd journal')   // DD-564: Client-Guard vor API
-      const m = await api('POST', '/api/project-memories', { category: 'session_note', summary: flags.add }, p.id)
-      console.log(`✓ Journal-Eintrag #${m.id} (session_note, project ${p.id})`)
+      const m = await api('POST', '/api/project-memories', { category: 'session_log', summary: flags.add }, p.id)
+      console.log(`✓ Session-Log-Eintrag #${m.id} (session_log, project ${p.id})`)
     } else {
-      const rows = await api('GET', '/api/project-memories?category=session_note', null, p.id)
-      console.log(`\nJournal — letzte ${Math.min(rows.length, 40)} Einträge (project ${p.id})`)
+      const rows = await api('GET', '/api/project-memories?category=session_log', null, p.id)
+      console.log(`\nSession-Log — letzte ${Math.min(rows.length, 40)} Einträge (project ${p.id})`)
       for (const r of rows.slice(0, 40)) console.log(`  ${r.created_at} — ${trunc(r.summary, 70)}`)
     }
   },

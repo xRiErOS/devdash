@@ -68,10 +68,10 @@ const PROJECT_ID_PARAM = z
 // MEM-10: project_memories categories (mirror of migration 041 CHECK).
 // DD-563: BEWUSST inline gelassen (NICHT aus contracts/project-memory.contracts.js
 // importiert). tests/mem10-cli-mcp/cliMcpWiring.test.js source-greppt diese Datei per
-// `expect(mcp).toContain(c)` über alle 6 Kategorie-Literale ("log tool enumerates all six
-// categories"). Single Source der Werte liegt in der REST-Lib + im Contract; das
-// MCP-Inline-Literal bleibt als Source-Shape-Anker erhalten (DD-562-Lesson: t10-Muster).
-const MEMORY_CATEGORIES = ['architecture_decision', 'dead_end', 'bug_pattern', 'convention', 'external_constraint', 'session_note']
+// `expect(mcp).toContain(c)` über alle Kategorie-Literale. Single Source der Werte liegt in
+// der REST-Lib + im Contract; das MCP-Inline-Literal bleibt als Source-Shape-Anker erhalten
+// (DD-562-Lesson: t10-Muster). DD2-19: session_note -> session_log + knowledge ergänzt.
+const MEMORY_CATEGORIES = ['architecture_decision', 'dead_end', 'bug_pattern', 'convention', 'external_constraint', 'session_log', 'knowledge']
 
 // MEM-18: SSTD-Slot-Keys (mirror of migration 043 / sstdSlots.js SLOT_KEYS).
 // DD-564: Die Single Source der Werte liegt in contracts/sstd.contracts.js + der REST-Lib.
@@ -394,7 +394,7 @@ server.tool(
 
 server.tool(
   'devd_sstd_get',
-  'Get the full reassembled SSTD of a project (6 Slots + Projektionen: Naechste Schritte <- offene ToDos, Journal <- letzte 40 session_notes). Faellt auf den Legacy-Blob projects.sstd_content zurueck, solange alle Slots leer sind. Read-only (MEM-16/18).',
+  'Get the full reassembled SSTD of a project (6 Slots + Projektionen: Naechste Schritte <- offene ToDos, Session-Log <- letzte 40 session_log-Memories). Faellt auf den Legacy-Blob projects.sstd_content zurueck, solange alle Slots leer sind. Read-only (MEM-16/18).',
   { id_or_slug: z.string().describe('Numeric project id or slug string (e.g. "devd", "2")') },
   async ({ id_or_slug }) => {
     let pid
@@ -471,15 +471,15 @@ server.tool(
 
 server.tool(
   'devd_sstd_journal_add',
-  'WRITE: Append a journal entry to a project. Alias, der ein project_memory (category=session_note, Auto-Datum) anlegt — kein eigener Journal-Store (D03-rev). Erscheint in der Journal-Projektion von devd_sstd_get (letzte 40) (MEM-16/18).',
+  'WRITE: Append a session-log entry to a project. Alias, der ein project_memory (category=session_log, Auto-Datum) anlegt — kein eigener Journal-Store (D03-rev). Erscheint in der Session-Log-Projektion von devd_sstd_get (letzte 40) (MEM-16/18, DD2-19).',
   {
     id_or_slug: z.string().describe('Numeric project id or slug string (e.g. "devd", "2")'),
-    content: z.string().describe('Journal entry text (wird als session_note summary gespeichert)'),
+    content: z.string().describe('Session-log entry text (wird als session_log summary gespeichert)'),
   },
   async ({ id_or_slug, content }) => {
     let pid
     try { pid = await resolveProjectNumericId(id_or_slug) } catch (e) { return ok({ error: true, message: e.message }) }
-    const data = await apiRequest('POST', '/api/project-memories', { category: 'session_note', summary: content }, pid)
+    const data = await apiRequest('POST', '/api/project-memories', { category: 'session_log', summary: content }, pid)
     return ok(data)
   },
 )
@@ -2139,7 +2139,7 @@ server.tool(
 
 server.tool(
   'devd_project_memory_log',
-  'WRITE: Log a project-bound memory (architecture_decision | dead_end | bug_pattern | convention | external_constraint | session_note) into project_memories. Append-only; corrections via the supersede endpoint. Decoupled from the global ~/.claude memory.',
+  'WRITE: Log a project-bound memory (architecture_decision | dead_end | bug_pattern | convention | external_constraint | session_log | knowledge) into project_memories. Append-only; corrections via the supersede endpoint. Decoupled from the global ~/.claude memory.',
   {
     project_id: PROJECT_ID_PARAM,
     category: z.enum(MEMORY_CATEGORIES).describe('Memory category'),

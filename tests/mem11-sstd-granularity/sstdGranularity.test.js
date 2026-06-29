@@ -37,6 +37,7 @@ describe('MEM-11 — anchor + stability + section-patch + snapshot-split', () =>
     logDir = mkdtempSync(join(tmpdir(), 'devd-mem11-'))
     applyMigration(db, MIG_MVP, { logDir })
     applyMigration(db, MIG_GRAN, { logDir })
+    applyMigration(db, '065_v3_dd2_19_memory_categories.sql', { logDir })
   })
 
   afterEach(() => {
@@ -96,7 +97,7 @@ describe('MEM-11 — anchor + stability + section-patch + snapshot-split', () =>
 
   test('renderSnapshot(stable) enthält stabile Rows, schließt volatile aus', () => {
     createMemory(db, PROJECT_ID, { category: 'architecture_decision', anchor: 'D01', stability: 'stable', summary: 'Stabile Regel' })
-    createMemory(db, PROJECT_ID, { category: 'session_note', stability: 'volatile', summary: 'Flüchtiger Task-Kontext' })
+    createMemory(db, PROJECT_ID, { category: 'session_log', stability: 'volatile', summary: 'Flüchtiger Task-Kontext' })
 
     const stable = renderSnapshot(db, PROJECT_ID, { stability: 'stable' })
     expect(stable).toContain('D01')
@@ -106,7 +107,7 @@ describe('MEM-11 — anchor + stability + section-patch + snapshot-split', () =>
 
   test('renderSplitSnapshot liefert getrennte stable + volatile Markdown-Blöcke', () => {
     createMemory(db, PROJECT_ID, { category: 'architecture_decision', anchor: 'D01', stability: 'stable', summary: 'Projekt-Regel' })
-    createMemory(db, PROJECT_ID, { category: 'session_note', stability: 'volatile', summary: 'Aktiver Task xyzzy' })
+    createMemory(db, PROJECT_ID, { category: 'session_log', stability: 'volatile', summary: 'Aktiver Task xyzzy' })
 
     const { stable, volatile } = renderSplitSnapshot(db, PROJECT_ID)
     expect(stable).toContain('Projekt-Regel')
