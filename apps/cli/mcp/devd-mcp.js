@@ -1590,25 +1590,34 @@ server.tool(
   },
 )
 
+// DD2-99: Outcome-Type-Vokabular inline (kein Contract) — enum-validiert, default feat.
+const SET_RESULT_OUTCOME_TYPES = ['feat', 'fix', 'refactor', 'chore', 'docs']
+
 server.tool(
   'devd_issue_set_result',
   'WRITE: Set the structured sprint result on an issue. Builds the YAML+Markdown result string and writes it via PUT /api/backlog/:id {result}. commits is required (D02). Use after sprint work is done, before sprint complete.',
   {
     project_id: PROJECT_ID_PARAM,
-    id_or_key: z.string().describe('Issue key (e.g. "DD-42") or numeric backlog id'),
+    id_or_key: z.string({ error: 'id_or_key ist Pflichtfeld' }).trim().min(1, { error: 'id_or_key darf nicht leer sein' }).describe('Issue key (e.g. "DD-42") or numeric backlog id'),
+    // DD2-99: enum statt Free-String — ungültiger Typ schlägt klar an der Grenze fehl.
     outcome_type: z
-      .string()
+      .enum(SET_RESULT_OUTCOME_TYPES, { error: 'outcome_type muss feat|fix|refactor|chore|docs sein' })
       .optional()
       .describe('Outcome type: feat | fix | refactor | chore | docs (default: feat)'),
+    // DD2-99: non-empty Pflicht — leere Summary erzeugte zuvor ein nutzloses Result.
     outcome_summary: z
-      .string()
+      .string({ error: 'outcome_summary ist Pflichtfeld' })
+      .trim()
+      .min(1, { error: 'outcome_summary darf nicht leer sein' })
       .describe('Short summary of what was achieved (required)'),
     files_changed: z
       .array(z.string())
       .optional()
       .describe('List of changed file paths'),
+    // DD2-99: mind. 1 non-empty Commit (D02) — [] erzeugte zuvor einen leeren YAML-Eintrag.
     commits: z
-      .array(z.string())
+      .array(z.string().trim().min(1, { error: 'commit darf nicht leer sein' }), { error: 'commits muss ein Array sein' })
+      .min(1, { error: 'commits ist Pflicht — mind. 1 Eintrag (D02)' })
       .describe('List of commit SHAs or short descriptions (required — D02)'),
     breaking_changes: z
       .boolean()
@@ -1638,6 +1647,11 @@ server.tool(
     if (typeof pid === 'object' && pid.error) return ok(pid)
     const id = await resolveIssueId(id_or_key, pid)
     const issue = await apiRequest('GET', `/api/backlog/${id}`, null, pid)
+    // DD2-99: Issue nicht auflösbar/nicht gefunden → klar abbrechen, statt ein
+    // Result mit `#undefined`-related_issues zu bauen und blind zu PUTten.
+    if (!issue || issue.error || issue.id == null) {
+      return ok(issue && issue.error ? issue : { error: true, message: `Issue ${id_or_key} nicht gefunden` })
+    }
 
     // Build issue key for related_issues block
     const issueKey = (issue.project_prefix && issue.project_number != null)
