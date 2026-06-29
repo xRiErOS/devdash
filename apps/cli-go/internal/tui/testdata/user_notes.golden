@@ -1,0 +1,23 @@
+> devd2                        ctrl+k:cmd  p:project  b:backlog  R:reviews  ?:help  q:quit
+dd2 — User-Notes
+╭──────────────────────────────╮╭────────────────────────────────────────────────────────╮
+│Notes (2)                     ││Detail                                                  │
+│───────────                   ││────────                                                │
+│▸ Deploy checklist            ││Deploy checklist                                        │
+│  Scratch                     ││                                                        │
+│                              ││                                                        │
+│                              ││  # Deploy                                              │
+│                              ││                                                        │
+│                              ││  • step one                                            │
+│                              ││                                                        │
+│                              ││PR: https://example.test/pr/1                           │
+│                              ││Sprints: DD2#32                                         │
+│                              ││Issues: DD2-168                                         │
+│                              ││                                                        │
+│                              ││                                                        │
+│                              ││                                                        │
+│                              ││                                                        │
+│                              ││                                                        │
+│                              ││                                                        │
+╰──────────────────────────────╯╰────────────────────────────────────────────────────────╯
+i/k:↑↓  /:search  enter:edit  n:new  d:delete  esc/q:back

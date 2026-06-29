@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"strings"
+
 	"devd-cli/internal/api"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
@@ -216,6 +218,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, statusTimeout(m.statusSeq)
 		}
 		return m, nil
+	case userNotesMsg: // DD2-168: Notiz-Liste geladen/neu gespeichert
+		m.unList = msg.items
+		m.unlist.setLen(len(m.unList))
+		if msg.notice != "" {
+			m.status = noticeText(msg.notice)
+			m.statusSticky = false
+			m.statusSeq++
+			return m, statusTimeout(m.statusSeq)
+		}
+		return m, nil
 	case editorFinishedMsg: // DD2-164/166ff: neovim-Suspend zurück → view-aware speichern
 		if msg.err != nil {
 			m.status = noticeText("editor: " + msg.err.Error())
@@ -234,6 +246,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.sstdEditKey != "" {
 				return m, saveSstdSlotCmd(m.client, m.sstdEditKey, msg.content)
 			}
+		case viewUserNotes:
+			title := firstLineTitle(msg.content)
+			return m, saveUserNoteCmd(m.client, m.unEditID, title, msg.content, strings.TrimSpace(m.unQuery))
 		}
 		return m, nil
 	case unassignedSprintsMsg:

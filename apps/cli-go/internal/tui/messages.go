@@ -634,6 +634,63 @@ func saveSstdSlotCmd(c *api.Client, key, content string) tea.Cmd {
 	}
 }
 
+// userNotesMsg trägt die geladene Notiz-Liste (DD2-168). notice != "" → Toast.
+type userNotesMsg struct {
+	items  []api.UserNote
+	notice string
+}
+
+// loadUserNotes lädt die Notizen (optional FTS-gefiltert) (DD2-168).
+func loadUserNotes(c *api.Client, search string) tea.Cmd {
+	return func() tea.Msg {
+		notes, err := c.ListUserNotes(search)
+		if err != nil {
+			return errMsg{err}
+		}
+		return userNotesMsg{items: notes}
+	}
+}
+
+// saveUserNoteCmd legt eine Notiz an (editID==0) oder aktualisiert die details
+// einer bestehenden (editID>0), dann Reload (DD2-168).
+func saveUserNoteCmd(c *api.Client, editID int, title, details, search string) tea.Cmd {
+	return func() tea.Msg {
+		var notice string
+		if editID > 0 {
+			d := details
+			if _, err := c.UpdateUserNote(editID, api.UserNoteBody{Details: &d}); err != nil {
+				return noticeMsg{cleanAPIErr(err)}
+			}
+			notice = "Note updated"
+		} else {
+			d := details
+			if _, err := c.CreateUserNote(api.UserNoteBody{Title: title, Details: &d}); err != nil {
+				return noticeMsg{cleanAPIErr(err)}
+			}
+			notice = "Note created"
+		}
+		notes, err := c.ListUserNotes(search)
+		if err != nil {
+			return errMsg{err}
+		}
+		return userNotesMsg{items: notes, notice: notice}
+	}
+}
+
+// doDeleteUserNote löscht eine Notiz und lädt die Liste neu (DD2-168).
+func doDeleteUserNote(c *api.Client, id int, name, search string) tea.Cmd {
+	return func() tea.Msg {
+		if err := c.DeleteUserNote(id); err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		notes, err := c.ListUserNotes(search)
+		if err != nil {
+			return errMsg{err}
+		}
+		return userNotesMsg{items: notes, notice: "Deleted " + name}
+	}
+}
+
 // depsMsg trägt die geladenen Abhängigkeiten (DD2-89). key = "m:<id>"/"s:<id>"
 // (cache-Schlüssel), damit Milestone- und Sprint-Deps denselben Cache teilen.
 type depsMsg struct {

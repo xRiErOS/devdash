@@ -24,6 +24,7 @@ const (
 	viewCommandCenter // DD2-91: projektweite Issue-Such-Ansicht (Command-Center)
 	viewTutorial      // DD2-122: geführtes, seitenweises Onboarding
 	viewSSTD          // DD2-166: SSTD-Slots MasterDetail (6 Slots + 2 Projektionen)
+	viewUserNotes     // DD2-168: User-Notes MasterDetail (FTS-Suche, neovim-Edit)
 )
 
 // filterState hält pro Spalte, welche Werte ausgeblendet sind.
@@ -204,6 +205,14 @@ type model struct {
 	sstdProj    *api.SstdProjections
 	sstdList    listState
 	sstdEditKey string
+
+	// User-Notes-Browser (DD2-168): MasterDetail über user_notes mit FTS-Suche.
+	// unEditID = 0 → Create-Modus beim nächsten editorFinishedMsg, >0 → Update.
+	unList      []api.UserNote
+	unlist      listState
+	unSearching bool
+	unQuery     string
+	unEditID    int
 
 	// Command-Center (T16): globales Action-Palette-Modal (ctrl+k / shift+k).
 	paletteOpen bool
