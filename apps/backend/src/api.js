@@ -61,7 +61,11 @@ import { validateSpecPath, MilestoneSpecPathError } from './lib/milestoneSpecPat
 import { listNotes as listComponentNotes, getNote as getComponentNote, upsertNote as upsertComponentNote, deleteNote as deleteComponentNote, ComponentNoteError } from './lib/componentNotes.js'
 import { listMemories as listProjectMemories, getMemory as getProjectMemory, createMemory as createProjectMemory, updateMemory as updateProjectMemory, deleteMemory as deleteProjectMemory, supersedeMemory as supersedeProjectMemory, searchMemories as searchProjectMemories, getMemoryByAnchor as getProjectMemoryByAnchor, patchByAnchor as patchProjectMemoryByAnchor, ProjectMemoryError } from './lib/projectMemories.js'
 import { renderSnapshot as renderProjectMemorySnapshot, renderSplitSnapshot as renderProjectMemorySplitSnapshot } from './lib/projectMemorySnapshot.js'
-import { cascadeDeleteSprints, milestoneDeletePreview } from './lib/cascadeDelete.js'
+import { cascadeDeleteSprints, milestoneDeletePreview, sprintDocumentCount } from './lib/cascadeDelete.js'
+import {
+  DocumentError,
+  createDocument, listDocuments, getDocument, updateDocument, deleteDocument,
+} from './lib/documents.js'
 import { listTags as listMemoryTags, createTag as createMemoryTag, renameTag as renameMemoryTag, deleteTag as deleteMemoryTag, pruneTagsNotInRegistry as pruneMemoryTags } from './lib/memoryTags.js'
 import { listIssueDependencies, countIssueDependencies } from './lib/issueDependencies.js'
 import { resolveIssueByNumber } from './lib/issueResolve.js'
@@ -113,9 +117,9 @@ import {
   exportCollection as exportSopCollection,
 } from './lib/sopCollections.js'
 import {
-  SessionNoteError,
-  createSessionNote, listSessionNotes, getSessionNote, updateSessionNote, deleteSessionNote,
-} from './lib/sessionNotes.js'
+  UserNoteError,
+  createUserNote, listUserNotes, getUserNote, updateUserNote, deleteUserNote,
+} from './lib/userNotes.js'
 
 // ============================================================
 // Feature-Flags (ADR 2026-04-26: Archon + Live-Preview deferred)
@@ -981,7 +985,7 @@ function _sendProjectSlotError(res, e) {
 
 // DD-213 / MEM-16: SSTD — pro Projekt genau ein Markdown-Dokument, Master-Quelle ist die DB.
 // GET reassembliert seit MEM-16 (D07) aus den 6 Slots (project_sstd_slots) + zwei Projektionen
-// (Nächste Schritte ← offene project_todos; Journal ← letzte 40 session_notes). Solange alle Slots
+// (Nächste Schritte ← offene project_todos; Session-Log ← letzte 40 session_log-Memories). Solange alle Slots
 // leer sind, fällt renderReadAll auf den Legacy-Blob projects.sstd_content zurück.
 app.get('/api/projects/:id/sstd', (req, res) => {
   const project = db.prepare('SELECT id, sstd_updated_at FROM projects WHERE id = ?').get(req.params.id)
@@ -1008,8 +1012,8 @@ app.get('/api/projects/:id/sstd/slots', (req, res) => {
   }
 })
 
-// DD-361: Read-Only-Projektionen (Nächste Schritte ← offene project_todos; Journal ←
-// letzte 40 session_notes). Liefert die beiden NICHT editierbaren Read-All-Sektionen als
+// DD-361: Read-Only-Projektionen (Nächste Schritte ← offene project_todos; Session-Log ←
+// letzte 40 session_log-Memories, DD2-19). Liefert die beiden NICHT editierbaren Read-All-Sektionen als
 // fertiges Markdown, damit der SSTD-Tab sie separat von den 6 Slots rendern kann.
 // MUSS vor '/api/projects/:id/sstd/slots/:key' stehen — sonst matcht Express ':key'='projections'.
 app.get('/api/projects/:id/sstd/projections', (req, res) => {
@@ -1207,47 +1211,98 @@ app.put('/api/sop-collections/:key/items', (req, res) => {
   }
 })
 
-// --- session_notes (ProjectPages T-be1, D-D Modell B) — project-gescopt (currentProjectId),
-// NEUE Rich-Entity (kein SSTD-Journal-Ersatz). Speist SessionNotesWidget. ---
-function _sendSessionNoteError(res, e) {
-  if (e instanceof SessionNoteError) {
+// --- user_notes (DD2-161, ehem. session_notes/ProjectPages T-be1) — project-gescopt
+// (currentProjectId), separate Rich-Entity (kein SSTD-Session-Log-Ersatz). Speist UserNotesWidget. ---
+function _sendUserNoteError(res, e) {
+  if (e instanceof UserNoteError) {
     return res.status(e.statusCode).json({ error: e.message, code: e.code, field: e.field })
   }
-  console.error('[session-notes] unexpected error', e)
+  console.error('[user-notes] unexpected error', e)
   return res.status(500).json({ error: 'Internal server error' })
 }
 
-app.get('/api/session-notes', (req, res) => {
-  res.json(listSessionNotes(db, currentProjectId(req), { search: req.query.search }))
+app.get('/api/user-notes', (req, res) => {
+  res.json(listUserNotes(db, currentProjectId(req), { search: req.query.search }))
 })
 
-app.get('/api/session-notes/:id', (req, res) => {
-  const note = getSessionNote(db, currentProjectId(req), Number(req.params.id))
-  if (!note) return res.status(404).json({ error: 'session_note nicht gefunden', code: 'NOTE_NOT_FOUND' })
+app.get('/api/user-notes/:id', (req, res) => {
+  const note = getUserNote(db, currentProjectId(req), Number(req.params.id))
+  if (!note) return res.status(404).json({ error: 'user_note nicht gefunden', code: 'NOTE_NOT_FOUND' })
   res.json(note)
 })
 
-app.post('/api/session-notes', (req, res) => {
+app.post('/api/user-notes', (req, res) => {
   try {
-    res.status(201).json(createSessionNote(db, currentProjectId(req), req.body || {}))
+    res.status(201).json(createUserNote(db, currentProjectId(req), req.body || {}))
   } catch (e) {
-    return _sendSessionNoteError(res, e)
+    return _sendUserNoteError(res, e)
   }
 })
 
-app.put('/api/session-notes/:id', (req, res) => {
+app.put('/api/user-notes/:id', (req, res) => {
   try {
-    res.json(updateSessionNote(db, currentProjectId(req), Number(req.params.id), req.body || {}))
+    res.json(updateUserNote(db, currentProjectId(req), Number(req.params.id), req.body || {}))
   } catch (e) {
-    return _sendSessionNoteError(res, e)
+    return _sendUserNoteError(res, e)
   }
 })
 
-app.delete('/api/session-notes/:id', (req, res) => {
-  const ok = deleteSessionNote(db, currentProjectId(req), Number(req.params.id))
-  if (!ok) return res.status(404).json({ error: 'session_note nicht gefunden', code: 'NOTE_NOT_FOUND' })
+app.delete('/api/user-notes/:id', (req, res) => {
+  const ok = deleteUserNote(db, currentProjectId(req), Number(req.params.id))
+  if (!ok) return res.status(404).json({ error: 'user_note nicht gefunden', code: 'NOTE_NOT_FOUND' })
   res.status(204).end()
 })
+
+// --- documents (DD2-21) — Markdown-Dokumente an Meilensteine ODER Sprints (DB-Blob).
+// Owner kommt aus der Route (/api/milestones/:id/documents bzw. /api/sprints/:id/documents),
+// nicht aus dem Body. ON DELETE CASCADE räumt sie beim Löschen des Owners. ---
+function _sendDocumentError(res, e) {
+  if (e instanceof DocumentError) {
+    return res.status(e.statusCode).json({ error: e.message, code: e.code, field: e.field })
+  }
+  console.error('[documents] unexpected error', e)
+  return res.status(500).json({ error: 'Internal server error' })
+}
+
+// Verifiziert, dass der Owner (milestone|sprint) existiert; sonst 404 + null.
+function _resolveDocOwner(res, type, idParam) {
+  const id = Number(idParam)
+  const table = type === 'milestone' ? 'milestones' : 'sprints'
+  const row = db.prepare(`SELECT id FROM ${table} WHERE id = ?`).get(id)
+  if (!row) { res.status(404).json({ error: `${type} not found` }); return null }
+  return { type, id }
+}
+
+function _registerDocumentRoutes(type, base) {
+  app.get(`${base}/:id/documents`, (req, res) => {
+    const owner = _resolveDocOwner(res, type, req.params.id); if (!owner) return
+    res.json(listDocuments(db, owner))
+  })
+  app.post(`${base}/:id/documents`, (req, res) => {
+    const owner = _resolveDocOwner(res, type, req.params.id); if (!owner) return
+    try { res.status(201).json(createDocument(db, owner, req.body || {})) }
+    catch (e) { return _sendDocumentError(res, e) }
+  })
+  app.get(`${base}/:id/documents/:docId`, (req, res) => {
+    const owner = _resolveDocOwner(res, type, req.params.id); if (!owner) return
+    const doc = getDocument(db, owner, Number(req.params.docId))
+    if (!doc) return res.status(404).json({ error: 'document nicht gefunden', code: 'DOC_NOT_FOUND' })
+    res.json(doc)
+  })
+  app.put(`${base}/:id/documents/:docId`, (req, res) => {
+    const owner = _resolveDocOwner(res, type, req.params.id); if (!owner) return
+    try { res.json(updateDocument(db, owner, Number(req.params.docId), req.body || {})) }
+    catch (e) { return _sendDocumentError(res, e) }
+  })
+  app.delete(`${base}/:id/documents/:docId`, (req, res) => {
+    const owner = _resolveDocOwner(res, type, req.params.id); if (!owner) return
+    const ok = deleteDocument(db, owner, Number(req.params.docId))
+    if (!ok) return res.status(404).json({ error: 'document nicht gefunden', code: 'DOC_NOT_FOUND' })
+    res.status(204).end()
+  })
+}
+_registerDocumentRoutes('milestone', '/api/milestones')
+_registerDocumentRoutes('sprint', '/api/sprints')
 
 app.delete('/api/projects/:id', (req, res) => {
   const id = Number(req.params.id)
@@ -3597,7 +3652,8 @@ app.get('/api/sprints/:id/delete-preview', (req, res) => {
   const sprint = db.prepare('SELECT id, name FROM sprints WHERE id = ?').get(req.params.id)
   if (!sprint) return res.status(404).json({ error: 'Sprint not found' })
   const issues = db.prepare('SELECT COUNT(*) AS c FROM backlog WHERE assigned_sprint = ?').get(req.params.id).c
-  res.json({ sprint_id: Number(req.params.id), sprint_name: sprint.name, issues, documents: 0 })
+  const documents = sprintDocumentCount(db, Number(req.params.id))
+  res.json({ sprint_id: Number(req.params.id), sprint_name: sprint.name, issues, documents })
 })
 
 app.delete('/api/sprints/:id', (req, res) => {
@@ -3606,6 +3662,7 @@ app.delete('/api/sprints/:id', (req, res) => {
   const cascade = req.query.cascade === '1' || req.query.cascade === 'true'
 
   const itemCount = db.prepare('SELECT COUNT(*) AS c FROM backlog WHERE assigned_sprint = ?').get(req.params.id).c
+  const docCount = sprintDocumentCount(db, Number(req.params.id))
   // Ohne ?cascade=1 bleibt das alte Schutz-Verhalten: 409 wenn Items zugewiesen.
   if (!cascade && itemCount > 0) {
     return res.status(409).json({
@@ -3626,7 +3683,7 @@ app.delete('/api/sprints/:id', (req, res) => {
   })()
 
   // deleted_id bleibt für Rückwärtskompatibilität (OpenAPI-Schema + alt-CLI).
-  res.json({ ok: true, deleted_id: Number(req.params.id), deleted: { sprint_id: Number(req.params.id), issues: itemCount, documents: 0 } })
+  res.json({ ok: true, deleted_id: Number(req.params.id), deleted: { sprint_id: Number(req.params.id), issues: itemCount, documents: docCount } })
 })
 
 // Helper — DD-Erik-Feedback: backlog.milestone als denormalisierten Cache der
@@ -4042,6 +4099,29 @@ if (ENABLE_ARCHON) {
     query += ' ORDER BY started_at DESC'
     const runs = db.prepare(query).all(...params)
     res.json(runs)
+  })
+
+  // DD2-22: DELETE /api/archon-runs/:runId — FullDelete (Row + JSONL-Logdatei,
+  // unwiderruflich). Destruktiv → X-Archon-Token-Pflicht (403 wenn fehlt/falsch).
+  app.delete('/api/archon-runs/:runId', (req, res) => {
+    const isArchon = req.headers['x-archon-token'] === ARCHON_TOKEN
+    if (!isArchon) return res.status(403).json({ error: 'Forbidden: gültiges X-Archon-Token erforderlich' })
+    const { runId } = req.params
+    const row = db.prepare('SELECT run_id, log_path FROM archon_runs WHERE run_id = ?').get(runId)
+    if (!row) return res.status(404).json({ error: 'Archon-Run nicht gefunden', code: 'RUN_NOT_FOUND' })
+    db.prepare('DELETE FROM archon_runs WHERE run_id = ?').run(runId)
+    // Logdatei best-effort entfernen — ENOENT ignorieren (Datei kann fehlen, wenn
+    // ARCHON_LOG_DIR gewechselt wurde). Andere Fehler nur loggen, nicht 500en (Row ist weg).
+    let logDeleted = false
+    if (row.log_path) {
+      try {
+        unlinkSync(row.log_path)
+        logDeleted = true
+      } catch (e) {
+        if (e.code !== 'ENOENT') console.warn('[archon-fulldelete] unlink failed:', e.message)
+      }
+    }
+    res.json({ run_id: runId, deleted: true, log_deleted: logDeleted })
   })
 }
 

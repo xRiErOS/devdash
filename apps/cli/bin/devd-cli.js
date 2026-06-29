@@ -18,6 +18,7 @@
  *   devd-cli sprint complete <key|id>        # review → completed (setzt passed→done)
  *   devd-cli sprint cancel <key|id> --notes <text>
  *   devd-cli sprint rev-results <key|id>     # PO-Review-Status pro Issue
+ *   devd-cli sprint export <key|id> [--format csv|md]   # Sprint-Issues nach stdout
  *
  *   devd-cli issue list [--sprint <key|id>] [--status <s>] [--search <q>]
  *   devd-cli issue show <id|key>
@@ -406,6 +407,19 @@ async function resolveSprintId(input) {
   )
   if (!matched) throw new Error(`Sprint ${input} nicht gefunden im Projekt ${PROJECT_ID}`)
   return matched.id
+}
+
+// DD2-21: Owner-Basis-URL für doc-Befehle aus --milestone <id> ODER --sprint <key|id>.
+async function docOwnerBase(flags) {
+  if (typeof flags.milestone === 'string' || typeof flags.milestone === 'number') {
+    return { base: `/api/milestones/${Number(flags.milestone)}`, label: `milestone ${flags.milestone}` }
+  }
+  if (typeof flags.sprint === 'string' || typeof flags.sprint === 'number') {
+    const id = await resolveSprintId(flags.sprint)
+    return { base: `/api/sprints/${id}`, label: `sprint ${flags.sprint}` }
+  }
+  console.error('Owner erforderlich: --milestone <id> ODER --sprint <key|id>')
+  process.exit(2)
 }
 
 // Resolves an issue reference (key wie "DD-161"/"dd161" oder globale id) zu numerischer id.
@@ -2039,45 +2053,102 @@ related_issues:
     const md = await api('GET', `/api/sop-collections/${encodeURIComponent(key)}/export`)
     process.stdout.write((typeof md === 'string' ? md : JSON.stringify(md)) + '\n')
   },
+  // DD2-6: Sprint-Export (CSV/MD) nach stdout. Backlog-CSV bleibt entfernt (DD2-123);
+  // Sprint-Export behält CSV für Tabellen-/Tracking-Tools.
+  async 'sprint:export'(flags) {
+    const ref = flags._[0]
+    if (!ref) { console.error('Usage: devd-cli sprint export <key|id> [--format csv|md]   # nach stdout'); process.exit(2) }
+    const format = typeof flags.format === 'string' ? flags.format.toLowerCase() : 'md'
+    const id = await resolveSprintId(ref)
+    const out = await api('GET', `/api/sprints/${id}/export?format=${encodeURIComponent(format)}`)
+    process.stdout.write((typeof out === 'string' ? out : JSON.stringify(out)) + '\n')
+  },
 
-  // ---- Session-Notes (ProjectPages T-be1, D-D Modell B) — project-gescopt (X-Project-Id) ----
-  async 'session-note:list'(flags) {
+  // ---- Documents (DD2-21) — Markdown-Docs an Meilensteine/Sprints (DB-Blob).
+  // Owner via --milestone <id> ODER --sprint <key|id>. show=Glow, edit=$EDITOR. ----
+  async 'doc:list'(flags) {
+    const o = await docOwnerBase(flags)
+    const rows = await api('GET', `${o.base}/documents`)
+    console.log(pad('ID', 5), pad('TITLE', 50), 'UPDATED')
+    console.log('─'.repeat(78))
+    for (const d of rows) console.log(pad(d.id, 5), pad(trunc(d.title, 48), 50), d.updated_at || '')
+    console.log(`\n${rows.length} Dokument(e) — ${o.label}`)
+  },
+  async 'doc:show'(flags) {
+    const docId = Number(flags._[0])
+    if (!docId) { console.error('Usage: devd-cli doc show <docId> --milestone <id>|--sprint <key|id>'); process.exit(2) }
+    const o = await docOwnerBase(flags)
+    const d = await api('GET', `${o.base}/documents/${docId}`)
+    const glow = spawnSync('glow', ['-'], { input: d.body || '', stdio: ['pipe', 'inherit', 'inherit'] })
+    if (glow.error) process.stdout.write((d.body || '') + '\n')   // glow nicht installiert → roh
+  },
+  async 'doc:add'(flags) {
+    const o = await docOwnerBase(flags)
+    if (typeof flags.title !== 'string') { console.error('Usage: devd-cli doc add --milestone <id>|--sprint <key|id> --title "<t>" [--body <text>|--file <path>] [--file-path <p>]'); process.exit(2) }
+    let body = ''
+    if (typeof flags.body === 'string') body = flags.body
+    else if (typeof flags.file === 'string') body = readFileSync(flags.file, 'utf8')
+    const payload = { title: flags.title, body }
+    if (typeof flags['file-path'] === 'string') payload.file_path = flags['file-path']
+    const d = await api('POST', `${o.base}/documents`, payload)
+    console.log(`✓ Dokument #${d.id} angelegt — ${o.label}`)
+  },
+  async 'doc:edit'(flags) {
+    const docId = Number(flags._[0])
+    if (!docId) { console.error('Usage: devd-cli doc edit <docId> --milestone <id>|--sprint <key|id>   # öffnet $EDITOR'); process.exit(2) }
+    const o = await docOwnerBase(flags)
+    const d = await api('GET', `${o.base}/documents/${docId}`)
+    const updated = editInEditor(`doc-${docId}`, d.body || '')
+    if (updated == null) { console.log('Keine Änderung — nichts gespeichert.'); return }
+    const r = await api('PUT', `${o.base}/documents/${docId}`, { body: updated })
+    console.log(`✓ Dokument #${r.id} aktualisiert (${updated.length} Zeichen)`)
+  },
+  async 'doc:delete'(flags) {
+    const docId = Number(flags._[0])
+    if (!docId) { console.error('Usage: devd-cli doc delete <docId> --milestone <id>|--sprint <key|id>'); process.exit(2) }
+    const o = await docOwnerBase(flags)
+    await api('DELETE', `${o.base}/documents/${docId}`)
+    console.log(`✓ Dokument #${docId} gelöscht`)
+  },
+
+  // ---- User-Notes (ProjectPages T-be1, D-D Modell B) — project-gescopt (X-Project-Id) ----
+  async 'user-note:list'(flags) {
     const projectId = flags.project ? flags.project : PROJECT_ID
     const qs = flags.search ? `?search=${encodeURIComponent(String(flags.search))}` : ''
-    const rows = await api('GET', `/api/session-notes${qs}`, null, projectId)
+    const rows = await api('GET', `/api/user-notes${qs}`, null, projectId)
     console.log(pad('ID', 5), pad('TITLE', 42), 'SPRINTS/ISSUES')
     console.log('─'.repeat(80))
     for (const n of rows) console.log(pad(n.id, 5), pad(trunc(n.title, 40), 42), [...(n.sprints || []), ...(n.issues || [])].join(','))
-    console.log(`\n${rows.length} Session-Notes (project ${projectId})`)
+    console.log(`\n${rows.length} User-Notes (project ${projectId})`)
   },
-  async 'session-note:show'(flags) {
+  async 'user-note:show'(flags) {
     const id = Number(flags._[0])
-    if (!id) { console.error('Usage: devd-cli session-note show <id> [--project <id|slug>]'); process.exit(2) }
+    if (!id) { console.error('Usage: devd-cli user-note show <id> [--project <id|slug>]'); process.exit(2) }
     const projectId = flags.project ? flags.project : PROJECT_ID
-    const n = await api('GET', `/api/session-notes/${id}`, null, projectId)
+    const n = await api('GET', `/api/user-notes/${id}`, null, projectId)
     console.log(`#${n.id} ${n.title}`)
     if (n.pr_url) console.log(`  PR: ${n.pr_url}`)
     if ((n.sprints || []).length) console.log(`  Sprints: ${n.sprints.join(', ')}`)
     if ((n.issues || []).length) console.log(`  Issues:  ${n.issues.join(', ')}`)
     if (n.details) console.log(`\n${n.details}`)
   },
-  async 'session-note:create'(flags) {
+  async 'user-note:create'(flags) {
     const projectId = flags.project ? flags.project : PROJECT_ID
-    if (typeof flags.title !== 'string') { console.error('Usage: devd-cli session-note create --title "<text>" [--details <text>] [--pr <url>] [--sprints a,b] [--issues a,b] [--project <id|slug>]'); process.exit(2) }
+    if (typeof flags.title !== 'string') { console.error('Usage: devd-cli user-note create --title "<text>" [--details <text>] [--pr <url>] [--sprints a,b] [--issues a,b] [--project <id|slug>]'); process.exit(2) }
     const body = { title: flags.title }
     if (typeof flags.details === 'string') body.details = flags.details
     if (typeof flags.pr === 'string') body.pr_url = flags.pr
     if (typeof flags.sprints === 'string') body.sprints = flags.sprints.split(',').map(s => s.trim()).filter(Boolean)
     if (typeof flags.issues === 'string') body.issues = flags.issues.split(',').map(s => s.trim()).filter(Boolean)
-    const n = await api('POST', '/api/session-notes', body, projectId)
-    console.log(`✓ Session-Note #${n.id} angelegt`)
+    const n = await api('POST', '/api/user-notes', body, projectId)
+    console.log(`✓ User-Note #${n.id} angelegt`)
   },
-  async 'session-note:delete'(flags) {
+  async 'user-note:delete'(flags) {
     const id = Number(flags._[0])
-    if (!id) { console.error('Usage: devd-cli session-note delete <id> [--project <id|slug>]'); process.exit(2) }
+    if (!id) { console.error('Usage: devd-cli user-note delete <id> [--project <id|slug>]'); process.exit(2) }
     const projectId = flags.project ? flags.project : PROJECT_ID
-    await api('DELETE', `/api/session-notes/${id}`, null, projectId)
-    console.log(`✓ Session-Note #${id} gelöscht`)
+    await api('DELETE', `/api/user-notes/${id}`, null, projectId)
+    console.log(`✓ User-Note #${id} gelöscht`)
   },
 
   // ---- Component-Notes (DD-629) — projekt-pfad-gescopt (numerische project_id); spiegelt REST ----
@@ -2187,13 +2258,13 @@ related_issues:
     }
     const p = await resolveProject(idOrSlug)
     if (typeof flags.add === 'string') {
-      // Journal-Eintrag = session_note Project-Memory (kein eigener Store, D03-rev).
+      // Session-Log-Eintrag = session_log Project-Memory (kein eigener Store, D03-rev; DD2-19).
       parseOrThrow(journalAddContract, { text: flags.add }, 'sstd journal')   // DD-564: Client-Guard vor API
-      const m = await api('POST', '/api/project-memories', { category: 'session_note', summary: flags.add }, p.id)
-      console.log(`✓ Journal-Eintrag #${m.id} (session_note, project ${p.id})`)
+      const m = await api('POST', '/api/project-memories', { category: 'session_log', summary: flags.add }, p.id)
+      console.log(`✓ Session-Log-Eintrag #${m.id} (session_log, project ${p.id})`)
     } else {
-      const rows = await api('GET', '/api/project-memories?category=session_note', null, p.id)
-      console.log(`\nJournal — letzte ${Math.min(rows.length, 40)} Einträge (project ${p.id})`)
+      const rows = await api('GET', '/api/project-memories?category=session_log', null, p.id)
+      console.log(`\nSession-Log — letzte ${Math.min(rows.length, 40)} Einträge (project ${p.id})`)
       for (const r of rows.slice(0, 40)) console.log(`  ${r.created_at} — ${trunc(r.summary, 70)}`)
     }
   },
@@ -2218,12 +2289,20 @@ Sprints (Key wie DD#20 oder globale ID):
   devd-cli sprint complete <key|id> [--force]
   devd-cli sprint cancel <key|id> --notes <begründung>
   devd-cli sprint rev-results <key|id>      # PO-Review-Übersicht
+  devd-cli sprint export <key|id> [--format csv|md]   # Sprint-Issues nach stdout (DD2-6)
   devd-cli sprint set-milestone <key|id> <milestone-id|none>   # DD-552
   devd-cli sprint list --no-milestone [--status <s>]           # DD-554
   devd-cli sprint update <key|id> [--name <n>] [--goal <t>] [--notes <t>]
                                   [--start-date <d>] [--end-date <d>] [--capacity <n>] [--wip-limit <n>]   # DD-626
   devd-cli sprint reorder --ids 12,9,15                        # DD-626: neue Reihenfolge (Sprint-IDs)
   devd-cli sprint delete <key|id>                             # DD-626 (409 wenn Issues zugewiesen)
+
+Dokumente (DD2-21 — Markdown-Docs an Meilensteine/Sprints, DB-Blob):
+  devd-cli doc list   --milestone <id> | --sprint <key|id>
+  devd-cli doc show   <docId> --milestone <id> | --sprint <key|id>   # via Glow (Fallback: roh)
+  devd-cli doc add    --milestone <id> | --sprint <key|id> --title "<t>" [--body <text>|--file <pfad>] [--file-path <p>]
+  devd-cli doc edit   <docId> --milestone <id> | --sprint <key|id>   # öffnet $EDITOR auf dem Body
+  devd-cli doc delete <docId> --milestone <id> | --sprint <key|id>
 
 Milestones (numerische ID — Contract-validiert, DD-553/556):
   devd-cli milestone list [--status open|planning|active|completed|cancelled|all]
@@ -2255,7 +2334,7 @@ ToDos (Project-Home, DD-308 — kein Bezug zur Issue-Lifecycle):
   devd-cli todo delete <id> --confirm
 
 Project-Memory (MEM-10 — projektgebundenes Wissen, FTS5, project-scoped):
-  devd-cli memory add "<summary>" --category <architecture_decision|dead_end|bug_pattern|convention|external_constraint|session_note>
+  devd-cli memory add "<summary>" --category <architecture_decision|dead_end|bug_pattern|convention|external_constraint|session_log|knowledge>
                                   [--content <text>] [--tags a,b] [--importance 1-3]
                                   [--anchor <code>] [--stability stable|volatile]
                                   [--source-type <t>] [--source-ref <r>] [--project <id|slug>]
@@ -2288,7 +2367,7 @@ SSTD-Slots (MEM-17 — adressierbare SSTD-Slots, gezielte Per-Slot/Per-Line-Ops)
   devd-cli sstd set <id|slug> <slot_key> [--content <text> | --file <pfad>]   # Slot komplett neu (sonst: $EDITOR)
   devd-cli sstd edit <id|slug> <slot_key> --op patch|insert_after|insert_before|delete --line <n>
                                           [--content <text>] [--expect <line-content>]
-  devd-cli sstd journal <id|slug> [--add "<text>"]     # Journal lesen / session_note-Eintrag anhängen
+  devd-cli sstd journal <id|slug> [--add "<text>"]     # Session-Log lesen / session_log-Eintrag anhängen
        Slots: architecture | conventions | sprint_state | roadmap | cross_refs | misc
        (project sstd <id|slug> bleibt als Read-All-Alias erhalten)
 

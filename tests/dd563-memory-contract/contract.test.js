@@ -14,14 +14,16 @@ import { CATEGORIES as LIB_CATEGORIES } from '../../apps/backend/src/lib/project
 // Single-Source + Struktur-Contracts.
 
 describe('DD-563 MEMORY_CATEGORIES — Single Source mit der Lib', () => {
-  test('MEMORY_CATEGORIES == Migration-041-Reihenfolge', () => {
+  test('MEMORY_CATEGORIES == CHECK-Constraint-Reihenfolge (041 + 065)', () => {
+    // DD2-19: session_note -> session_log + knowledge ergänzt (Migration 065).
     expect(MEMORY_CATEGORIES).toEqual([
       'architecture_decision',
       'dead_end',
       'bug_pattern',
       'convention',
       'external_constraint',
-      'session_note',
+      'session_log',
+      'knowledge',
     ])
   })
   test('Lib CATEGORIES leitet aus dem Contract ab (gleiche Werte + Reihenfolge)', () => {

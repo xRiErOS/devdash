@@ -76,8 +76,8 @@ export const slotEditContract = z.object({
   expect: z.string().optional(),
 })
 
-// journal add — text Pflicht + non-empty (trim). Wird als session_note-summary gespeichert
-// (POST /api/project-memories {category:'session_note', summary:text}); die summary-Validierung
+// journal add — text Pflicht + non-empty (trim). Wird als session_log-summary gespeichert
+// (POST /api/project-memories {category:'session_log', summary:text}, DD2-19); die summary-Validierung
 // (non-empty, SUMMARY_MAX) bleibt in server/lib/projectMemories.js validateSummary.
 export const journalAddContract = z.object({
   text: z.string({ error: 'text ist Pflichtfeld' }).trim().min(1, { error: 'text ist Pflichtfeld' }),

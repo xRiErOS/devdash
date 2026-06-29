@@ -12,6 +12,7 @@ const DEFAULT_LOG_DIR = resolve(ROOT, 'data/migrations-log')
 const FK_OFF_DURING_APPLY = new Set([
   '029_v3_milestone_target_date_required.sql',
   '038_v3_milestones_status_lifecycle.sql',
+  '065_v3_dd2_19_memory_categories.sql',
 ])
 
 export function ensureLogDir(logDir = DEFAULT_LOG_DIR) {

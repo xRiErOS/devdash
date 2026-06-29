@@ -68,10 +68,10 @@ const PROJECT_ID_PARAM = z
 // MEM-10: project_memories categories (mirror of migration 041 CHECK).
 // DD-563: BEWUSST inline gelassen (NICHT aus contracts/project-memory.contracts.js
 // importiert). tests/mem10-cli-mcp/cliMcpWiring.test.js source-greppt diese Datei per
-// `expect(mcp).toContain(c)` über alle 6 Kategorie-Literale ("log tool enumerates all six
-// categories"). Single Source der Werte liegt in der REST-Lib + im Contract; das
-// MCP-Inline-Literal bleibt als Source-Shape-Anker erhalten (DD-562-Lesson: t10-Muster).
-const MEMORY_CATEGORIES = ['architecture_decision', 'dead_end', 'bug_pattern', 'convention', 'external_constraint', 'session_note']
+// `expect(mcp).toContain(c)` über alle Kategorie-Literale. Single Source der Werte liegt in
+// der REST-Lib + im Contract; das MCP-Inline-Literal bleibt als Source-Shape-Anker erhalten
+// (DD-562-Lesson: t10-Muster). DD2-19: session_note -> session_log + knowledge ergänzt.
+const MEMORY_CATEGORIES = ['architecture_decision', 'dead_end', 'bug_pattern', 'convention', 'external_constraint', 'session_log', 'knowledge']
 
 // MEM-18: SSTD-Slot-Keys (mirror of migration 043 / sstdSlots.js SLOT_KEYS).
 // DD-564: Die Single Source der Werte liegt in contracts/sstd.contracts.js + der REST-Lib.
@@ -394,7 +394,7 @@ server.tool(
 
 server.tool(
   'devd_sstd_get',
-  'Get the full reassembled SSTD of a project (6 Slots + Projektionen: Naechste Schritte <- offene ToDos, Journal <- letzte 40 session_notes). Faellt auf den Legacy-Blob projects.sstd_content zurueck, solange alle Slots leer sind. Read-only (MEM-16/18).',
+  'Get the full reassembled SSTD of a project (6 Slots + Projektionen: Naechste Schritte <- offene ToDos, Session-Log <- letzte 40 session_log-Memories). Faellt auf den Legacy-Blob projects.sstd_content zurueck, solange alle Slots leer sind. Read-only (MEM-16/18).',
   { id_or_slug: z.string().describe('Numeric project id or slug string (e.g. "devd", "2")') },
   async ({ id_or_slug }) => {
     let pid
@@ -471,15 +471,15 @@ server.tool(
 
 server.tool(
   'devd_sstd_journal_add',
-  'WRITE: Append a journal entry to a project. Alias, der ein project_memory (category=session_note, Auto-Datum) anlegt — kein eigener Journal-Store (D03-rev). Erscheint in der Journal-Projektion von devd_sstd_get (letzte 40) (MEM-16/18).',
+  'WRITE: Append a session-log entry to a project. Alias, der ein project_memory (category=session_log, Auto-Datum) anlegt — kein eigener Journal-Store (D03-rev). Erscheint in der Session-Log-Projektion von devd_sstd_get (letzte 40) (MEM-16/18, DD2-19).',
   {
     id_or_slug: z.string().describe('Numeric project id or slug string (e.g. "devd", "2")'),
-    content: z.string().describe('Journal entry text (wird als session_note summary gespeichert)'),
+    content: z.string().describe('Session-log entry text (wird als session_log summary gespeichert)'),
   },
   async ({ id_or_slug, content }) => {
     let pid
     try { pid = await resolveProjectNumericId(id_or_slug) } catch (e) { return ok({ error: true, message: e.message }) }
-    const data = await apiRequest('POST', '/api/project-memories', { category: 'session_note', summary: content }, pid)
+    const data = await apiRequest('POST', '/api/project-memories', { category: 'session_log', summary: content }, pid)
     return ok(data)
   },
 )
@@ -836,35 +836,35 @@ server.tool(
     ok(await apiRequest('PUT', `/api/sop-collections/${encodeURIComponent(key)}/items`, { sopKeys })),
 )
 
-// ProjectPages T-be1 (D-D, Modell B): session_notes — NEUE separate Rich-Entity (user-verfasste
-// Notizen, SessionNotesWidget). KEIN Ersatz des SSTD-Auto-Journals (devd_sstd_journal_add bleibt
+// ProjectPages T-be1 (D-D, Modell B): user_notes — NEUE separate Rich-Entity (user-verfasste
+// Notizen, UserNotesWidget). KEIN Ersatz des SSTD-Auto-Journals (devd_sstd_journal_add bleibt
 // project_memories). project-gescopt (X-Project-Id via project_id).
 server.tool(
-  'devd_session_note_list',
-  'List session-notes of a project (id DESC). Optional FTS search over title+details. Read-only.',
+  'devd_user_note_list',
+  'List user-notes of a project (id DESC). Optional FTS search over title+details. Read-only.',
   { project_id: PROJECT_ID_PARAM, search: z.string().optional().describe('FTS query over title+details') },
   async ({ project_id, search }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
     const qs = search ? `?search=${encodeURIComponent(search)}` : ''
-    return ok(await apiRequest('GET', `/api/session-notes${qs}`, null, pid))
+    return ok(await apiRequest('GET', `/api/user-notes${qs}`, null, pid))
   },
 )
 
 server.tool(
-  'devd_session_note_get',
-  'Get one session-note by id (project-scoped, with parsed sprints[]/issues[]). Read-only.',
+  'devd_user_note_get',
+  'Get one user-note by id (project-scoped, with parsed sprints[]/issues[]). Read-only.',
   { project_id: PROJECT_ID_PARAM, id: z.number().int().positive() },
   async ({ project_id, id }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    return ok(await apiRequest('GET', `/api/session-notes/${id}`, null, pid))
+    return ok(await apiRequest('GET', `/api/user-notes/${id}`, null, pid))
   },
 )
 
 server.tool(
-  'devd_session_note_create',
-  'WRITE: Create a session-note (rich entity for SessionNotesWidget — NOT the SSTD auto-journal). title required; details (≤500), pr_url, sprints[], issues[] optional.',
+  'devd_user_note_create',
+  'WRITE: Create a user-note (rich entity for UserNotesWidget — NOT the SSTD auto-journal). title required; details (≤500), pr_url, sprints[], issues[] optional.',
   {
     project_id: PROJECT_ID_PARAM,
     title: z.string().describe('Note title'),
@@ -876,13 +876,13 @@ server.tool(
   async ({ project_id, title, details, pr_url, sprints, issues }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    return ok(await apiRequest('POST', '/api/session-notes', { title, details, pr_url, sprints, issues }, pid))
+    return ok(await apiRequest('POST', '/api/user-notes', { title, details, pr_url, sprints, issues }, pid))
   },
 )
 
 server.tool(
-  'devd_session_note_update',
-  'WRITE: Partial update of a session-note (at least one field). PUT /api/session-notes/:id.',
+  'devd_user_note_update',
+  'WRITE: Partial update of a user-note (at least one field). PUT /api/user-notes/:id.',
   {
     project_id: PROJECT_ID_PARAM,
     id: z.number().int().positive(),
@@ -895,18 +895,18 @@ server.tool(
   async ({ project_id, id, ...patch }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    return ok(await apiRequest('PUT', `/api/session-notes/${id}`, patch, pid))
+    return ok(await apiRequest('PUT', `/api/user-notes/${id}`, patch, pid))
   },
 )
 
 server.tool(
-  'devd_session_note_delete',
-  'WRITE: Delete a session-note by id (project-scoped). DELETE /api/session-notes/:id.',
+  'devd_user_note_delete',
+  'WRITE: Delete a user-note by id (project-scoped). DELETE /api/user-notes/:id.',
   { project_id: PROJECT_ID_PARAM, id: z.number().int().positive() },
   async ({ project_id, id }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    return ok(await apiRequest('DELETE', `/api/session-notes/${id}`, null, pid))
+    return ok(await apiRequest('DELETE', `/api/user-notes/${id}`, null, pid))
   },
 )
 
@@ -995,6 +995,115 @@ server.tool(
     if (search) params.set('search', search)
     const qs = params.toString() ? `?${params.toString()}` : ''
     return okTextOrError(await apiRequest('GET', `/api/backlog-export${qs}`, null, pid))
+  },
+)
+
+// DD2-6: Sprint-Export (CSV/MD) zugänglich machen. Backlog-CSV bleibt entfernt
+// (DD2-123, schlecht für LLM-Parsing) — Sprint-Export behält CSV für Tabellen-Tools.
+server.tool(
+  'devd_sprint_export',
+  'READ: Export one sprint (its issues) as CSV or Markdown. csv columns: id,key,title,status,type,priority,tags,completed_at. md groups issues by status. GET /api/sprints/:id/export. Read-only.',
+  {
+    project_id: PROJECT_ID_PARAM,
+    sprint_key: z.string().describe('Sprint key (e.g. "DD2#22") or numeric sprint id'),
+    format: z.enum(['csv', 'md']).optional().describe('Export format (default md)'),
+  },
+  async ({ project_id, sprint_key, format }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    const id = await resolveSprintId(sprint_key, pid)
+    const qs = format ? `?format=${format}` : ''
+    return okTextOrError(await apiRequest('GET', `/api/sprints/${id}/export${qs}`, null, pid))
+  },
+)
+
+// DD2-21: Dokumenten-Subsystem (Markdown-Docs an Meilensteine/Sprints, DB-Blob).
+// Owner = milestone_id ODER sprint_key (genau einer). project_id nur für sprint_key-Resolve.
+const DOC_OWNER_PARAMS = {
+  project_id: PROJECT_ID_PARAM,
+  milestone_id: z.number().int().positive().optional().describe('Owner: Meilenstein-id (ODER sprint_key)'),
+  sprint_key: z.string().optional().describe('Owner: Sprint-Key/-id (ODER milestone_id)'),
+}
+async function docOwnerBase(milestone_id, sprint_key, pid) {
+  if (milestone_id != null) return `/api/milestones/${milestone_id}`
+  if (sprint_key != null) return `/api/sprints/${await resolveSprintId(sprint_key, pid)}`
+  return null
+}
+const DOC_OWNER_ERR = { error: true, message: 'Owner erforderlich: milestone_id ODER sprint_key' }
+
+server.tool(
+  'devd_document_list',
+  'READ: List markdown documents attached to a milestone or sprint (id DESC). Owner = milestone_id OR sprint_key. Read-only.',
+  DOC_OWNER_PARAMS,
+  async ({ project_id, milestone_id, sprint_key }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    const base = await docOwnerBase(milestone_id, sprint_key, pid)
+    if (!base) return ok(DOC_OWNER_ERR)
+    return ok(await apiRequest('GET', `${base}/documents`, null, pid))
+  },
+)
+
+server.tool(
+  'devd_document_get',
+  'READ: Get one document (with markdown body) by id, scoped to its milestone/sprint owner. Read-only.',
+  { ...DOC_OWNER_PARAMS, doc_id: z.number().int().positive() },
+  async ({ project_id, milestone_id, sprint_key, doc_id }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    const base = await docOwnerBase(milestone_id, sprint_key, pid)
+    if (!base) return ok(DOC_OWNER_ERR)
+    return ok(await apiRequest('GET', `${base}/documents/${doc_id}`, null, pid))
+  },
+)
+
+server.tool(
+  'devd_document_create',
+  'WRITE: Attach a markdown document to a milestone or sprint. title required; body (markdown, DB-blob) + file_path optional.',
+  {
+    ...DOC_OWNER_PARAMS,
+    title: z.string().describe('Document title'),
+    body: z.string().optional().describe('Markdown body (stored as DB-blob)'),
+    file_path: z.string().nullable().optional().describe('Optional repo-relative origin hint'),
+  },
+  async ({ project_id, milestone_id, sprint_key, title, body, file_path }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    const base = await docOwnerBase(milestone_id, sprint_key, pid)
+    if (!base) return ok(DOC_OWNER_ERR)
+    return ok(await apiRequest('POST', `${base}/documents`, { title, body, file_path }, pid))
+  },
+)
+
+server.tool(
+  'devd_document_update',
+  'WRITE: Partial update of a document (at least one of title/body/file_path). PUT /api/{milestones|sprints}/:id/documents/:docId.',
+  {
+    ...DOC_OWNER_PARAMS,
+    doc_id: z.number().int().positive(),
+    title: z.string().optional(),
+    body: z.string().optional(),
+    file_path: z.string().nullable().optional(),
+  },
+  async ({ project_id, milestone_id, sprint_key, doc_id, ...patch }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    const base = await docOwnerBase(milestone_id, sprint_key, pid)
+    if (!base) return ok(DOC_OWNER_ERR)
+    return ok(await apiRequest('PUT', `${base}/documents/${doc_id}`, patch, pid))
+  },
+)
+
+server.tool(
+  'devd_document_delete',
+  'WRITE: Delete a document by id (scoped to its milestone/sprint owner).',
+  { ...DOC_OWNER_PARAMS, doc_id: z.number().int().positive() },
+  async ({ project_id, milestone_id, sprint_key, doc_id }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    const base = await docOwnerBase(milestone_id, sprint_key, pid)
+    if (!base) return ok(DOC_OWNER_ERR)
+    return ok(await apiRequest('DELETE', `${base}/documents/${doc_id}`, null, pid))
   },
 )
 
@@ -2139,7 +2248,7 @@ server.tool(
 
 server.tool(
   'devd_project_memory_log',
-  'WRITE: Log a project-bound memory (architecture_decision | dead_end | bug_pattern | convention | external_constraint | session_note) into project_memories. Append-only; corrections via the supersede endpoint. Decoupled from the global ~/.claude memory.',
+  'WRITE: Log a project-bound memory (architecture_decision | dead_end | bug_pattern | convention | external_constraint | session_log | knowledge) into project_memories. Append-only; corrections via the supersede endpoint. Decoupled from the global ~/.claude memory.',
   {
     project_id: PROJECT_ID_PARAM,
     category: z.enum(MEMORY_CATEGORIES).describe('Memory category'),

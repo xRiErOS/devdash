@@ -110,7 +110,7 @@ describe('MEM-9 — project_memories Schema + FTS5 + CRUD', () => {
   })
 
   test('deleteMemory (soft) entfernt aus list + search', () => {
-    const m = createMemory(db, PROJECT_ID, { category: 'session_note', summary: 'flüchtige Notiz reconnect', content: 'x' })
+    const m = createMemory(db, PROJECT_ID, { category: 'convention', summary: 'flüchtige Notiz reconnect', content: 'x' })
     deleteMemory(db, PROJECT_ID, m.id)
     expect(listMemories(db, PROJECT_ID)).toHaveLength(0)
     expect(searchMemories(db, PROJECT_ID, 'reconnect')).toHaveLength(0)
