@@ -33,8 +33,8 @@ McpServer.prototype.connect = async () => {} // top-level await server.connect()
 
 await import(join(REPO, 'apps/cli/mcp/devd-mcp.js'))
 
-if (tools.length !== 120) {
-  console.error(`FAIL: ${tools.length} Tools erfasst, erwartet 120 (Drift?). Abbruch.`)
+if (tools.length !== 127) {
+  console.error(`FAIL: ${tools.length} Tools erfasst, erwartet 127 (Drift?). Abbruch.`)
   process.exit(1)
 }
 
@@ -288,7 +288,7 @@ indexLines.push(`| **Summe** | **${tools.length}** | | |`)
 indexLines.push('')
 indexLines.push('## Abdeckung je Aktivität (PO-Workflow)')
 indexLines.push('')
-indexLines.push('Multi-Value — ein Tool kann mehrere Phasen bedienen, Summe > 120 möglich.')
+indexLines.push('Multi-Value — ein Tool kann mehrere Phasen bedienen, Summe > 127 möglich.')
 indexLines.push('')
 indexLines.push('| Aktivität | Tools |')
 indexLines.push('| --------- | ----- |')

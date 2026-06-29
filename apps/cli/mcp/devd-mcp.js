@@ -605,6 +605,49 @@ server.tool(
 )
 
 server.tool(
+  'devd_backlog_list',
+  'DD2-110: List the REAL backlog of a project — open, unplanned work only. Backlog = status "new" OR (status "planned" AND no sprint assigned), mirroring the TUI backlog view (messages.go). Unlike devd_issue_list (which returns ALL issues when unfiltered), this captures the backlog semantics in one call (two backend queries, merged + deduped). refined is excluded (roadmap/milestone-managed). Each item has `key`. Read-only.',
+  {
+    project_id: PROJECT_ID_PARAM,
+    type: z.enum(ISSUE_TYPES).optional().describe('Filter by issue type'),
+    search: z.string().optional().describe('Full-text search across title, context_notes, goal, background'),
+    fields: z.enum(['compact', 'full']).optional().describe('compact (default — token-safe) or full'),
+    limit: z.number().int().min(1).optional().describe('Max rows returned (applied after merge)'),
+  },
+  async ({ project_id, type, search, fields, limit }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    // Backlog-Semantik (TUI-autoritativ): status=new ∪ (status=planned ∧ sprint=null).
+    // Backend /api/backlog komponiert status+sprint_id mit AND → zwei Calls + Merge.
+    const base = new URLSearchParams()
+    if (type) base.set('type', type)
+    if (search) base.set('search', search)
+    if (fields) base.set('fields', fields)
+    const qNew = new URLSearchParams(base)
+    qNew.set('status', 'new')
+    const qPlanned = new URLSearchParams(base)
+    qPlanned.set('status', 'planned')
+    qPlanned.set('sprint_id', 'null')
+    const [newItems, plannedItems] = await Promise.all([
+      apiRequest('GET', `/api/backlog?${qNew.toString()}`, null, pid),
+      apiRequest('GET', `/api/backlog?${qPlanned.toString()}`, null, pid),
+    ])
+    if (newItems && newItems.error) return ok(newItems)
+    if (plannedItems && plannedItems.error) return ok(plannedItems)
+    // Merge + Dedup nach key (Status-disjunkt → Dedup nur Sicherheitsnetz). new zuerst.
+    const seen = new Set()
+    const merged = []
+    for (const it of [...(newItems || []), ...(plannedItems || [])]) {
+      const k = it.key ?? it.id
+      if (seen.has(k)) continue
+      seen.add(k)
+      merged.push(it)
+    }
+    return ok(limit !== undefined ? merged.slice(0, limit) : merged)
+  },
+)
+
+server.tool(
   'devd_issue_lost',
   'DD-555: Find lost issues — non-terminal issues (status ∉ done/passed/cancelled) still assigned to a COMPLETED sprint. Data-hygiene query, project-scoped. Each hit has issue key, sprint key and status. Read-only.',
   {
