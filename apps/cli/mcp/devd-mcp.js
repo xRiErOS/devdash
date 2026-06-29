@@ -910,62 +910,6 @@ server.tool(
   },
 )
 
-// DD-629: component-notes CLI+MCP. Die REST-Route ist PATH-gescopt auf eine NUMERISCHE
-// project_id (Slug wird dort nicht resolved) → erst auf die numerische id auflösen
-// (GET /api/projects/:id resolved Slug via DD-390), dann den Pfad bauen.
-async function resolveNumericProjectId(project_id) {
-  const ref = resolveProjectId(project_id)
-  if (typeof ref === 'object' && ref.error) return ref
-  const proj = await apiRequest('GET', `/api/projects/${encodeURIComponent(String(ref))}`)
-  if (proj && proj.error) return proj
-  return proj.id
-}
-
-server.tool(
-  'devd_component_note_list',
-  'List component-notes (slug + updated_at) of a project. GET /api/projects/:pid/component-notes. Read-only.',
-  { project_id: PROJECT_ID_PARAM },
-  async ({ project_id }) => {
-    const npid = await resolveNumericProjectId(project_id)
-    if (npid && npid.error) return ok(npid)
-    return ok(await apiRequest('GET', `/api/projects/${npid}/component-notes`))
-  },
-)
-
-server.tool(
-  'devd_component_note_get',
-  'Get one component-note by slug. GET /api/projects/:pid/component-notes/:slug. Read-only.',
-  { project_id: PROJECT_ID_PARAM, slug: z.string().describe('Component-note slug') },
-  async ({ project_id, slug }) => {
-    const npid = await resolveNumericProjectId(project_id)
-    if (npid && npid.error) return ok(npid)
-    return ok(await apiRequest('GET', `/api/projects/${npid}/component-notes/${encodeURIComponent(slug)}`))
-  },
-)
-
-server.tool(
-  'devd_component_note_set',
-  'WRITE: Upsert a component-note (create or overwrite by slug). PUT /api/projects/:pid/component-notes/:slug {content}.',
-  { project_id: PROJECT_ID_PARAM, slug: z.string().describe('Component-note slug'), content: z.string().describe('Note content (markdown)') },
-  async ({ project_id, slug, content }) => {
-    const npid = await resolveNumericProjectId(project_id)
-    if (npid && npid.error) return ok(npid)
-    return ok(await apiRequest('PUT', `/api/projects/${npid}/component-notes/${encodeURIComponent(slug)}`, { content }))
-  },
-)
-
-server.tool(
-  'devd_component_note_delete',
-  'WRITE: Delete a component-note by slug. DELETE /api/projects/:pid/component-notes/:slug.',
-  { project_id: PROJECT_ID_PARAM, slug: z.string().describe('Component-note slug') },
-  async ({ project_id, slug }) => {
-    const npid = await resolveNumericProjectId(project_id)
-    if (npid && npid.error) return ok(npid)
-    const data = await apiRequest('DELETE', `/api/projects/${npid}/component-notes/${encodeURIComponent(slug)}`, null)
-    if (data && data.error) return ok(data)
-    return ok({ deleted: true, slug })
-  },
-)
 
 // DD-628: Lean Read-Context-Tools — AI-Kontext in einem Call. Read-only. Der generische
 // Response-Cap (DD-623) schützt diese potenziell großen Outputs automatisch.

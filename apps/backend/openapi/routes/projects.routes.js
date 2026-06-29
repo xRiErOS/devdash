@@ -278,44 +278,6 @@ register({
 
 register({
   method: 'GET',
-  path: '/api/projects/:project_id/component-notes',
-  tag: 'projects',
-  summary: 'Component-Notes eines Projekts auflisten',
-  params: z.object({ project_id: z.string() }),
-  res: z.array(z.record(z.string(), z.unknown())),
-});
-
-register({
-  method: 'GET',
-  path: '/api/projects/:project_id/component-notes/:slug',
-  tag: 'projects',
-  summary: 'Einzelne Component-Note per Slug lesen',
-  params: z.object({ project_id: z.string(), slug: z.string() }),
-  res: z.record(z.string(), z.unknown()),
-});
-
-register({
-  method: 'PUT',
-  path: '/api/projects/:project_id/component-notes/:slug',
-  tag: 'projects',
-  summary: 'Component-Note upserten',
-  params: z.object({ project_id: z.string(), slug: z.string() }),
-  body: z.object({ content: z.string() }),
-  res: z.record(z.string(), z.unknown()),
-});
-
-register({
-  method: 'DELETE',
-  path: '/api/projects/:project_id/component-notes/:slug',
-  tag: 'projects',
-  summary: 'Component-Note löschen',
-  params: z.object({ project_id: z.string(), slug: z.string() }),
-  res: z.null(),
-  status: 204,
-});
-
-register({
-  method: 'GET',
   path: '/api/projects/:project_id/sstd-sources',
   tag: 'projects',
   summary: 'SSTD-Quellen eines Projekts',
