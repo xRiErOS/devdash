@@ -97,6 +97,19 @@ func renderPane(p pane, w, h int, focused bool) string {
 		Render(strings.Join(lines, "\n"))
 }
 
+// tagsInline rendert Tag-Swatches space-getrennt (leerer String bei keinen Tags).
+// DD2-143: Single Source für Milestone-Tag-Anzeige in msRows + TreeView.
+func tagsInline(tags []api.Tag) string {
+	if len(tags) == 0 {
+		return ""
+	}
+	chips := make([]string, len(tags))
+	for i, t := range tags {
+		chips[i] = tagSwatch(t)
+	}
+	return strings.Join(chips, " ")
+}
+
 func (m model) msRows() []string {
 	ms := m.visMilestonesRaw()
 	rows := make([]string, len(ms))
@@ -105,8 +118,13 @@ func (m model) msRows() []string {
 		if x.Deferred == 1 {
 			def = theme.Dim.Render(" ⏸")
 		}
-		rows[i] = fmt.Sprintf("%s %s  %s%s", statusDot(x.Status), x.Name,
-			theme.Dim.Render(fmt.Sprintf("%d/%d", x.Done, x.Total)), def)
+		// DD2-143: Tags hinter dem Fortschritt anzeigen (vom List-Endpoint embedded).
+		tags := ""
+		if t := tagsInline(x.Tags); t != "" {
+			tags = "  " + t
+		}
+		rows[i] = fmt.Sprintf("%s %s  %s%s%s", statusDot(x.Status), x.Name,
+			theme.Dim.Render(fmt.Sprintf("%d/%d", x.Done, x.Total)), def, tags)
 	}
 	if len(rows) == 0 {
 		return []string{theme.Dim.Render("(none — f for filter)")}

@@ -311,6 +311,9 @@ func (m model) treeLeftLines(nodes []treeNode, w int, active bool) []string {
 		case tkMile:
 			ms := m.milestones[n.mileIdx]
 			label = statusDot(ms.Status) + " " + mileDisplayName(ms.Name)
+			if t := tagsInline(ms.Tags); t != "" { // DD2-143: Tags am Meilenstein-Knoten
+				label += "  " + t
+			}
 		case tkSprint:
 			sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
 			if sp.Status == "cancelled" { // DD2-133 Rework: ID/Key bleibt weiß (wie completed), NUR der Status-Text grau
@@ -416,6 +419,7 @@ func (m model) treeDetail(n treeNode, w int) string {
 		b.WriteString(detailTitle("", mileDisplayName(ms.Name), w) + "\n")
 		b.WriteString(metaStrip([]metaPair{
 			{fmt.Sprintf("%d/%d", ms.Done, ms.Total), "Progress"},
+			{tagsInline(ms.Tags), "tags"}, // DD2-143
 		}, statusText(ms.Status), w) + "\n\n")
 		// DD2-78: editierbare Felder als flache, fokussierbare Liste (kein Accordion,
 		// D09). Bei Detail-Fokus auf diesem Knoten trägt das aktive Feld den D08-Balken.
@@ -633,7 +637,7 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			switch n.kind {
 			case tkMile:
 				ms := m.milestones[n.mileIdx]
-				return m.openTagPicker("milestone", ms.ID, ms.Name, nil)
+				return m.openTagPicker("milestone", ms.ID, ms.Name, ms.Tags) // DD2-143: embedded Tags vorhaken
 			case tkSprint:
 				sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
 				return m.openTagPicker("sprint", sp.ID, sp.Name, nil)
