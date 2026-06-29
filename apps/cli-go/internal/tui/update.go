@@ -238,6 +238,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, statusTimeout(m.statusSeq)
 		}
 		return m, nil
+	case docsMsg: // DD2-167: Dokument-Liste geladen/neu gespeichert
+		m.docList = msg.items
+		m.doclist.setLen(len(m.filteredDocs()))
+		if msg.notice != "" {
+			m.status = noticeText(msg.notice)
+			m.statusSticky = false
+			m.statusSeq++
+			return m, statusTimeout(m.statusSeq)
+		}
+		return m, nil
 	case editorFinishedMsg: // DD2-164/166ff: neovim-Suspend zurück → view-aware speichern
 		if msg.err != nil {
 			m.status = noticeText("editor: " + msg.err.Error())
@@ -262,6 +272,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case viewToDos:
 			label := firstLineTitle(msg.content)
 			return m, saveTodoCmd(m.client, m.todoEditID, label, msg.content, m.todoStatus)
+		case viewDocs:
+			title := firstLineTitle(msg.content)
+			return m, saveDocCmd(m.client, m.docOwnerType, m.docOwnerID, m.docEditID, title, msg.content)
 		}
 		return m, nil
 	case unassignedSprintsMsg:

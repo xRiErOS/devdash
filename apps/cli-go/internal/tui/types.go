@@ -26,6 +26,7 @@ const (
 	viewSSTD          // DD2-166: SSTD-Slots MasterDetail (6 Slots + 2 Projektionen)
 	viewUserNotes     // DD2-168: User-Notes MasterDetail (FTS-Suche, neovim-Edit)
 	viewToDos         // DD2-171: Projekt-ToDos MasterDetail (Suche/Sort/Filter)
+	viewDocs          // DD2-167: Dokumente-Browser (owner-gebunden, neovim-Edit)
 )
 
 // filterState hält pro Spalte, welche Werte ausgeblendet sind.
@@ -225,6 +226,17 @@ type model struct {
 	todoQuery     string
 	todoSort      string // "pos" (default) | "label"
 	todoEditID    int
+
+	// Dokumente-Browser (DD2-167): owner-gebunden (Meilenstein ODER Sprint, Owner
+	// kommt aus dem Tree-Kontext). docEditID = 0 → Create-Modus.
+	docList      []api.Document
+	doclist      listState
+	docOwnerType string // "milestone" | "sprint"
+	docOwnerID   int
+	docOwnerName string
+	docSearching bool
+	docQuery     string
+	docEditID    int
 
 	// Command-Center (T16): globales Action-Palette-Modal (ctrl+k / shift+k).
 	paletteOpen bool

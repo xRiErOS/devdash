@@ -762,6 +762,63 @@ func doDeleteTodo(c *api.Client, id int, name, status string) tea.Cmd {
 	}
 }
 
+// docsMsg trägt die geladene Dokument-Liste eines Owners (DD2-167). notice != "" → Toast.
+type docsMsg struct {
+	items  []api.Document
+	notice string
+}
+
+// loadDocs lädt die Dokumente eines Owners (Meilenstein|Sprint) (DD2-167).
+func loadDocs(c *api.Client, ownerType string, ownerID int) tea.Cmd {
+	return func() tea.Msg {
+		docs, err := c.ListDocuments(ownerType, ownerID)
+		if err != nil {
+			return errMsg{err}
+		}
+		return docsMsg{items: docs}
+	}
+}
+
+// saveDocCmd legt ein Dokument an (editID==0, title aus erster Buffer-Zeile) oder
+// aktualisiert den body einer bestehenden (editID>0), dann Reload (DD2-167).
+func saveDocCmd(c *api.Client, ownerType string, ownerID, editID int, title, body string) tea.Cmd {
+	return func() tea.Msg {
+		var notice string
+		if editID > 0 {
+			b := body
+			if _, err := c.UpdateDocument(ownerType, ownerID, editID, api.DocumentBody{Body: &b}); err != nil {
+				return noticeMsg{cleanAPIErr(err)}
+			}
+			notice = "Document updated"
+		} else {
+			b := body
+			if _, err := c.CreateDocument(ownerType, ownerID, api.DocumentBody{Title: title, Body: &b}); err != nil {
+				return noticeMsg{cleanAPIErr(err)}
+			}
+			notice = "Document created"
+		}
+		docs, err := c.ListDocuments(ownerType, ownerID)
+		if err != nil {
+			return errMsg{err}
+		}
+		return docsMsg{items: docs, notice: notice}
+	}
+}
+
+// doDeleteDocument löscht ein Dokument und lädt die Owner-Liste neu (DD2-167).
+func doDeleteDocument(c *api.Client, ownerType string, ownerID, id int, name string) tea.Cmd {
+	return func() tea.Msg {
+		if err := c.DeleteDocument(ownerType, ownerID, id); err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		docs, err := c.ListDocuments(ownerType, ownerID)
+		if err != nil {
+			return errMsg{err}
+		}
+		return docsMsg{items: docs, notice: "Deleted " + name}
+	}
+}
+
 // depsMsg trägt die geladenen Abhängigkeiten (DD2-89). key = "m:<id>"/"s:<id>"
 // (cache-Schlüssel), damit Milestone- und Sprint-Deps denselben Cache teilen.
 type depsMsg struct {
