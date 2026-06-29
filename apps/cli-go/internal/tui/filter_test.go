@@ -53,7 +53,8 @@ func TestFilterToggleShowsCompleted(t *testing.T) {
 	}
 }
 
-func TestIssueDefaultHidesCancelled(t *testing.T) {
+// DD2-154: der Issue-Default blendet abgeschlossene Issues (cancelled UND done) aus.
+func TestIssueDefaultHidesClosed(t *testing.T) {
 	m := filterModel()
 	m.curSprint = &api.Sprint{ID: 10, Items: []api.Issue{
 		{ID: 1, Status: "to_review"},
@@ -66,12 +67,12 @@ func TestIssueDefaultHidesCancelled(t *testing.T) {
 	m.slist.setLen(1)
 	vis := m.visIssues()
 	for _, it := range vis {
-		if it.Status == "cancelled" {
-			t.Error("cancelled-Issue sollte default ausgeblendet sein")
+		if it.Status == "cancelled" || it.Status == "done" {
+			t.Errorf("abgeschlossenes Issue (%s) sollte default ausgeblendet sein", it.Status)
 		}
 	}
-	if len(vis) != 2 {
-		t.Errorf("sichtbar=%d, want 2 (to_review+done)", len(vis))
+	if len(vis) != 1 {
+		t.Errorf("sichtbar=%d, want 1 (nur to_review)", len(vis))
 	}
 }
 

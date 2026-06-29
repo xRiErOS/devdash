@@ -153,20 +153,10 @@ func (m model) backlogLayout() (head, localKeys string, lw, rw, innerH int) {
 	if avail < 4 {
 		avail = m.bodyHeight() // Höhe unbekannt (Init/Tests) → großzügiger Fallback
 	}
-	lw = m.cfg.Layout.TreeWidth // DD2-40: konfigurierbar (layout.tree_width)
-	if lw <= 0 {
-		lw = 36
-	}
-	if cap := w * 2 / 5; lw > cap {
-		lw = cap
-	}
-	if lw < 24 {
-		lw = 24
-	}
-	rw = w - lw - 4 // je Pane 2 Border-Spalten
-	if rw < 20 {
-		rw = 20
-	}
+	// DD2-150: Issue-Pane 1fr, Detail-Pane 2fr (dynamisch an Terminalbreite) — geteilte
+	// Single-Source mit Memory-Browser/Such-Ansicht. layout.tree_width gilt nur noch als
+	// Mindestbreite, nicht als Fixbreite (löst die alte gepinnte 36er-Spalte).
+	lw, rw = m.masterDetailWidths(w)
 	innerH = avail - 2 // Border oben/unten — NICHT via Height() (Golden Rule #1)
 	if innerH < 3 {
 		innerH = 3

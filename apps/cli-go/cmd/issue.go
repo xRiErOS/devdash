@@ -9,11 +9,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var issueCmd = &cobra.Command{Use: "issue", Short: "Issue-Kommandos"}
+var issueCmd = &cobra.Command{Use: "issue", Short: "Issue commands"}
 
 var issueListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "Issues auflisten",
+	Short: "List issues",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c, err := resolveClient()
 		if err != nil {
@@ -42,7 +42,7 @@ var issueListCmd = &cobra.Command{
 					it.Type, fmt.Sprintf("P%d", it.Priority),
 				}
 			}
-			output.SimpleTable([]string{"Key", "Titel", "Status", "Typ", "Prio"}, rows)
+			output.SimpleTable([]string{"Key", "Title", "Status", "Type", "Prio"}, rows)
 		})
 		return nil
 	},
@@ -50,7 +50,7 @@ var issueListCmd = &cobra.Command{
 
 var issueShowCmd = &cobra.Command{
 	Use:   "show <key|id>",
-	Short: "Issue-Details anzeigen",
+	Short: "Show issue details",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c, err := resolveClient()
@@ -68,12 +68,12 @@ var issueShowCmd = &cobra.Command{
 		output.Print(cmd, it, func() {
 			fmt.Printf("\n  %s  %s\n", output.ColorStatus(it.Status), output.Key(it.Key))
 			fmt.Printf("  %s\n", it.Title)
-			fmt.Printf("  Typ: %s  Prio: P%d\n", it.Type, it.Priority)
+			fmt.Printf("  Type: %s  Prio: P%d\n", it.Type, it.Priority)
 			if it.Goal != nil && *it.Goal != "" {
 				fmt.Printf("\n  Goal:\n  %s\n", *it.Goal)
 			}
 			if it.Description != nil && *it.Description != "" {
-				fmt.Printf("\n  Beschreibung:\n  %s\n", *it.Description)
+				fmt.Printf("\n  Description:\n  %s\n", *it.Description)
 			}
 			fmt.Println()
 		})
@@ -83,7 +83,7 @@ var issueShowCmd = &cobra.Command{
 
 var issueStatusCmd = &cobra.Command{
 	Use:   "status <key|id> <new-status>",
-	Short: "Issue-Status setzen",
+	Short: "Set issue status",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c, err := resolveClient()
@@ -107,7 +107,7 @@ var issueStatusCmd = &cobra.Command{
 
 var issueAssignCmd = &cobra.Command{
 	Use:   "assign <key|id> <sprint-key|id|->",
-	Short: "Issue in Sprint promoten/verschieben ('-' = unassign)",
+	Short: "Promote/move issue into a sprint ('-' = unassign)",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c, err := resolveClient()
@@ -143,7 +143,7 @@ var issueAssignCmd = &cobra.Command{
 
 var issueCreateCmd = &cobra.Command{
 	Use:   "create",
-	Short: "Neues Issue erstellen (--title non-interaktiv, sonst Formular)",
+	Short: "Create a new issue (--title non-interactive, otherwise a form)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var body api.IssueCreateBody
 		var stories []string // DD2-66: optionale User-Stories aus dem interaktiven Formular
@@ -172,24 +172,24 @@ var issueCreateCmd = &cobra.Command{
 		}
 		for _, s := range stories { // DD2-66: User-Stories nach dem Create anhängen
 			if _, err := c.AddUserStory(it.ID, s, ""); err != nil {
-				return fmt.Errorf("Issue %s angelegt, User-Story fehlgeschlagen: %w", it.Key, err)
+				return fmt.Errorf("issue %s created, user story failed: %w", it.Key, err)
 			}
 		}
 		output.Print(cmd, it, func() {
-			fmt.Printf("  Erstellt: %s — %s\n", output.Key(it.Key), it.Title)
+			fmt.Printf("  Created: %s — %s\n", output.Key(it.Key), it.Title)
 		})
 		return nil
 	},
 }
 
 func init() {
-	issueListCmd.Flags().String("sprint", "", "Filter nach Sprint-Key (z.B. DD2#20)")
-	issueListCmd.Flags().String("status", "", "Filter nach Status")
-	issueListCmd.Flags().String("search", "", "Volltextsuche")
-	issueListCmd.Flags().String("type", "", "Filter nach Typ (bug|feature|improvement|core)")
-	issueCreateCmd.Flags().String("title", "", "Titel")
-	issueCreateCmd.Flags().String("type", "feature", "Typ")
-	issueCreateCmd.Flags().Int("priority", 2, "Priorität 1-4")
+	issueListCmd.Flags().String("sprint", "", "Filter by sprint key (e.g. DD2#20)")
+	issueListCmd.Flags().String("status", "", "Filter by status")
+	issueListCmd.Flags().String("search", "", "Full-text search")
+	issueListCmd.Flags().String("type", "", "Filter by type (bug|feature|improvement|core)")
+	issueCreateCmd.Flags().String("title", "", "Title")
+	issueCreateCmd.Flags().String("type", "feature", "Type")
+	issueCreateCmd.Flags().Int("priority", 2, "Priority 1-4")
 	issueCreateCmd.Flags().String("po-notes", "", "PO-Notes (optional)")
 	issueCmd.AddCommand(issueListCmd, issueShowCmd, issueStatusCmd, issueAssignCmd, issueCreateCmd)
 	rootCmd.AddCommand(issueCmd)
