@@ -115,14 +115,23 @@ func TestChromeNeverOverflowsWidth(t *testing.T) {
 	}
 }
 
-// DD2-29: Columns-Footer benennt die Status-Taste depth-abhängig.
+// DD2-175: Footer wird aus der Keymap generiert. s (Status) ist global (DD2-173,
+// "Status (all)" auf allen Ebenen); die Ebenen-Differenz liegt jetzt bei Delete —
+// nur depth 0/1 (Meilenstein/Sprint), nicht depth 2 (Issue).
 func TestColumnsFooterDepthAware(t *testing.T) {
 	m := reproColumnsModel(viewColumns, 2)
-	if !strings.Contains(m.footer(), "s:issue-status") {
-		t.Errorf("depth 2 Footer nennt nicht s:Issue-Status: %q", m.footer())
+	statusDesc := keys.Status.Help().Desc // Single-Source statt hardcoded String
+	if !strings.Contains(m.footer(), "s:"+statusDesc) {
+		t.Errorf("depth 2 Footer nennt nicht s:%s: %q", statusDesc, m.footer())
+	}
+	if strings.Contains(m.footer(), "d:") {
+		t.Errorf("depth 2 (Issue) Footer darf kein Delete nennen: %q", m.footer())
 	}
 	m.depth = 1
-	if !strings.Contains(m.footer(), "s:sprint-status") {
-		t.Errorf("depth 1 Footer nennt nicht s:Sprint-Status: %q", m.footer())
+	if !strings.Contains(m.footer(), "s:"+statusDesc) {
+		t.Errorf("depth 1 Footer nennt nicht s:%s: %q", statusDesc, m.footer())
+	}
+	if !strings.Contains(m.footer(), "d:") {
+		t.Errorf("depth 1 (Sprint) Footer nennt kein Delete: %q", m.footer())
 	}
 }
