@@ -524,8 +524,8 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 	nodes := m.treeNodes()
 	switch msg.String() {
-	case "q": // DD2-124: q → Lobby (immer Home)
-		return m.goHome()
+	case "q": // DD2-149: q verlässt den View → vorhergehender View (Tree → Lobby)
+		return m.prevView()
 	case "ctrl+c":
 		return m.requestQuit() // DD2-49
 	case "/": // DD2-62: Suchfeld öffnen, mit aktuellem Filter vorbelegen
@@ -575,7 +575,7 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.treeCursor = 0
 			return m, nil
 		}
-		return m.goHome() // DD2-124: Esc aus dem Primat-View → Lobby (Esc-Spine)
+		return m.exitProject() // DD2-149: esc ohne transienten State → Projekt schließen → Lobby
 	case "p": // Projekt-Switch-Overlay (DD2-124) — keyTree fängt vor dem globalen Switch
 		if m.global != nil {
 			return m.openProjPick()

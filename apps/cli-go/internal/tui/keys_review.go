@@ -93,16 +93,10 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	it := m.reviewItem()
 	switch msg.String() {
-	case "q", "esc":
-		m.status = ""
-		// B01: Columns nach Review immer neu laden — Verdikte/Status-Mutationen
-		// im Cockpit ändern m.curSprint, aber m.milestones (Columns) blieb stale.
-		if m.reviewReturn == viewReviewsList {
-			m.view = viewReviewsList
-			return m, tea.Batch(loadReviewSprints(m.client), loadMilestones(m.client))
-		}
-		m.view = viewTree // DD2-111: Cockpit-q/esc → Tree-Primat (Ranger gesunset)
-		return m, loadMilestones(m.client)
+	case "esc": // DD2-149: esc schließt das Projekt → Lobby
+		return m.exitProject()
+	case "q": // DD2-149: q verlässt das Cockpit → vorhergehender View (reviewReturn)
+		return m.prevView()
 	case "enter": // Issue-Abnahme-Modal: goal/background/User-Stories abhaken
 		if it == nil {
 			return m, nil

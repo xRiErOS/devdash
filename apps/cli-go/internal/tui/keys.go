@@ -119,8 +119,8 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	k := msg.String()
 	// Globale Tasten
 	switch k {
-	case "q": // DD2-124: q verlässt jede Projekt-View zur Lobby (immer Home)
-		return m.goHome()
+	case "q": // DD2-149: q verlässt den aktuellen View → vorhergehender View (prevView)
+		return m.prevView()
 	case "ctrl+c": // harter Beenden-Pfad → Confirm (DD2-49)
 		return m.requestQuit()
 	case "p":
@@ -142,7 +142,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		switch k {
 		case "esc":
-			m.view = viewTree // DD2-111: Ranger gesunset → Tree-Primat
+			return m.exitProject() // DD2-149: esc schließt das Projekt → Lobby
 		case "s": // DD2-29: Issue-Status auch im Detail mutieren
 			if it := m.selIssue(); it != nil {
 				sid := 0
@@ -163,7 +163,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		switch k {
 		case "esc":
-			m.view = viewTree // DD2-111: Ranger gesunset → Tree-Primat
+			return m.exitProject() // DD2-149: esc schließt das Projekt → Lobby
 		case "S":
 			return m.openMilestoneStatus()
 		case "a": // T03 Flow B: Sprints diesem Meilenstein zuweisen (Checkliste)
@@ -184,7 +184,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		switch k {
 		case "esc":
-			m.view = viewTree // DD2-111: Ranger gesunset → Tree-Primat
+			return m.exitProject() // DD2-149: esc schließt das Projekt → Lobby
 		case "y":
 			return m.yankContext()
 		case "m": // T03 Flow A: diesen Sprint einem Meilenstein zuweisen
@@ -207,6 +207,50 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.keyBacklog(msg)
 	}
 	return m, nil
+}
+
+// --- DD2-149: zentrale Navigations-Policy (esc / q) ---
+//
+// Die Tastenbindungen leben in keymap.go (Back=esc, Quit=q). Die *Bedeutung* ist
+// hier an einer Stelle verankert; alle View-Handler routen über exitProject (esc)
+// bzw. prevView (q), damit es nur eine Wahrheit gibt (löst die DD2-149-Verwirrung
+// „welche Taste macht was"):
+//
+//   - esc  → Projekt schließen → HomeView (Lobby), aus JEDEM View.
+//            View-Handler dürfen davor transienten State (aktive Suche/Filter)
+//            abräumen; ohne transienten State terminiert esc immer in exitProject.
+//   - q    → einen View zurück: Backlog/ReviewsList → topReturn (Tree/Columns);
+//            Review → reviewReturn; Detail/Milestone/Sprint → Tree; Tree/Columns → Home.
+//   - ctrl+c bleibt der harte Beenden-Pfad (requestQuit, DD2-49) — nicht Teil von q.
+
+// exitProject ist die esc-Policy: Projekt schließen, zurück zur Lobby.
+func (m model) exitProject() (tea.Model, tea.Cmd) {
+	return m.goHome()
+}
+
+// prevView ist die q-Policy: den aktuellen View verlassen und zum vorhergehenden
+// zurückkehren (Back-Stack je View, DD2-149).
+func (m model) prevView() (tea.Model, tea.Cmd) {
+	switch m.view {
+	case viewBacklog, viewReviewsList:
+		m.view = m.topReturn // Ursprungs-View (Tree/Columns, DD2-61)
+		return m, nil
+	case viewReview:
+		// B01: Columns/Tree nach Review neu laden (Cockpit-Mutationen ließen
+		// m.milestones stale). reviewReturn trägt den Ursprung.
+		m.status = ""
+		if m.reviewReturn == viewReviewsList {
+			m.view = viewReviewsList
+			return m, tea.Batch(loadReviewSprints(m.client), loadMilestones(m.client))
+		}
+		m.view = viewTree
+		return m, loadMilestones(m.client)
+	case viewDetail, viewMilestone, viewSprint:
+		m.view = viewTree // Ranger-Detailflächen → Tree-Primat (DD2-111)
+		return m, nil
+	default: // viewTree, viewColumns und alles Top-Level → Lobby
+		return m.goHome()
+	}
 }
 
 // openReviewsList öffnet die Liste offener Review-Sprints (T17). Merkt die
@@ -306,8 +350,8 @@ func (m model) keyColumns(k string) (tea.Model, tea.Cmd) {
 		return m, doRefresh(m.client, ids)
 	}
 	switch k {
-	case "esc": // DD2-124: Esc aus Projekt-View → Lobby (Esc-Spine)
-		return m.goHome()
+	case "esc": // DD2-149: esc schließt das Projekt → Lobby
+		return m.exitProject()
 	case "enter":
 		if m.depth == 0 && m.selMilestone() != nil {
 			m.view = viewMilestone

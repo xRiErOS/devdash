@@ -485,7 +485,7 @@ func (m model) keyBacklog(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.blist.cursor = 0
 			return m, nil
 		}
-		return m.goHome()
+		return m.exitProject() // DD2-149: esc ohne transienten State → Projekt schließen → Lobby
 	}
 	return m, nil
 }
