@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"devd-cli/internal/clip"
 	"devd-cli/internal/theme"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -98,8 +99,45 @@ func (m model) keySSTD(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.sstdEditKey = cur.key
 		return m, editInEditor(cur.content, ".md")
+	case "y": // DD2-166 Rework: yank active slot/projection content
+		cur := m.selSstdEntry()
+		if cur == nil {
+			return m, nil
+		}
+		if err := clip.Copy(cur.content); err != nil {
+			m.errNote = "Clipboard error: " + err.Error()
+		} else {
+			m.errNote = ""
+			m.status = "Copied slot '" + cur.key + "' to clipboard"
+		}
+		return m, nil
+	case "alt+y": // DD2-166 Rework: yank the whole SSTD (all slots + projections)
+		if err := clip.Copy(m.sstdAllClip()); err != nil {
+			m.errNote = "Clipboard error: " + err.Error()
+		} else {
+			m.errNote = ""
+			m.status = "Copied full SSTD to clipboard"
+		}
+		return m, nil
 	}
 	return m, nil
+}
+
+// sstdAllClip serialisiert die komplette SSTD (alle Slots + beide Projektionen) als
+// Markdown für die Zwischenablage (DD2-166 Rework, alt+y). Reihenfolge = Listen-
+// Reihenfolge; jede Sektion mit ihrem Slot-Key + Titel.
+func (m model) sstdAllClip() string {
+	var b strings.Builder
+	b.WriteString("# SSTD\n")
+	for _, e := range m.sstdEntries() {
+		b.WriteString(fmt.Sprintf("\n## %s — %s\n", e.key, e.title))
+		content := strings.TrimRight(e.content, "\n")
+		if strings.TrimSpace(content) == "" {
+			content = "(empty)"
+		}
+		b.WriteString(content + "\n")
+	}
+	return b.String()
 }
 
 // --- View ---
@@ -116,7 +154,7 @@ func (m model) viewSSTD() string {
 	body := lipgloss.JoinHorizontal(lipgloss.Top, left, right)
 
 	head := m.header() + "\n" + theme.Header.Render(m.screenTitle("SSTD"))
-	footer := theme.Dim.Render("i/k:↑↓  enter:edit (neovim)  esc/q:back")
+	footer := theme.Dim.Render("i/k:↑↓  enter:edit (neovim)  y:yank slot  alt+y:yank all  esc/q:back")
 	if m.status != "" {
 		footer = m.status
 	}
@@ -142,7 +180,8 @@ func (m model) sstdRows() []string {
 		if strings.TrimSpace(e.content) == "" {
 			empty = theme.Dim.Render(" ·empty")
 		}
-		rows[i] = fmt.Sprintf("%s %s%s", marker, e.title, empty)
+		// DD2-166 Rework: Slot-ID (slot_key) vorangestellt, dimmed, vor dem Titel.
+		rows[i] = fmt.Sprintf("%s %s %s%s", marker, theme.Dim.Render(e.key), e.title, empty)
 	}
 	return rows
 }
