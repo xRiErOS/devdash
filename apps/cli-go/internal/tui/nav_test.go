@@ -28,7 +28,7 @@ func browseModel() model {
 // zum Project-Browser (Zentrum), nicht bis zur Lobby (viewHome).
 func TestQLeavesToBrowseProject(t *testing.T) {
 	for _, v := range []viewID{viewDetailIssue, viewDetailMilestone, viewDetailSprint, viewBrowseBacklog} {
-		m := columnsModel()
+		m := browseModel()
 		m.view = v
 		mi, _ := m.Update(keyMsg("q"))
 		m = mi.(model)
@@ -41,7 +41,7 @@ func TestQLeavesToBrowseProject(t *testing.T) {
 // TestRouteHistoryBackForward sichert DD2-184: View-Wechsel füllt die Routen-
 // History; alt+links springt zurück, alt+rechts wieder vor.
 func TestRouteHistoryBackForward(t *testing.T) {
-	m := columnsModel() // viewBrowseProject, Meilensteine geladen
+	m := browseModel() // viewBrowseProject, Meilensteine geladen
 	// b öffnet das Backlog → Route-Eintrag browseProject.
 	mi, _ := m.Update(keyMsg("b"))
 	m = mi.(model)
@@ -73,7 +73,7 @@ func TestRouteHistoryBackForward(t *testing.T) {
 
 // TestRouteHistoryAltJL prüft die jkli-Spiegel-Tasten alt+j (zurück) / alt+l (vor).
 func TestRouteHistoryAltJL(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	mi, _ := m.Update(keyMsg("b"))
 	m = mi.(model)
 	mi, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("j"), Alt: true})
@@ -90,7 +90,7 @@ func TestRouteHistoryAltJL(t *testing.T) {
 
 // TestRouteHistoryEmptyNoop: alt+links/rechts ohne History ändert nichts.
 func TestRouteHistoryEmptyNoop(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	mi, _ := m.Update(tea.KeyMsg{Type: tea.KeyLeft, Alt: true})
 	m = mi.(model)
 	if m.view != viewBrowseProject {
