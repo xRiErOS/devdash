@@ -633,10 +633,14 @@ func (m model) viewReviewSprint() string {
 	foot := theme.Muted.Render(wrapText(m.reviewHints(), w))
 	statusLine := m.statusBar("")
 
-	// Pane-Innenhöhe = Gesamthöhe minus Kopf/Summary/Footer/Status/Trennzeilen,
+	// Pane-Innenhöhe = Gesamthöhe minus Chrome (Kopf/Summary/Footer/Status),
 	// minus 2 für den Pane-Border (der außen wächst → Gesamthöhe = innerH+2).
+	// DD2-236: KEIN Trennzeilen-Abzug — die "\n" zwischen den Render-Teilen sind
+	// Zeilenterminatoren, keine Extra-Zeilen ("A\nB".Height == H(A)+H(B)). Das alte
+	// "+ 3" zog die Pane um 3 Zeilen zu kurz → View endete vor dem unteren Rand
+	// (analog treeLayout, das ebenfalls keine Trennzeilen abzieht).
 	chromeH := lipgloss.Height(head) + lipgloss.Height(summary) +
-		lipgloss.Height(foot) + lipgloss.Height(statusLine) + 3
+		lipgloss.Height(foot) + lipgloss.Height(statusLine)
 	h := m.frameH() - chromeH - 2 // DD2-84: Innenhöhe (App-Außenrahmen reserviert)
 	if h < 6 {
 		h = m.bodyHeight() // Höhe unbekannt (Init/Tests) → großzügiger Fallback
