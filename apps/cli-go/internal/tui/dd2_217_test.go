@@ -16,8 +16,9 @@ import (
 // Der Export ist Markdown (kein JSON): Kopf mit Issue-Zahl, Tabellen-Header, je
 // eine Zeile pro Issue mit Plain-Priority (P<n>, kein ANSI) und pipe-escaptem Titel.
 func TestBacklogClipMarkdown(t *testing.T) {
+	poNote := "API returns 500 on empty filter"
 	vis := []api.Issue{
-		{Key: "DD2-2", Title: "Crash | beheben", Type: "bug", Priority: 1, Status: "planned"},
+		{Key: "DD2-2", Title: "Crash | beheben", Type: "bug", Priority: 1, Status: "planned", PoNotes: &poNote},
 		{Key: "DD2-1", Title: "Login bauen", Type: "feature", Priority: 3, Status: "new"},
 	}
 	md := backlogClip(vis, "")
@@ -28,9 +29,9 @@ func TestBacklogClipMarkdown(t *testing.T) {
 		t.Errorf("Ausgabe sieht nach JSON aus statt Markdown:\n%s", md)
 	}
 	for _, want := range []string{
-		"| Key | Type | Prio | Status | Title |",
-		"| DD2-2 | bug | P1 | planned | Crash \\| beheben |",
-		"| DD2-1 | feature | P3 | new | Login bauen |",
+		"| Key | Type | Prio | Status | Title | PO-Notes |",
+		"| DD2-2 | bug | P1 | planned | Crash \\| beheben | API returns 500 on empty filter |",
+		"| DD2-1 | feature | P3 | new | Login bauen |  |", // PO-Notes leer (nil) → leere Zelle
 	} {
 		if !strings.Contains(md, want) {
 			t.Errorf("backlogClip fehlt %q\n%s", want, md)
