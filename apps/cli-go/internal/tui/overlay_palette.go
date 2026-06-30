@@ -35,7 +35,8 @@ func paletteActions(m *model) []paletteAction {
 		{"go_search", "Go to: Search all issues"}, // DD2-91
 		{"go_backlog", "Go to: Backlog"},
 		{"go_tags", "Go to: Tag manager"},
-		{"go_settings", "Settings"},              // DD2-125: edit user config
+		{"go_settings", "Settings"},                 // DD2-125: edit user config
+		{"go_project_settings", "Project settings"}, // DD2-221: edit active project name
 		{"go_tutorial", "Tutorial: guided tour"}, // DD2-122
 		{"test_form", "Test Form"},               // Styling-Sandbox (kein Persist)
 	}
@@ -159,6 +160,8 @@ func (m model) dispatchPalette(id string) (tea.Model, tea.Cmd) {
 		return m.openForm("memory")
 	case "go_settings": // DD2-125: Settings-Form öffnen
 		return m.openForm("settings")
+	case "go_project_settings": // DD2-221: Projekt-Settings-Form öffnen
+		return m.openForm("project_settings")
 	case "test_form":
 		return m.openForm("testform")
 	}

@@ -398,6 +398,27 @@ func doUpdateIssueField(c *api.Client, id int, field, value string) tea.Cmd {
 	}
 }
 
+// projectUpdatedMsg trägt die Antwort eines Projekt-Settings-Edits (DD2-221).
+// project gesetzt = Erfolg (m.project spiegeln); err gesetzt = Aktions-Fehler
+// (→ errNote rot). Spiegel von issueUpdatedMsg.
+type projectUpdatedMsg struct {
+	project *api.Project
+	err     string
+}
+
+// doUpdateProjectName schreibt den Projekt-Namen via UpdateProject (DD2-221). Nur
+// name ist backend-writable (slug/prefix immutable, Key-Integrität). Die Response
+// trägt das frische Projekt zurück; der Update-Handler übernimmt es in m.project.
+func doUpdateProjectName(c *api.Client, id int, name string) tea.Cmd {
+	return func() tea.Msg {
+		p, err := c.UpdateProject(id, map[string]any{"name": name})
+		if err != nil {
+			return projectUpdatedMsg{err: cleanAPIErr(err)}
+		}
+		return projectUpdatedMsg{project: p}
+	}
+}
+
 // milestoneUpdatedMsg / sprintUpdatedMsg tragen die Antwort eines Feld-Edits auf
 // Meilenstein/Sprint (DD2-79). Gefülltes Objekt = Erfolg (Cache-Merge); err =
 // Aktions-Fehler (→ errNote rot, D05). Spiegel von issueUpdatedMsg.

@@ -15,8 +15,11 @@ func TestSaveAndApplySettings(t *testing.T) {
 	old := defaultModalWidth
 	defer func() { defaultModalWidth = old }()
 
+	oldEd := configuredEditor
+	defer func() { configuredEditor = oldEd }()
+
 	m := model{}
-	m2, err := m.saveAndApplySettings("#abcdef", 30, 50)
+	m2, err := m.saveAndApplySettings("#abcdef", 30, 50, "code -w")
 	if err != nil {
 		t.Fatalf("saveAndApplySettings: %v", err)
 	}
@@ -26,10 +29,16 @@ func TestSaveAndApplySettings(t *testing.T) {
 	if defaultModalWidth != 50 {
 		t.Errorf("defaultModalWidth=%d, want 50 (angewendet)", defaultModalWidth)
 	}
+	if configuredEditor != "code -w" { // DD2-221 (D04): Editor live übernommen
+		t.Errorf("configuredEditor=%q, want 'code -w' (live-apply)", configuredEditor)
+	}
 	// Persistenz: ein frischer Load liefert dieselben Werte.
 	got, _ := config.LoadSettings()
 	if got.Theme.Accent != "#abcdef" {
 		t.Errorf("persistierter accent=%q, want #abcdef", got.Theme.Accent)
+	}
+	if got.Editor != "code -w" {
+		t.Errorf("persistierter editor=%q, want 'code -w'", got.Editor)
 	}
 }
 
@@ -41,7 +50,7 @@ func TestSaveAndApplySettingsClamps(t *testing.T) {
 	defer func() { defaultModalWidth = old }()
 
 	m := model{}
-	m2, err := m.saveAndApplySettings("", 999, 999)
+	m2, err := m.saveAndApplySettings("", 999, 999, "nvim")
 	if err != nil {
 		t.Fatalf("saveAndApplySettings: %v", err)
 	}

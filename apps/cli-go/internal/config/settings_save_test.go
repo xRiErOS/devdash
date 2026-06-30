@@ -11,7 +11,7 @@ func TestSaveUserSettingsRoundtrip(t *testing.T) {
 	tmp := t.TempDir()
 	t.Setenv("HOME", tmp)
 
-	if err := SaveUserSettings("#abcdef", 30, 50); err != nil {
+	if err := SaveUserSettings("#abcdef", 30, 50, "code -w"); err != nil {
 		t.Fatalf("SaveUserSettings: %v", err)
 	}
 	got, _ := LoadSettings()
@@ -20,6 +20,9 @@ func TestSaveUserSettingsRoundtrip(t *testing.T) {
 	}
 	if got.Layout.TreeWidth != 30 || got.Layout.ModalWidth != 50 {
 		t.Errorf("layout=%+v, want tree=30 modal=50", got.Layout)
+	}
+	if got.Editor != "code -w" { // DD2-221: editor wird mit-persistiert
+		t.Errorf("editor=%q, want 'code -w'", got.Editor)
 	}
 }
 
@@ -34,7 +37,7 @@ func TestSaveUserSettingsPreservesKeybindings(t *testing.T) {
 	if err := os.WriteFile(path, []byte("keybindings:\n  down: j\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := SaveUserSettings("#112233", 28, 60); err != nil {
+	if err := SaveUserSettings("#112233", 28, 60, "nvim"); err != nil {
 		t.Fatalf("SaveUserSettings: %v", err)
 	}
 	got, _ := LoadSettings()
@@ -50,7 +53,7 @@ func TestSaveUserSettingsPreservesKeybindings(t *testing.T) {
 func TestSaveUserSettingsInvalidAccentDropped(t *testing.T) {
 	tmp := t.TempDir()
 	t.Setenv("HOME", tmp)
-	if err := SaveUserSettings("not-a-hex", 40, 70); err != nil {
+	if err := SaveUserSettings("not-a-hex", 40, 70, "nvim"); err != nil {
 		t.Fatalf("SaveUserSettings: %v", err)
 	}
 	got, _ := LoadSettings()

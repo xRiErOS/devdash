@@ -134,6 +134,8 @@ func (m model) openForm(kind string) (tea.Model, tea.Cmd) {
 		f = buildRejectForm()
 	case "settings": // DD2-125: User-Config bearbeiten
 		f = buildSettingsForm(m.cfg)
+	case "project_settings": // DD2-221: aktives Projekt bearbeiten (name; slug/prefix read-only)
+		f = buildProjectSettingsForm(m.project)
 	}
 	if f == nil {
 		return m, nil
@@ -224,6 +226,8 @@ func (m model) formTitle() string {
 		return "Reject — comment"
 	case "settings":
 		return "Settings"
+	case "project_settings": // DD2-221
+		return "Project settings"
 	case "editField":
 		return "Edit: " + m.editLabel
 	case "userStoryAdd":
@@ -243,7 +247,7 @@ func formFooterHint(kind string) string {
 	switch kind {
 	case "testform":
 		return "↑↓ select · enter next · ctrl+e editor · esc close"
-	case "editField", "tagCreate", "tagEdit":
+	case "editField", "tagCreate", "tagEdit", "project_settings":
 		return "enter save · esc cancel"
 	default:
 		return "alt+enter save · tab field · esc cancel"
@@ -435,13 +439,19 @@ func (m *model) formCreateCmd() tea.Cmd {
 		accent := strings.TrimSpace(get("accent"))
 		tw, _ := strconv.Atoi(get("tree_width"))
 		mw, _ := strconv.Atoi(get("modal_width"))
-		nm, err := m.saveAndApplySettings(accent, tw, mw)
+		editor := strings.TrimSpace(get("editor")) // DD2-221 (D04): TUI-weiter Editor
+		nm, err := m.saveAndApplySettings(accent, tw, mw, editor)
 		*m = nm
 		if err != nil {
 			msg := "Save failed: " + err.Error()
 			return func() tea.Msg { return noticeMsg{msg} }
 		}
 		return func() tea.Msg { return noticeMsg{"Settings saved"} }
+	case "project_settings": // DD2-221: Projekt-Name speichern (async, slug/prefix immutable)
+		if m.project == nil {
+			return func() tea.Msg { return noticeMsg{"no active project"} }
+		}
+		return doUpdateProjectName(m.client, m.project.ID, get("name"))
 	}
 	return nil
 }

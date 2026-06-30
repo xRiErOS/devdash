@@ -105,11 +105,13 @@ func UserConfigPath() (string, error) {
 	return filepath.Join(home, ".config", "devd-cli", "config.yaml"), nil
 }
 
-// SaveUserSettings schreibt theme.accent + layout.tree_width/modal_width in die
-// USER-Config (DD2-125) — NICHT den lokalen Override. Read-modify-write: eine
-// bestehende Datei wird gelesen, damit andere Felder (z.B. keybindings, DD2-34)
-// erhalten bleiben. Leerer accent löscht das Feld. Verzeichnis wird angelegt.
-func SaveUserSettings(accent string, treeWidth, modalWidth int) error {
+// SaveUserSettings schreibt theme.accent + layout.tree_width/modal_width + editor
+// in die USER-Config (DD2-125; editor: DD2-221) — NICHT den lokalen Override.
+// Read-modify-write: eine bestehende Datei wird gelesen, damit andere Felder
+// (z.B. keybindings, DD2-34) erhalten bleiben. Leerer accent/editor löscht das
+// jeweilige Feld (editor=leer → Default nvim greift beim Laden). Verzeichnis wird
+// angelegt.
+func SaveUserSettings(accent string, treeWidth, modalWidth int, editor string) error {
 	path, err := UserConfigPath()
 	if err != nil {
 		return err
@@ -121,6 +123,7 @@ func SaveUserSettings(accent string, treeWidth, modalWidth int) error {
 	s.Theme.Accent = accent
 	s.Layout.TreeWidth = treeWidth
 	s.Layout.ModalWidth = modalWidth
+	s.Editor = editor
 	out, err := yaml.Marshal(s)
 	if err != nil {
 		return err
