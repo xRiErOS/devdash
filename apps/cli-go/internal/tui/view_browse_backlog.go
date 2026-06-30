@@ -213,9 +213,22 @@ func (m model) backlogListBlocks(vis []api.Issue, w int, active bool) [][]string
 	}
 	blocks := make([][]string, len(vis))
 	for i, it := range vis {
-		raw := theme.TypeIcon(it.Type) + " " + theme.Priority(it.Priority) + " " +
-			theme.Key.Render(it.Key) + " " + it.Title
-		lines := strings.Split(wrapText(raw, w-1), "\n") // ANSI-sicher umbrochen
+		// DD2-189 PO-Format: Header (Marker + Prio + Key) in Zeile 1, der Titel ab
+		// Zeile 2 als Hängeeinzug UNTER dem Key. Einzug = Displaybreite des Prefix
+		// VOR dem Key (lipgloss.Width, nie len — B06). w-1 reserviert die Cursor-Spalte.
+		prefix := theme.TypeIcon(it.Type) + " " + theme.Priority(it.Priority) + " "
+		indent := lipgloss.Width(prefix)
+		lines := []string{prefix + theme.Key.Render(it.Key)}
+		if strings.TrimSpace(it.Title) != "" {
+			titleW := w - 1 - indent
+			if titleW < 8 {
+				titleW = 8 // schmaler Fallback, damit der Titel nicht in 1-Zeichen-Spalten zerfällt
+			}
+			pad := strings.Repeat(" ", indent)
+			for _, tl := range strings.Split(wrapText(it.Title, titleW), "\n") {
+				lines = append(lines, pad+tl)
+			}
+		}
 		if i == m.blist.cursor {
 			for j := range lines {
 				plain := truncate(ansi.Strip(lines[j]), w-1)

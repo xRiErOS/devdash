@@ -45,8 +45,9 @@ func TestBacklogListWraps(t *testing.T) {
 	if !strings.Contains(flat, "umgebrochen werden muss") {
 		t.Errorf("Titel-Ende fehlt nach Umbruch: %q", flat)
 	}
-	if len(blocks[1]) != 1 {
-		t.Errorf("kurzer Titel = 1 Zeile, got %d", len(blocks[1]))
+	// DD2-189: Header (Marker+Prio+Key) + Titel-Zeile = 2 Zeilen, auch bei kurzem Titel.
+	if len(blocks[1]) != 2 {
+		t.Errorf("kurzer Titel = Header + 1 Titel-Zeile = 2, got %d", len(blocks[1]))
 	}
 }
 
