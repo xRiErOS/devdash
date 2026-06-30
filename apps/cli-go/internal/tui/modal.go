@@ -16,6 +16,10 @@ import (
 // modalBox umrahmt vorgerenderten Inhalt als schwebendes Overlay-Modal.
 // border = theme.Mauve (Standard) bzw. theme.Red (destruktive Dialoge).
 func modalBox(inner string, width int, border lipgloss.Color) string {
+	// B03: rebaseBg deckt JEDES Overlay ab (Palette/Menüs/Confirm/Forms) — innere
+	// ESC[0m-Resets (huh, aber auch theme.Header/Accent.Render) lassen sonst Zellen
+	// auf die Terminal-Default-BG (schwarz) zurückfallen, z.B. der selektierte
+	// Palette-Eintrag (fg+bold, kein bg) und der Filter-Cursor.
 	return lipgloss.NewStyle().
 		Width(width).
 		Border(lipgloss.RoundedBorder()).
@@ -23,7 +27,7 @@ func modalBox(inner string, width int, border lipgloss.Color) string {
 		BorderBackground(theme.Base). // B02: sonst Rahmen-Zellen = Terminal-Default-BG (schwarz)
 		Background(theme.Base).
 		Padding(0, 1).
-		Render(inner)
+		Render(rebaseBg(inner))
 }
 
 // modalPanel baut ein Standard-Modal: Header-Titel + Body + (optional) Dim-Footer,

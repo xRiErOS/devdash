@@ -282,9 +282,9 @@ func (m model) editFieldUsesEditor() bool {
 // (T03: Box-gerahmt), Chrome über modalPanel.
 func (m model) formChrome() string {
 	innerW := formInnerWidth(m.width)
-	// B01: huh-View durch rebaseBg, sonst hinterlassen interne Resets schwarze
-	// (default-BG) Zellen in Feldern/Buttons auf nicht-Catppuccin-Terminals.
-	body := theme.Dim.Render(strings.Repeat("─", innerW)) + "\n" + rebaseBg(m.form.View())
+	// B01: huh-View hinterlässt schwarze (default-BG) Zellen durch interne Resets —
+	// das Rebasing übernimmt jetzt zentral modalBox (B03), gilt für alle Overlays.
+	body := theme.Dim.Render(strings.Repeat("─", innerW)) + "\n" + m.form.View()
 	hint := formFooterHint(m.formKind)
 	if m.editFieldUsesEditor() { // DD2-224: $EDITOR-Launch nur bei Langtext-Feldern anbieten
 		// Taste aus der Keymap-Single-Source ableiten (DD2-175-Prinzip) — driftet

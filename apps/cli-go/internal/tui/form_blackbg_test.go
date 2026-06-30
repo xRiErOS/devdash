@@ -84,3 +84,22 @@ func TestFormHasNoDefaultBgCells(t *testing.T) {
 		t.Errorf("Settings-Form hat %d Zellen ohne Hintergrund-SGR (= schwarz auf nicht-Catppuccin-Terminal), want 0", got)
 	}
 }
+
+// Die Command-Palette darf KEINE Zelle ohne Hintergrund haben — speziell der
+// selektierte Eintrag (theme.Header, fg+bold, kein bg) und der Filter-Cursor "▏"
+// fielen sonst auf die Terminal-Default-BG zurück (schwarz). Overlays laufen über
+// modalBox, das via rebaseBg jeden inneren ESC[0m wieder auf Base setzt (B03).
+func TestPaletteHasNoDefaultBgCells(t *testing.T) {
+	old := lipgloss.ColorProfile()
+	lipgloss.SetColorProfile(termenv.TrueColor)
+	lipgloss.SetHasDarkBackground(true)
+	defer lipgloss.SetColorProfile(old)
+
+	m := model{width: 90, height: 40}
+	mi, _ := m.openPalette()
+	out := mi.(model).paletteBox()
+
+	if got := countDefaultBgCells(out); got != 0 {
+		t.Errorf("Command-Palette hat %d Zellen ohne Hintergrund-SGR (= schwarz; u.a. selektierter Eintrag/Cursor), want 0", got)
+	}
+}
