@@ -285,8 +285,19 @@ func (m model) reviewSummary() string {
 // (DD2-121, US-53): Kopf + Verdikt-Zähler + Tabelle (Key/Title/Status/Verdict/
 // Result-vorhanden). Funktioniert auch vor Sprint-Abschluss — PO teilt den
 // Zwischenstand, ohne den Sprint zu schließen. Vorlage: sprintClip()-Stil.
+//
+// DD2-157: dünner Wrapper über reviewStandMarkdown. Denselben Markdown yankt der
+// Sprint-Complete-Flow (C C) automatisch — siehe doSprintComplete (messages.go),
+// damit 'y' und 'C C' konsistent Markdown statt rohem rev-results-JSON kopieren.
 func (m model) reviewStandClip() string {
-	s := m.curSprint
+	return reviewStandMarkdown(m.curSprint)
+}
+
+// reviewStandMarkdown serialisiert einen Sprint-Review-Stand als Markdown. Single
+// Source für den 'y'-Yank (reviewStandClip) UND den Auto-Yank nach Sprint-Complete
+// (doSprintComplete in messages.go, DD2-157) — beide MÜSSEN identisches Markdown
+// liefern, daher hier zentralisiert statt im Caller dupliziert.
+func reviewStandMarkdown(s *api.Sprint) string {
 	var b strings.Builder
 	b.WriteString(fmt.Sprintf("# Review %s — %s\n", s.Key, s.Name))
 	b.WriteString(fmt.Sprintf("Status: %s · %d/%d done\n\n", s.Status, s.DoneCount, s.ItemCount))

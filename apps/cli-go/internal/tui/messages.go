@@ -149,9 +149,14 @@ func doSprintComplete(c *api.Client, sprintID int) tea.Cmd {
 		if err != nil {
 			return noticeMsg{cleanAPIErr(err)}
 		}
+		// DD2-157: Ergebnis-Handover als Markdown yanken — exakt das, was 'y'
+		// kopiert (reviewStandMarkdown, Single Source in view_review_sprint.go).
+		// Früher wurde hier das rohe rev-results-JSON (SprintRevResults) kopiert;
+		// das war inkonsistent zum 'y'-Yank. Frisch gefetchter Sprint s trägt
+		// alle Items/Verdikte für die Tabelle.
 		yanked := false
-		if raw, err := c.SprintRevResults(sprintID); err == nil && len(raw) > 0 {
-			if clip.Copy(string(raw)) == nil {
+		if s != nil && len(s.Items) > 0 {
+			if clip.Copy(reviewStandMarkdown(s)) == nil {
 				yanked = true
 			}
 		}
