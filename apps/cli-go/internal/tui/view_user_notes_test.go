@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"strings"
 	"testing"
 
 	"devd-cli/internal/api"
@@ -95,6 +96,22 @@ func TestUserNotesSaveDispatch(t *testing.T) {
 	m.unEditID = 7
 	if _, cmd := m.Update(editorFinishedMsg{content: "new", changed: true}); cmd == nil {
 		t.Fatalf("changed edit should dispatch save")
+	}
+}
+
+// DD2-168 Rework: Detail-Header zeigt created/updated/status, sobald gesetzt.
+func TestUserNotesMetaHeader(t *testing.T) {
+	m := userNotesTestModel()
+	created, updated := "2026-06-29 08:00", "2026-06-30 09:00"
+	m.unList[0].CreatedAt = &created
+	m.unList[0].UpdatedAt = &updated
+	m.unList[0].Status = "archived"
+	m.unlist.cursor = 0
+	joined := strings.Join(m.unDetailRows(60), "\n")
+	for _, want := range []string{"created:", "updated:", "status: archived"} {
+		if !strings.Contains(joined, want) {
+			t.Fatalf("note detail meta missing %q:\n%s", want, joined)
+		}
 	}
 }
 
