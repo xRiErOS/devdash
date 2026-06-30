@@ -197,6 +197,11 @@ type model struct {
 	createConfirm bool
 	pendingCreate tea.Cmd
 	createLabel   string
+	// createDraft sichert die Eingaben des Create-Issue-Formulars über Form-
+	// Neuaufbauten hinweg: n/esc am Anlege-Confirm kehrt befüllt zurück (DD2-190)
+	// und der ctrl+e-Editor-Reseed erhält die übrigen Felder (DD2-234). nil = kein
+	// gesicherter Draft.
+	createDraft *issueDraft
 
 	// Memory-Browser (T18): Master-Detail über project_memories.
 	memList      []api.ProjectMemory

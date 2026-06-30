@@ -21,7 +21,7 @@ func buildSprintForm(milestones []api.Milestone, tags []api.Tag) *huh.Form {
 		huh.NewSelect[string]().Key("milestone_id").Title("Milestone").Options(opts...),
 	}
 	if len(tags) > 0 {
-		fields = append(fields, tagMultiSelect(tags))
+		fields = append(fields, tagMultiSelect(tags, nil))
 	}
 	return huh.NewForm(huh.NewGroup(fields...)).WithWidth(58).WithShowHelp(true)
 }

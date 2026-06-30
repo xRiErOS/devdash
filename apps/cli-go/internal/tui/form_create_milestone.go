@@ -16,7 +16,7 @@ func buildMilestoneForm(milestones []api.Milestone, tags []api.Tag) *huh.Form {
 		huh.NewInput().Key("target_date").Title("Target date (optional, YYYY-MM-DD)"),
 	}
 	if len(tags) > 0 {
-		fields = append(fields, tagMultiSelect(tags))
+		fields = append(fields, tagMultiSelect(tags, nil))
 	}
 	return huh.NewForm(huh.NewGroup(fields...)).WithWidth(58).WithShowHelp(true)
 }

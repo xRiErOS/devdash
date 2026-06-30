@@ -183,7 +183,7 @@ func TestTagAssignedPatchesIssueCache(t *testing.T) {
 // --- DD2-33 Part B: Tags in den Create-Forms ---
 
 func TestTagMultiSelectKey(t *testing.T) {
-	f := tagMultiSelect([]api.Tag{{ID: 5, Name: "x"}})
+	f := tagMultiSelect([]api.Tag{{ID: 5, Name: "x"}}, nil)
 	if f.GetKey() != "tags" {
 		t.Errorf("Multiselect-Key = %q, want tags", f.GetKey())
 	}
@@ -196,8 +196,8 @@ func TestBuildFormTagFieldConditional(t *testing.T) {
 		var with, without tea.Model
 		switch kind {
 		case "issue":
-			with = buildIssueForm([]api.Tag{{ID: 1, Name: "alpha"}})
-			without = buildIssueForm(nil)
+			with = buildIssueForm([]api.Tag{{ID: 1, Name: "alpha"}}, issueDraft{})
+			without = buildIssueForm(nil, issueDraft{})
 		case "milestone":
 			with = buildMilestoneForm(nil, []api.Tag{{ID: 1, Name: "alpha"}})
 			without = buildMilestoneForm(nil, nil)
@@ -218,7 +218,7 @@ func TestBuildFormTagFieldConditional(t *testing.T) {
 
 // Ohne Auswahl darf das Anlegen keinen Tag erzwingen → selectedTagIDs leer.
 func TestSelectedTagIDsEmptyWhenNothingPicked(t *testing.T) {
-	m := &model{form: buildIssueForm([]api.Tag{{ID: 1, Name: "a"}})}
+	m := &model{form: buildIssueForm([]api.Tag{{ID: 1, Name: "a"}}, issueDraft{})}
 	_ = m.form.Init()
 	if ids := m.selectedTagIDs(); len(ids) != 0 {
 		t.Errorf("ohne Auswahl: TagIDs=%v, want leer (kein Tag erzwungen)", ids)
