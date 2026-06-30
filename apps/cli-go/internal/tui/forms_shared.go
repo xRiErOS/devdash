@@ -293,6 +293,9 @@ func (m model) formChrome() string {
 		// nie vom echten Binding (keys.Editor), kein hardcodeter Shortcut.
 		hint = "enter save · " + keys.Editor.Help().Key + " editor · esc cancel"
 	}
+	if m.formKind == "issue" { // DD2-233/234: ctrl+e editiert po_notes im konfigurierten Editor
+		hint = "enter next/save · " + keys.Editor.Help().Key + " PO-Notes editor · esc cancel"
+	}
 	return modalPanel(m.formTitle(), body, hint, modalBoxWidth(m.width), theme.Mauve)
 }
 
