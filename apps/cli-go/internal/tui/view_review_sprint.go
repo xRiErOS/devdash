@@ -642,8 +642,8 @@ func (m model) viewReviewSprint() string {
 		h = m.bodyHeight() // Höhe unbekannt (Init/Tests) → großzügiger Fallback
 	}
 
-	// 1fr:2fr über den Goldstandard-Helper (DD2-229): tree_width als Mindestbreite,
-	// Border frisst je 2 Spalten (Golden Rule #1/#4). Vorher inline w*42/100-2 (~42/58).
+	// 1fr:2fr über den Goldstandard-Helper (DD2-227/229): tree_width als Mindestbreite,
+	// Border frisst je 2 Spalten (Golden Rule #1/#4). Vorher eine inline-Breitenformel (~42/58).
 	leftW, rightW := m.masterDetailWidths(w)
 
 	left := m.reviewMasterPane(leftW, h)
