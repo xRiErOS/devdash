@@ -33,6 +33,13 @@ func (m model) submitForm() (tea.Model, tea.Cmd) {
 		m.createLabel = m.createConfirmLabel()
 		m.pendingCreate = createCmd
 		m.createConfirm = true
+		// DD2-190: Issue-Eingaben sichern, damit n/esc am Confirm befüllt ins
+		// Create-Form zurückkehrt statt die Arbeit zu verwerfen. Vor dem Nullen
+		// von m.form lesen (currentIssueDraft braucht die offene Form).
+		if m.formKind == "issue" {
+			d := m.currentIssueDraft()
+			m.createDraft = &d
+		}
 	}
 	m.form = nil
 	m.formKind = ""
@@ -77,13 +84,21 @@ func (m model) keyCreateConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.createConfirm = false
 		m.pendingCreate = nil
 		m.createLabel = ""
+		m.createDraft = nil // DD2-190: Draft verbraucht — kein Reopen nach Anlage
 		m.status = noticeText("Creating …")
 		return m, cmd
 	case keybind.Matches(msg, keys.Back), msg.String() == "n":
 		m.createConfirm = false
 		m.pendingCreate = nil
 		m.createLabel = ""
-		m.status = noticeText("Anlage abgebrochen")
+		// DD2-190: n/esc verwirft die Issue-Arbeit nicht — zurück ins befüllte
+		// Create-Form (gesicherter Draft). Andere Create-Kinds: bisheriger Abbruch.
+		if m.createDraft != nil {
+			d := *m.createDraft
+			m.createDraft = nil
+			return m.openIssueFormWithDraft(d)
+		}
+		m.status = noticeText("Create cancelled")
 		return m, nil
 	}
 	return m, nil
@@ -92,8 +107,8 @@ func (m model) keyCreateConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // createConfirmBox rendert das Confirm-Modal (Mauve = konstruktiv, nicht destruktiv).
 func (m model) createConfirmBox() string {
 	var b strings.Builder
-	b.WriteString(theme.Header.Render("Anlegen?") + "\n\n")
+	b.WriteString(theme.Header.Render("Create?") + "\n\n")
 	b.WriteString(theme.Accent.Render(truncate(m.createLabel, 60)) + "\n\n")
-	b.WriteString(theme.Dim.Render("enter: anlegen   esc/n: zurück"))
+	b.WriteString(theme.Dim.Render("enter: create   esc/n: back"))
 	return modalBox(b.String(), clampModalWidth(54, m.width), theme.Mauve)
 }

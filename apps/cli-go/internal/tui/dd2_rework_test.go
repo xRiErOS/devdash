@@ -135,11 +135,11 @@ func TestCreateConfirmGatesCreation(t *testing.T) {
 	}
 }
 
-// Das Confirm-Modal zeigt Label + Anlegen-Hinweis.
+// Das Confirm-Modal zeigt Label + Create-Hinweis (DD2-190: i18n English).
 func TestCreateConfirmBoxShowsLabel(t *testing.T) {
 	m := model{createConfirm: true, createLabel: "Sprint: Sprint 9", width: 100}
 	out := ansi.Strip(m.createConfirmBox())
-	if !strings.Contains(out, "Sprint: Sprint 9") || !strings.Contains(out, "anlegen") {
+	if !strings.Contains(out, "Sprint: Sprint 9") || !strings.Contains(out, "create") {
 		t.Errorf("Confirm-Box ohne Label/Hint:\n%s", out)
 	}
 }
