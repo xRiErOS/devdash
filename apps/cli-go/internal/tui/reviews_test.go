@@ -51,6 +51,21 @@ func TestReviewsListEnterOpensCockpit(t *testing.T) {
 	}
 }
 
+// DD2-220: q aus der Reviews-Liste kehrt zur Quell-View (Tree) zurück, nicht zur Lobby.
+func TestReviewsListQReturnsToSource(t *testing.T) {
+	m := columnsModel() // view=viewBrowseProject
+	mi, _ := m.openReviewsList()
+	m = mi.(model)
+	if m.view != viewNavigateReviews {
+		t.Fatalf("Setup: view=%d, want viewNavigateReviews", m.view)
+	}
+	mi, _ = m.Update(keyMsg("q"))
+	m = mi.(model)
+	if m.view != viewBrowseProject {
+		t.Errorf("q → view=%d, want viewBrowseProject (topReturn, nicht Lobby)", m.view)
+	}
+}
+
 func TestCockpitEscReturnsToList(t *testing.T) {
 	m := reviewModel() // reviewReturn=viewNavigateReviews
 	mi, cmd := m.Update(keyMsg("q"))

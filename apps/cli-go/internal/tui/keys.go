@@ -137,6 +137,9 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	k := msg.String()
 	// Globale Tasten (DD2-174: key.Matches; q=Lobby ist Sonderfall vor keys.Quit)
 	switch {
+	case k == "q" && m.view == viewNavigateReviews: // DD2-220: q kehrt aus der Reviews-Liste zur Quell-View (Tree) zurück, nicht zur Lobby
+		m.view = m.topReturn
+		return m, nil
 	case k == "q": // DD2-124: q verlässt jede Projekt-View zur Lobby (immer Home)
 		return m.goHome()
 	case keybind.Matches(msg, keys.Quit): // ctrl+c (q oben) — harter Beenden-Pfad → Confirm (DD2-49)
