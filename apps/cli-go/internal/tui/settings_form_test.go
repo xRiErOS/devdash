@@ -16,7 +16,7 @@ func TestSaveAndApplySettings(t *testing.T) {
 	defer func() { defaultModalWidth = old }()
 
 	m := model{}
-	m2, err := m.saveAndApplySettings("#abcdef", 30, 50)
+	m2, err := m.saveAndApplySettings("#abcdef", "", 30, 50)
 	if err != nil {
 		t.Fatalf("saveAndApplySettings: %v", err)
 	}
@@ -41,7 +41,7 @@ func TestSaveAndApplySettingsClamps(t *testing.T) {
 	defer func() { defaultModalWidth = old }()
 
 	m := model{}
-	m2, err := m.saveAndApplySettings("", 999, 999)
+	m2, err := m.saveAndApplySettings("", "", 999, 999)
 	if err != nil {
 		t.Fatalf("saveAndApplySettings: %v", err)
 	}
