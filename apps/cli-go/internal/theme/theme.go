@@ -83,6 +83,19 @@ func StatusStyle(status string) lipgloss.Style {
 	return lipgloss.NewStyle().Foreground(Subtext)
 }
 
+// statusGlyph — DD2-176: EIN gemeinsamer Glyph für ALLE Status; die Bedeutung
+// trägt allein die Farbe (StatusStyle). PO-Wunsch „gleiches Icon, verschiedene
+// Farben" — einfacher + konsistent, in_progress hebt sich über seine Farbe ab
+// statt über eine eigene Form. Glyph EAW=Neutral (DD2-53); Coverage-/macOS-
+// Sichtbarkeit gemeinsam mit DD2-194 entschieden.
+const statusGlyph = "◉" // U+25C9 FISHEYE (neutral; war ● U+25CF = ambiguous)
+
+// StatusIcon liefert den einheitlichen, statusgefärbten Status-Glyph (Single
+// Source — statusDot ruft nur noch das hier, kein hardcodierter Switch mehr).
+func StatusIcon(status string) string {
+	return StatusStyle(status).Render(statusGlyph)
+}
+
 // --- Issue-Type Text-Icons (kein Emoji — Unicode-Geometrie, monospace-sicher) ---
 
 // DD2-53: ALLE Glyphen hier MÜSSEN East-Asian-Width = Neutral/Narrow sein (nie
