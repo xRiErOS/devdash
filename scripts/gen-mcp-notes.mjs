@@ -33,9 +33,21 @@ McpServer.prototype.connect = async () => {} // top-level await server.connect()
 
 await import(join(REPO, 'apps/cli/mcp/devd-mcp.js'))
 
-if (tools.length !== 128) {
-  console.error(`FAIL: ${tools.length} Tools erfasst, erwartet 128 (Drift?). Abbruch.`)
+// Tool-Count-Guard (DD2-219): tolerant statt hartem process.exit.
+// EXPECTED_TOOLS ist ein Drift-Indikator, kein Hard-Stop — bei bewussten
+// MCP-Änderungen (Tool hinzu/entfernt) läuft der Generator weiter und
+// dokumentiert die reale Zahl. Nur eine leere Liste (Import fehlgeschlagen,
+// nichts erfasst) bleibt ein echter Abbruch.
+const EXPECTED_TOOLS = 128
+if (tools.length === 0) {
+  console.error('FAIL: 0 Tools erfasst — devd-mcp.js-Import lieferte keine server.tool-Calls. Abbruch.')
   process.exit(1)
+}
+if (tools.length !== EXPECTED_TOOLS) {
+  console.warn(
+    `WARN: ${tools.length} Tools erfasst, erwartet ${EXPECTED_TOOLS} (Drift) — fahre tolerant fort. ` +
+    `Bei bewusster MCP-Änderung EXPECTED_TOOLS anpassen.`,
+  )
 }
 
 // --- 2) Domäne via geordnetem Prefix-Match (spezifisch zuerst) ----------------
