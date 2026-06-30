@@ -136,6 +136,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.depsCache[msg.key] = msg.deps
 		return m, nil
+	case ownerDocsMsg: // DD2-163 Rework: Inline-Doc-Liste eines Owners in den Lazy-Cache
+		if m.ownerDocs == nil {
+			m.ownerDocs = map[string][]api.Document{}
+		}
+		m.ownerDocs[msg.key] = msg.docs
+		return m, nil
 	case issueUpdatedMsg: // DD2-77: Feld-Edit-Response → Cache in-place mergen (D05)
 		if msg.err != "" {
 			m.errNote = msg.err // Aktions-Fehler rot (D05)
@@ -274,7 +280,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, saveTodoCmd(m.client, m.todoEditID, label, msg.content, m.todoStatus)
 		case viewDocs:
 			title := firstLineTitle(msg.content)
-			return m, saveDocCmd(m.client, m.docOwnerType, m.docOwnerID, m.docEditID, title, msg.content)
+			return m, saveDocCmd(m.client, m.docOwnerType, m.docOwnerID, m.docEditID, title, msg.content, m.docAllMode)
 		}
 		return m, nil
 	case unassignedSprintsMsg:

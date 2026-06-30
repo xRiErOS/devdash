@@ -409,6 +409,52 @@ func (m model) syncDeps(nodes []treeNode) tea.Cmd {
 	return nil
 }
 
+// syncOwnerDocs lädt die Dokument-Liste des fokussierten Meilenstein-/Sprint-Knotens
+// lazy nach (DD2-163 Rework), für die Inline-Anzeige im Detail. nil, wenn nichts zu
+// laden ist (bereits gecacht, Issue/Info-Knoten, Out-of-bounds). Analog syncDeps.
+func (m model) syncOwnerDocs(nodes []treeNode) tea.Cmd {
+	if m.treeCursor < 0 || m.treeCursor >= len(nodes) {
+		return nil
+	}
+	n := nodes[m.treeCursor]
+	switch n.kind {
+	case tkMile:
+		if n.mileIdx < 0 || n.mileIdx >= len(m.milestones) {
+			return nil
+		}
+		id := m.milestones[n.mileIdx].ID
+		if _, ok := m.ownerDocs[depCacheKey("m", id)]; !ok {
+			return loadOwnerDocs(m.client, "milestone", id)
+		}
+	case tkSprint:
+		if n.sprintID != 0 {
+			if _, ok := m.ownerDocs[depCacheKey("s", n.sprintID)]; !ok {
+				return loadOwnerDocs(m.client, "sprint", n.sprintID)
+			}
+		}
+	}
+	return nil
+}
+
+// renderOwnerDocs rendert die Inline-Doc-Liste eines Meilenstein-/Sprint-Knotens aus
+// dem Lazy-Cache (DD2-163 Rework, read-only). Macht im Tree sichtbar „hier ist ein
+// Dokument"; geöffnet/editiert wird über das Documents-Feld (enter → Docs-Browser).
+func (m model) renderOwnerDocs(key string, w int) string {
+	docs, ok := m.ownerDocs[key]
+	if !ok {
+		return theme.Dim.Render("Documents: (loading …)")
+	}
+	if len(docs) == 0 {
+		return theme.Dim.Render("Documents: none")
+	}
+	var b strings.Builder
+	b.WriteString(theme.Dim.Render(fmt.Sprintf("Documents (%d)", len(docs))))
+	for _, d := range docs {
+		b.WriteString("\n" + truncate("  • "+d.Title, w))
+	}
+	return b.String()
+}
+
 // renderTreeDeps rendert Vorgänger/Nachfolger eines Milestone-/Sprint-Knotens aus
 // dem Lazy-Cache (DD2-89, read-only). Nicht gecacht → Lade-Hinweis; keine → "none".
 func (m model) renderTreeDeps(key string, w int) string {
@@ -459,7 +505,8 @@ func (m model) treeDetail(n treeNode, w int) string {
 		// D09). Bei Detail-Fokus auf diesem Knoten trägt das aktive Feld den D08-Balken.
 		fields := milestoneFields()
 		b.WriteString(renderFlatFields(fields, milestoneFieldValues(ms, fields), m.fieldCursor, m.detailFocus, w))
-		b.WriteString("\n\n" + m.renderTreeDeps(depCacheKey("m", ms.ID), w)) // DD2-89
+		b.WriteString("\n\n" + m.renderTreeDeps(depCacheKey("m", ms.ID), w))  // DD2-89
+		b.WriteString("\n\n" + m.renderOwnerDocs(depCacheKey("m", ms.ID), w)) // DD2-163 Rework
 		b.WriteString("\n\n" + theme.Dim.Render(fmt.Sprintf("Sprints (%d)", len(ms.Sprints))) + "\n")
 	case tkSprint:
 		if n.mileIdx < 0 || n.mileIdx >= len(m.milestones) ||
@@ -476,7 +523,8 @@ func (m model) treeDetail(n treeNode, w int) string {
 		// DD2-78: name/goal als flache, fokussierbare Feldliste (D09, kein Accordion).
 		fields := sprintFields()
 		b.WriteString(renderFlatFields(fields, sprintFieldValues(sp, fields), m.fieldCursor, m.detailFocus, w))
-		b.WriteString("\n\n" + m.renderTreeDeps(depCacheKey("s", sp.ID), w)) // DD2-89
+		b.WriteString("\n\n" + m.renderTreeDeps(depCacheKey("s", sp.ID), w))  // DD2-89
+		b.WriteString("\n\n" + m.renderOwnerDocs(depCacheKey("s", sp.ID), w)) // DD2-163 Rework
 	case tkIssue:
 		if n.issue == nil {
 			return theme.Dim.Render("(nothing selected)")
@@ -685,12 +733,13 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.treeCursor > 0 {
 			m.treeCursor--
 		}
-		return m, m.syncDeps(nodes) // DD2-89: Deps des neu fokussierten Knotens lazy nachladen
+		// DD2-89 Deps + DD2-163 Rework Inline-Docs des neu fokussierten Knotens lazy nachladen
+		return m, tea.Batch(m.syncDeps(nodes), m.syncOwnerDocs(nodes))
 	case "down":
 		if m.treeCursor < len(nodes)-1 {
 			m.treeCursor++
 		}
-		return m, m.syncDeps(nodes)
+		return m, tea.Batch(m.syncDeps(nodes), m.syncOwnerDocs(nodes))
 	case "right":
 		return m.treeExpand(nodes)
 	case "left":

@@ -779,9 +779,46 @@ func loadDocs(c *api.Client, ownerType string, ownerID int) tea.Cmd {
 	}
 }
 
+// loadAllDocs lädt ALLE Dokumente des Projekts (entitätsübergreifend) für den
+// globalen Docs-Browser (DD2-163 Rework).
+func loadAllDocs(c *api.Client) tea.Cmd {
+	return func() tea.Msg {
+		docs, err := c.ListAllDocuments()
+		if err != nil {
+			return errMsg{err}
+		}
+		return docsMsg{items: docs}
+	}
+}
+
+// ownerDocsMsg trägt die Dokument-Liste eines Owners für die Inline-Anzeige im
+// Tree-Detail (DD2-163 Rework). key = depCacheKey("m"/"s", id).
+type ownerDocsMsg struct {
+	key  string
+	docs []api.Document
+}
+
+// loadOwnerDocs holt die Dokumente eines Meilenstein-/Sprint-Knotens read-only und
+// füllt den ownerDocs-Cache (lazy beim Fokussieren, analog loadMilestoneDeps).
+func loadOwnerDocs(c *api.Client, ownerType string, ownerID int) tea.Cmd {
+	return func() tea.Msg {
+		docs, err := c.ListDocuments(ownerType, ownerID)
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		kind := "m"
+		if ownerType == "sprint" {
+			kind = "s"
+		}
+		return ownerDocsMsg{key: depCacheKey(kind, ownerID), docs: docs}
+	}
+}
+
 // saveDocCmd legt ein Dokument an (editID==0, title aus erster Buffer-Zeile) oder
 // aktualisiert den body einer bestehenden (editID>0), dann Reload (DD2-167).
-func saveDocCmd(c *api.Client, ownerType string, ownerID, editID int, title, body string) tea.Cmd {
+// saveDocCmd legt an/aktualisiert; reloadAll=true lädt danach die projektweite Liste
+// neu (All-Docs-Browser), sonst owner-gescopt (DD2-163 Rework).
+func saveDocCmd(c *api.Client, ownerType string, ownerID, editID int, title, body string, reloadAll bool) tea.Cmd {
 	return func() tea.Msg {
 		var notice string
 		if editID > 0 {
@@ -797,7 +834,7 @@ func saveDocCmd(c *api.Client, ownerType string, ownerID, editID int, title, bod
 			}
 			notice = "Document created"
 		}
-		docs, err := c.ListDocuments(ownerType, ownerID)
+		docs, err := reloadDocs(c, ownerType, ownerID, reloadAll)
 		if err != nil {
 			return errMsg{err}
 		}
@@ -805,18 +842,27 @@ func saveDocCmd(c *api.Client, ownerType string, ownerID, editID int, title, bod
 	}
 }
 
-// doDeleteDocument löscht ein Dokument und lädt die Owner-Liste neu (DD2-167).
-func doDeleteDocument(c *api.Client, ownerType string, ownerID, id int, name string) tea.Cmd {
+// doDeleteDocument löscht ein Dokument und lädt die Liste neu (DD2-167); reloadAll
+// steuert owner-gescopt vs. projektweit (DD2-163 Rework).
+func doDeleteDocument(c *api.Client, ownerType string, ownerID, id int, name string, reloadAll bool) tea.Cmd {
 	return func() tea.Msg {
 		if err := c.DeleteDocument(ownerType, ownerID, id); err != nil {
 			return noticeMsg{cleanAPIErr(err)}
 		}
-		docs, err := c.ListDocuments(ownerType, ownerID)
+		docs, err := reloadDocs(c, ownerType, ownerID, reloadAll)
 		if err != nil {
 			return errMsg{err}
 		}
 		return docsMsg{items: docs, notice: "Deleted " + name}
 	}
+}
+
+// reloadDocs liefert die Doc-Liste passend zum Browser-Modus (projektweit vs owner).
+func reloadDocs(c *api.Client, ownerType string, ownerID int, all bool) ([]api.Document, error) {
+	if all {
+		return c.ListAllDocuments()
+	}
+	return c.ListDocuments(ownerType, ownerID)
 }
 
 // depsMsg trägt die geladenen Abhängigkeiten (DD2-89). key = "m:<id>"/"s:<id>"

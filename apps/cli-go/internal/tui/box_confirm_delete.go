@@ -75,7 +75,7 @@ func (m model) keyDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "todo": // DD2-171: ToDo, kein Cascade
 			return m, doDeleteTodo(m.client, m.delID, m.delName, m.todoStatus)
 		case "document": // DD2-167: Dokument, kein Cascade
-			return m, doDeleteDocument(m.client, m.docOwnerType, m.docOwnerID, m.delID, m.delName)
+			return m, doDeleteDocument(m.client, m.docOwnerType, m.docOwnerID, m.delID, m.delName, m.docAllMode)
 		}
 		return m, doCascadeDelete(m.client, m.delKind, m.delID, m.delName)
 	}

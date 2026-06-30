@@ -31,6 +31,7 @@ func paletteActions(m *model) []paletteAction {
 		{"go_notes", "Go to: User notes"},         // DD2-168
 		{"go_todos", "Go to: ToDos"},              // DD2-171
 		{"go_docs", "Go to: Documents"},           // DD2-167 (owner = focused tree node)
+		{"go_all_docs", "Go to: All documents"},   // DD2-163 Rework (project-wide)
 		{"go_search", "Go to: Search all issues"}, // DD2-91
 		{"go_backlog", "Go to: Backlog"},
 		{"go_tags", "Go to: Tag manager"},
@@ -133,6 +134,8 @@ func (m model) dispatchPalette(id string) (tea.Model, tea.Cmd) {
 		return m.openToDos()
 	case "go_docs": // DD2-167: Dokumente-Browser (Owner aus Tree-Fokus)
 		return m.openDocsFromContext()
+	case "go_all_docs": // DD2-163 Rework: globaler Docs-Browser (projektweit)
+		return m.openAllDocs()
 	case "go_search": // DD2-91: projektweite Issue-Suche
 		return m.openSearch()
 	case "go_tutorial": // DD2-122: geführtes Onboarding
