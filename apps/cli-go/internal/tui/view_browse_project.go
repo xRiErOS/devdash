@@ -213,15 +213,28 @@ func (m *model) treeNodesFiltered() []treeNode {
 				}
 			}
 			if spHit || len(iss) > 0 { // Sprint als Treffer ODER als Pfad-Vorfahr
+				// DD2-178: gespeicherten Expand-Zustand respektieren (kein Force-
+				// Expand-All mehr). Collapsed Sprint zeigt den ▸-Marker, blendet aber
+				// seine Issues aus — analog treeNodes(). Strikt: Treffer in collapsed
+				// Knoten bleiben verborgen (Q an PO; PO-Wunsch = Zustand bleibt nutzbar).
+				spOpen := m.treeExpSprint[sp.ID]
 				subs = append(subs, treeNode{kind: tkSprint, mileIdx: mi, sprIdx: si,
-					sprintID: sp.ID, depth: 1, expand: true, open: true})
-				subs = append(subs, iss...)
+					sprintID: sp.ID, depth: 1, expand: true, open: spOpen})
+				if spOpen {
+					subs = append(subs, iss...)
+				}
 			}
 		}
 		if mileHit || len(subs) > 0 {
+			// DD2-178: Meilenstein-Knoten zeigt den gespeicherten Zustand; collapsed
+			// blendet seine Sprints aus (subs entscheidet weiterhin die Sichtbarkeit
+			// des Meilensteins selbst, damit Treffer-Vorfahren expandierbar bleiben).
+			mileOpen := m.treeExpMile[ms.ID]
 			nodes = append(nodes, treeNode{kind: tkMile, mileIdx: mi, depth: 0,
-				expand: len(ms.Sprints) > 0, open: true})
-			nodes = append(nodes, subs...)
+				expand: len(ms.Sprints) > 0, open: mileOpen})
+			if mileOpen {
+				nodes = append(nodes, subs...)
+			}
 		}
 	}
 	return nodes
