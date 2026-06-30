@@ -15,8 +15,13 @@ type Document struct {
 	Title       string  `json:"title"`
 	Body        string  `json:"body"`
 	FilePath    *string `json:"file_path"`
+	Status      string  `json:"status"` // DD2-167: draft|active|archived
 	CreatedAt   *string `json:"created_at"`
 	UpdatedAt   *string `json:"updated_at"`
+	// DD2-163 (Rework): nur vom projektweiten Endpoint (listAllDocuments) gefüllt —
+	// owner-gescopte Listen lassen sie leer.
+	OwnerType string `json:"owner_type,omitempty"`
+	OwnerName string `json:"owner_name,omitempty"`
 }
 
 // DocumentBody ist der POST/PUT-Body. Bei PUT (Patch) sind nicht gesetzte Felder
@@ -25,12 +30,24 @@ type DocumentBody struct {
 	Title    string  `json:"title,omitempty"`
 	Body     *string `json:"body,omitempty"`
 	FilePath *string `json:"file_path,omitempty"`
+	Status   string  `json:"status,omitempty"` // DD2-167
 }
 
 // docBase baut den Owner-Pfad. ownerType ist "milestone" oder "sprint";
 // die Route pluralisiert (milestones/sprints).
 func docBase(ownerType string, ownerID int) string {
 	return fmt.Sprintf("/api/%ss/%d/documents", ownerType, ownerID)
+}
+
+// ListAllDocuments liefert ALLE Dokumente des aktuellen Projekts (entitätsüber-
+// greifend, id DESC) mit aufgelöstem OwnerType/OwnerName (DD2-163 Rework).
+func (c *Client) ListAllDocuments() ([]Document, error) {
+	data, err := c.Do("GET", fmt.Sprintf("/api/projects/%s/documents", c.projectID), nil)
+	if err != nil {
+		return nil, err
+	}
+	var list []Document
+	return list, json.Unmarshal(data, &list)
 }
 
 // ListDocuments liefert alle Dokumente eines Owners (neueste zuerst, id DESC).

@@ -6,6 +6,7 @@ dd2 — ToDos
 │▸ [ ] Zebra task              ││Zebra task                                              │
 │  [x] Alpha task              ││status: open                                            │
 │  [-] Mid task                ││                                                        │
+│                              ││Details                                                 │
 │                              ││                                                        │
 │                              ││  Some **detail** text.                                 │
 │                              ││                                                        │
@@ -18,6 +19,5 @@ dd2 — ToDos
 │                              ││                                                        │
 │                              ││                                                        │
 │                              ││                                                        │
-│                              ││                                                        │
 ╰──────────────────────────────╯╰────────────────────────────────────────────────────────╯
-i/k:↑↓  enter:toggle  e:edit  n:new  d:del  /:search  s:status  o:sort  esc/q:back
+i/k:↑↓  enter/space:toggle  e:edit  n:new  d:del  /:search  s:status  o:sort  esc/q:back

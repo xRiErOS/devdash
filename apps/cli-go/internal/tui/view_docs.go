@@ -69,8 +69,38 @@ func (m model) openDocs(ownerType string, ownerID int, ownerName string) (tea.Mo
 	m.docSearching = false
 	m.docQuery = ""
 	m.docEditID = 0
+	m.docAllMode = false
 	m.status = ""
 	return m, loadDocs(m.client, ownerType, ownerID)
+}
+
+// openAllDocs öffnet den globalen Docs-Browser (alle Dokumente des Projekts,
+// entitätsübergreifend) — DD2-163 Rework. Owner pro Dokument wird beim Edit/Delete
+// aus der Zeile aufgelöst (docOwnerOf); Create ist hier mangels Owner gesperrt.
+func (m model) openAllDocs() (tea.Model, tea.Cmd) {
+	m.view = viewDocs
+	m.doclist = listState{}
+	m.docList = nil
+	m.docOwnerType = ""
+	m.docOwnerID = 0
+	m.docOwnerName = ""
+	m.docSearching = false
+	m.docQuery = ""
+	m.docEditID = 0
+	m.docAllMode = true
+	m.status = ""
+	return m, loadAllDocs(m.client)
+}
+
+// docOwnerOf leitet (ownerType, ownerID) aus einer Dokument-Zeile ab (All-Docs-Modus).
+func docOwnerOf(d *api.Document) (string, int) {
+	if d.MilestoneID != nil {
+		return "milestone", *d.MilestoneID
+	}
+	if d.SprintID != nil {
+		return "sprint", *d.SprintID
+	}
+	return "", 0
 }
 
 // keyDocs steuert den Browser. Voll-Intercept (/ tippt Suche).
@@ -101,15 +131,26 @@ func (m model) keyDocs(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if cur == nil {
 			return m, nil
 		}
+		if m.docAllMode { // DD2-163 Rework: Owner aus der Zeile auflösen
+			m.docOwnerType, m.docOwnerID = docOwnerOf(cur)
+		}
 		m.docEditID = cur.ID
 		return m, editInEditor(cur.Body, ".md")
 	case "n": // create: erste Buffer-Zeile = title
+		if m.docAllMode { // ohne Owner kein Create — aus Meilenstein/Sprint-Kontext anlegen
+			return m, func() tea.Msg {
+				return noticeMsg{"create from a milestone/sprint (tree) context"}
+			}
+		}
 		m.docEditID = 0
 		return m, editInEditor("# Title\n\n", ".md")
 	case "d":
 		cur := m.selDoc()
 		if cur == nil {
 			return m, nil
+		}
+		if m.docAllMode { // DD2-163 Rework: Owner aus der Zeile auflösen
+			m.docOwnerType, m.docOwnerID = docOwnerOf(cur)
 		}
 		return m.openDelete("document", cur.ID, cur.Title)
 	}
@@ -165,6 +206,9 @@ func (m model) viewDocs() string {
 }
 
 func (m model) docListTitle() string {
+	if m.docAllMode { // DD2-163 Rework: projektweiter Modus
+		return fmt.Sprintf("All documents (%d)", len(m.filteredDocs()))
+	}
 	owner := m.docOwnerName
 	if owner == "" {
 		owner = m.docOwnerType
@@ -175,11 +219,18 @@ func (m model) docListTitle() string {
 func (m model) docRows() []string {
 	list := m.filteredDocs()
 	if len(list) == 0 {
+		if m.docAllMode {
+			return []string{theme.Dim.Render("(no documents — / search)")}
+		}
 		return []string{theme.Dim.Render("(none — n: new, / search)")}
 	}
 	rows := make([]string, len(list))
 	for i, d := range list {
-		rows[i] = d.Title
+		if m.docAllMode && d.OwnerName != "" { // Owner-Name voranstellen (entitätsübergreifend)
+			rows[i] = theme.Dim.Render("["+truncate(d.OwnerName, 14)+"] ") + d.Title
+		} else {
+			rows[i] = d.Title
+		}
 	}
 	return rows
 }
@@ -189,10 +240,12 @@ func (m model) docDetailRows(width int) []string {
 	if cur == nil {
 		return []string{theme.Dim.Render("(select a document →)")}
 	}
-	rows := []string{
-		theme.Header.Render(cur.Title),
-		"",
+	rows := []string{theme.Header.Render(cur.Title)}
+	// DD2-167 Rework: Metadaten-Header (created/updated/status).
+	if meta := entityMetaLine(cur.CreatedAt, cur.UpdatedAt, cur.Status); meta != "" {
+		rows = append(rows, meta)
 	}
+	rows = append(rows, "")
 	if strings.TrimSpace(cur.Body) == "" {
 		rows = append(rows, theme.Dim.Render("(empty — enter to edit)"))
 	} else {

@@ -7,12 +7,14 @@ import { createTestDb } from '../_fixtures/in-memory-db.js'
 import { seedProject } from '../_fixtures/seed.js'
 import {
   createUserNote, listUserNotes, getUserNote, updateUserNote, deleteUserNote,
+  UserNoteError, USER_NOTE_STATUS,
 } from '../../apps/backend/src/lib/userNotes.js'
 
 describe('DD2-161 — user_notes (Rename von session_notes)', () => {
   let db
   beforeEach(() => {
-    db = createTestDb({ upToVersion: '066_v3_dd2_161_user_notes_rename.sql' })
+    // DD2-168 Rework: Pin auf Migration 070 (status-Spalte) statt 066.
+    db = createTestDb({ upToVersion: '070_v3_dd2_167_doc_note_status.sql' })
     seedProject(db) // id=2
   })
   afterEach(() => db.close())
@@ -88,5 +90,15 @@ describe('DD2-161 — user_notes (Rename von session_notes)', () => {
     expect(() => createUserNote(db, 2, { title: '' })).toThrow()
     expect(() => createUserNote(db, 2, { title: 'ok', details: 'x'.repeat(501) })).toThrow()
     expect(() => createUserNote(db, 2, { title: 'ok', sprints: 'nope' })).toThrow()
+  })
+
+  // DD2-168 Rework: status-Lifecycle (Migration 070).
+  test('status: Default active, setzen + patchen, Whitelist erzwungen', () => {
+    expect(createUserNote(db, 2, { title: 'def' }).status).toBe('active')
+    const d = createUserNote(db, 2, { title: 'd', status: 'draft' })
+    expect(d.status).toBe('draft')
+    expect(updateUserNote(db, 2, d.id, { status: 'archived' }).status).toBe('archived')
+    expect(() => createUserNote(db, 2, { title: 'x', status: 'bogus' })).toThrow(UserNoteError)
+    expect(USER_NOTE_STATUS).toEqual(['draft', 'active', 'archived'])
   })
 })

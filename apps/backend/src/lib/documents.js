@@ -5,6 +5,12 @@
 
 import { TITLE_MAX, BODY_MAX } from '@devd/api-types/document.contracts.js'
 
+// DD2-167: schlanker Status-Lifecycle (kein Issue-/Sprint-Lifecycle). Whitelist hier
+// in der Lib (werfende Autorität) statt aus dem Contract importiert — der Backend-Lauf
+// im Worktree resolved @devd/api-types bare gegen die Main-Pakete (node_modules-Symlink),
+// ein neuer Contract-Export käme dort nicht an. Spiegel in document.contracts.js (Schema-Doku).
+export const DOCUMENT_STATUS = ['draft', 'active', 'archived']
+
 export class DocumentError extends Error {
   constructor(message, { statusCode = 400, code, field } = {}) {
     super(message)
@@ -52,14 +58,25 @@ function validateFilePath(raw) {
   return raw
 }
 
-export function createDocument(db, owner, { title, body, file_path } = {}) {
+// validateStatus akzeptiert nur die Whitelist; undefined → Default 'active' (Create)
+// bzw. Skip (Update behandelt undefined als „nicht ändern" davor).
+function validateStatus(raw) {
+  if (raw === undefined || raw === null || raw === '') return 'active'
+  if (!DOCUMENT_STATUS.includes(raw)) {
+    throw new DocumentError(`status muss eines von ${DOCUMENT_STATUS.join('|')} sein`, { code: 'STATUS_INVALID', field: 'status' })
+  }
+  return raw
+}
+
+export function createDocument(db, owner, { title, body, file_path, status } = {}) {
   const col = ownerColumn(owner)
   const t = validateTitle(title)
   const b = validateBody(body)
   const fp = validateFilePath(file_path)
+  const st = validateStatus(status)
   const result = db.prepare(
-    `INSERT INTO documents (${col}, title, body, file_path) VALUES (?, ?, ?, ?)`,
-  ).run(owner.id, t, b, fp)
+    `INSERT INTO documents (${col}, title, body, file_path, status) VALUES (?, ?, ?, ?, ?)`,
+  ).run(owner.id, t, b, fp, st)
   return getDocument(db, owner, Number(result.lastInsertRowid))
 }
 
@@ -67,6 +84,23 @@ export function createDocument(db, owner, { title, body, file_path } = {}) {
 export function listDocuments(db, owner) {
   const col = ownerColumn(owner)
   return db.prepare(`SELECT * FROM documents WHERE ${col} = ? ORDER BY id DESC`).all(owner.id)
+}
+
+// DD2-163 (Rework): projektweite Liste ALLER Dokumente (entitätsübergreifend) für den
+// globalen Docs-Browser. Owner-Typ + Owner-Name werden über JOIN auf milestones/sprints
+// aufgelöst und als owner_type/owner_name mitgeliefert. Scope = Dokumente, deren
+// Meilenstein ODER Sprint zum Projekt gehört (Sprints tragen selbst project_id, Mig. 003).
+export function listAllDocuments(db, projectId) {
+  return db.prepare(`
+    SELECT d.*,
+      CASE WHEN d.milestone_id IS NOT NULL THEN 'milestone' ELSE 'sprint' END AS owner_type,
+      COALESCE(m.name, s.name) AS owner_name
+    FROM documents d
+    LEFT JOIN milestones m ON d.milestone_id = m.id
+    LEFT JOIN sprints   s ON d.sprint_id    = s.id
+    WHERE m.project_id = ? OR s.project_id = ?
+    ORDER BY d.id DESC
+  `).all(projectId, projectId)
 }
 
 export function getDocument(db, owner, id) {
@@ -85,6 +119,7 @@ export function updateDocument(db, owner, id, patch = {}) {
   if (patch.title !== undefined) { fields.push('title = ?'); params.push(validateTitle(patch.title)) }
   if (patch.body !== undefined) { fields.push('body = ?'); params.push(validateBody(patch.body)) }
   if (patch.file_path !== undefined) { fields.push('file_path = ?'); params.push(validateFilePath(patch.file_path)) }
+  if (patch.status !== undefined) { fields.push('status = ?'); params.push(validateStatus(patch.status)) }
   if (fields.length === 0) {
     throw new DocumentError('Kein aktualisierbares Feld übergeben', { code: 'EMPTY_PATCH' })
   }

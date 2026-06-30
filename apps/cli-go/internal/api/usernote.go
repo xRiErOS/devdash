@@ -16,6 +16,7 @@ type UserNote struct {
 	PrURL     *string  `json:"pr_url"`
 	Sprints   []string `json:"sprints"`
 	Issues    []string `json:"issues"`
+	Status    string   `json:"status"` // DD2-168: draft|active|archived
 	CreatedAt *string  `json:"created_at"`
 	UpdatedAt *string  `json:"updated_at"`
 }
@@ -28,6 +29,7 @@ type UserNoteBody struct {
 	PrURL   *string  `json:"pr_url,omitempty"`
 	Sprints []string `json:"sprints,omitempty"`
 	Issues  []string `json:"issues,omitempty"`
+	Status  string   `json:"status,omitempty"` // DD2-168
 }
 
 // ListUserNotes liefert die Notizen des aktuellen Projekts (neueste zuerst).

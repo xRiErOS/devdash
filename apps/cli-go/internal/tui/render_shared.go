@@ -107,6 +107,26 @@ func issueFields(it *api.Issue) string {
 	return b.String()
 }
 
+// entityMetaLine baut die dimmte Meta-Kopfzeile für Detail-Panes (DD2-167/168):
+// created · updated · status. Leere/nil-Werte werden ausgelassen; ist nichts da,
+// kommt ein leerer String zurück (Caller fügt dann keine Zeile ein).
+func entityMetaLine(created, updated *string, status string) string {
+	var parts []string
+	if c := deref(created); c != "" {
+		parts = append(parts, "created: "+c)
+	}
+	if u := deref(updated); u != "" {
+		parts = append(parts, "updated: "+u)
+	}
+	if strings.TrimSpace(status) != "" {
+		parts = append(parts, "status: "+status)
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	return theme.Dim.Render(strings.Join(parts, " · "))
+}
+
 // borderedPane füllt/cappt content auf h Innenzeilen und legt den RoundedBorder
 // außen an (Golden Rule #1: kein Height() auf bordered Style). Gesamthöhe = h+2.
 func borderedPane(lines []string, w, h int, border lipgloss.Color) string {

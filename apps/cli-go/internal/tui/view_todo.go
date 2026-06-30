@@ -9,6 +9,7 @@ import (
 	"devd-cli/internal/theme"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // view_todo.go — Projekt-ToDos-Browser (DD2-171): MasterDetail über project_todos
@@ -104,7 +105,7 @@ func (m model) keyToDos(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.todolist = listState{}
 		return m, nil
-	case "enter": // toggle open<->done
+	case "enter", " ": // toggle open<->done (DD2-171 Rework: space = quick-complete)
 		cur := m.selTodo()
 		if cur == nil {
 			return m, nil
@@ -162,14 +163,15 @@ func (m model) viewToDos() string {
 	h := m.bodyHeight()
 	leftW, rightW := m.masterDetailWidths(w)
 
-	listP := pane{title: m.todoListTitle(), rows: m.todoRows(), cursor: m.todolist.cursor, isList: true}
+	// DD2-171 Rework: Master-Liste mit umbrechenden Labels (eigener Renderer statt
+	// renderPane, da ein ToDo mehrere visuelle Zeilen belegt).
+	left := m.todoLeftPane(leftW, h)
 	detP := pane{title: "Detail", rows: m.todoDetailRows(rightW - 2), isList: false}
-	left := renderPane(listP, leftW, h, true)
 	right := renderPane(detP, rightW, h, false)
 	body := lipgloss.JoinHorizontal(lipgloss.Top, left, right)
 
 	head := m.header() + "\n" + theme.Header.Render(m.screenTitle("ToDos"))
-	footer := theme.Dim.Render("i/k:↑↓  enter:toggle  e:edit  n:new  d:del  /:search  s:status  o:sort  esc/q:back")
+	footer := theme.Dim.Render("i/k:↑↓  enter/space:toggle  e:edit  n:new  d:del  /:search  s:status  o:sort  esc/q:back")
 	if m.todoSearching {
 		footer = theme.Key.Render("Search: ") + m.todoQuery + "▏"
 	} else if m.status != "" {
@@ -186,23 +188,57 @@ func (m model) todoListTitle() string {
 	return fmt.Sprintf("ToDos ∙ %s (%d) ∙ %s", st, len(m.filteredTodos()), m.todoSort)
 }
 
-func (m model) todoRows() []string {
+// todoCheckbox liefert die Status-Checkbox (Single Source für Liste + Wrap-Pane).
+func todoCheckbox(status string) string {
+	switch status {
+	case "done":
+		return theme.Accent.Render("[x]")
+	case "cancelled":
+		return theme.Dim.Render("[-]")
+	}
+	return "[ ]"
+}
+
+// todoLeftPane rendert die Master-Liste mit umbrechenden Labels (DD2-171 Rework):
+// lange ToDo-Titel werden über mehrere Zeilen gebrochen statt abgeschnitten. Eigener
+// Renderer (nicht renderPane), weil ein ToDo dadurch mehrere visuelle Zeilen belegt —
+// der Cursor markiert ALLE Zeilen seines Items (▸ auf der ersten, Accent auf allen).
+// Wrap-Breite explizit (Golden Rule #2: kein Auto-Wrap in der bordered Pane).
+func (m model) todoLeftPane(w, h int) string {
+	title := m.todoListTitle()
+	lines := []string{
+		theme.Header.Render(truncate(title, w)),
+		theme.Dim.Render(strings.Repeat("─", min(w, lipgloss.Width(title)+2))),
+	}
 	list := m.filteredTodos()
 	if len(list) == 0 {
-		return []string{theme.Dim.Render("(none — n: new, / search, s status)")}
+		lines = append(lines, theme.Dim.Render("(none — n: new, / search, s status)"))
 	}
-	rows := make([]string, len(list))
 	for i, t := range list {
-		box := "[ ]"
-		switch t.Status {
-		case "done":
-			box = theme.Accent.Render("[x]")
-		case "cancelled":
-			box = theme.Dim.Render("[-]")
+		prefix := todoCheckbox(t.Status) + " "
+		indent := strings.Repeat(" ", lipgloss.Width(prefix))
+		wrapW := w - 2 - lipgloss.Width(prefix) // -2 = Cursor/Indent-Spalte
+		if wrapW < 8 {
+			wrapW = 8
 		}
-		rows[i] = fmt.Sprintf("%s %s", box, t.Label)
+		segs := strings.Split(wrapText(t.Label, wrapW), "\n")
+		sel := i == m.todolist.cursor
+		for j, seg := range segs {
+			text := prefix + seg
+			if j > 0 {
+				text = indent + seg
+			}
+			cursor := "  "
+			if sel {
+				if j == 0 {
+					cursor = theme.Accent.Render("▸ ")
+				}
+				text = theme.Accent.Render(ansi.Strip(text)) // ganze Item-Zeile tönen
+			}
+			lines = append(lines, cursor+text)
+		}
 	}
-	return rows
+	return borderedPane(lines, w, h, theme.Mauve)
 }
 
 func (m model) todoDetailRows(width int) []string {
@@ -214,6 +250,7 @@ func (m model) todoDetailRows(width int) []string {
 		theme.Header.Render(cur.Label),
 		theme.Dim.Render("status: " + cur.Status),
 		"",
+		theme.Dim.Render("Details"), // DD2-171 Rework: explizite Überschrift für den Detail-Block
 	}
 	if d := deref(cur.Details); strings.TrimSpace(d) != "" {
 		rows = append(rows, strings.Split(glowRender(d, width), "\n")...)

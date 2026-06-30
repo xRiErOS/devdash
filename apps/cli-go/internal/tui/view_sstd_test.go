@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"strings"
 	"testing"
 
 	"devd-cli/internal/api"
@@ -88,6 +89,48 @@ func TestSSTDSavePathDispatch(t *testing.T) {
 	_, cmd := m.Update(editorFinishedMsg{content: "new content", changed: true})
 	if cmd == nil {
 		t.Fatalf("changed edit should dispatch a save cmd")
+	}
+}
+
+// DD2-166 Rework: y yankt den aktiven Slot (Status-Bestätigung), kein Edit.
+func TestSSTDYankSlot(t *testing.T) {
+	m := sstdTestModel()
+	m.sstdList.cursor = 0 // architecture
+	nm, _ := m.keySSTD(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("y")})
+	got := nm.(model)
+	if got.sstdEditKey != "" {
+		t.Fatalf("yank must not start an edit")
+	}
+	if !strings.Contains(got.status, "architecture") {
+		t.Fatalf("yank should confirm the slot key in status: %q", got.status)
+	}
+}
+
+// DD2-166 Rework: alt+y yankt die gesamte SSTD.
+func TestSSTDYankAll(t *testing.T) {
+	m := sstdTestModel()
+	nm, _ := m.keySSTD(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("y"), Alt: true})
+	if !strings.Contains(nm.(model).status, "full SSTD") {
+		t.Fatalf("alt+y should confirm full-SSTD copy: %q", nm.(model).status)
+	}
+}
+
+// DD2-166 Rework: die Slot-ID (slot_key) steht in der Listenzeile.
+func TestSSTDRowsHaveSlotID(t *testing.T) {
+	m := sstdTestModel()
+	rows := m.sstdRows()
+	if !strings.Contains(rows[0], "architecture") {
+		t.Fatalf("row 0 should contain the slot key: %q", rows[0])
+	}
+}
+
+// DD2-166 Rework: sstdAllClip serialisiert alle Slots + Projektionen als Markdown.
+func TestSSTDAllClip(t *testing.T) {
+	out := sstdTestModel().sstdAllClip()
+	for _, want := range []string{"architecture", "sprint_state", "next_steps", "journal", "Layered client/server"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("sstdAllClip missing %q:\n%s", want, out)
+		}
 	}
 }
 

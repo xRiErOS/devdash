@@ -60,7 +60,7 @@ import { renderSnapshot as renderProjectMemorySnapshot, renderSplitSnapshot as r
 import { cascadeDeleteSprints, milestoneDeletePreview, sprintDocumentCount } from './lib/cascadeDelete.js'
 import {
   DocumentError,
-  createDocument, listDocuments, getDocument, updateDocument, deleteDocument,
+  createDocument, listDocuments, listAllDocuments, getDocument, updateDocument, deleteDocument,
 } from './lib/documents.js'
 import { listTags as listMemoryTags, createTag as createMemoryTag, renameTag as renameMemoryTag, deleteTag as deleteMemoryTag, pruneTagsNotInRegistry as pruneMemoryTags } from './lib/memoryTags.js'
 import { listIssueDependencies, countIssueDependencies } from './lib/issueDependencies.js'
@@ -1304,6 +1304,13 @@ function _registerDocumentRoutes(type, base) {
 }
 _registerDocumentRoutes('milestone', '/api/milestones')
 _registerDocumentRoutes('sprint', '/api/sprints')
+
+// DD2-163 (Rework): projektweite Doc-Liste (entitätsübergreifend) für den globalen
+// Docs-Browser. owner_type/owner_name werden mitgeliefert. read-only Aggregat.
+app.get('/api/projects/:projectId/documents', (req, res) => {
+  try { res.json(listAllDocuments(db, Number(req.params.projectId))) }
+  catch (e) { return _sendDocumentError(res, e) }
+})
 
 app.delete('/api/projects/:id', (req, res) => {
   const id = Number(req.params.id)

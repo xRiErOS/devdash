@@ -5,6 +5,11 @@
 
 import { TITLE_MAX, DETAILS_MAX } from '@devd/api-types/userNote.contracts.js'
 
+// DD2-168: schlanker Status-Lifecycle (draft|active|archived), analog documents.js.
+// Whitelist in der Lib (werfende Autorität) — bewusst NICHT aus dem Contract importiert
+// (Worktree-bare-Import-Falle, s. documents.js). Spiegel in userNote.contracts.js.
+export const USER_NOTE_STATUS = ['draft', 'active', 'archived']
+
 export class UserNoteError extends Error {
   constructor(message, { statusCode = 400, code, field } = {}) {
     super(message)
@@ -52,6 +57,14 @@ function validatePrUrl(raw) {
   return raw
 }
 
+function validateStatus(raw) {
+  if (raw === undefined || raw === null || raw === '') return 'active'
+  if (!USER_NOTE_STATUS.includes(raw)) {
+    throw new UserNoteError(`status muss eines von ${USER_NOTE_STATUS.join('|')} sein`, { code: 'STATUS_INVALID', field: 'status' })
+  }
+  return raw
+}
+
 // DB-Row → API-Shape (JSON-Arrays geparst).
 function hydrate(row) {
   if (!row) return null
@@ -62,15 +75,16 @@ function hydrate(row) {
   }
 }
 
-export function createUserNote(db, projectId, { title, details, pr_url, sprints, issues } = {}) {
+export function createUserNote(db, projectId, { title, details, pr_url, sprints, issues, status } = {}) {
   const t = validateTitle(title)
   const d = validateDetails(details)
   const pr = validatePrUrl(pr_url)
   const sp = JSON.stringify(validateKeyArray(sprints, 'sprints'))
   const is = JSON.stringify(validateKeyArray(issues, 'issues'))
+  const st = validateStatus(status)
   const result = db.prepare(
-    'INSERT INTO user_notes (project_id, title, details, pr_url, sprints, issues) VALUES (?, ?, ?, ?, ?, ?)',
-  ).run(projectId, t, d, pr, sp, is)
+    'INSERT INTO user_notes (project_id, title, details, pr_url, sprints, issues, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+  ).run(projectId, t, d, pr, sp, is, st)
   return getUserNote(db, projectId, Number(result.lastInsertRowid))
 }
 
@@ -115,6 +129,7 @@ export function updateUserNote(db, projectId, id, patch = {}) {
   if (patch.pr_url !== undefined) { fields.push('pr_url = ?'); params.push(validatePrUrl(patch.pr_url)) }
   if (patch.sprints !== undefined) { fields.push('sprints = ?'); params.push(JSON.stringify(validateKeyArray(patch.sprints, 'sprints'))) }
   if (patch.issues !== undefined) { fields.push('issues = ?'); params.push(JSON.stringify(validateKeyArray(patch.issues, 'issues'))) }
+  if (patch.status !== undefined) { fields.push('status = ?'); params.push(validateStatus(patch.status)) }
   if (fields.length === 0) {
     throw new UserNoteError('Kein aktualisierbares Feld übergeben', { code: 'EMPTY_PATCH' })
   }

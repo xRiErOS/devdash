@@ -6,11 +6,15 @@ import { tmpdir } from 'os'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
 import { seedProject, seedMilestones, TEST_PROJECT_ID } from '../_fixtures/seed.js'
 import {
-  createDocument, listDocuments, getDocument, updateDocument, deleteDocument, DocumentError,
+  createDocument, listDocuments, listAllDocuments, getDocument, updateDocument, deleteDocument,
+  DocumentError, DOCUMENT_STATUS,
 } from '../../apps/backend/src/lib/documents.js'
 import { milestoneDeletePreview, cascadeDeleteSprints, sprintDocumentCount } from '../../apps/backend/src/lib/cascadeDelete.js'
 
-const MIG = '067_v3_dd2_21_documents.sql'
+// DD2-167 Rework: Pin auf Migration 070 (status-Spalte). Seed-Status im neuen
+// Vokabular (DD2-155): Milestone 'new', Sprint 'in_progress' — ältere Werte
+// ('planning'/'active') werden ab 069 per CHECK/Trigger abgelehnt.
+const MIG = '070_v3_dd2_167_doc_note_status.sql'
 
 describe('DD2-21 — documents (DB-Blob, milestone/sprint owner)', () => {
   let db, logDir, milestoneId, sprintId
@@ -19,8 +23,8 @@ describe('DD2-21 — documents (DB-Blob, milestone/sprint owner)', () => {
     db = createTestDb({ upToVersion: MIG })
     seedProject(db)
     logDir = mkdtempSync(join(tmpdir(), 'devd-dd221-'))
-    ;[milestoneId] = seedMilestones(db, [{ name: 'M1', target_date: '2026-12-31', status: 'planning' }])
-    const r = db.prepare("INSERT INTO sprints (name, status, project_id, project_number, milestone_id) VALUES ('S1','active',?,1,?)")
+    ;[milestoneId] = seedMilestones(db, [{ name: 'M1', target_date: '2026-12-31', status: 'new' }])
+    const r = db.prepare("INSERT INTO sprints (name, status, project_id, project_number, milestone_id) VALUES ('S1','in_progress',?,1,?)")
       .run(TEST_PROJECT_ID, milestoneId)
     sprintId = Number(r.lastInsertRowid)
   })
@@ -82,5 +86,28 @@ describe('DD2-21 — documents (DB-Blob, milestone/sprint owner)', () => {
     createDocument(db, { type: 'sprint', id: sprintId }, { title: 's-doc2' })
     const p = milestoneDeletePreview(db, milestoneId)
     expect(p.documents).toBe(3)
+  })
+
+  // DD2-167 Rework: status-Lifecycle (Migration 070).
+  test('status: Default active, setzen + patchen, Whitelist erzwungen', () => {
+    const def = createDocument(db, { type: 'milestone', id: milestoneId }, { title: 'def' })
+    expect(def.status).toBe('active')
+    const draft = createDocument(db, { type: 'milestone', id: milestoneId }, { title: 'd', status: 'draft' })
+    expect(draft.status).toBe('draft')
+    const up = updateDocument(db, { type: 'milestone', id: milestoneId }, draft.id, { status: 'archived' })
+    expect(up.status).toBe('archived')
+    expect(() => createDocument(db, { type: 'milestone', id: milestoneId }, { title: 'x', status: 'bogus' })).toThrow(DocumentError)
+    expect(DOCUMENT_STATUS).toEqual(['draft', 'active', 'archived'])
+  })
+
+  // DD2-163 Rework: projektweite Doc-Liste (entitätsübergreifend) mit owner_type/owner_name.
+  test('listAllDocuments: alle Docs des Projekts, Owner aufgelöst, id DESC', () => {
+    createDocument(db, { type: 'milestone', id: milestoneId }, { title: 'm-doc' })
+    createDocument(db, { type: 'sprint', id: sprintId }, { title: 's-doc' })
+    const all = listAllDocuments(db, TEST_PROJECT_ID)
+    expect(all.map(r => r.title)).toEqual(['s-doc', 'm-doc'])
+    const byTitle = Object.fromEntries(all.map(r => [r.title, r]))
+    expect(byTitle['m-doc']).toMatchObject({ owner_type: 'milestone', owner_name: 'M1' })
+    expect(byTitle['s-doc']).toMatchObject({ owner_type: 'sprint', owner_name: 'S1' })
   })
 })

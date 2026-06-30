@@ -237,6 +237,7 @@ type model struct {
 	docSearching bool
 	docQuery     string
 	docEditID    int
+	docAllMode   bool // DD2-163 Rework: globaler All-Docs-Browser (entitätsübergreifend)
 
 	// Command-Center (T16): globales Action-Palette-Modal (ctrl+k / shift+k).
 	paletteOpen bool
@@ -331,6 +332,10 @@ type model struct {
 	// DD2-89: Lazy-Cache der Milestone-/Sprint-Abhängigkeiten (Vorgänger/Nachfolger),
 	// read-only im Detail angezeigt. Schlüssel "m:<id>"/"s:<id>" (depCacheKey).
 	depsCache map[string]*api.Dependencies
+
+	// DD2-163 Rework: Lazy-Cache der Dokument-Liste je Owner für die Inline-Anzeige
+	// im Tree-Detail. Schlüssel "m:<id>"/"s:<id>" (depCacheKey), analog depsCache.
+	ownerDocs map[string][]api.Document
 
 	// DD2-91: projektweite Such-Ansicht (viewCommandCenter). Quelle = treeFilterIssues.
 	searchQuery string

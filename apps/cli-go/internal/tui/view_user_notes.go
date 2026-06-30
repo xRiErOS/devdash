@@ -162,10 +162,12 @@ func (m model) unDetailRows(width int) []string {
 	if cur == nil {
 		return []string{theme.Dim.Render("(select a note →)")}
 	}
-	rows := []string{
-		theme.Header.Render(cur.Title),
-		"",
+	rows := []string{theme.Header.Render(cur.Title)}
+	// DD2-168 Rework: Metadaten-Header (created/updated/status).
+	if meta := entityMetaLine(cur.CreatedAt, cur.UpdatedAt, cur.Status); meta != "" {
+		rows = append(rows, meta)
 	}
+	rows = append(rows, "")
 	if strings.TrimSpace(cur.Details) == "" {
 		rows = append(rows, theme.Dim.Render("(no details — enter to edit)"))
 	} else {

@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"strings"
 	"testing"
 
 	"devd-cli/internal/api"
@@ -107,6 +108,44 @@ func TestTodoSaveDispatch(t *testing.T) {
 	m.todoEditID = 1
 	if _, cmd := m.Update(editorFinishedMsg{content: "changed", changed: true}); cmd == nil {
 		t.Fatalf("changed edit should dispatch save")
+	}
+}
+
+// DD2-171 Rework: Leertaste schließt ein ToDo ab (toggle open<->done).
+func TestTodoSpaceToggle(t *testing.T) {
+	m := todoTestModel()
+	m.todolist.cursor = 0 // Zebra (open)
+	_, cmd := m.keyToDos(tea.KeyMsg{Type: tea.KeySpace})
+	if cmd == nil {
+		t.Fatalf("space should dispatch toggle")
+	}
+}
+
+// DD2-171 Rework: lange ToDo-Titel brechen in der Master-Liste um (kein Truncate).
+func TestTodoListWraps(t *testing.T) {
+	m := todoTestModel()
+	long := "This is a very long todo label that should wrap onto multiple lines"
+	m.todoAll = []api.Todo{{ID: 1, Label: long, Status: "open", Position: 1}}
+	m.todolist.setLen(1)
+	out := m.todoLeftPane(26, 18)
+	if !strings.Contains(out, "multiple") || !strings.Contains(out, "wrap") {
+		t.Fatalf("long label should wrap (full text visible), got:\n%s", out)
+	}
+}
+
+// DD2-171 Rework: der Detail-Block trägt eine eigene „Details"-Überschrift.
+func TestTodoDetailHeading(t *testing.T) {
+	m := todoTestModel()
+	m.todolist.cursor = 0
+	rows := m.todoDetailRows(50)
+	found := false
+	for _, r := range rows {
+		if strings.Contains(r, "Details") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("detail rows should include a Details heading: %v", rows)
 	}
 }
 

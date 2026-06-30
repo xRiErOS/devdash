@@ -3,14 +3,14 @@ dd2 — SSTD
 ╭──────────────────────────────╮╭────────────────────────────────────────────────────────╮
 │Slots ∙ 6 + 2 proj (8)        ││Architecture                                            │
 │────────────────────────      ││──────────────                                          │
-│▸   Architecture              ││                                                        │
-│    Conventions ·empty        ││  # Architecture                                        │
-│    Sprint State              ││                                                        │
-│    Roadmap ·empty            ││  Layered client/server.                                │
-│    Cross-Refs ·empty         ││                                                        │
-│    Misc ·empty               ││                                                        │
-│  ◦ Next Steps                ││                                                        │
-│  ◦ Session Log               ││                                                        │
+│▸   architecture Architecture ││                                                        │
+│    conventions Conventions ·…││  # Architecture                                        │
+│    sprint_state Sprint State ││                                                        │
+│    roadmap Roadmap ·empty    ││  Layered client/server.                                │
+│    cross_refs Cross-Refs ·em…││                                                        │
+│    misc Misc ·empty          ││                                                        │
+│  ◦ next_steps Next Steps     ││                                                        │
+│  ◦ journal Session Log       ││                                                        │
 │                              ││                                                        │
 │                              ││                                                        │
 │                              ││                                                        │
@@ -20,4 +20,4 @@ dd2 — SSTD
 │                              ││                                                        │
 │                              ││                                                        │
 ╰──────────────────────────────╯╰────────────────────────────────────────────────────────╯
-i/k:↑↓  enter:edit (neovim)  esc/q:back
+i/k:↑↓  enter:edit (neovim)  y:yank slot  alt+y:yank all  esc/q:back
