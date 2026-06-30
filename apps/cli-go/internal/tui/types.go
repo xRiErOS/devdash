@@ -145,6 +145,14 @@ type model struct {
 	// landet man immer in den Columns. Wird beim Öffnen auf die Quell-View gesetzt.
 	topReturn viewID
 
+	// DD2-184: globale Routen-History (alt+links/rechts). navBack ist der Stack der
+	// zuvor besuchten Views (jüngste zuletzt), navFwd der Vorwärts-Zweig nach einem
+	// alt+links-Rücksprung. Recording passiert zentral in Update (KeyMsg-Choke-Point):
+	// ändert ein Key-Handler m.view, wird die alte View auf navBack geschoben und der
+	// Vorwärts-Zweig gekappt. alt+links poppt navBack, alt+rechts poppt navFwd.
+	navBack []viewID
+	navFwd  []viewID
+
 	// Meilenstein-Status-Menü (T01): S auf fokussiertem Meilenstein. Ziel-Daten
 	// werden beim Öffnen kopiert (nicht aus selMilestone re-gelesen), damit das Menü
 	// auch aus dem Tree-View funktioniert, wo der Columns-Cursor woanders steht.

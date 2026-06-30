@@ -17,6 +17,8 @@ Direction cross: **jkli** — `i`=up, `j`=left/back, `k`=down, `l`=right/in (DD2
 | `enter` | open/confirm |
 | `esc` | back |
 | `1…9` | Section |
+| `alt+←/alt+j` | Route back |
+| `alt+→/alt+l` | Route forward |
 
 ## Views & Global
 
