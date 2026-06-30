@@ -266,7 +266,9 @@ func formFooterHint(kind string) string {
 	case "editField", "tagCreate", "tagEdit", "project_settings":
 		return "enter save · esc cancel"
 	default:
-		return "alt+enter save · tab field · esc cancel"
+		// DD2-187: alt+enter verhält sich jetzt wie enter (huh-Commit), darum
+		// enter als Save-/Weiter-Taste ausweisen statt der alten alt+enter-Save.
+		return "enter next/save · tab field · esc cancel"
 	}
 }
 

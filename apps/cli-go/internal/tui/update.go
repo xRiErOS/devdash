@@ -492,11 +492,16 @@ func (m model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.status = ""
 			return m, nil
 		}
-		// alt+enter = speichern (terminal-taugliche Save-Taste, ersetzt ctrl+enter).
-		// Wird VOR huh abgefangen, damit es nicht als Newline im Textarea landet.
-		// DD2-93: submitForm öffnet für Create-Kinds erst den y/n-Confirm.
+		// DD2-187: alt+enter NICHT direkt submitForm() rufen. Das umging huh's
+		// Field-Commit — f.results füllt sich erst bei nextFieldMsg/StateCompleted,
+		// also las GetString den frisch getippten Feldinhalt als "" und ein leeres
+		// Save löschte das Feld (Backlog-po_notes / Create-Form). Stattdessen wie
+		// enter an huh weiterreichen: huh committet das aktive Feld + vervollständigt
+		// regulär → StateCompleted unten → submitForm() mit korrekten Werten (DD2-93
+		// y/n-Confirm bleibt). Behebt zugleich den alt+enter-umgeht-Validation-Caveat.
 		if k.String() == "alt+enter" {
-			return m.submitForm()
+			enter := tea.KeyMsg{Type: tea.KeyEnter}
+			msg, k = enter, enter
 		}
 		// DD2-224: ctrl+e öffnet das aktive Langtext-editField (po_notes & Co.) im
 		// $EDITOR. Der aktuelle (in der Form ggf. schon angetippte) Wert geht rein;
