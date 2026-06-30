@@ -20,7 +20,7 @@ import { fileURLToPath } from 'url'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const REPO = join(__dirname, '..')
 const OUT_DEFAULT =
-  '/Users/erik/Obsidian/Vault/300 PROJECTS/DD_DevDashboard/DD-PO-Lokal/MCP/devd-MCP'
+  '/Users/erik/Obsidian/Vault/300 PROJECTS/DD_DevDashboard/DD-PO-Lokal/devd-MCP'
 const OUT = process.argv[2] || OUT_DEFAULT
 
 // --- 1) Interception: server.tool aufzeichnen, connect neutralisieren ---------
@@ -33,8 +33,8 @@ McpServer.prototype.connect = async () => {} // top-level await server.connect()
 
 await import(join(REPO, 'apps/cli/mcp/devd-mcp.js'))
 
-if (tools.length !== 127) {
-  console.error(`FAIL: ${tools.length} Tools erfasst, erwartet 127 (Drift?). Abbruch.`)
+if (tools.length !== 128) {
+  console.error(`FAIL: ${tools.length} Tools erfasst, erwartet 128 (Drift?). Abbruch.`)
   process.exit(1)
 }
 
@@ -58,6 +58,8 @@ const DOMAIN_RULES = [
   [/^tag_/, 'Tags'],
   [/^sop_collection_/, 'SOPs'],
   [/^sop_/, 'SOPs'],
+  [/^document_/, 'Dokumente'],
+  [/^user_note_/, 'User Notes'],
   [/^session_note_/, 'Session Notes'],
   [/^review_/, 'Reviews'],
   [/^planning_/, 'Planning'],
@@ -288,7 +290,7 @@ indexLines.push(`| **Summe** | **${tools.length}** | | |`)
 indexLines.push('')
 indexLines.push('## Abdeckung je Aktivität (PO-Workflow)')
 indexLines.push('')
-indexLines.push('Multi-Value — ein Tool kann mehrere Phasen bedienen, Summe > 127 möglich.')
+indexLines.push('Multi-Value — ein Tool kann mehrere Phasen bedienen, Summe > 128 möglich.')
 indexLines.push('')
 indexLines.push('| Aktivität | Tools |')
 indexLines.push('| --------- | ----- |')

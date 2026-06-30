@@ -74,6 +74,7 @@ Wichtige Projektdateien hier eintragen. Neue zentrale Doku-Dateien → Zeile erg
 | ToolHome, Projektauswahl, /home, ProjectCard, AddProjectCard, Lobby | `docs/ToolHome-Spec.md` | Screen-Spec: globaler Einstiegspunkt, Projektauswahl-Grid, Komponentenbaum, Stories, Entscheidungen D01–D08 |
 | TUI, Detail-Edit, Fokus, Feld-Edit, Accordion, Meilenstein/Sprint/Issue editieren, DD2#12-14, Guardrails | `apps/cli-go/tui-plan.md` | **PFLICHT-READ** für TUI-Detail-Edit (Sprints DD2#12/13/14): Ziel, Spirit, Decisions D01–D10, editierbares Feld-Set, Sprint-Schnitt, Out-of-Scope |
 | TUI, Build, Install, go shadow, command go, bin/dd, devd-cli, dd-tui, Worktree-Build, stale Binary | `docs/cli-go-build.md` | Verlässliche Build/Install-Anleitung Go-TUI (`apps/cli-go`): `command go build/install`, `go`-Shadow-Falle, Verifikation, Worktree-Hinweis |
+| MCP-Notes, Tool-Notes, devd-MCP Export, Vault-Notes generieren, gen-mcp-notes, MCP-Dokumentation | `scripts/gen-mcp-notes.mjs` | Generiert pro MCP-Tool eine Obsidian-Note (Frontmatter + Flags-Tabelle) + Index nach Vault `DD-PO-Lokal/devd-MCP`. Re-runnbar: `node scripts/gen-mcp-notes.mjs`. Tool-Count-Guard anpassen bei MCP-Änderungen. |
 
 ## Doku-Archiv
 
