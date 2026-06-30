@@ -40,6 +40,7 @@ func newModel(client *api.Client, project *api.Project, global *api.Client) mode
 	m.fTags = map[string]bool{}
 	m.depsCache = map[string]*api.Dependencies{}
 	m.ownerDocs = map[string][]api.Document{} // DD2-163 Rework: Inline-Doc-Liste im Tree-Detail (lazy)
+	m.subtasks = map[int][]api.Subtask{}       // DD2-197: Unteraufgaben-Cache je Issue (lazy)
 	// DD2-154: Project-Browser-Tree (view_browse_project) blendet abgeschlossene
 	// Einträge über ALLE Ebenen (Meilenstein/Sprint/Issue) standardmäßig aus
 	// (completed/cancelled — nach DD2-155 ist auch das Issue-Terminal „completed",

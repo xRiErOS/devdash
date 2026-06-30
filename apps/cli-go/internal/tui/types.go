@@ -356,6 +356,10 @@ type model struct {
 	// im Tree-Detail. Schlüssel "m:<id>"/"s:<id>" (depCacheKey), analog depsCache.
 	ownerDocs map[string][]api.Document
 
+	// DD2-197: Lazy-Cache der Unteraufgaben je Issue (Schlüssel = Issue-ID), als
+	// Accordion-Section im Issue-Detail angezeigt. Lazy bei Issue-Fokus geladen.
+	subtasks map[int][]api.Subtask
+
 	// DD2-91: projektweite Such-Ansicht (viewCommandCenter). Quelle = treeFilterIssues.
 	searchQuery string
 	searchList  listState

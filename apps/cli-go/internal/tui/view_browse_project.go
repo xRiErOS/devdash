@@ -484,6 +484,24 @@ func (m model) syncOwnerDocs(nodes []treeNode) tea.Cmd {
 	return nil
 }
 
+// syncSubtasks lädt die Unteraufgaben des fokussierten Issue-Knotens lazy nach
+// (DD2-197), für die Subtasks-Accordion-Section. nil, wenn nichts zu laden ist
+// (kein Issue-Knoten, bereits gecacht, Out-of-bounds). Analog syncOwnerDocs.
+func (m model) syncSubtasks(nodes []treeNode) tea.Cmd {
+	if m.treeCursor < 0 || m.treeCursor >= len(nodes) {
+		return nil
+	}
+	n := nodes[m.treeCursor]
+	if n.kind != tkIssue || n.issue == nil {
+		return nil
+	}
+	id := n.issue.ID
+	if _, ok := m.subtasks[id]; ok {
+		return nil
+	}
+	return loadSubtasks(m.client, id)
+}
+
 // renderOwnerDocs rendert die Inline-Doc-Liste eines Meilenstein-/Sprint-Knotens aus
 // dem Lazy-Cache (DD2-163 Rework, read-only). Macht im Tree sichtbar „hier ist ein
 // Dokument"; geöffnet/editiert wird über das Documents-Feld (enter → Docs-Browser).
@@ -782,12 +800,12 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.treeCursor--
 		}
 		// DD2-89 Deps + DD2-163 Rework Inline-Docs des neu fokussierten Knotens lazy nachladen
-		return m, tea.Batch(m.syncDeps(nodes), m.syncOwnerDocs(nodes))
+		return m, tea.Batch(m.syncDeps(nodes), m.syncOwnerDocs(nodes), m.syncSubtasks(nodes))
 	case "down":
 		if m.treeCursor < len(nodes)-1 {
 			m.treeCursor++
 		}
-		return m, tea.Batch(m.syncDeps(nodes), m.syncOwnerDocs(nodes))
+		return m, tea.Batch(m.syncDeps(nodes), m.syncOwnerDocs(nodes), m.syncSubtasks(nodes))
 	case "right":
 		return m.treeExpand(nodes)
 	case "left":

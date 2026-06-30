@@ -866,6 +866,24 @@ func loadOwnerDocs(c *api.Client, ownerType string, ownerID int) tea.Cmd {
 	}
 }
 
+// subtasksMsg trägt die Unteraufgaben eines Issues in den Lazy-Cache (DD2-197).
+type subtasksMsg struct {
+	issueID  int
+	subtasks []api.Subtask
+}
+
+// loadSubtasks holt die Unteraufgaben eines Issues read-only und füllt den
+// subtasks-Cache (lazy beim Fokussieren des Issue-Knotens, analog loadOwnerDocs).
+func loadSubtasks(c *api.Client, issueID int) tea.Cmd {
+	return func() tea.Msg {
+		subs, err := c.ListSubtasks(issueID)
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return subtasksMsg{issueID: issueID, subtasks: subs}
+	}
+}
+
 // saveDocCmd legt ein Dokument an (editID==0, title aus erster Buffer-Zeile) oder
 // aktualisiert den body einer bestehenden (editID>0), dann Reload (DD2-167).
 // saveDocCmd legt an/aktualisiert; reloadAll=true lädt danach die projektweite Liste

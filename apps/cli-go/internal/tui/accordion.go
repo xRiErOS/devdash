@@ -46,6 +46,15 @@ type accordionSection struct {
 	fields []detailField
 }
 
+// subtaskGlyph rendert den Status-Marker einer Unteraufgabe (DD2-197): done ✓ grün,
+// open ○ muted — analog der Verdikt-/Result-Glyphen-Sprache.
+func subtaskGlyph(status string) string {
+	if status == "done" {
+		return lipgloss.NewStyle().Foreground(theme.Green).Render("✓")
+	}
+	return theme.Muted.Render("○")
+}
+
 // subhead rendert eine Feld-Überschrift im Body (Accent) gefolgt vom Wert.
 func subhead(label, val string) string {
 	return theme.Accent.Render(label) + "\n" + val
@@ -150,6 +159,26 @@ func (m model) issueSections(it api.Issue, bodyW int, full bool) []accordionSect
 			sec.fields = userStoryFields(it.UserStories)
 		}
 		secs = append(secs, sec)
+	}
+
+	// Sektion: Subtasks (DD2-197, read-only). Nur wenn vorhanden — Quelle = Lazy-
+	// Cache m.subtasks (beim Issue-Fokus geladen). Titel zeigt done/total, Body je
+	// Unteraufgabe Status-Glyph + Titel (+ QA, falls gesetzt).
+	if subs := m.subtasks[it.ID]; len(subs) > 0 {
+		var sb strings.Builder
+		done := 0
+		for _, st := range subs {
+			if st.Status == "done" {
+				done++
+			}
+			sb.WriteString(subtaskGlyph(st.Status) + " " + st.Title + "\n")
+			if qa := deref(st.QACriteria); qa != "" {
+				sb.WriteString(theme.Dim.Render("    QA: "+qa) + "\n")
+			}
+		}
+		secs = append(secs, accordionSection{
+			title: fmt.Sprintf("Subtasks (%d/%d)", done, len(subs)),
+			body:  wrapText(strings.TrimRight(sb.String(), "\n"), bodyW)})
 	}
 
 	// Sektion 5: Result (read-only, nur Review — D06).

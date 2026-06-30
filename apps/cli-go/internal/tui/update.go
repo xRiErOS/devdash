@@ -143,6 +143,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.ownerDocs[msg.key] = msg.docs
 		return m, nil
+	case subtasksMsg: // DD2-197: Unteraufgaben eines Issues in den Lazy-Cache
+		if m.subtasks == nil {
+			m.subtasks = map[int][]api.Subtask{}
+		}
+		m.subtasks[msg.issueID] = msg.subtasks
+		return m, nil
 	case issueUpdatedMsg: // DD2-77: Feld-Edit-Response → Cache in-place mergen (D05)
 		if msg.err != "" {
 			m.errNote = msg.err // Aktions-Fehler rot (D05)
