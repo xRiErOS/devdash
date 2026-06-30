@@ -18,12 +18,12 @@ func TestDD2215SprintClipHasIDKeyAndDocuments(t *testing.T) {
 
 	out := sprintClip(s, docs)
 	for _, want := range []string{
-		"- ID: 305",                 // numerische ID
-		"- Key: DD2#44",             // Key fürs MCP/CLI
-		"DD2-215",                   // Issue-Zeile
-		"## Documents (1)",          // Dokumente-Sektion
-		"Worktree & Merge-Order",    // Doc-Titel
-		"Merge zuletzt.",            // Doc-Body
+		"- ID: 305",              // numerische ID
+		"- Key: DD2#44",          // Key fürs MCP/CLI
+		"DD2-215",                // Issue-Zeile
+		"## Documents (1)",       // Dokumente-Sektion
+		"Worktree & Merge-Order", // Doc-Titel
+		"Merge zuletzt.",         // Doc-Body
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("sprintClip fehlt %q:\n%s", want, out)

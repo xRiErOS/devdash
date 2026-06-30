@@ -12,12 +12,12 @@ import (
 // Faithful-Port-Verifikation von packages/api-types/keys.js parseRef.
 func TestParseRef(t *testing.T) {
 	cases := []struct {
-		in      string
-		ok      bool
-		isID    bool
-		id      int
-		prefix  string
-		number  int
+		in     string
+		ok     bool
+		isID   bool
+		id     int
+		prefix string
+		number int
 	}{
 		{"77", true, true, 77, "", 0},
 		{"DD#77", true, false, 0, "DD", 77},

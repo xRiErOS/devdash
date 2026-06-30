@@ -264,7 +264,7 @@ func (m model) treeLayout() (head, localKeys string, lw, rw, innerH int) {
 		avail = m.bodyHeight() // Höhe unbekannt (Init/Tests) → großzügiger Fallback
 	}
 	lw, rw = m.masterDetailWidths(w) // DD2-228: Goldstandard 1fr:2fr, tree_width als Mindestbreite (Pin gesunset)
-	innerH = avail - 2 // Border oben/unten — NICHT via Height() (Golden Rule #1)
+	innerH = avail - 2               // Border oben/unten — NICHT via Height() (Golden Rule #1)
 	if innerH < 3 {
 		innerH = 3
 	}

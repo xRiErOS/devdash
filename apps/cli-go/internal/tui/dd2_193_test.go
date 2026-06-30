@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"devd-cli/internal/api"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 // DD2-193: Ein Issue-Knoten im Project-Browser zeigt Kopf (icon + prio + key) und

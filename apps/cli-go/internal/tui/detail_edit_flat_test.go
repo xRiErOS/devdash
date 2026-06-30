@@ -35,10 +35,10 @@ func TestFlatEditOpensFormMilestone(t *testing.T) {
 // field=goal.
 func TestFlatEditOpensFormSprint(t *testing.T) {
 	m := detailFocusModel()
-	m.treeCursor = 1                                   // Sprint s10 (S1)
-	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter}) // Detail-Fokus, Übersicht (sec 0)
-	mi, _ = mi.(model).keyTree(key("k"))               // sec 1 = Details (goal)
-	mi, _ = mi.(model).keyTree(key("l"))               // in die Details-Section, Feld 0 = goal
+	m.treeCursor = 1                                           // Sprint s10 (S1)
+	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter})         // Detail-Fokus, Übersicht (sec 0)
+	mi, _ = mi.(model).keyTree(key("k"))                       // sec 1 = Details (goal)
+	mi, _ = mi.(model).keyTree(key("l"))                       // in die Details-Section, Feld 0 = goal
 	mi, _ = mi.(model).keyTree(tea.KeyMsg{Type: tea.KeyEnter}) // editField
 	mm := mi.(model)
 	if mm.form == nil || mm.editEntity != "sprint" || mm.editField != "goal" {
