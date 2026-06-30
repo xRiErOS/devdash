@@ -1,5 +1,5 @@
 ╭────────────────────────────────────────────────────────────────────────────────────────╮
-│> devd2: Project browser     ctrl+k:cmd  p:project  b:backlog  R:reviews  ?:help  q:quit│
+│> devd2: Project Browser     ctrl+k:cmd  p:project  b:backlog  R:reviews  ?:help  q:quit│
 │╭───────────────────────────────────╮╭─────────────────────────────────────────────────╮│
 ││⌕ search with /  ∙  filter f       ││> DD2-99 Beispiel-Issue für den Snapshot         ││
 ││ ▾ ◉ Meilenstein Eins              ││P1 prio  ∙  ⯁ bug type                to_review  ││

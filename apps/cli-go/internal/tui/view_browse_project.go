@@ -232,7 +232,7 @@ func (m *model) treeNodesFiltered() []treeNode {
 // (handleMouse, DD2-51) — sonst driften Render-Zeilen und Klick-Y auseinander.
 func (m model) treeLayout() (head, localKeys string, lw, rw, innerH int) {
 	w := m.termWidth()
-	head = m.breadcrumb("Project browser") // Zone 1: `> slug: Title` + globale Shortcuts
+	head = m.breadcrumb("Project Browser") // Zone 1: `> slug: Title` + globale Shortcuts (DD2-195)
 	// Zone 3 = NUR view-spezifische Tasten; globale (b/R/p/q/Cmd) stehen bereits im
 	// Header rechts → nicht doppeln (verwirrt, PO-Befund Augenschein).
 	hint := "i/k:↑↓  l/→:expand  j/←:collapse  1…n:section  s:status  S:milestone  d:delete  y:yank  /:search  f:filter  t:tags  ctrl+r:reload"
