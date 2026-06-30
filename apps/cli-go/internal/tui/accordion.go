@@ -179,7 +179,11 @@ func renderAccordion(secs []accordionSection, open, w int, focus detailFocusView
 		return theme.Dim.Render("(no detail fields)")
 	}
 	headerStyle := lipgloss.NewStyle().Width(w)
-	boxStyle := lipgloss.NewStyle().Width(w - 2).PaddingLeft(2)
+	// DD2-186: lipgloss.Width INKLUDIERT PaddingLeft → bei Width(w-2).PaddingLeft(2)
+	// schrumpft die Content-Breite auf w-4, der Body ist aber von issueSections auf
+	// bodyW=w-2 vorgewrappt → Overflow/Fehl-Umbruch um 2. Width(w) (= Header-Breite)
+	// macht die effektive Content-Breite w-2 == bodyW, der Einzug bleibt 2.
+	boxStyle := lipgloss.NewStyle().Width(w).PaddingLeft(2)
 
 	var b strings.Builder
 	for i, s := range secs {
