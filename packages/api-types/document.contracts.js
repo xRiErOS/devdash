@@ -10,10 +10,15 @@ import { z } from 'zod'
 export const TITLE_MAX = 200
 export const BODY_MAX = 1_000_000   // 1 MB Markdown — großzügig für Plan-Dokumente
 
+// DD2-167: schlanker Status-Lifecycle (Migration 070). Werfende Autorität bleibt
+// lib/documents.js (Worktree-bare-Import-Falle) — diese Liste ist die Schema-Doku.
+export const DOCUMENT_STATUS = ['draft', 'active', 'archived']
+
 export const documentCreateSchema = z.object({
   title: z.string().trim().min(1, 'title darf nicht leer sein').max(TITLE_MAX),
   body: z.string().max(BODY_MAX).optional(),
   file_path: z.string().nullish(),
+  status: z.enum(DOCUMENT_STATUS).optional(),
 })
 
 // Update: alle Felder optional (Teil-Patch), aber mind. eins wird in der Lib erzwungen.
