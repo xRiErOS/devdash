@@ -250,20 +250,7 @@ func (m model) treeLayout() (head, localKeys string, lw, rw, innerH int) {
 	if avail < 4 {
 		avail = m.bodyHeight() // Höhe unbekannt (Init/Tests) → großzügiger Fallback
 	}
-	lw = m.cfg.Layout.TreeWidth // DD2-40: konfigurierbar (layout.tree_width)
-	if lw <= 0 {
-		lw = 36 // Default / zero-Config (Tests ohne geladene Settings)
-	}
-	if cap := w * 2 / 5; lw > cap {
-		lw = cap
-	}
-	if lw < 24 {
-		lw = 24
-	}
-	rw = w - lw - 4 // je Pane 2 Border-Spalten
-	if rw < 20 {
-		rw = 20
-	}
+	lw, rw = m.masterDetailWidths(w) // DD2-228: Goldstandard 1fr:2fr, tree_width als Mindestbreite (Pin gesunset)
 	innerH = avail - 2 // Border oben/unten — NICHT via Height() (Golden Rule #1)
 	if innerH < 3 {
 		innerH = 3

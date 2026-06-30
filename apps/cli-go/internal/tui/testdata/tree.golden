@@ -1,21 +1,21 @@
 ╭────────────────────────────────────────────────────────────────────────────────────────╮
 │> devd2: Project browser     ctrl+k:cmd  p:project  b:backlog  R:reviews  ?:help  q:quit│
-│╭───────────────────────────────────╮╭─────────────────────────────────────────────────╮│
-││⌕ search with /  ∙  filter f       ││> DD2#9 Sprint Neun                              ││
-││ ▾ ◉ Meilenstein Eins              ││Meilenstein Eins Milestone  ∙  0/0 P… to_review  ││
-││▌  ▾ DD2#9 to_review               ││                                                 ││
-││       ⯁ DD2-99                    ││> Name                                           ││
-││                                   ││  Sprint Neun                                    ││
-││                                   ││> Goal                                           ││
-││                                   ││  (empty)                                        ││
-││                                   ││> Documents                                      ││
-││                                   ││  (enter to browse documents)                    ││
-││                                   ││                                                 ││
-││                                   ││Dependencies: (loading …)                        ││
-││                                   ││                                                 ││
-││                                   ││Documents: (loading …)                           ││
-││                                   ││                                                 ││
-│╰───────────────────────────────────╯╰─────────────────────────────────────────────────╯│
+│╭─────────────────────────────╮╭───────────────────────────────────────────────────────╮│
+││⌕ search with /  ∙  filter…  ││> DD2#9 Sprint Neun                                    ││
+││ ▾ ◉ Meilenstein Eins        ││Meilenstein Eins Milestone  ∙  0/0 Progress to_review  ││
+││▌  ▾ DD2#9 to_review         ││                                                       ││
+││       ⯁ DD2-99              ││> Name                                                 ││
+││                             ││  Sprint Neun                                          ││
+││                             ││> Goal                                                 ││
+││                             ││  (empty)                                              ││
+││                             ││> Documents                                            ││
+││                             ││  (enter to browse documents)                          ││
+││                             ││                                                       ││
+││                             ││Dependencies: (loading …)                              ││
+││                             ││                                                       ││
+││                             ││Documents: (loading …)                                 ││
+││                             ││                                                       ││
+│╰─────────────────────────────╯╰───────────────────────────────────────────────────────╯│
 │i/k:↑↓  l/→:expand  j/←:collapse  1…n:section  s:status  S:milestone  d:delete  y:yank  │
 │/:search  f:filter  t:tags  ctrl+r:reload                                               │
 │                                                                                        │
