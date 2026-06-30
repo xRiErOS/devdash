@@ -250,15 +250,13 @@ func (m model) backlogListBlocks(vis []api.Issue, w int, active bool) [][]string
 	return blocks
 }
 
-// windowBlocks fenstert variabel hohe Blöcke auf height Zeilen, sodass der Cursor-
-// Block stets vollständig sichtbar bleibt (wächst symmetrisch um den Cursor). Liefert
-// die geflachte Zeilenliste. Block-bewusstes Pendant zu windowAround (DD2-134).
-func windowBlocks(blocks [][]string, height, cursor int) []string {
-	if len(blocks) == 0 {
-		return nil
-	}
+// blockWindow liefert den inklusiven [lo,hi]-Blockbereich, der beim Fenstern
+// variabel hoher Blöcke auf height Zeilen um cursor sichtbar wird (Cursor-Block
+// stets voll, wächst symmetrisch). Single Source für Render (windowBlocks) UND
+// Maus-Klick-Mapping (mouseTreeClick, DD2-193) — sonst driften beide auseinander.
+func blockWindow(blocks [][]string, height, cursor int) (lo, hi int) {
 	cursor = clampInt(cursor, 0, len(blocks)-1)
-	lo, hi := cursor, cursor
+	lo, hi = cursor, cursor
 	used := len(blocks[cursor])
 	for {
 		grew := false
@@ -276,6 +274,17 @@ func windowBlocks(blocks [][]string, height, cursor int) []string {
 			break
 		}
 	}
+	return
+}
+
+// windowBlocks fenstert variabel hohe Blöcke auf height Zeilen, sodass der Cursor-
+// Block stets vollständig sichtbar bleibt (wächst symmetrisch um den Cursor). Liefert
+// die geflachte Zeilenliste. Block-bewusstes Pendant zu windowAround (DD2-134).
+func windowBlocks(blocks [][]string, height, cursor int) []string {
+	if len(blocks) == 0 {
+		return nil
+	}
+	lo, hi := blockWindow(blocks, height, cursor)
 	var out []string
 	for i := lo; i <= hi; i++ {
 		out = append(out, blocks[i]...)

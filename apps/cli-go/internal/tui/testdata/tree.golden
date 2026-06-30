@@ -4,10 +4,10 @@
 ││⌕ search with /  ∙  filter…  ││> DD2#9 Sprint Neun                                    ││
 ││ ▾ ◉ Meilenstein Eins        ││Meilenstein Eins Milestone  ∙  0/0 Progress to_review  ││
 ││▌  ▾ DD2#9 to_review         ││                                                       ││
-││       ⯁ DD2-99              ││> Name                                                 ││
-││                             ││  Sprint Neun                                          ││
-││                             ││> Goal                                                 ││
-││                             ││  (empty)                                              ││
+││       ⯁ P1 DD2-99           ││> Name                                                 ││
+││            Beispiel-Issue   ││  Sprint Neun                                          ││
+││            für den          ││> Goal                                                 ││
+││            Snapshot         ││  (empty)                                              ││
 ││                             ││> Documents                                            ││
 ││                             ││  (enter to browse documents)                          ││
 ││                             ││                                                       ││

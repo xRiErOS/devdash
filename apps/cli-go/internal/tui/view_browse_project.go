@@ -284,8 +284,10 @@ func (m model) viewBrowseProject() string {
 	// Linke Spalte: Such-/Filterbox als Kopfzeile (DD2-62), darunter die Baumzeilen
 	// gefenstert um den Cursor. Die Kopfzeile kostet 1 Zeile der Innenhöhe.
 	searchLine := m.treeSearchLine(lw - 2)
-	treeLines := m.treeLeftLines(nodes, lw-2, !m.detailFocus) // Cursor friert bei Detail-Fokus (D03)
-	treeLines = windowAround(treeLines, innerH-1, m.treeCursor)
+	// DD2-193: variabel hohe Blöcke (Issue = Key + umgebrochener Titel) → block-
+	// bewusst fenstern, damit der Cursor-Block stets vollständig sichtbar bleibt.
+	blocks := m.treeLeftBlocks(nodes, lw-2, !m.detailFocus) // Cursor friert bei Detail-Fokus (D03)
+	treeLines := windowBlocks(blocks, innerH-1, m.treeCursor)
 	left := append([]string{searchLine}, treeLines...)
 	for len(left) < innerH {
 		left = append(left, "")
@@ -327,10 +329,24 @@ func (m model) viewBrowseProject() string {
 	return m.outerBorder(head + "\n" + body + "\n" + localKeys + "\n" + status) // DD2-84
 }
 
-// treeLeftLines rendert die Baumzeilen (mit Expand-Marker, Einrückung, Cursor).
-// Der Cursor wird per absolutem Index gesetzt, bevor windowAround fenstert.
+// treeLeftLines flacht die Tree-Blöcke (treeLeftBlocks) in eine Zeilenliste —
+// dünner Wrapper für Tests/Altpfade. Render + Maus nutzen die Blöcke direkt.
 func (m model) treeLeftLines(nodes []treeNode, w int, active bool) []string {
-	lines := make([]string, 0, len(nodes))
+	var out []string
+	for _, blk := range m.treeLeftBlocks(nodes, w, active) {
+		out = append(out, blk...)
+	}
+	return out
+}
+
+// treeLeftBlocks rendert je Tree-Knoten EINEN Block (DD2-193): Meilenstein/Sprint/
+// Info sind einzeilig, ein Issue ist mehrzeilig — Kopf (icon + prio + key) in Zeile 1,
+// der Titel ab Zeile 2 als ANSI-sicher umgebrochener Hängeeinzug UNTER dem Key
+// (PO-Format wie der Backlog, DD2-189). Variabel hohe Blöcke → windowBlocks fenstert,
+// mouseTreeClick mappt block-bewusst (blockWindow, Single Source). Der Cursor-Block
+// trägt auf JEDER Zeile den D08-Balken (active=false friert ihn muted ein, D03).
+func (m model) treeLeftBlocks(nodes []treeNode, w int, active bool) [][]string {
+	blocks := make([][]string, 0, len(nodes))
 	for i, n := range nodes {
 		marker := "  "
 		if n.expand {
@@ -340,43 +356,75 @@ func (m model) treeLeftLines(nodes []treeNode, w int, active bool) []string {
 				marker = "▸ "
 			}
 		}
-		var label string
+		indent := strings.Repeat("  ", n.depth)
+		var lines []string
 		switch n.kind {
 		case tkMile:
 			ms := m.milestones[n.mileIdx]
-			label = statusDot(ms.Status) + " " + mileDisplayName(ms.Name)
+			label := statusDot(ms.Status) + " " + mileDisplayName(ms.Name)
 			if t := tagsInline(ms.Tags); t != "" { // DD2-143: Tags am Meilenstein-Knoten
 				label += "  " + t
 			}
+			lines = []string{indent + marker + label}
 		case tkSprint:
 			sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
+			var label string
 			if sp.Status == "cancelled" { // DD2-133 Rework: ID/Key bleibt weiß (wie completed), NUR der Status-Text grau
 				label = sp.Key + " " + theme.Dim.Render(sp.Status)
 			} else {
 				label = sp.Key + " " + statusText(sp.Status)
 			}
+			lines = []string{indent + marker + label}
 		case tkIssue:
 			if n.issue != nil { // aufgelöst (Lazy-Cache ODER Filter-Quelle)
-				label = theme.TypeIcon(n.issue.Type) + " " + theme.Key.Render(n.issue.Key)
+				lines = issueTreeBlock(*n.issue, indent+marker, w)
+			} else {
+				lines = []string{indent + marker}
 			}
 		case tkInfo:
-			label = theme.Dim.Render(n.label)
+			lines = []string{indent + marker + theme.Dim.Render(n.label)}
+		default:
+			lines = []string{indent + marker}
 		}
-		row := strings.Repeat("  ", n.depth) + marker + label
+		// D08: Cursor-Block = Balken ▌ + ganze Zeile akzentgetönt (Eigen-Farben der
+		// Zelle gestrippt). Detail-Fokus friert den Cursor (D03): Balken bleibt, aber
+		// muted/Overlay statt Accent — nur der fokussierte Pane zeigt seinen Cursor.
 		if i == m.treeCursor {
-			// D08: Cursor = Balken ▌ + ganze Zeile in Akzentfarbe getönt. Eigen-Farben
-			// der Zelle (Status-Dot, Key, Typ-Icon) werden gestrippt und einheitlich
-			// in Akzent umgefärbt — die Selektion ist als Ganzes erkennbar. Bei Detail-
-			// Fokus friert der Tree-Cursor (D03): Balken bleibt, aber muted/Overlay statt
-			// Accent — nur der fokussierte Pane zeigt seinen aktiven Cursor.
-			plain := truncate(ansi.Strip(row), w-1)
-			if active {
-				lines = append(lines, theme.Accent.Render("▌"+plain))
-			} else {
-				lines = append(lines, theme.Dim.Render("▌"+plain))
+			for j := range lines {
+				plain := truncate(ansi.Strip(lines[j]), w-1)
+				if active {
+					lines[j] = theme.Accent.Render("▌" + plain)
+				} else {
+					lines[j] = theme.Dim.Render("▌" + plain)
+				}
 			}
 		} else {
-			lines = append(lines, " "+truncate(row, w-1))
+			for j := range lines {
+				lines[j] = " " + truncate(lines[j], w-1)
+			}
+		}
+		blocks = append(blocks, lines)
+	}
+	return blocks
+}
+
+// issueTreeBlock baut den mehrzeiligen Issue-Block für den Tree (DD2-193): Kopf
+// (Prefix = Einzug + icon + prio) + Key, darunter der auf Pane-Breite umgebrochene
+// Titel als Hängeeinzug unter dem Key (Einzug = Displaybreite des Prefix VOR dem
+// Key, lipgloss.Width — nie len, B06). w-1 reserviert die Cursor-Spalte (Rightalign-
+// Reserve, [[dd2-tui-rightalign-reserve-width]]).
+func issueTreeBlock(it api.Issue, lead string, w int) []string {
+	prefix := lead + theme.TypeIcon(it.Type) + " " + theme.Priority(it.Priority) + " "
+	indent := lipgloss.Width(prefix)
+	lines := []string{prefix + theme.Key.Render(it.Key)}
+	if title := strings.TrimSpace(it.Title); title != "" {
+		titleW := w - 1 - indent
+		if titleW < 8 {
+			titleW = 8 // schmaler Fallback, damit der Titel nicht in 1-Zeichen-Spalten zerfällt
+		}
+		pad := strings.Repeat(" ", indent)
+		for _, tl := range strings.Split(wrapText(title, titleW), "\n") {
+			lines = append(lines, pad+theme.Dim.Render(tl))
 		}
 	}
 	return lines
