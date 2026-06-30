@@ -9,10 +9,12 @@ package tui
 // die API hat keinen sort-Param. Der Inline-Edit-Layer folgt in DD2-74.
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 
 	"devd-cli/internal/api"
+	"devd-cli/internal/clip"
 	"devd-cli/internal/theme"
 	keybind "github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -140,7 +142,7 @@ func (m model) openBacklogSort() (tea.Model, tea.Cmd) {
 func (m model) backlogLayout() (head, localKeys string, lw, rw, innerH int) {
 	w := m.termWidth()
 	head = m.breadcrumb("Backlog")
-	hint := "i/k:↑↓  l/→/enter:detail  /:search  f:filter  S:sort  a:sprint  d:delete  t:tags  b/esc:back"
+	hint := "i/k:↑↓  l/→/enter:detail  /:search  f:filter  S:sort  a:sprint  d:delete  t:tags  y:yank  b/esc:back"
 	switch {
 	case m.blSearching:
 		hint = "type: filter   enter: apply   esc: cancel"
@@ -465,6 +467,26 @@ func (m model) keyBacklog(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if it := m.backlogSelected(); it != nil {
 			return m.openAssignSprint(it.ID)
 		}
+	case keybind.Matches(msg, keys.Yank): // DD2-217: aktuelles (gefiltertes/sortiertes) Backlog als Markdown yanken
+		vis := m.backlogVisible()
+		if len(vis) == 0 {
+			m.status = noticeText("Backlog is empty — nothing to copy")
+			return m, nil
+		}
+		summary := m.backlogFilterSummary()
+		if m.blQuery != "" {
+			if summary != "" {
+				summary += " "
+			}
+			summary += "Search:" + m.blQuery
+		}
+		if err := clip.Copy(backlogClip(vis, summary)); err != nil {
+			m.errNote = "Clipboard error: " + err.Error()
+		} else {
+			m.errNote = ""
+			m.status = noticeText(fmt.Sprintf("Backlog copied (%d issues)", len(vis)))
+		}
+		return m, nil
 	case keybind.Matches(msg, keys.Backlog):
 		m.view = m.topReturn // zurück zur Quell-View (Tree/Columns, DD2-61)
 	case keybind.Matches(msg, keys.Back):
