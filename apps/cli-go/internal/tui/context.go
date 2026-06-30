@@ -62,18 +62,19 @@ func sprintClip(s *api.Sprint) string {
 // backlogClip baut den Markdown-Export der aktuellen (gefilterten/sortierten)
 // Backlog-Sicht (DD2-217): Kopf mit Issue-Zahl + optionaler Filter-Zeile, darunter
 // eine Issue-Tabelle. Spalten spiegeln die in der Liste sichtbaren Felder
-// (Key/Type/Prio/Status/Title) — Priority als Plain "P<n>" (kein ANSI). Schwester
-// von sprintClip/milestoneClip, aber für die flache Liste.
+// (Key/Type/Prio/Status/Title) plus PO-Notes — der PO-Freitext, der beschreibt,
+// was das Problem ist (DD2-217-Refinement). Priority als Plain "P<n>" (kein ANSI).
+// Schwester von sprintClip/milestoneClip, aber für die flache Liste.
 func backlogClip(vis []api.Issue, filterSummary string) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "# Backlog (%d issues)\n\n", len(vis))
 	if filterSummary != "" {
 		fmt.Fprintf(&b, "- Filter: %s\n\n", filterSummary)
 	}
-	b.WriteString("| Key | Type | Prio | Status | Title |\n|---|---|---|---|---|\n")
+	b.WriteString("| Key | Type | Prio | Status | Title | PO-Notes |\n|---|---|---|---|---|---|\n")
 	for _, it := range vis {
-		fmt.Fprintf(&b, "| %s | %s | P%d | %s | %s |\n",
-			it.Key, it.Type, it.Priority, it.Status, oneline(it.Title))
+		fmt.Fprintf(&b, "| %s | %s | P%d | %s | %s | %s |\n",
+			it.Key, it.Type, it.Priority, it.Status, oneline(it.Title), oneline(deref(it.PoNotes)))
 	}
 	return b.String()
 }
