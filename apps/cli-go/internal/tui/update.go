@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"devd-cli/internal/api"
+	keybind "github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
@@ -202,6 +203,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case reviewSprintsMsg:
 		m.reviewSprints = msg.items
 		m.rvlist.setLen(len(m.reviewSprints))
+		return m, nil
+	case reviewDetailMsg: // DD2-230: Inline-Tabellen-Daten der Reviews-Liste in den Lazy-Cache
+		if m.reviewDetail == nil {
+			m.reviewDetail = map[int]*api.Sprint{}
+		}
+		m.reviewDetail[msg.id] = msg.sprint
 		return m, nil
 	case memoriesMsg:
 		m.memList = msg.items
@@ -442,6 +449,24 @@ func (m model) mouseTreeClick(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 // updateForm leitet Messages ans laufende huh-Formular weiter und feuert nach
 // Abschluss den Create-Cmd. Abbruch (esc) verwirft ohne Aktion.
 func (m model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// DD2-224: Editor-Suspend kehrte zurück, WÄHREND die editField-Form offen ist.
+	// Solange m.form != nil routet Update() alle Msgs hierher — der View-aware
+	// editorFinishedMsg-Handler in Update() greift nur bei geschlossener Form. Den
+	// neuen Inhalt als Preset in die Form zurückspielen: die PO arbeitet direkt
+	// weiter und speichert regulär per enter/alt+enter.
+	if ef, ok := msg.(editorFinishedMsg); ok && m.formKind == "editField" {
+		if ef.err != nil {
+			m.status = noticeText("editor: " + ef.err.Error())
+			return m, nil
+		}
+		if ef.changed {
+			f := detailField{key: m.editField, label: m.editLabel, editor: m.editEditor}
+			m.editValue = ef.content
+			m.form = m.styleForm(buildEditFieldForm(f, ef.content))
+			return m, m.form.Init()
+		}
+		return m, nil // keine Änderung → Form unangetastet weiter
+	}
 	if k, ok := msg.(tea.KeyMsg); ok {
 		// esc bricht das Formular ab.
 		if k.Type == tea.KeyEsc {
@@ -458,6 +483,13 @@ func (m model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// DD2-93: submitForm öffnet für Create-Kinds erst den y/n-Confirm.
 		if k.String() == "alt+enter" {
 			return m.submitForm()
+		}
+		// DD2-224: ctrl+e öffnet das aktive Langtext-editField (po_notes & Co.) im
+		// $EDITOR. Der aktuelle (in der Form ggf. schon angetippte) Wert geht rein;
+		// die Rückkehr (editorFinishedMsg, oben) spielt das Ergebnis als Preset zurück.
+		// VOR huh abgefangen, sonst landete ctrl+e als Steuerzeichen im Textarea.
+		if keybind.Matches(k, keys.Editor) && m.editFieldUsesEditor() {
+			return m, editInEditor(m.form.GetString("value"), ".md")
 		}
 	}
 

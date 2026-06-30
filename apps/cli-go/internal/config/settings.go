@@ -13,6 +13,7 @@ package config
 //	layout:
 //	  tree_width: 32           # Breite der schmalen Baum-Spalte (Tree-Layout)
 //	  modal_width: 56          # Wunschbreite der Standard-Modal-Box
+//	editor: "nvim"             # TUI-weiter $EDITOR (Default nvim); darf Args tragen ("code -w")
 //	keybindings:               # reserviert (DD2-34) — geparst, noch nicht angewendet
 //	  down: j
 
@@ -29,7 +30,8 @@ import (
 type Settings struct {
 	Theme       ThemeSettings     `yaml:"theme"`
 	Layout      LayoutSettings    `yaml:"layout"`
-	Keybindings map[string]string `yaml:"keybindings"` // reserviert (DD2-34)
+	Editor      string            `yaml:"editor,omitempty"` // DD2-224: TUI-weiter $EDITOR-Befehl (Default nvim), darf Args tragen ("code -w")
+	Keybindings map[string]string `yaml:"keybindings"`      // reserviert (DD2-34)
 }
 
 type ThemeSettings struct {
@@ -43,6 +45,7 @@ type LayoutSettings struct {
 
 // Defaults — Single Source der eingebauten Werte (= bisheriges Verhalten).
 const (
+	defEditor     = "nvim" // DD2-224: TUI-weiter Default-Editor (gewinnt über $EDITOR/$VISUAL)
 	defTreeWidth  = 36
 	defModalWidth = 64
 	minTreeWidth  = 24
@@ -56,6 +59,7 @@ var hexColor = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
 // DefaultSettings liefert die eingebauten Defaults (greifen ohne Config-Datei).
 func DefaultSettings() Settings {
 	return Settings{
+		Editor: defEditor,
 		Layout: LayoutSettings{TreeWidth: defTreeWidth, ModalWidth: defModalWidth},
 	}
 }
@@ -147,6 +151,9 @@ func mergeSettings(base, over Settings) Settings {
 	}
 	if over.Layout.ModalWidth != 0 {
 		base.Layout.ModalWidth = over.Layout.ModalWidth
+	}
+	if over.Editor != "" { // DD2-224: leer = Default (nvim) bleibt
+		base.Editor = over.Editor
 	}
 	if len(over.Keybindings) > 0 {
 		if base.Keybindings == nil {

@@ -29,8 +29,12 @@ type projectsMsg struct{ items []api.Project }
 type milestonesMsg struct{ items []api.Milestone }
 type sprintMsg struct{ sprint *api.Sprint }
 type backlogMsg struct{ items []api.Issue }
-type allIssuesMsg struct{ items []api.Issue }        // DD2-62: projektweite Issues für den Tree-Filter
-type reviewSprintsMsg struct{ items []api.Sprint }   // T17: offene Review-Sprints
+type allIssuesMsg struct{ items []api.Issue }      // DD2-62: projektweite Issues für den Tree-Filter
+type reviewSprintsMsg struct{ items []api.Sprint } // T17: offene Review-Sprints
+type reviewDetailMsg struct {                      // DD2-230: Sprint-Detail (Items) für die Inline-Verdict-Tabelle der Reviews-Liste
+	id     int
+	sprint *api.Sprint
+}
 type memoriesMsg struct{ items []api.ProjectMemory } // T18: Memory-Liste
 type memDetailMsg struct{ mem *api.ProjectMemory }   // T18: Memory-Detail (content)
 type statusMsg struct{ text string }
@@ -962,6 +966,19 @@ func loadReviewSprints(c *api.Client) tea.Cmd {
 			return errMsg{err}
 		}
 		return reviewSprintsMsg{sp}
+	}
+}
+
+// loadReviewDetail holt einen Sprint inkl. Items für die Inline-Verdict-Tabelle der
+// Reviews-Liste (DD2-230) — ohne View-Wechsel, anders als loadSprint (das ins Cockpit
+// führt + m.curSprint setzt). Fehler inline (noticeMsg), nicht fatal.
+func loadReviewDetail(c *api.Client, id int) tea.Cmd {
+	return func() tea.Msg {
+		s, err := c.GetSprint(id)
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return reviewDetailMsg{id: id, sprint: s}
 	}
 }
 

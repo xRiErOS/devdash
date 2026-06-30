@@ -9,19 +9,26 @@ import (
 	"github.com/muesli/termenv"
 )
 
+// DD2-224: editorBinary löst NUR noch über configuredEditor auf (TUI-Config,
+// Default nvim) — $VISUAL/$EDITOR werden bewusst ignoriert (kein Env-Leak).
 func TestEditorBinaryResolution(t *testing.T) {
-	t.Setenv("VISUAL", "")
-	t.Setenv("EDITOR", "")
-	if got := editorBinary(); len(got) != 1 || got[0] != "nvim" {
-		t.Fatalf("default = %v, want [nvim]", got)
-	}
+	orig := configuredEditor
+	t.Cleanup(func() { configuredEditor = orig })
+
+	t.Setenv("VISUAL", "code") // Env darf das Ergebnis nicht mehr beeinflussen
 	t.Setenv("EDITOR", "vim -u NONE")
-	if got := editorBinary(); len(got) != 3 || got[0] != "vim" {
-		t.Fatalf("EDITOR split = %v", got)
+
+	configuredEditor = ""
+	if got := editorBinary(); len(got) != 1 || got[0] != "nvim" {
+		t.Fatalf("leer → default = %v, want [nvim]", got)
 	}
-	t.Setenv("VISUAL", "code")
-	if got := editorBinary(); len(got) != 1 || got[0] != "code" {
-		t.Fatalf("VISUAL precedence = %v", got)
+	configuredEditor = "vim -u NONE"
+	if got := editorBinary(); len(got) != 3 || got[0] != "vim" {
+		t.Fatalf("config split = %v", got)
+	}
+	configuredEditor = "nvim"
+	if got := editorBinary(); len(got) != 1 || got[0] != "nvim" {
+		t.Fatalf("config nvim gewinnt über Env = %v", got)
 	}
 }
 

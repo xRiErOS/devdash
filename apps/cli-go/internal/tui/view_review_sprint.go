@@ -177,6 +177,46 @@ func reviewBadge(it api.Issue) string {
 	}
 }
 
+// verdictColored färbt einen rohen Verdikt-String (DD2-225): passed grün, not_passed/
+// rejected (Legacy) rot, pending/leer dim. Single Source für die Runden-Tabelle.
+func verdictColored(v string) string {
+	switch v {
+	case "passed":
+		return lipgloss.NewStyle().Foreground(theme.Green).Render(v)
+	case "not_passed", "rejected":
+		return lipgloss.NewStyle().Foreground(theme.Red).Render(v)
+	case "":
+		return theme.Dim.Render("pending")
+	default:
+		return theme.Dim.Render(v)
+	}
+}
+
+// reviewRoundsTable rendert den Verlauf aller Review-Runden als Tabelle (DD2-225,
+// US-221): Round | Verdict | Comment. Der Kommentar wird in seiner Spalte umgebrochen
+// (mehrzeilig), Round/Verdict bleiben oben bündig — so ist bei rejected der PO-Kommentar
+// vollständig sichtbar (nicht nur das latest-Verdikt). Breiten ANSI-bewusst via grid().
+func reviewRoundsTable(it api.Issue, bodyW int) string {
+	widths := gridColWidths(bodyW, 2, []int{1, 2, 5})
+	row := func(round, verdict, comment string) string {
+		return grid(bodyW, 2,
+			gridCell{1, round},
+			gridCell{2, verdict},
+			gridCell{5, comment})
+	}
+	lines := []string{row(theme.Dim.Render("Round"), theme.Dim.Render("Verdict"), theme.Dim.Render("Comment"))}
+	for _, r := range it.ReviewRounds {
+		comment := strings.TrimSpace(deref(r.Comment))
+		if comment == "" {
+			comment = theme.Dim.Render("—")
+		} else {
+			comment = wrapText(comment, widths[2])
+		}
+		lines = append(lines, row(fmt.Sprintf("%d", r.Round), verdictColored(r.Status), comment))
+	}
+	return strings.Join(lines, "\n")
+}
+
 // verdictDot ist der farbige Verdikt-Indikator der Master-Liste (DD2-67 Rework #2):
 // grün=passed, rot=not_passed, orange (Peach)=noch im Review / kein Verdikt.
 func verdictDot(it api.Issue) string {

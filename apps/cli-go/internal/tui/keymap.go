@@ -31,6 +31,7 @@ type keyMap struct {
 	Filter  keybind.Binding // f
 	Yank    keybind.Binding // y
 	Refresh keybind.Binding // ctrl+r (DD2-72: manueller Daten-Reload)
+	Editor  keybind.Binding // ctrl+e (DD2-224: Langtext-editField im $EDITOR bearbeiten)
 	Section keybind.Binding // 1…9 (Accordion-Section)
 
 	// Kontext-Aktionen (DD2-173). s ist global (alle Node-Typen), S=Sort,
@@ -86,6 +87,7 @@ func newKeyMap() keyMap {
 		Filter:  keybind.NewBinding(keybind.WithKeys("f"), keybind.WithHelp("f", "Filter")),
 		Yank:    keybind.NewBinding(keybind.WithKeys("y"), keybind.WithHelp("y", "Copy context")),
 		Refresh: keybind.NewBinding(keybind.WithKeys("ctrl+r"), keybind.WithHelp("ctrl+r", "Reload data")),
+		Editor:  keybind.NewBinding(keybind.WithKeys("ctrl+e"), keybind.WithHelp("ctrl+e", "Edit in $EDITOR")),
 		Section: keybind.NewBinding(keybind.WithKeys("1", "2", "3", "4", "5", "6", "7", "8", "9"), keybind.WithHelp("1…9", "Section")),
 
 		Status:      keybind.NewBinding(keybind.WithKeys("s"), keybind.WithHelp("s", "Status (all)")),

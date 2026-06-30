@@ -25,32 +25,44 @@ type Sprint struct {
 	MilestoneName *string `json:"milestone_name"`
 	ItemCount     int     `json:"item_count"`
 	DoneCount     int     `json:"done_count"`
+	PassedCount   int     `json:"passed_count"` // DD2-230: Issues mit latest review_status='passed' (Reviews-Liste Header)
 	Items         []Issue `json:"items,omitempty"`
 }
 
 type Issue struct {
-	ID             int     `json:"id"`
-	Key            string  `json:"key"`
-	Title          string  `json:"title"`
-	Status         string  `json:"status"`
-	Type           string  `json:"type"`
-	Priority       int     `json:"priority"`
-	AssignedSprint *int    `json:"assigned_sprint"`
-	SprintKey      *string `json:"sprint_key"`
-	Milestone      *string `json:"milestone"`
-	ReviewStatus   *string `json:"review_status"`
-	ReviewComment  *string `json:"review_comment"`
-	Goal           *string `json:"goal"`
-	Background     *string `json:"background"`
-	Description    *string `json:"description"`
-	ContextNotes   *string `json:"context_notes"`
-	PoNotes        *string `json:"po_notes"`
-	RelevantFiles  *string `json:"relevant_files"`
-	Result         *string `json:"result"`
-	CreatedAt      *string `json:"created_at"`
-	RefinedAt      *string     `json:"refined_at"`
-	Tags           []Tag       `json:"tags,omitempty"`
-	UserStories    []UserStory `json:"user_stories,omitempty"`
+	ID             int           `json:"id"`
+	Key            string        `json:"key"`
+	Title          string        `json:"title"`
+	Status         string        `json:"status"`
+	Type           string        `json:"type"`
+	Priority       int           `json:"priority"`
+	AssignedSprint *int          `json:"assigned_sprint"`
+	SprintKey      *string       `json:"sprint_key"`
+	Milestone      *string       `json:"milestone"`
+	ReviewStatus   *string       `json:"review_status"`
+	ReviewComment  *string       `json:"review_comment"`
+	Goal           *string       `json:"goal"`
+	Background     *string       `json:"background"`
+	Description    *string       `json:"description"`
+	ContextNotes   *string       `json:"context_notes"`
+	PoNotes        *string       `json:"po_notes"`
+	RelevantFiles  *string       `json:"relevant_files"`
+	Result         *string       `json:"result"`
+	CreatedAt      *string       `json:"created_at"`
+	RefinedAt      *string       `json:"refined_at"`
+	Tags           []Tag         `json:"tags,omitempty"`
+	UserStories    []UserStory   `json:"user_stories,omitempty"`
+	ReviewRounds   []ReviewRound `json:"review_rounds,omitempty"` // DD2-225: Verlauf aller Review-Runden (Cockpit-Historie)
+}
+
+// ReviewRound ist eine Review-Runde aus review_feedback (DD2-225): Runden-Nummer,
+// Verdikt (passed|not_passed|pending) und PO-Kommentar. Im Cockpit als Historie-
+// Tabelle gerendert — die latest-only ReviewStatus/ReviewComment verstecken bei
+// auto-reopen (frische pending-Runde) den vorherigen Reject-Kommentar.
+type ReviewRound struct {
+	Round   int     `json:"round"`
+	Status  string  `json:"verdict"`
+	Comment *string `json:"comment"`
 }
 
 type Tag struct {
@@ -78,11 +90,11 @@ type UserStory struct {
 
 // IssueCreateBody ist der POST-Body für CreateIssue.
 type IssueCreateBody struct {
-	Title       string  `json:"title"`
-	Type        string  `json:"type"`
-	Priority    int     `json:"priority"`
-	PoNotes     *string `json:"po_notes,omitempty"` // DD2-129: PO-Freitext (ersetzt description)
-	TagIDs      []int   `json:"tag_ids,omitempty"`  // optionale Tag-Zuweisung beim Anlegen
+	Title    string  `json:"title"`
+	Type     string  `json:"type"`
+	Priority int     `json:"priority"`
+	PoNotes  *string `json:"po_notes,omitempty"` // DD2-129: PO-Freitext (ersetzt description)
+	TagIDs   []int   `json:"tag_ids,omitempty"`  // optionale Tag-Zuweisung beim Anlegen
 }
 
 // MilestoneCreateBody ist der POST-Body für CreateMilestone (name Pflicht;

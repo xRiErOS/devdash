@@ -79,3 +79,31 @@ func TestRenderAccordionExclusiveOpen(t *testing.T) {
 		t.Errorf("geschlossene Section-Bodies sichtbar (nicht exklusiv): %q", out)
 	}
 }
+
+// DD2-225: Die Review-Section rendert ALLE Runden als Tabelle (Round/Verdict/Comment),
+// damit der Reject-Kommentar einer früheren Runde sichtbar bleibt — auch wenn die
+// latest-Runde nach auto-reopen 'pending'/leer ist.
+func TestReviewRoundsTableShowsRejectedComment(t *testing.T) {
+	c1 := "needs work: fix the thing"
+	pending := "pending"
+	it := api.Issue{Key: "DD2-2", Title: "T", Type: "bug", Priority: 1, Status: "to_review"}
+	it.ReviewStatus = &pending // latest leer → ohne DD2-225 stünde nur "pending"
+	it.ReviewRounds = []api.ReviewRound{
+		{Round: 1, Status: "not_passed", Comment: &c1},
+		{Round: 2, Status: "pending", Comment: nil},
+	}
+	var body string
+	for _, s := range (model{}).issueSections(it, 80, false) {
+		if s.title == "Review" {
+			body = ansi.Strip(s.body)
+		}
+	}
+	if body == "" {
+		t.Fatal("keine Review-Section gerendert")
+	}
+	for _, want := range []string{"Round", "Verdict", "Comment", "not_passed", "needs work"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("Review-Runden-Tabelle ohne %q:\n%s", want, body)
+		}
+	}
+}

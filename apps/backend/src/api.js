@@ -724,7 +724,7 @@ const COMPACT_BACKLOG_KEYS = [
 const COMPACT_SPRINT_KEYS = [
   'id', 'key', 'project_prefix', 'project_number', 'name', 'status', 'goal',
   'start_date', 'end_date', 'capacity', 'wip_limit', 'position',
-  'milestone_id', 'milestone_name', 'item_count', 'done_count', 'terminal_count',
+  'milestone_id', 'milestone_name', 'item_count', 'done_count', 'passed_count', 'terminal_count',
 ]
 // DD-622: project-memories ohne das 64k-content-Feld (CLI memory list / MCP memory_list
 // brauchen es nicht — Detail via memory show). project-memories ist eine flache Liste.
@@ -1362,6 +1362,7 @@ app.get('/api/sprints', (req, res) => {
       p.prefix AS project_prefix,
       (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id) as item_count,
       (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status = 'completed') as done_count,
+      (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND (SELECT rf.review_status FROM review_feedback rf WHERE rf.backlog_id = b.id ORDER BY rf.round_number DESC, rf.id DESC LIMIT 1) = 'passed') as passed_count,
       (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status IN ('completed','passed','cancelled')) as terminal_count
     FROM sprints s
     LEFT JOIN milestones m ON m.id = s.milestone_id
@@ -1425,6 +1426,13 @@ app.get('/api/sprints/:id', (req, res) => {
     i.user_stories = listUserStories(db, i.id)
     // MEM-14: Dependency-Zähler pro Issue (Topologie-Signal für Sprint-Planung).
     i.deps = countIssueDependencies(db, i.id)
+    // DD2-225: alle Review-Runden (round/verdict/comment) für die Cockpit-Historie.
+    // Das LEFT JOIN oben liefert nur die LETZTE Runde (rf.id=MAX) → bei rejected+auto-
+    // reopen ist sie 'pending'/leer und versteckte den Reject-Kommentar. Hier die volle
+    // Historie als Array, aufsteigend nach Runde.
+    i.review_rounds = db.prepare(
+      'SELECT round_number AS round, review_status AS verdict, comment FROM review_feedback WHERE backlog_id = ? ORDER BY round_number, id'
+    ).all(i.id)
   }
 
   if (sprint.project_prefix && sprint.project_number != null) {
@@ -3538,6 +3546,7 @@ app.patch('/api/sprints/reorder', (req, res) => {
       p.prefix AS project_prefix,
       (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id) as item_count,
       (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status = 'completed') as done_count,
+      (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND (SELECT rf.review_status FROM review_feedback rf WHERE rf.backlog_id = b.id ORDER BY rf.round_number DESC, rf.id DESC LIMIT 1) = 'passed') as passed_count,
       (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status IN ('completed','passed','cancelled')) as terminal_count
     FROM sprints s
     LEFT JOIN milestones m ON m.id = s.milestone_id
@@ -3644,6 +3653,7 @@ app.put('/api/sprints/:id', (req, res) => {
       p.prefix AS project_prefix,
       (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id) as item_count,
       (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status = 'completed') as done_count,
+      (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND (SELECT rf.review_status FROM review_feedback rf WHERE rf.backlog_id = b.id ORDER BY rf.round_number DESC, rf.id DESC LIMIT 1) = 'passed') as passed_count,
       (SELECT COUNT(*) FROM backlog b WHERE b.assigned_sprint = s.id AND b.status IN ('completed','passed','cancelled')) as terminal_count
     FROM sprints s
     LEFT JOIN milestones m ON m.id = s.milestone_id

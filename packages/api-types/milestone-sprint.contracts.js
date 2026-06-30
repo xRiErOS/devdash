@@ -161,6 +161,9 @@ export const sprintReadContract = z.object({
   // normalisiert auf issue_total/issue_done.
   item_count: z.coerce.number().nullish(),
   done_count: z.coerce.number().nullish(),
+  // DD2-230: passed_count = Issues mit latest review_status='passed' (Reviews-Liste
+  // zeigt X/Y passed im Collapsed-Header, ohne den Sprint einzeln zu fetchen).
+  passed_count: z.coerce.number().nullish(),
   issues: z.array(z.object({
     key: z.string().nullish(),
     title: z.string().nullish(),

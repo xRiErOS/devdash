@@ -134,6 +134,12 @@ type model struct {
 	reviewSprints []api.Sprint
 	rvlist        listState
 	reviewReturn  viewID // wohin Cockpit-q/esc zurückkehrt (Liste vs. Columns)
+	// DD2-230: klappbare Reviews-Liste. reviewExp = aufgeklappte Sprints (per ID),
+	// reviewDetail = Lazy-Cache des Sprint-Details (Items/Verdicts) für die Inline-
+	// Tabelle — beim ersten Aufklappen einmalig via loadReviewDetail geholt (Vorbild
+	// treeExpSprint/treeIssues). Enter bleibt der Cockpit-Einstieg, l/j togglet inline.
+	reviewExp    map[int]bool
+	reviewDetail map[int]*api.Sprint
 	// topReturn = Heimat-View für Backlog/Reviews-Liste-q/esc. Da Tree jetzt Primat
 	// ist (DD2-61), merkt sich der Einstieg, ob aus Tree oder Columns gekommen — sonst
 	// landet man immer in den Columns. Wird beim Öffnen auf die Quell-View gesetzt.

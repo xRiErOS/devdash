@@ -16,8 +16,10 @@ func newModel(client *api.Client, project *api.Project, global *api.Client) mode
 	m.treeExpMile = map[int]bool{}
 	m.treeExpSprint = map[int]bool{}
 	m.treeIssues = map[int][]api.Issue{}
-	m.accOpen = 1         // DD2-50: erste Accordion-Section default offen
-	ti := textinput.New() // DD2-62: Tree-Suchfeld
+	m.reviewExp = map[int]bool{}           // DD2-230: aufgeklappte Review-Sprints (Inline-Tabelle)
+	m.reviewDetail = map[int]*api.Sprint{} // DD2-230: Lazy-Cache der Sprint-Details je ID
+	m.accOpen = 1                          // DD2-50: erste Accordion-Section default offen
+	ti := textinput.New()                  // DD2-62: Tree-Suchfeld
 	ti.Placeholder = "Search for terms"
 	ti.Prompt = ""
 	ti.CharLimit = 60
@@ -70,6 +72,9 @@ func Run(client *api.Client, project *api.Project, global *api.Client) error {
 		theme.SetAccent(cfg.Theme.Accent) // globaler Akzent (Cursor/Header)
 	}
 	defaultModalWidth = cfg.Layout.ModalWidth // Standard-Modalbreite (DD2-55-Clamp greift weiter)
+	if cfg.Editor != "" {                     // DD2-224: TUI-weiter Editor (Default nvim), gewinnt über Env
+		configuredEditor = cfg.Editor
+	}
 
 	// DD2-51: Maus aktivieren (CellMotion = Klick + Wheel + Move-Tracking).
 	_, err := tea.NewProgram(m,

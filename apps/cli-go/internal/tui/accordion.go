@@ -157,8 +157,12 @@ func (m model) issueSections(it api.Issue, bodyW int, full bool) []accordionSect
 		secs = append(secs, accordionSection{title: "Result", body: wrapText(r, bodyW)})
 	}
 
-	// Sektion 6: Review (Status + Kommentar, read-only).
-	if rs := deref(it.ReviewStatus); rs != "" {
+	// Sektion 6: Review (read-only). DD2-225: alle Runden als Tabelle (Round/Verdict/
+	// Comment), damit bei rejected der PO-Kommentar sichtbar ist (latest-only versteckte
+	// ihn bei auto-reopen). Fallback auf das Latest-Verdikt, falls keine Runden geladen.
+	if len(it.ReviewRounds) > 0 {
+		secs = append(secs, accordionSection{title: "Review", body: reviewRoundsTable(it, bodyW)})
+	} else if rs := deref(it.ReviewStatus); rs != "" {
 		secs = append(secs, accordionSection{title: "Review",
 			body: wrapText(rs+"  "+deref(it.ReviewComment), bodyW)})
 	}

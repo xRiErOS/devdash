@@ -250,13 +250,26 @@ func formFooterHint(kind string) string {
 	}
 }
 
+// editFieldUsesEditor meldet, ob die aktive Form ein Langtext-editField ist —
+// nur dann steht der $EDITOR-Launch (ctrl+e) zur Verfügung (DD2-224). Single-Source
+// für den Launch-Handler (updateForm) UND den Footer-Hint (formChrome).
+func (m model) editFieldUsesEditor() bool {
+	return m.formKind == "editField" && m.editEditor == "text"
+}
+
 // formChrome umrahmt jede embedded huh-Form wie die Command-Palette
 // (Header-Titel, Dim-Separator + Dim-Footer). Single-Source für alle Form-Kinds
 // (T03: Box-gerahmt), Chrome über modalPanel.
 func (m model) formChrome() string {
 	innerW := formInnerWidth(m.width)
 	body := theme.Dim.Render(strings.Repeat("─", innerW)) + "\n" + m.form.View()
-	return modalPanel(m.formTitle(), body, formFooterHint(m.formKind), modalBoxWidth(m.width), theme.Mauve)
+	hint := formFooterHint(m.formKind)
+	if m.editFieldUsesEditor() { // DD2-224: $EDITOR-Launch nur bei Langtext-Feldern anbieten
+		// Taste aus der Keymap-Single-Source ableiten (DD2-175-Prinzip) — driftet
+		// nie vom echten Binding (keys.Editor), kein hardcodeter Shortcut.
+		hint = "enter save · " + keys.Editor.Help().Key + " editor · esc cancel"
+	}
+	return modalPanel(m.formTitle(), body, hint, modalBoxWidth(m.width), theme.Mauve)
 }
 
 // typeOptions / priorityOptions = Single Source der Issue-Type- bzw. Prioritäts-

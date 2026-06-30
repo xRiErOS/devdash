@@ -262,6 +262,13 @@ func (m model) keyReviewsList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "down":
 		m.rvlist.move(1)
 		return m, nil
+	case "right": // DD2-230: Sprint am Cursor auf-/zuklappen → Inline-Verdict-Tabelle (lazy)
+		return m.reviewToggleExpand()
+	case "left": // DD2-230: Sprint einklappen (explizit)
+		if m.rvlist.cursor >= 0 && m.rvlist.cursor < len(m.reviewSprints) {
+			delete(m.reviewExp, m.reviewSprints[m.rvlist.cursor].ID)
+		}
+		return m, nil
 	}
 	switch { // DD2-174
 	case keybind.Matches(msg, keys.Back), keybind.Matches(msg, keys.Reviews): // esc/R schließt
@@ -279,6 +286,28 @@ func (m model) keyReviewsList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 	return m, nil
+}
+
+// reviewToggleExpand klappt den Sprint am Cursor auf/zu (DD2-230). Beim ersten
+// Aufklappen werden die Items lazy via loadReviewDetail geholt und in m.reviewDetail
+// gecached (Vorbild treeExpand) — erneutes Auf-/Zuklappen löst keinen Re-Fetch aus.
+func (m model) reviewToggleExpand() (tea.Model, tea.Cmd) {
+	if m.rvlist.cursor < 0 || m.rvlist.cursor >= len(m.reviewSprints) {
+		return m, nil
+	}
+	id := m.reviewSprints[m.rvlist.cursor].ID
+	if m.reviewExp == nil {
+		m.reviewExp = map[int]bool{}
+	}
+	if m.reviewExp[id] { // bereits offen → einklappen
+		delete(m.reviewExp, id)
+		return m, nil
+	}
+	m.reviewExp[id] = true
+	if _, ok := m.reviewDetail[id]; ok {
+		return m, nil // Detail schon im Cache
+	}
+	return m, loadReviewDetail(m.client, id)
 }
 
 // filteredProjects filtert m.projects nach dem aktuellen projectQuery (Name/Prefix/Slug).

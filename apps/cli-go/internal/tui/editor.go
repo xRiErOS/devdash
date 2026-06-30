@@ -24,13 +24,19 @@ type editorFinishedMsg struct {
 	err     error
 }
 
-// editorBinary löst den zu nutzenden Editor auf: $VISUAL > $EDITOR > nvim.
-// Ein Wert darf Argumente enthalten (z.B. "code -w") — an Whitespace gesplittet.
+// configuredEditor ist der TUI-weite Editor-Befehl (DD2-224). In Run() aus der
+// User-Config gesetzt (config.Settings.Editor, Default "nvim") und gewinnt damit
+// bewusst über $EDITOR/$VISUAL — sonst leakte ein Shell-`vim` in die TUI. Single
+// Source für ALLE Editor-Suspends (po_notes, SSTD, Docs, Notes, ToDos).
+var configuredEditor = "nvim"
+
+// editorBinary löst den zu nutzenden Editor auf: configuredEditor (TUI-Config,
+// Default nvim) — NICHT mehr $VISUAL/$EDITOR (DD2-224: globale TUI-Definition,
+// kein Env-Leak). Ein Wert darf Argumente enthalten (z.B. "code -w") — an
+// Whitespace gesplittet. Leer → Fallback nvim.
 func editorBinary() []string {
-	for _, env := range []string{"VISUAL", "EDITOR"} {
-		if v := strings.TrimSpace(os.Getenv(env)); v != "" {
-			return strings.Fields(v)
-		}
+	if ed := strings.TrimSpace(configuredEditor); ed != "" {
+		return strings.Fields(ed)
 	}
 	return []string{"nvim"}
 }
