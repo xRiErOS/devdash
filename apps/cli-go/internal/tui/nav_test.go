@@ -38,66 +38,6 @@ func TestQLeavesToBrowseProject(t *testing.T) {
 	}
 }
 
-// TestRouteHistoryBackForward sichert DD2-184: View-Wechsel füllt die Routen-
-// History; alt+links springt zurück, alt+rechts wieder vor.
-func TestRouteHistoryBackForward(t *testing.T) {
-	m := columnsModel() // viewBrowseProject, Meilensteine geladen
-	// b öffnet das Backlog → Route-Eintrag browseProject.
-	mi, _ := m.Update(keyMsg("b"))
-	m = mi.(model)
-	if m.view != viewBrowseBacklog {
-		t.Fatalf("b → view=%d, want viewBrowseBacklog", m.view)
-	}
-	if len(m.navBack) != 1 || m.navBack[0] != viewBrowseProject {
-		t.Fatalf("navBack=%v, want [viewBrowseProject]", m.navBack)
-	}
-	// alt+links → zurück zum Project-Browser, Backlog wandert auf den Vorwärts-Zweig.
-	mi, _ = m.Update(tea.KeyMsg{Type: tea.KeyLeft, Alt: true})
-	m = mi.(model)
-	if m.view != viewBrowseProject {
-		t.Fatalf("alt+left → view=%d, want viewBrowseProject", m.view)
-	}
-	if len(m.navFwd) != 1 || m.navFwd[0] != viewBrowseBacklog {
-		t.Fatalf("navFwd=%v, want [viewBrowseBacklog]", m.navFwd)
-	}
-	if len(m.navBack) != 0 {
-		t.Fatalf("navBack=%v, want leer nach Rücksprung", m.navBack)
-	}
-	// alt+rechts → wieder vorwärts ins Backlog.
-	mi, _ = m.Update(tea.KeyMsg{Type: tea.KeyRight, Alt: true})
-	m = mi.(model)
-	if m.view != viewBrowseBacklog {
-		t.Fatalf("alt+right → view=%d, want viewBrowseBacklog", m.view)
-	}
-}
-
-// TestRouteHistoryAltJL prüft die jkli-Spiegel-Tasten alt+j (zurück) / alt+l (vor).
-func TestRouteHistoryAltJL(t *testing.T) {
-	m := columnsModel()
-	mi, _ := m.Update(keyMsg("b"))
-	m = mi.(model)
-	mi, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("j"), Alt: true})
-	m = mi.(model)
-	if m.view != viewBrowseProject {
-		t.Fatalf("alt+j → view=%d, want viewBrowseProject", m.view)
-	}
-	mi, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("l"), Alt: true})
-	m = mi.(model)
-	if m.view != viewBrowseBacklog {
-		t.Fatalf("alt+l → view=%d, want viewBrowseBacklog", m.view)
-	}
-}
-
-// TestRouteHistoryEmptyNoop: alt+links/rechts ohne History ändert nichts.
-func TestRouteHistoryEmptyNoop(t *testing.T) {
-	m := columnsModel()
-	mi, _ := m.Update(tea.KeyMsg{Type: tea.KeyLeft, Alt: true})
-	m = mi.(model)
-	if m.view != viewBrowseProject {
-		t.Errorf("alt+left ohne History → view=%d, want unverändert viewBrowseProject", m.view)
-	}
-}
-
 func TestPickerSelectSwitchesView(t *testing.T) {
 	m := newModel(nil, nil, api.NewClient(""))
 	if m.view != viewHome {

@@ -34,11 +34,6 @@ type keyMap struct {
 	Editor  keybind.Binding // ctrl+e (DD2-224: Langtext-editField im $EDITOR bearbeiten)
 	Section keybind.Binding // 1…9 (Accordion-Section)
 
-	// Routen-History (DD2-184): browser-zentriertes Konzept — alt+links zurück zur
-	// vorigen Route, alt+rechts vorwärts. alt+j/alt+l spiegeln das jkli-Kreuz.
-	RouteBack    keybind.Binding // alt+left / alt+j
-	RouteForward keybind.Binding // alt+right / alt+l
-
 	// Kontext-Aktionen (DD2-173). s ist global (alle Node-Typen), S=Sort,
 	// a=global Assign (m entfällt), c=global Create, X=Filter-Clear.
 	// MileStatus/AssignMile sind in Status/Assign aufgegangen.
@@ -95,10 +90,6 @@ func newKeyMap() keyMap {
 		Editor:  keybind.NewBinding(keybind.WithKeys("ctrl+e"), keybind.WithHelp("ctrl+e", "Edit in $EDITOR")),
 		Section: keybind.NewBinding(keybind.WithKeys("1", "2", "3", "4", "5", "6", "7", "8", "9"), keybind.WithHelp("1…9", "Section")),
 
-		// DD2-184: Routen-History. alt+links/alt+j = zurück, alt+rechts/alt+l = vor.
-		RouteBack:    keybind.NewBinding(keybind.WithKeys("alt+left", "alt+j"), keybind.WithHelp("alt+←/alt+j", "Route back")),
-		RouteForward: keybind.NewBinding(keybind.WithKeys("alt+right", "alt+l"), keybind.WithHelp("alt+→/alt+l", "Route forward")),
-
 		Status:      keybind.NewBinding(keybind.WithKeys("s"), keybind.WithHelp("s", "Status (all)")),
 		Sort:        keybind.NewBinding(keybind.WithKeys("S"), keybind.WithHelp("S", "Sort")),
 		Assign:      keybind.NewBinding(keybind.WithKeys("a"), keybind.WithHelp("a", "Assign")),
@@ -140,7 +131,7 @@ type helpGroup struct {
 // generiert — kein händisches Nachpflegen von Hint-Strings mehr.
 func (k keyMap) helpGroups() []helpGroup {
 	return []helpGroup{
-		{"Navigation", []keybind.Binding{k.Up, k.Down, k.Left, k.Right, k.Enter, k.Back, k.Section, k.RouteBack, k.RouteForward}},
+		{"Navigation", []keybind.Binding{k.Up, k.Down, k.Left, k.Right, k.Enter, k.Back, k.Section}},
 		{"Views & Global", []keybind.Binding{k.Backlog, k.Reviews, k.Picker, k.Tags, k.Search, k.Filter, k.FilterClear, k.Refresh, k.Palette, k.Help, k.Quit}},
 		{"Actions", []keybind.Binding{k.Status, k.Sort, k.Assign, k.Create, k.TagAssign, k.Delete, k.Yank, k.Toggle}},
 		{"Review", []keybind.Binding{k.ReviewPass, k.ReviewReject, k.ReviewReopen, k.ReviewRework, k.ReviewResult, k.ReviewPass2, k.SprintComplete}},
