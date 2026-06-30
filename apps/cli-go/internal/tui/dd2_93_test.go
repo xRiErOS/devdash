@@ -10,7 +10,7 @@ import (
 // nachfolgenden Reload-Zyklus (sprintMsg clobbert ihn nicht), bis der
 // Auto-Clear ihn räumt — die PO sieht sicher, dass gespeichert wurde.
 func TestCreatedToastSurvivesReload(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	mi, _ := m.Update(createdMsg{"issue", "DD2-9 Foo"})
 	m = mi.(model)
 	if !m.statusSticky || m.status == "" {

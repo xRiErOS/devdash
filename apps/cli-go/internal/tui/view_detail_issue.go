@@ -46,17 +46,38 @@ func kopfFields() []detailField {
 	}
 }
 
-// focusSections liefert die navigierbaren Sektionen des fokussierten Issues: zuerst
-// die Übersicht (Kopf: title/type/priority), dann die Accordion-Sektionen
-// (Single Source = issueSections, kein Drift). nil, wenn kein Issue fokussiert ist.
+// focusSections liefert die navigierbaren Sektionen der fokussierten Entität: zuerst
+// die Übersicht (Kopf), dann die Accordion-Sektionen. DD2-196: Meilenstein und Sprint
+// nutzen dasselbe Schema wie das Issue (Overview = Name, dann milestone-/sprint-
+// AccordionSections). nil, wenn nichts fokussiert ist.
 func (m model) focusSections() []accordionSection {
+	_, _, _, rw, _ := m.treeLayout()
+	bodyW := rw - 4
+	if n := m.focusedNode(); n != nil {
+		switch n.kind {
+		case tkMile:
+			if n.mileIdx < 0 || n.mileIdx >= len(m.milestones) {
+				return nil
+			}
+			ms := m.milestones[n.mileIdx]
+			secs := []accordionSection{{title: "Overview", fields: milestoneKopfFields()}}
+			return append(secs, m.milestoneAccordionSections(ms, bodyW)...)
+		case tkSprint:
+			if n.mileIdx < 0 || n.mileIdx >= len(m.milestones) ||
+				n.sprIdx < 0 || n.sprIdx >= len(m.milestones[n.mileIdx].Sprints) {
+				return nil
+			}
+			sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
+			secs := []accordionSection{{title: "Overview", fields: sprintKopfFields()}}
+			return append(secs, m.sprintAccordionSections(sp, bodyW)...)
+		}
+	}
 	it := m.focusedIssue()
 	if it == nil {
 		return nil
 	}
-	_, _, _, rw, _ := m.treeLayout()
 	secs := []accordionSection{{title: "Overview", fields: kopfFields()}}
-	return append(secs, m.issueSections(*it, rw-4, true)...) // full: alle Felder editierbar (DD2-144)
+	return append(secs, m.issueSections(*it, bodyW, true)...) // full: alle Felder editierbar (DD2-144)
 }
 
 // currentFieldValue liefert den aktuellen Wert eines Contract-Felds als String
@@ -90,6 +111,22 @@ func currentFieldValue(it api.Issue, field string) string {
 // darüber). Delegiert an openEditFieldGeneric (Single Source, geteilt mit DD2-79).
 func (m model) openEditField(it api.Issue, f detailField) (tea.Model, tea.Cmd) {
 	return m.openEditFieldGeneric("issue", it.ID, f, currentFieldValue(it, f.key))
+}
+
+// editFocusedField öffnet die Edit-Form für das aktive Feld der fokussierten Entität
+// (DD2-196): Meilenstein/Sprint über editFlatField (docs-Browse bzw. scalar via
+// UpdateMilestone/UpdateSprint), Issue über die US-Form bzw. openEditField.
+func (m model) editFocusedField(f detailField) (tea.Model, tea.Cmd) {
+	if n := m.focusedNode(); n != nil && (n.kind == tkMile || n.kind == tkSprint) {
+		return m.editFlatField(f)
+	}
+	if it := m.focusedIssue(); it != nil {
+		if f.editor == "userstory" { // DD2-144: US-Felder → US-Form statt scalar-Edit
+			return m.openUserStoryForm(*it, f)
+		}
+		return m.openEditField(*it, f)
+	}
+	return m, nil
 }
 
 // mergeIssueCore überträgt nur die editierbaren Kern-Spalten von src nach dst und
@@ -161,19 +198,15 @@ func (m *model) mergeUserStories(issueID int, items []api.UserStory) {
 	}
 }
 
-// enterDetailFocus verlagert den Fokus vom Tree in die Detail-Pane (D01). Issue:
-// erste Section, Section-Ebene, Section zu (zweistufig). Meilenstein/Sprint: direkt
-// auf Feld-Ebene (flache Liste, einstufig — D09/DD2-78).
+// enterDetailFocus verlagert den Fokus vom Tree in die Detail-Pane (D01). DD2-196:
+// einheitlich zweistufig für Issue, Meilenstein und Sprint — Start auf der Übersicht
+// (Section-Ebene), Accordion zu.
 func (m model) enterDetailFocus() (tea.Model, tea.Cmd) {
 	m.detailFocus = true
 	m.fieldCursor = 0
 	m.secCursor = 0
 	m.status = ""
-	if n := m.focusedNode(); n != nil && (n.kind == tkMile || n.kind == tkSprint) {
-		m.detailLevel = 1 // flach: sofort Feld-Ebene (D09)
-		return m, nil
-	}
-	m.detailLevel = 0 // Issue: Übersicht (Kopf), Section-Ebene
+	m.detailLevel = 0 // Übersicht (Kopf), Section-Ebene
 	m.accOpen = 0     // Accordion zu; der Fokus steht auf der Übersicht
 	return m, nil
 }
@@ -218,10 +251,6 @@ func (m *model) clampDetailCursor(secs []accordionSection) {
 // Navigation Section↔Feld mit i/k, l/→ rein, j/← raus (oberste → Tree), Ziffer-
 // Sprung, esc zurück. Vom keyTree-Dispatch aufgerufen, solange detailFocus gilt.
 func (m model) keyDetailFocus(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	// Meilenstein/Sprint: flache, einstufige Feldliste (D09/DD2-78) — eigener Handler.
-	if ff := m.detailFlatFields(); ff != nil {
-		return m.keyDetailFlat(msg, ff)
-	}
 	secs := m.focusSections()
 	if len(secs) == 0 { // Issue weg/feldlos → Fokus zurück in den Tree
 		m.exitDetailFocus()
@@ -235,12 +264,32 @@ func (m model) keyDetailFocus(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case keybind.Matches(msg, keys.Back):
 		m.exitDetailFocus()
 		return m, nil
-	case keybind.Matches(msg, keys.TagAssign): // DD2-33: Tag-Picker für das fokussierte Issue
+	case keybind.Matches(msg, keys.TagAssign): // DD2-33/196: Tag-Picker für die fokussierte Entität
+		if n := m.focusedNode(); n != nil {
+			switch n.kind {
+			case tkMile:
+				ms := m.milestones[n.mileIdx]
+				return m.openTagPicker("milestone", ms.ID, ms.Name, ms.Tags)
+			case tkSprint:
+				sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
+				return m.openTagPicker("sprint", sp.ID, sp.Name, nil)
+			}
+		}
 		if it := m.focusedIssue(); it != nil {
 			return m.openTagPicker("issue", it.ID, it.Key+" "+it.Title, it.Tags)
 		}
 		return m, nil
-	case keybind.Matches(msg, keys.Delete): // DD2-65: fokussiertes Issue löschen (Confirm)
+	case keybind.Matches(msg, keys.Delete): // DD2-65/196: fokussierte Entität löschen (Confirm)
+		if n := m.focusedNode(); n != nil {
+			switch n.kind {
+			case tkMile:
+				ms := m.milestones[n.mileIdx]
+				return m.openDelete("milestone", ms.ID, ms.Name)
+			case tkSprint:
+				sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
+				return m.openDelete("sprint", sp.ID, sp.Name)
+			}
+		}
 		if it := m.focusedIssue(); it != nil {
 			return m.openDelete("issue", it.ID, it.Key+" "+it.Title)
 		}
@@ -260,14 +309,7 @@ func (m model) keyDetailFocus(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		if it := m.focusedIssue(); it != nil {
-			f := secs[m.secCursor].fields[m.fieldCursor]
-			if f.editor == "userstory" { // DD2-144: US-Felder → US-Form statt scalar-Edit
-				return m.openUserStoryForm(*it, f)
-			}
-			return m.openEditField(*it, f)
-		}
-		return m, nil
+		return m.editFocusedField(secs[m.secCursor].fields[m.fieldCursor])
 	}
 
 	// Ziffer 1..n = Direktsprung in die Accordion-Section (1 = erste Content-Section

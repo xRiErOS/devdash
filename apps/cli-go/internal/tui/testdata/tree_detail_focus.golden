@@ -4,10 +4,10 @@
 ││⌕ search with /  ∙  filter…  ││▌> DD2-99 Beispiel-Issue für den Snapshot              ││
 ││ ▾ ◉ Meilenstein Eins        ││P1 prio  ∙  ⯁ bug type                      to_review  ││
 ││   ▾ DD2#9 to_review         ││Fields: ▌Title  Type  Priority                         ││
-││▌      ⯁ DD2-99              ││                                                       ││
-││                             ││Sections: digit [1..n] opens                           ││
-││                             ││> [1] Goal / Description ∙ PO notes  ▸                 ││
-││                             ││> [2] Background / Context  ▸                          ││
+││▌      ⯁ P1 DD2-99           ││                                                       ││
+││▌           Beispiel-Issue   ││Sections: digit [1..n] opens                           ││
+││▌           für den          ││> [1] Goal / Description ∙ PO notes  ▸                 ││
+││▌           Snapshot         ││> [2] Background / Context  ▸                          ││
 ││                             ││> [3] Relevant Files  ▸                                ││
 ││                             ││> [4] User-Stories (2)  ▸                              ││
 ││                             ││                                                       ││

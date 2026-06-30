@@ -168,6 +168,28 @@ func doSprintComplete(c *api.Client, sprintID int) tea.Cmd {
 	}
 }
 
+// doSprintYank lädt den vollständigen Sprint (Issues via GetSprint) plus die
+// angehängten Dokumente und kopiert den angereicherten Kontext in die Zwischen-
+// ablage (DD2-215). Garantiert Vollständigkeit — Issues/Docs/ID — unabhängig vom
+// Expand-/Cache-Zustand des Trees. Docs sind optional: ihr Fehler bricht den Yank
+// nicht ab (Issues bleiben kopiert).
+func doSprintYank(c *api.Client, sprintID int, key string) tea.Cmd {
+	return func() tea.Msg {
+		s, err := c.GetSprint(sprintID)
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		docs, err := c.ListDocuments("sprint", sprintID)
+		if err != nil {
+			docs = nil // Docs optional — Yank trotzdem mit Issues/ID
+		}
+		if err := clip.Copy(sprintClip(s, docs)); err != nil {
+			return noticeMsg{"Clipboard error: " + err.Error()}
+		}
+		return noticeMsg{"Sprint context copied (" + key + ")"}
+	}
+}
+
 // doMilestoneStatus mutiert den Meilenstein-Status (T01) und lädt die Columns neu.
 func doMilestoneStatus(c *api.Client, id int, status string) tea.Cmd {
 	return func() tea.Msg {
@@ -841,6 +863,24 @@ func loadOwnerDocs(c *api.Client, ownerType string, ownerID int) tea.Cmd {
 			kind = "s"
 		}
 		return ownerDocsMsg{key: depCacheKey(kind, ownerID), docs: docs}
+	}
+}
+
+// subtasksMsg trägt die Unteraufgaben eines Issues in den Lazy-Cache (DD2-197).
+type subtasksMsg struct {
+	issueID  int
+	subtasks []api.Subtask
+}
+
+// loadSubtasks holt die Unteraufgaben eines Issues read-only und füllt den
+// subtasks-Cache (lazy beim Fokussieren des Issue-Knotens, analog loadOwnerDocs).
+func loadSubtasks(c *api.Client, issueID int) tea.Cmd {
+	return func() tea.Msg {
+		subs, err := c.ListSubtasks(issueID)
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return subtasksMsg{issueID: issueID, subtasks: subs}
 	}
 }
 

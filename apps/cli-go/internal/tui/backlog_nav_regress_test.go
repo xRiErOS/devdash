@@ -27,11 +27,8 @@ func TestBacklogDetailNavWithMilestonesLoaded(t *testing.T) {
 	if m.focusedNode() != nil {
 		t.Fatal("focusedNode im Backlog muss nil sein (DD2-138)")
 	}
-	if m.detailFlatFields() != nil {
-		t.Fatal("detailFlatFields im Backlog muss nil sein → Issue-Maschine")
-	}
 
-	// enter → Issue-Pfad (Übersicht, zweistufig), NICHT Flat (detailLevel 1).
+	// enter → Issue-Pfad (Übersicht, zweistufig).
 	mi, _ := m.keyBacklog(key("enter"))
 	m = mi.(model)
 	if !m.detailFocus || m.detailLevel != 0 || m.secCursor != 0 {

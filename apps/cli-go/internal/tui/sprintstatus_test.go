@@ -8,8 +8,8 @@ import (
 // Sprint-Status-Menü öffnen. Die depth-basierten Columns-Sprint-Status-Tests
 // sind mit dem Columns-Sunset (DD2-111) entfallen; der Sprint-Status-Pfad läuft
 // jetzt über den Tree (s auf Sprint-Knoten) bzw. das Review-Cockpit.
-func TestColumnsSmallSDepth0NoMenu(t *testing.T) {
-	m := columnsModel()
+func TestBrowseSmallSDepth0NoMenu(t *testing.T) {
+	m := browseModel()
 	m.depth = 0 // Meilenstein-Ebene → s ist hier kein Sprint-Trigger
 	mi, _ := m.Update(keyMsg("s"))
 	m = mi.(model)

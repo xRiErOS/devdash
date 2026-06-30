@@ -39,7 +39,7 @@ gelandeten Detail-Pane (DD2#11: Grid-Primitiv, Meta-Strip, ziffern-Accordion).
 | D06 | **`result` read-only.** Wird nur über das Review gesetzt (`set_result`, strukturierter YAML), retrograd einsehbar. Kein Freitext-Edit. |
 | D07 | **`milestone` abgeleitet (nur Anzeige), `plugin_key` ignorieren.** Es gibt keine direkte Meilenstein↔Issue-Beziehung — `milestone` folgt dem Sprint. `plugin_key` = DB-Müll (separater Cleanup), nicht rendern/editieren. |
 | D08 | **Edit-Scope = alle drei Entitäten** (Meilenstein, Sprint, Issue). |
-| D09 | **Meilenstein/Sprint-Detail = flache Feldliste, KEIN Accordion** (wenige Felder). `detailTitle` + `metaStrip` + Felder; Feld-Fokus dort **einstufig**. Issue bleibt **zweistufig** (Accordion). |
+| D09 | ~~**Meilenstein/Sprint-Detail = flache Feldliste, KEIN Accordion**~~ **ABGELÖST durch DD2-196** (PO 2026-06-30): Meilenstein/Sprint nutzen jetzt dasselbe **zweistufige Accordion** wie das Issue — Overview-Kopf (Name) + ziffern-toggelbare Sektionen (Details, Documents, Dependencies, Child-Tabelle Sprints/Issues), leere Felder mit muted `(empty)`. Gemeinsame Fokus-Maschine `focusSections`/`keyDetailFocus`. |
 | D10 | **Schnitt in drei Sprints** (s. u.); innerhalb: Fokus-Maschine vor Edit. |
 
 ## Editierbares Feld-Set (Single-Source = Zod-Contracts)

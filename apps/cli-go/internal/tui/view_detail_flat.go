@@ -1,11 +1,11 @@
 package tui
 
-// view_detail_flat.go — Meilenstein/Sprint-Detail als flache, fokussierbare Feldliste
-// (DD2-78, Decision D09). Anders als das Issue-Detail (zweistufiges Accordion) haben
-// Meilenstein und Sprint wenige Felder (name/description/target_date bzw. name/goal)
-// → ein Accordion wäre Overkill. Das Detail zeigt sie als flache Liste; der Feld-
-// Fokus ist EINSTUFIG (ins Detail → direkt Felder). Gleiche Fokus-/Indikator-Sprache
-// wie das Issue (D08-Balken, Mauve-aktiv). Guardrail: tui-plan.md.
+// view_detail_flat.go — Meilenstein/Sprint-Detail. DD2-196 (PO 2026-06-30) hebt die
+// frühere D09-Flachliste auf: Meilenstein und Sprint nutzen jetzt DASSELBE zwei-
+// stufige Accordion wie das Issue-Detail — Overview-Kopf (Name) + ziffern-toggelbare
+// Sektionen (Details, Documents, Dependencies, Child-Tabelle). Gemeinsame Fokus-
+// Maschine (focusSections/keyDetailFocus). Guardrail-Historie: tui-plan.md (D09
+// durch DD2-196 abgelöst).
 
 import (
 	"fmt"
@@ -13,10 +13,7 @@ import (
 
 	"devd-cli/internal/api"
 	"devd-cli/internal/theme"
-	keybind "github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/x/ansi"
 )
 
 // milestoneFields / sprintFields = die editierbaren Felder (D09, flache Liste).
@@ -88,86 +85,139 @@ func (m model) focusedNode() *treeNode {
 	return &nodes[m.treeCursor]
 }
 
-// detailFlatFields liefert die flache Feldliste, wenn der fokussierte Knoten ein
-// Meilenstein oder Sprint ist (D09). nil → kein flach-fokussierbarer Knoten
-// (Issue nutzt das zweistufige Accordion über focusSections/keyDetailFocus).
-func (m model) detailFlatFields() []detailField {
-	n := m.focusedNode()
-	if n == nil {
-		return nil
+// milestoneKopfFields / sprintKopfFields = die Header-Felder im Overview (Index 0
+// der focusSections, analog kopfFields beim Issue). Der Name ist der Titel und wird
+// über die Übersicht editierbar; description/target_date bzw. goal liegen in der
+// Details-Section.
+func milestoneKopfFields() []detailField { return []detailField{{"name", "Name", "input"}} }
+func sprintKopfFields() []detailField    { return []detailField{{"name", "Name", "input"}} }
+
+// milestoneAccordionSections / sprintAccordionSections = die Accordion-Sektionen
+// (Index 1+ der focusSections; Overview ist Index 0). DD2-196: gleiches Schema wie
+// issueSections — editierbare Felder mit muted (empty)-Platzhalter, read-only Doc-/
+// Dependency-Listen und eine Child-Tabelle (Sprints je Meilenstein, Issues je Sprint).
+func (m model) milestoneAccordionSections(ms api.Milestone, bodyW int) []accordionSection {
+	det := []detailField{{"description", "Description", "text"}, {"target_date", "Target date", "input"}}
+	var parts []string
+	for _, f := range det {
+		parts = append(parts, subhead(f.label, placeholderOr(milestoneFieldValue(ms, f.key))))
 	}
-	switch n.kind {
-	case tkMile:
-		return milestoneFields()
-	case tkSprint:
-		return sprintFields()
+	return []accordionSection{
+		{title: "Details", body: wrapText(strings.Join(parts, "\n\n"), bodyW), fields: det},
+		{title: "Documents", body: m.docsSectionBody(depCacheKey("m", ms.ID), bodyW),
+			fields: []detailField{{"documents", "Documents", "docs"}}},
+		{title: "Dependencies", body: m.depsSectionBody(depCacheKey("m", ms.ID), bodyW)},
+		{title: fmt.Sprintf("Sprints (%d)", len(ms.Sprints)), body: milestoneSprintsTable(ms, bodyW)},
 	}
-	return nil
 }
 
-// keyDetailFlat steuert die flache Feld-Navigation für Meilenstein/Sprint (DD2-78).
-// Einstufig: i/k bewegt direkt zwischen den Feldern, Ziffer springt direkt, h/← und
-// esc geben den Fokus an den Tree zurück (es gibt keine Section-Ebene darüber).
-// enter/l → Feld editieren (DD2-79 verdrahtet den Schreibpfad; bis dahin no-op).
-func (m model) keyDetailFlat(msg tea.KeyMsg, fields []detailField) (tea.Model, tea.Cmd) {
-	if len(fields) == 0 { // Knoten weg → Fokus zurück in den Tree
-		m.exitDetailFocus()
-		return m, nil
+func (m model) sprintAccordionSections(sp api.Sprint, bodyW int) []accordionSection {
+	det := []detailField{{"goal", "Goal", "text"}}
+	parts := []string{subhead("Goal", placeholderOr(sprintFieldValue(sp, "goal")))}
+	return []accordionSection{
+		{title: "Details", body: wrapText(strings.Join(parts, "\n\n"), bodyW), fields: det},
+		{title: "Documents", body: m.docsSectionBody(depCacheKey("s", sp.ID), bodyW),
+			fields: []detailField{{"documents", "Documents", "docs"}}},
+		{title: "Dependencies", body: m.depsSectionBody(depCacheKey("s", sp.ID), bodyW)},
+		{title: fmt.Sprintf("Issues (%d)", sprintIssueCount(m, sp)), body: m.sprintIssuesTable(sp, bodyW)},
 	}
-	// Klemmen (analog clampDetailCursor) — flach: immer Feld-Ebene.
-	m.detailLevel = 1
-	if m.fieldCursor < 0 {
-		m.fieldCursor = 0
-	}
-	if m.fieldCursor >= len(fields) {
-		m.fieldCursor = len(fields) - 1
-	}
+}
 
-	switch {
-	case keybind.Matches(msg, keys.Quit):
-		return m.requestQuit() // DD2-49
-	case keybind.Matches(msg, keys.Back):
-		m.exitDetailFocus()
-		return m, nil
-	case keybind.Matches(msg, keys.TagAssign): // DD2-33: Tag-Picker für den fokussierten Knoten (1:1 zum Issue-Detail)
-		if n := m.focusedNode(); n != nil {
-			switch n.kind {
-			case tkMile:
-				ms := m.milestones[n.mileIdx]
-				return m.openTagPicker("milestone", ms.ID, ms.Name, nil)
-			case tkSprint:
-				sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
-				return m.openTagPicker("sprint", sp.ID, sp.Name, nil)
-			}
-		}
-		return m, nil
-	case keybind.Matches(msg, keys.Enter):
-		return m.editFlatField(fields[m.fieldCursor])
+// docsSectionBody rendert die Inline-Dokument-Liste eines Owners (read-only) als
+// Section-Body — ohne den eigenen "Documents"-Header (den trägt schon der Section-
+// Titel). Lazy-Cache; nicht geladen → Hinweis, leer → (none).
+func (m model) docsSectionBody(key string, w int) string {
+	docs, ok := m.ownerDocs[key]
+	if !ok {
+		return theme.Dim.Render("(loading …)")
 	}
+	if len(docs) == 0 {
+		return theme.Dim.Render("(none)")
+	}
+	lines := make([]string, len(docs))
+	for i, d := range docs {
+		lines[i] = truncate("• "+d.Title, w)
+	}
+	return strings.Join(lines, "\n")
+}
 
-	// Ziffer 1..n = Direktsprung auf das n-te Feld (Muskelmemory wie das Accordion).
-	if s := msg.String(); len(s) == 1 && s[0] >= '1' && s[0] <= '9' {
-		if d := int(s[0] - '1'); d < len(fields) {
-			m.fieldCursor = d
-		}
-		return m, nil
+// depsSectionBody rendert Vorgänger/Nachfolger eines Owners (read-only) als Section-
+// Body — ohne eigenen "Dependencies"-Header. Spiegelt renderTreeDeps.
+func (m model) depsSectionBody(key string, w int) string {
+	d, ok := m.depsCache[key]
+	if !ok {
+		return theme.Dim.Render("(loading …)")
 	}
+	if d == nil || (len(d.Predecessors) == 0 && len(d.Successors) == 0) {
+		return theme.Dim.Render("(none)")
+	}
+	names := func(es []api.DepEntry) string {
+		out := make([]string, len(es))
+		for i, e := range es {
+			out[i] = e.Name
+		}
+		return strings.Join(out, ", ")
+	}
+	var parts []string
+	if len(d.Predecessors) > 0 {
+		parts = append(parts, wrapText(theme.Dim.Render("Predecessors: ")+names(d.Predecessors), w))
+	}
+	if len(d.Successors) > 0 {
+		parts = append(parts, wrapText(theme.Dim.Render("Successors: ")+names(d.Successors), w))
+	}
+	return strings.Join(parts, "\n")
+}
 
-	switch navKey(msg.String()) {
-	case "down":
-		if m.fieldCursor < len(fields)-1 {
-			m.fieldCursor++
-		}
-	case "up":
-		if m.fieldCursor > 0 {
-			m.fieldCursor--
-		}
-	case "right": // l/→ : Feld editieren (es gibt keine tiefere Ebene)
-		return m.editFlatField(fields[m.fieldCursor])
-	case "left": // j/← : zurück in den Tree (flache Liste hat keine Section-Ebene)
-		m.exitDetailFocus()
+// milestoneSprintsTable rendert die Sprints eines Meilensteins als Child-Tabelle
+// (DD2-196 #3): Key + Status + Name (+ gekürztes Goal). Leer → Hinweis.
+func milestoneSprintsTable(ms api.Milestone, w int) string {
+	if len(ms.Sprints) == 0 {
+		return theme.Dim.Render("(no sprints)")
 	}
-	return m, nil
+	lines := make([]string, len(ms.Sprints))
+	for i, s := range ms.Sprints {
+		goal := ""
+		if g := deref(s.Goal); g != "" {
+			goal = "  " + theme.Dim.Render("— "+truncate(g, 24))
+		}
+		lines[i] = truncate(col(s.Key, 9)+statusText(s.Status)+"  "+truncate(s.Name, 24)+goal, w)
+	}
+	return strings.Join(lines, "\n")
+}
+
+// sprintIssueCount liefert die Anzahl der (geladenen) Issues eines Sprints für den
+// Section-Titel — bevorzugt curSprint/Lazy-Cache, sonst Embedded.
+func sprintIssueCount(m model, sp api.Sprint) int {
+	return len(sprintIssueItems(m, sp))
+}
+
+// sprintIssueItems liefert die Issues eines Sprints aus der besten verfügbaren Quelle
+// (curSprint > Lazy-Cache treeIssues > Embedded).
+func sprintIssueItems(m model, sp api.Sprint) []api.Issue {
+	if m.curSprint != nil && m.curSprint.ID == sp.ID {
+		return m.curSprint.Items
+	}
+	if items, ok := m.treeIssues[sp.ID]; ok {
+		return items
+	}
+	return sp.Items
+}
+
+// sprintIssuesTable rendert die Issues eines Sprints als Child-Tabelle (DD2-196 #3).
+// Nicht geladen (Sprint nie expandiert) → Hinweis statt leerer Tabelle.
+func (m model) sprintIssuesTable(sp api.Sprint, w int) string {
+	if _, ok := m.treeIssues[sp.ID]; !ok && (m.curSprint == nil || m.curSprint.ID != sp.ID) && len(sp.Items) == 0 {
+		return theme.Dim.Render("(expand sprint to load issues)")
+	}
+	items := sprintIssueItems(m, sp)
+	if len(items) == 0 {
+		return theme.Dim.Render("(no issues)")
+	}
+	lines := make([]string, len(items))
+	for i, it := range items {
+		lines[i] = truncate(theme.TypeIcon(it.Type)+" "+theme.Key.Render(it.Key)+"  "+statusText(it.Status)+"  "+truncate(it.Title, 30), w)
+	}
+	return strings.Join(lines, "\n")
 }
 
 // editFlatField öffnet die editField-Form für das aktive Meilenstein/Sprint-Feld
@@ -230,46 +280,6 @@ func (m *model) mergeSprintIntoCache(src *api.Sprint) {
 		m.curSprint.Name = src.Name
 		m.curSprint.Goal = src.Goal
 	}
-}
-
-// renderFlatFields rendert die Meilenstein/Sprint-Felder als flache, fokussierbare
-// Liste (D09): je Feld eine Label-Kopfzeile + eingerückter Wert. Das aktive Feld
-// (bei Detail-Fokus) trägt den D08-Balken ▌ + Accent-Tönung — gleiche Sprache wie
-// der Tree-Cursor und der Issue-Accordion-Header. Werte werden explizit auf w
-// umgebrochen (kein Auto-Wrap in der bordered Pane, Golden Rule #2).
-func renderFlatFields(fields []detailField, values []string, active int, focused bool, w int) string {
-	boxStyle := lipgloss.NewStyle().Width(w - 2).PaddingLeft(2)
-	var b strings.Builder
-	for i, f := range fields {
-		head := theme.Chevron.Render("> ") + theme.Header.Render(f.label)
-		if focused && i == active {
-			head = theme.Accent.Render("▌" + truncate(ansi.Strip("> "+f.label), w-1))
-		}
-		b.WriteString(truncate(head, w) + "\n")
-		val := values[i]
-		if strings.TrimSpace(val) == "" {
-			val = theme.Dim.Render("(empty)")
-		}
-		b.WriteString(boxStyle.Render(wrapText(val, w-2)) + "\n")
-	}
-	return strings.TrimRight(b.String(), "\n")
-}
-
-// flatFieldValues sammelt die aktuellen Werte zu einem Feld-Set (Render-Helfer).
-func milestoneFieldValues(ms api.Milestone, fields []detailField) []string {
-	out := make([]string, len(fields))
-	for i, f := range fields {
-		out[i] = milestoneFieldValue(ms, f.key)
-	}
-	return out
-}
-
-func sprintFieldValues(sp api.Sprint, fields []detailField) []string {
-	out := make([]string, len(fields))
-	for i, f := range fields {
-		out[i] = sprintFieldValue(sp, f.key)
-	}
-	return out
 }
 
 // --- Meilenstein-Detail (Vollbild, #1) ---

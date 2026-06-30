@@ -191,8 +191,8 @@ func TestTreeInlineDocs(t *testing.T) {
 	// … und renderOwnerDocs zeigt die gecachten Titel.
 	mid := goldenTreeModel().milestones[0].ID
 	m.ownerDocs[depCacheKey("m", mid)] = []api.Document{{ID: 1, Title: "Inline Plan"}}
-	out := m.renderOwnerDocs(depCacheKey("m", mid), 40)
-	if !strings.Contains(out, "Documents (1)") || !strings.Contains(out, "Inline Plan") {
+	out := m.docsSectionBody(depCacheKey("m", mid), 40)
+	if !strings.Contains(out, "Inline Plan") { // DD2-196: Section-Body ohne eigenen Header
 		t.Fatalf("inline docs render wrong:\n%s", out)
 	}
 }

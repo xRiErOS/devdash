@@ -143,6 +143,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.ownerDocs[msg.key] = msg.docs
 		return m, nil
+	case subtasksMsg: // DD2-197: Unteraufgaben eines Issues in den Lazy-Cache
+		if m.subtasks == nil {
+			m.subtasks = map[int][]api.Subtask{}
+		}
+		m.subtasks[msg.issueID] = msg.subtasks
+		return m, nil
 	case issueUpdatedMsg: // DD2-77: Feld-Edit-Response → Cache in-place mergen (D05)
 		if msg.err != "" {
 			m.errNote = msg.err // Aktions-Fehler rot (D05)
@@ -452,10 +458,23 @@ func (m model) mouseTreeClick(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	if rel < 0 {
 		return m, nil
 	}
+	// DD2-193: Tree-Zeilen sind block-variabel (Issue = Key + umgebrochener Titel).
+	// Klick-Y → Block-Index über dieselbe Geometrie wie der Render (blockWindow +
+	// kumulierte Blockhöhen), darum drift-frei. lw-2 = Pane-Innenbreite (wie Render).
 	nodes := m.treeNodes()
-	start := windowStart(len(nodes), innerH-1, m.treeCursor) // innerH-1: Such-Kopfzeile
-	if idx := start + rel; idx >= 0 && idx < len(nodes) {
-		m.treeCursor = idx
+	blocks := m.treeLeftBlocks(nodes, lw-2, !m.detailFocus)
+	if len(blocks) == 0 {
+		return m, nil
+	}
+	lo, hi := blockWindow(blocks, innerH-1, m.treeCursor) // innerH-1: Such-Kopfzeile
+	acc := 0
+	for i := lo; i <= hi; i++ {
+		h := len(blocks[i])
+		if rel < acc+h {
+			m.treeCursor = i
+			break
+		}
+		acc += h
 	}
 	return m, nil
 }

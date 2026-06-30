@@ -9,7 +9,7 @@ import (
 )
 
 func TestReviewsListOpensViaR(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	mi, cmd := m.Update(keyMsg("R"))
 	m = mi.(model)
 	if m.view != viewNavigateReviews {
@@ -21,7 +21,7 @@ func TestReviewsListOpensViaR(t *testing.T) {
 }
 
 func TestReviewsListMsgPopulates(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	mi, _ := m.openReviewsList()
 	m = mi.(model)
 	mi, _ = m.Update(reviewSprintsMsg{[]api.Sprint{
@@ -35,7 +35,7 @@ func TestReviewsListMsgPopulates(t *testing.T) {
 }
 
 func TestReviewsListEnterOpensCockpit(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	m.view = viewNavigateReviews
 	m.reviewSprints = []api.Sprint{{ID: 42, Key: "SPF#5", Name: "S5", Status: "to_review"}}
 	m.rvlist.setLen(1)
@@ -54,7 +54,7 @@ func TestReviewsListEnterOpensCockpit(t *testing.T) {
 
 // DD2-220: q aus der Reviews-Liste kehrt zur Quell-View (Tree) zurück, nicht zur Lobby.
 func TestReviewsListQReturnsToSource(t *testing.T) {
-	m := columnsModel() // view=viewBrowseProject
+	m := browseModel() // view=viewBrowseProject
 	mi, _ := m.openReviewsList()
 	m = mi.(model)
 	if m.view != viewNavigateReviews {
@@ -70,7 +70,7 @@ func TestReviewsListQReturnsToSource(t *testing.T) {
 // DD2-230: l/→ klappt den Sprint am Cursor auf, lädt die Items lazy (genau ein Fetch),
 // erneut togglet zu. Enter bleibt davon unberührt (eigener Test oben).
 func TestReviewsListExpandTogglesAndLazyLoads(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	m.view = viewNavigateReviews
 	m.reviewSprints = []api.Sprint{{ID: 42, Key: "SPF#5", Name: "S5", Status: "to_review"}}
 	m.rvlist.setLen(1)
@@ -103,7 +103,7 @@ func TestReviewsListExpandTogglesAndLazyLoads(t *testing.T) {
 
 // DD2-230: reviewDetailMsg landet im Lazy-Cache (ohne curSprint/View zu verändern).
 func TestReviewDetailMsgCaches(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	mi, _ := m.Update(reviewDetailMsg{id: 42, sprint: &api.Sprint{ID: 42, Key: "SPF#5"}})
 	m = mi.(model)
 	if m.reviewDetail[42] == nil || m.reviewDetail[42].Key != "SPF#5" {
@@ -116,7 +116,7 @@ func TestReviewDetailMsgCaches(t *testing.T) {
 
 // DD2-230: Collapsed-Header zeigt X/Y passed (passed_count) ohne Aufklappen.
 func TestReviewsHeaderShowsPassedCount(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	m.width, m.height = 140, 40
 	m.view = viewNavigateReviews
 	m.reviewSprints = []api.Sprint{{ID: 7, Key: "SPF#7", Name: "S7", Status: "to_review", PassedCount: 4, ItemCount: 9}}
@@ -129,7 +129,7 @@ func TestReviewsHeaderShowsPassedCount(t *testing.T) {
 
 // DD2-230: aufgeklappt rendert die Inline-Tabelle die Issue-Verdicts (US2).
 func TestReviewsExpandedTableRendersVerdicts(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	m.width, m.height = 160, 40
 	m.view = viewNavigateReviews
 	m.reviewSprints = []api.Sprint{{ID: 7, Key: "SPF#7", Name: "S7", Status: "to_review", ItemCount: 1}}

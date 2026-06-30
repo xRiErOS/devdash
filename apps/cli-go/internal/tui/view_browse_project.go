@@ -264,7 +264,7 @@ func (m model) treeLayout() (head, localKeys string, lw, rw, innerH int) {
 		avail = m.bodyHeight() // Höhe unbekannt (Init/Tests) → großzügiger Fallback
 	}
 	lw, rw = m.masterDetailWidths(w) // DD2-228: Goldstandard 1fr:2fr, tree_width als Mindestbreite (Pin gesunset)
-	innerH = avail - 2 // Border oben/unten — NICHT via Height() (Golden Rule #1)
+	innerH = avail - 2               // Border oben/unten — NICHT via Height() (Golden Rule #1)
 	if innerH < 3 {
 		innerH = 3
 	}
@@ -284,8 +284,10 @@ func (m model) viewBrowseProject() string {
 	// Linke Spalte: Such-/Filterbox als Kopfzeile (DD2-62), darunter die Baumzeilen
 	// gefenstert um den Cursor. Die Kopfzeile kostet 1 Zeile der Innenhöhe.
 	searchLine := m.treeSearchLine(lw - 2)
-	treeLines := m.treeLeftLines(nodes, lw-2, !m.detailFocus) // Cursor friert bei Detail-Fokus (D03)
-	treeLines = windowAround(treeLines, innerH-1, m.treeCursor)
+	// DD2-193: variabel hohe Blöcke (Issue = Key + umgebrochener Titel) → block-
+	// bewusst fenstern, damit der Cursor-Block stets vollständig sichtbar bleibt.
+	blocks := m.treeLeftBlocks(nodes, lw-2, !m.detailFocus) // Cursor friert bei Detail-Fokus (D03)
+	treeLines := windowBlocks(blocks, innerH-1, m.treeCursor)
 	left := append([]string{searchLine}, treeLines...)
 	for len(left) < innerH {
 		left = append(left, "")
@@ -327,10 +329,24 @@ func (m model) viewBrowseProject() string {
 	return m.outerBorder(head + "\n" + body + "\n" + localKeys + "\n" + status) // DD2-84
 }
 
-// treeLeftLines rendert die Baumzeilen (mit Expand-Marker, Einrückung, Cursor).
-// Der Cursor wird per absolutem Index gesetzt, bevor windowAround fenstert.
+// treeLeftLines flacht die Tree-Blöcke (treeLeftBlocks) in eine Zeilenliste —
+// dünner Wrapper für Tests/Altpfade. Render + Maus nutzen die Blöcke direkt.
 func (m model) treeLeftLines(nodes []treeNode, w int, active bool) []string {
-	lines := make([]string, 0, len(nodes))
+	var out []string
+	for _, blk := range m.treeLeftBlocks(nodes, w, active) {
+		out = append(out, blk...)
+	}
+	return out
+}
+
+// treeLeftBlocks rendert je Tree-Knoten EINEN Block (DD2-193): Meilenstein/Sprint/
+// Info sind einzeilig, ein Issue ist mehrzeilig — Kopf (icon + prio + key) in Zeile 1,
+// der Titel ab Zeile 2 als ANSI-sicher umgebrochener Hängeeinzug UNTER dem Key
+// (PO-Format wie der Backlog, DD2-189). Variabel hohe Blöcke → windowBlocks fenstert,
+// mouseTreeClick mappt block-bewusst (blockWindow, Single Source). Der Cursor-Block
+// trägt auf JEDER Zeile den D08-Balken (active=false friert ihn muted ein, D03).
+func (m model) treeLeftBlocks(nodes []treeNode, w int, active bool) [][]string {
+	blocks := make([][]string, 0, len(nodes))
 	for i, n := range nodes {
 		marker := "  "
 		if n.expand {
@@ -340,43 +356,75 @@ func (m model) treeLeftLines(nodes []treeNode, w int, active bool) []string {
 				marker = "▸ "
 			}
 		}
-		var label string
+		indent := strings.Repeat("  ", n.depth)
+		var lines []string
 		switch n.kind {
 		case tkMile:
 			ms := m.milestones[n.mileIdx]
-			label = statusDot(ms.Status) + " " + mileDisplayName(ms.Name)
+			label := statusDot(ms.Status) + " " + mileDisplayName(ms.Name)
 			if t := tagsInline(ms.Tags); t != "" { // DD2-143: Tags am Meilenstein-Knoten
 				label += "  " + t
 			}
+			lines = []string{indent + marker + label}
 		case tkSprint:
 			sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
+			var label string
 			if sp.Status == "cancelled" { // DD2-133 Rework: ID/Key bleibt weiß (wie completed), NUR der Status-Text grau
 				label = sp.Key + " " + theme.Dim.Render(sp.Status)
 			} else {
 				label = sp.Key + " " + statusText(sp.Status)
 			}
+			lines = []string{indent + marker + label}
 		case tkIssue:
 			if n.issue != nil { // aufgelöst (Lazy-Cache ODER Filter-Quelle)
-				label = theme.TypeIcon(n.issue.Type) + " " + theme.Key.Render(n.issue.Key)
+				lines = issueTreeBlock(*n.issue, indent+marker, w)
+			} else {
+				lines = []string{indent + marker}
 			}
 		case tkInfo:
-			label = theme.Dim.Render(n.label)
+			lines = []string{indent + marker + theme.Dim.Render(n.label)}
+		default:
+			lines = []string{indent + marker}
 		}
-		row := strings.Repeat("  ", n.depth) + marker + label
+		// D08: Cursor-Block = Balken ▌ + ganze Zeile akzentgetönt (Eigen-Farben der
+		// Zelle gestrippt). Detail-Fokus friert den Cursor (D03): Balken bleibt, aber
+		// muted/Overlay statt Accent — nur der fokussierte Pane zeigt seinen Cursor.
 		if i == m.treeCursor {
-			// D08: Cursor = Balken ▌ + ganze Zeile in Akzentfarbe getönt. Eigen-Farben
-			// der Zelle (Status-Dot, Key, Typ-Icon) werden gestrippt und einheitlich
-			// in Akzent umgefärbt — die Selektion ist als Ganzes erkennbar. Bei Detail-
-			// Fokus friert der Tree-Cursor (D03): Balken bleibt, aber muted/Overlay statt
-			// Accent — nur der fokussierte Pane zeigt seinen aktiven Cursor.
-			plain := truncate(ansi.Strip(row), w-1)
-			if active {
-				lines = append(lines, theme.Accent.Render("▌"+plain))
-			} else {
-				lines = append(lines, theme.Dim.Render("▌"+plain))
+			for j := range lines {
+				plain := truncate(ansi.Strip(lines[j]), w-1)
+				if active {
+					lines[j] = theme.Accent.Render("▌" + plain)
+				} else {
+					lines[j] = theme.Dim.Render("▌" + plain)
+				}
 			}
 		} else {
-			lines = append(lines, " "+truncate(row, w-1))
+			for j := range lines {
+				lines[j] = " " + truncate(lines[j], w-1)
+			}
+		}
+		blocks = append(blocks, lines)
+	}
+	return blocks
+}
+
+// issueTreeBlock baut den mehrzeiligen Issue-Block für den Tree (DD2-193): Kopf
+// (Prefix = Einzug + icon + prio) + Key, darunter der auf Pane-Breite umgebrochene
+// Titel als Hängeeinzug unter dem Key (Einzug = Displaybreite des Prefix VOR dem
+// Key, lipgloss.Width — nie len, B06). w-1 reserviert die Cursor-Spalte (Rightalign-
+// Reserve, [[dd2-tui-rightalign-reserve-width]]).
+func issueTreeBlock(it api.Issue, lead string, w int) []string {
+	prefix := lead + theme.TypeIcon(it.Type) + " " + theme.Priority(it.Priority) + " "
+	indent := lipgloss.Width(prefix)
+	lines := []string{prefix + theme.Key.Render(it.Key)}
+	if title := strings.TrimSpace(it.Title); title != "" {
+		titleW := w - 1 - indent
+		if titleW < 8 {
+			titleW = 8 // schmaler Fallback, damit der Titel nicht in 1-Zeichen-Spalten zerfällt
+		}
+		pad := strings.Repeat(" ", indent)
+		for _, tl := range strings.Split(wrapText(title, titleW), "\n") {
+			lines = append(lines, pad+theme.Dim.Render(tl))
 		}
 	}
 	return lines
@@ -436,51 +484,22 @@ func (m model) syncOwnerDocs(nodes []treeNode) tea.Cmd {
 	return nil
 }
 
-// renderOwnerDocs rendert die Inline-Doc-Liste eines Meilenstein-/Sprint-Knotens aus
-// dem Lazy-Cache (DD2-163 Rework, read-only). Macht im Tree sichtbar „hier ist ein
-// Dokument"; geöffnet/editiert wird über das Documents-Feld (enter → Docs-Browser).
-func (m model) renderOwnerDocs(key string, w int) string {
-	docs, ok := m.ownerDocs[key]
-	if !ok {
-		return theme.Dim.Render("Documents: (loading …)")
+// syncSubtasks lädt die Unteraufgaben des fokussierten Issue-Knotens lazy nach
+// (DD2-197), für die Subtasks-Accordion-Section. nil, wenn nichts zu laden ist
+// (kein Issue-Knoten, bereits gecacht, Out-of-bounds). Analog syncOwnerDocs.
+func (m model) syncSubtasks(nodes []treeNode) tea.Cmd {
+	if m.treeCursor < 0 || m.treeCursor >= len(nodes) {
+		return nil
 	}
-	if len(docs) == 0 {
-		return theme.Dim.Render("Documents: none")
+	n := nodes[m.treeCursor]
+	if n.kind != tkIssue || n.issue == nil {
+		return nil
 	}
-	var b strings.Builder
-	b.WriteString(theme.Dim.Render(fmt.Sprintf("Documents (%d)", len(docs))))
-	for _, d := range docs {
-		b.WriteString("\n" + truncate("  • "+d.Title, w))
+	id := n.issue.ID
+	if _, ok := m.subtasks[id]; ok {
+		return nil
 	}
-	return b.String()
-}
-
-// renderTreeDeps rendert Vorgänger/Nachfolger eines Milestone-/Sprint-Knotens aus
-// dem Lazy-Cache (DD2-89, read-only). Nicht gecacht → Lade-Hinweis; keine → "none".
-func (m model) renderTreeDeps(key string, w int) string {
-	d, ok := m.depsCache[key]
-	if !ok {
-		return theme.Dim.Render("Dependencies: (loading …)")
-	}
-	if len(d.Predecessors) == 0 && len(d.Successors) == 0 {
-		return theme.Dim.Render("Dependencies: none")
-	}
-	names := func(es []api.DepEntry) string {
-		out := make([]string, len(es))
-		for i, e := range es {
-			out[i] = e.Name
-		}
-		return strings.Join(out, ", ")
-	}
-	var b strings.Builder
-	b.WriteString(theme.Dim.Render("Dependencies"))
-	if len(d.Predecessors) > 0 {
-		b.WriteString("\n" + wrapText(theme.Dim.Render("Predecessors: ")+names(d.Predecessors), w))
-	}
-	if len(d.Successors) > 0 {
-		b.WriteString("\n" + wrapText(theme.Dim.Render("Successors: ")+names(d.Successors), w))
-	}
-	return b.String()
+	return loadSubtasks(m.client, id)
 }
 
 // treeDetail rendert die rechte Detail-Fläche für den selektierten Knoten —
@@ -495,19 +514,25 @@ func (m model) treeDetail(n treeNode, w int) string {
 			return theme.Dim.Render("(nothing selected)")
 		}
 		ms := m.milestones[n.mileIdx]
-		// Meilenstein hat keinen Key → Titel ohne Key; Meta-Strip Fortschritt/Status.
-		b.WriteString(detailTitle("", mileDisplayName(ms.Name), w) + "\n")
+		// DD2-196: gleiches Schema wie das Issue — Übersicht-Kopf (Name editierbar) +
+		// ziffern-Accordion (Details/Documents/Dependencies/Sprints-Tabelle).
+		kopfActive := m.detailFocus && m.secCursor == 0
+		title := detailTitle("", mileDisplayName(ms.Name), w) // Meilenstein hat keinen Key
+		if kopfActive {
+			title = theme.Accent.Render("▌" + truncate(ansi.Strip(title), w-1))
+		}
+		b.WriteString(title + "\n")
 		b.WriteString(metaStrip([]metaPair{
 			{fmt.Sprintf("%d/%d", ms.Done, ms.Total), "Progress"},
 			{tagsInline(ms.Tags), "tags"}, // DD2-143
-		}, statusText(ms.Status), w) + "\n\n")
-		// DD2-78: editierbare Felder als flache, fokussierbare Liste (kein Accordion,
-		// D09). Bei Detail-Fokus auf diesem Knoten trägt das aktive Feld den D08-Balken.
-		fields := milestoneFields()
-		b.WriteString(renderFlatFields(fields, milestoneFieldValues(ms, fields), m.fieldCursor, m.detailFocus, w))
-		b.WriteString("\n\n" + m.renderTreeDeps(depCacheKey("m", ms.ID), w))  // DD2-89
-		b.WriteString("\n\n" + m.renderOwnerDocs(depCacheKey("m", ms.ID), w)) // DD2-163 Rework
-		b.WriteString("\n\n" + theme.Dim.Render(fmt.Sprintf("Sprints (%d)", len(ms.Sprints))) + "\n")
+		}, statusText(ms.Status), w))
+		if kopfActive && m.detailLevel == 1 {
+			b.WriteString("\n" + fieldStrip(milestoneKopfFields(), m.fieldCursor, w))
+		}
+		b.WriteString("\n\n" + theme.Muted.Render("Sections: digit [1..n] opens") + "\n")
+		focus := detailFocusView{active: m.detailFocus && m.secCursor >= 1,
+			level: m.detailLevel, sec: m.secCursor - 1, field: m.fieldCursor}
+		b.WriteString(renderAccordion(m.milestoneAccordionSections(ms, w-2), m.accOpen, w, focus))
 	case tkSprint:
 		if n.mileIdx < 0 || n.mileIdx >= len(m.milestones) ||
 			n.sprIdx < 0 || n.sprIdx >= len(m.milestones[n.mileIdx].Sprints) {
@@ -515,16 +540,23 @@ func (m model) treeDetail(n treeNode, w int) string {
 		}
 		ms := m.milestones[n.mileIdx]
 		sp := ms.Sprints[n.sprIdx]
-		b.WriteString(detailTitle(sp.Key, sp.Name, w) + "\n")
+		kopfActive := m.detailFocus && m.secCursor == 0
+		title := detailTitle(sp.Key, sp.Name, w)
+		if kopfActive {
+			title = theme.Accent.Render("▌" + truncate(ansi.Strip(title), w-1))
+		}
+		b.WriteString(title + "\n")
 		b.WriteString(metaStrip([]metaPair{
 			{sprintMilestoneName(&sp, &ms), "Milestone"},
 			{fmt.Sprintf("%d/%d", sp.DoneCount, sp.ItemCount), "Progress"},
-		}, statusText(sp.Status), w) + "\n\n")
-		// DD2-78: name/goal als flache, fokussierbare Feldliste (D09, kein Accordion).
-		fields := sprintFields()
-		b.WriteString(renderFlatFields(fields, sprintFieldValues(sp, fields), m.fieldCursor, m.detailFocus, w))
-		b.WriteString("\n\n" + m.renderTreeDeps(depCacheKey("s", sp.ID), w))  // DD2-89
-		b.WriteString("\n\n" + m.renderOwnerDocs(depCacheKey("s", sp.ID), w)) // DD2-163 Rework
+		}, statusText(sp.Status), w))
+		if kopfActive && m.detailLevel == 1 {
+			b.WriteString("\n" + fieldStrip(sprintKopfFields(), m.fieldCursor, w))
+		}
+		b.WriteString("\n\n" + theme.Muted.Render("Sections: digit [1..n] opens") + "\n")
+		focus := detailFocusView{active: m.detailFocus && m.secCursor >= 1,
+			level: m.detailLevel, sec: m.secCursor - 1, field: m.fieldCursor}
+		b.WriteString(renderAccordion(m.sprintAccordionSections(sp, w-2), m.accOpen, w, focus))
 	case tkIssue:
 		if n.issue == nil {
 			return theme.Dim.Render("(nothing selected)")
@@ -734,12 +766,12 @@ func (m model) keyTree(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.treeCursor--
 		}
 		// DD2-89 Deps + DD2-163 Rework Inline-Docs des neu fokussierten Knotens lazy nachladen
-		return m, tea.Batch(m.syncDeps(nodes), m.syncOwnerDocs(nodes))
+		return m, tea.Batch(m.syncDeps(nodes), m.syncOwnerDocs(nodes), m.syncSubtasks(nodes))
 	case "down":
 		if m.treeCursor < len(nodes)-1 {
 			m.treeCursor++
 		}
-		return m, tea.Batch(m.syncDeps(nodes), m.syncOwnerDocs(nodes))
+		return m, tea.Batch(m.syncDeps(nodes), m.syncOwnerDocs(nodes), m.syncSubtasks(nodes))
 	case "right":
 		return m.treeExpand(nodes)
 	case "left":
@@ -778,17 +810,11 @@ func (m model) treeYank(nodes []treeNode) (tea.Model, tea.Cmd) {
 			m.status = "Milestone context copied (" + ms.Name + ")"
 		}
 	case tkSprint:
+		// DD2-215: vollständigen Kontext (Issues + Docs + ID) async fetchen statt
+		// aus dem ggf. unvollständigen Embedded/Cache-Sprint zu serialisieren.
 		sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
-		src := &sp
-		if m.curSprint != nil && m.curSprint.ID == sp.ID {
-			src = m.curSprint
-		}
-		if err := clip.Copy(sprintClip(src)); err != nil {
-			m.errNote = "Clipboard-Fehler: " + err.Error()
-		} else {
-			m.errNote = ""
-			m.status = "Sprint context copied (" + sp.Key + ")"
-		}
+		m.status = "copying sprint context …"
+		return m, doSprintYank(m.client, sp.ID, sp.Key)
 	default:
 		m.status = "Yank: on milestone or sprint"
 	}

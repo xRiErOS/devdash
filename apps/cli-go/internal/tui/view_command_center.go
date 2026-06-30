@@ -14,6 +14,7 @@ import (
 	"devd-cli/internal/theme"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // openSearch öffnet die Such-Ansicht und lädt projektweit alle Issues nach,
@@ -77,9 +78,12 @@ func (m model) keySearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// viewCommandCenter rendert die Such-Ansicht als Master-Detail — IDENTISCH zum
+// Project-Browser (DD2-198): zwei gerahmte Panes (paneBorderColors), links die
+// Trefferliste, rechts das Issue-Detail über dieselben Primitive (detailTitle +
+// metaStrip + ziffern-Accordion). Kein eigener Pane-Titel/Flat-Layout mehr.
 func (m model) viewCommandCenter() string {
 	w := m.termWidth()
-	h := m.bodyHeight()
 	results := m.searchResults()
 	if m.searchList.length != len(results) {
 		m.searchList.setLen(len(results))
@@ -92,54 +96,101 @@ func (m model) viewCommandCenter() string {
 	}
 	leftW, rightW := m.masterDetailWidths(w)
 
-	listP := pane{title: fmt.Sprintf("Results (%d)", len(results)), rows: m.searchRows(results), cursor: m.searchList.cursor, isList: true}
-	detP := pane{title: "Detail", rows: m.searchDetailRows(results, rightW-2), isList: false}
-	left := renderPane(listP, leftW, h, true)
-	right := renderPane(detP, rightW, h, false)
-	body := lipgloss.JoinHorizontal(lipgloss.Top, left, right)
-
 	head := m.header() + "\n" + theme.Header.Render(m.screenTitle("Search")) +
 		"  " + theme.Key.Render("/ ") + m.searchQuery + "▏"
 	footer := theme.Dim.Render("type: filter all issues   i/k or ↑↓: navigate   esc: back")
 	if m.status != "" {
 		footer = m.status
 	}
-	// DD2-91 Rework: in den App-Außenrahmen wrappen (Chrome-Parität zu Tree/Columns/Backlog).
+	// Innenhöhe analog treeLayout: App-Rahmen + Kopf + Footer reserviert, -2 Pane-Border.
+	innerH := m.frameH() - lipgloss.Height(head) - lipgloss.Height(footer) - 2
+	if innerH < 4 {
+		innerH = m.bodyHeight()
+	}
+
+	// Linke Pane: "Results (n)"-Kopf + gefensterte Trefferliste (Cursor-Balken D08).
+	leftHead := theme.Header.Render(truncate(fmt.Sprintf("Results (%d)", len(results)), leftW-2))
+	resultLines := windowAround(m.searchResultLines(results, leftW-2), innerH-1, m.searchList.cursor)
+	left := append([]string{leftHead}, resultLines...)
+	if len(left) > innerH {
+		left = left[:innerH]
+	}
+	for len(left) < innerH {
+		left = append(left, "")
+	}
+
+	// Rechte Pane: Issue-Detail wie im Project-Browser (detailTitle + metaStrip + Accordion).
+	detail := m.searchDetailRows(results, rightW-2)
+	for i := range detail {
+		detail[i] = truncate(detail[i], rightW-2)
+	}
+	if len(detail) > innerH {
+		detail = detail[:innerH]
+	}
+	for len(detail) < innerH {
+		detail = append(detail, "")
+	}
+
+	// D03-Sprache: Master-Pane (links) ist der aktive Fokus in der Suche.
+	leftCol, rightCol := paneBorderColors(false)
+	leftBox := lipgloss.NewStyle().Width(leftW).
+		Border(lipgloss.RoundedBorder()).BorderForeground(leftCol).
+		Render(strings.Join(left, "\n"))
+	rightBox := lipgloss.NewStyle().Width(rightW).
+		Border(lipgloss.RoundedBorder()).BorderForeground(rightCol).
+		Render(strings.Join(detail, "\n"))
+	body := lipgloss.JoinHorizontal(lipgloss.Top, leftBox, rightBox)
+	// DD2-91 Rework: in den App-Außenrahmen wrappen (Chrome-Parität zu Tree/Backlog).
 	return m.outerBorder(head + "\n" + body + "\n" + footer)
 }
 
-func (m model) searchRows(results []api.Issue) []string {
+// searchResultLines rendert die flache Trefferliste (icon+key+status+title); die
+// Cursor-Zeile trägt den D08-Balken ▌ (akzentgetönt, Eigen-Farben gestrippt) — wie
+// die linke Tree-/Backlog-Spalte. w-1 reserviert die Cursor-Spalte.
+func (m model) searchResultLines(results []api.Issue, w int) []string {
 	if len(results) == 0 {
 		return []string{theme.Dim.Render("(no matches — type to search)")}
 	}
-	rows := make([]string, len(results))
+	lines := make([]string, len(results))
 	for i, it := range results {
-		rows[i] = theme.TypeIcon(it.Type) + " " + theme.Key.Render(it.Key) + "  " +
+		row := theme.TypeIcon(it.Type) + " " + theme.Key.Render(it.Key) + "  " +
 			statusText(it.Status) + "  " + it.Title
+		if i == m.searchList.cursor {
+			lines[i] = theme.Accent.Render("▌" + truncate(ansi.Strip(row), w-1))
+		} else {
+			lines[i] = " " + truncate(row, w-1)
+		}
 	}
-	return rows
+	return lines
 }
 
+// searchDetailRows rendert das Detail des selektierten Treffers IDENTISCH zum
+// Project-Browser-Issue-Detail (DD2-198, treeDetail): detailTitle + metaStrip
+// (milestone/prio/type/tags + Status) + ziffern-Accordion (issueSections). Read-
+// only (kein Detail-Fokus). Single Source des Layouts bleibt damit das Browser-Detail.
 func (m model) searchDetailRows(results []api.Issue, w int) []string {
 	if len(results) == 0 || m.searchList.cursor < 0 || m.searchList.cursor >= len(results) {
 		return []string{theme.Dim.Render("(no selection)")}
 	}
 	it := results[m.searchList.cursor]
-	rows := []string{
-		theme.Header.Render(it.Key + " — " + it.Title),
-		theme.StatusStyle(it.Status).Render(it.Status) + "  " +
-			theme.TypeIcon(it.Type) + " " + it.Type + "  " + theme.Priority(it.Priority),
-		theme.Dim.Render("milestone: ") + deref(it.Milestone),
-		"",
+	var b strings.Builder
+	b.WriteString(detailTitle(it.Key, it.Title, w) + "\n")
+	var tags string
+	if len(it.Tags) > 0 {
+		names := make([]string, len(it.Tags))
+		for i, t := range it.Tags {
+			names[i] = t.Name
+		}
+		tags = strings.Join(names, ",")
 	}
-	if g := deref(it.Goal); g != "" {
-		rows = append(rows, theme.Dim.Render("Goal:"))
-		rows = append(rows, strings.Split(wrapText(g, w), "\n")...)
-		rows = append(rows, "")
-	}
-	if bg := deref(it.Background); bg != "" {
-		rows = append(rows, theme.Dim.Render("Background:"))
-		rows = append(rows, strings.Split(wrapText(bg, w), "\n")...)
-	}
-	return rows
+	b.WriteString(metaStrip([]metaPair{
+		{deref(it.Milestone), "milestone"},
+		{theme.Priority(it.Priority), "prio"},
+		{theme.TypeIcon(it.Type) + " " + theme.TypeStyle(it.Type).Render(it.Type), "type"},
+		{tags, "tags"},
+	}, statusText(it.Status), w))
+	b.WriteString("\n\n")
+	b.WriteString(theme.Muted.Render("Sections: digit [1..n] opens") + "\n")
+	b.WriteString(renderAccordion(m.issueSections(it, w-2, true), m.accOpen, w, detailFocusView{}))
+	return strings.Split(b.String(), "\n")
 }

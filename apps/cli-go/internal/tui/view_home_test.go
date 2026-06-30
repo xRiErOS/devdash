@@ -15,7 +15,7 @@ func TestEscSpineToHome(t *testing.T) {
 	key := func(s string) tea.KeyMsg { return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)} }
 
 	// Tree (kein Filter/Detail-Fokus) → Home
-	mt := columnsModel()
+	mt := browseModel()
 	mt.view = viewBrowseProject
 	if got, _ := mt.keyTree(key("esc")); got.(model).view != viewHome {
 		t.Errorf("Tree esc → view=%d, want viewHome", got.(model).view)

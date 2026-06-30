@@ -27,7 +27,7 @@ func TestSprintClipHasErgebnisseColumn(t *testing.T) {
 		{ID: 1, Key: "DD2-1", Title: "A", Result: &res},
 		{ID: 2, Key: "DD2-2", Title: "B"},
 	}}
-	out := sprintClip(s)
+	out := sprintClip(s, nil)
 	if !strings.Contains(out, "Results") {
 		t.Error("sprintClip ohne Ergebnisse-Spalte (I03)")
 	}

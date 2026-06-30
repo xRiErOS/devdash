@@ -145,7 +145,7 @@ func resultDot(it api.Issue) string {
 
 // sprintStatusMenu: schwebendes Sprint-Status-Menü (Taste S), zeigt gültige Transitions.
 func (m model) sprintStatusMenu() string {
-	body := theme.Dim.Render("aktuell: "+m.spCurStatus) + "\n\n"
+	body := theme.Dim.Render("current: "+m.spCurStatus) + "\n\n"
 	body += menuList(len(m.spopts), m.spmenu.cursor, func(i int, sel bool) string {
 		s := m.spopts[i]
 		label := statusText(s)
@@ -316,7 +316,7 @@ func (m model) reviewSummary() string {
 	}
 	head := theme.Dim.Render("Review rounds: ")
 	if sprintReviewReady(m.curSprint) {
-		head = lipgloss.NewStyle().Foreground(theme.Green).Bold(true).Render("★ Abschluss-bereit (C: PO) — ")
+		head = lipgloss.NewStyle().Foreground(theme.Green).Bold(true).Render("★ ready to complete (C: PO) — ")
 	}
 	return head + strings.Join(parts, "  ")
 }
@@ -404,7 +404,7 @@ func (m model) userStoryModal() string {
 	}
 	iw := boxW - 2 // Innenbreite (Box-Padding 0,1)
 	it := m.reviewItem()
-	title := "Issue-Abnahme"
+	title := "Issue acceptance"
 	if it != nil {
 		title = it.Key + " — " + it.Title
 	}
@@ -542,12 +542,12 @@ func (m model) reviewHandoverClip() string {
 
 // reviewHints zeigt nur die im aktuellen Zustand gültigen Aktionen.
 func (m model) reviewHints() string {
-	hints := []string{"i/k:↑↓", "1-n:Section", "ctrl+d/u:scroll", "enter:Abnahme", "s:status", "r:result", "a:pass", "x:reject", "y:copy→clipboard", "H:handover"}
+	hints := []string{"i/k:↑↓", "1-n:Section", "ctrl+d/u:scroll", "enter:accept", "s:status", "r:result", "a:pass", "x:reject", "y:copy→clipboard", "H:handover"}
 	if it := m.reviewItem(); it != nil {
 		if it.Status == "to_review" {
 			hints = append(hints, "o:reopen")
 		} else {
-			hints = append(hints, "w:Rework→to_review")
+			hints = append(hints, "w:rework→to_review")
 		}
 	}
 	if m.curSprint != nil {
@@ -567,7 +567,7 @@ func (m model) reviewHints() string {
 // statusMenu ist das schwebende Issue-Status-Menü (Taste s).
 func (m model) statusMenu() string {
 	cur := m.stIssueStatus
-	body := theme.Dim.Render("aktuell: "+cur) + "\n\n"
+	body := theme.Dim.Render("current: "+cur) + "\n\n"
 	body += menuList(len(m.sopts), m.smenu.cursor, func(i int, sel bool) string {
 		s := m.sopts[i]
 		label := statusText(s)
@@ -633,10 +633,14 @@ func (m model) viewReviewSprint() string {
 	foot := theme.Muted.Render(wrapText(m.reviewHints(), w))
 	statusLine := m.statusBar("")
 
-	// Pane-Innenhöhe = Gesamthöhe minus Kopf/Summary/Footer/Status/Trennzeilen,
+	// Pane-Innenhöhe = Gesamthöhe minus Chrome (Kopf/Summary/Footer/Status),
 	// minus 2 für den Pane-Border (der außen wächst → Gesamthöhe = innerH+2).
+	// DD2-236: KEIN Trennzeilen-Abzug — die "\n" zwischen den Render-Teilen sind
+	// Zeilenterminatoren, keine Extra-Zeilen ("A\nB".Height == H(A)+H(B)). Das alte
+	// "+ 3" zog die Pane um 3 Zeilen zu kurz → View endete vor dem unteren Rand
+	// (analog treeLayout, das ebenfalls keine Trennzeilen abzieht).
 	chromeH := lipgloss.Height(head) + lipgloss.Height(summary) +
-		lipgloss.Height(foot) + lipgloss.Height(statusLine) + 3
+		lipgloss.Height(foot) + lipgloss.Height(statusLine)
 	h := m.frameH() - chromeH - 2 // DD2-84: Innenhöhe (App-Außenrahmen reserviert)
 	if h < 6 {
 		h = m.bodyHeight() // Höhe unbekannt (Init/Tests) → großzügiger Fallback

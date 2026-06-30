@@ -12,7 +12,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func reproColumnsModel(view viewID, depth int) model {
+func reproBrowseModel(view viewID, depth int) model {
 	iss := api.Issue{ID: 5, Key: "DD2-99", Title: "Repro", Status: "to_review", Type: "bug", Priority: 2}
 	sp := api.Sprint{ID: 3, Key: "DD2#9", Name: "Sprint", Status: "to_review", Items: []api.Issue{iss}}
 	ms := api.Milestone{ID: 1, Name: "Meilenstein-Eins", Status: "in_progress", Sprints: []api.Sprint{sp}}
@@ -27,7 +27,7 @@ func reproColumnsModel(view viewID, depth int) model {
 
 // DD2-29: s im Issue-Detail muss das Status-Menü öffnen.
 func TestReproDetailSOpensIssueStatus(t *testing.T) {
-	m := reproColumnsModel(viewDetailIssue, 2)
+	m := reproBrowseModel(viewDetailIssue, 2)
 	nm, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("s")})
 	if !nm.(model).statusPick {
 		t.Error("s im Detail öffnet das Issue-Status-Menü NICHT (statusPick=false)")
@@ -36,7 +36,7 @@ func TestReproDetailSOpensIssueStatus(t *testing.T) {
 
 // DD2-23: Sprint-Detail muss die Meilenstein-Zeile rendern (Fallback Eltern-Name).
 func TestReproSprintDetailShowsMilestone(t *testing.T) {
-	m := reproColumnsModel(viewDetailSprint, 1)
+	m := reproBrowseModel(viewDetailSprint, 1)
 	out := m.View()
 	if !strings.Contains(out, "Milestone") || !strings.Contains(out, "Meilenstein-Eins") {
 		t.Errorf("Sprint-Detail zeigt den Meilenstein-Namen NICHT.\n--- View ---\n%s", out)

@@ -7,7 +7,7 @@ import (
 
 // DD2-31: ? öffnet die Shortcut-Übersicht, jede Taste schließt sie wieder.
 func TestHelpOverlayToggle(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	mi, _ := m.Update(keyMsg("?"))
 	m = mi.(model)
 	if !m.helpOpen {
@@ -35,7 +35,7 @@ func TestHelpNotOpenedDuringSearch(t *testing.T) {
 // helpBox wird aus der zentralen Keymap generiert: Gruppen-Titel + Tasten-Labels
 // stammen aus key.Binding.Help() (Single-Source, DD2-47).
 func TestHelpBoxRendersKeymap(t *testing.T) {
-	box := columnsModel().helpBox()
+	box := browseModel().helpBox()
 	for _, want := range []string{"Keyboard shortcuts", "Navigation", "Views & Global", "Actions", "↑/i", "?", "help"} {
 		if !strings.Contains(box, want) {
 			t.Errorf("helpBox enthält %q nicht", want)
