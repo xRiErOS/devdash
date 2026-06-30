@@ -389,9 +389,36 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.MouseMsg:
 		return m.handleMouse(msg)
 	case tea.KeyMsg:
-		return m.handleKey(msg)
+		// DD2-184: globale Routen-History — alt+links/rechts vor dem View-Dispatch.
+		// Die Jumps verwalten navBack/navFwd selbst und umgehen das Recording.
+		if keybind.Matches(msg, keys.RouteBack) {
+			return m.routeBack()
+		}
+		if keybind.Matches(msg, keys.RouteForward) {
+			return m.routeForward()
+		}
+		prev := m.view
+		nm, cmd := m.handleKey(msg)
+		return recordNav(nm, prev, cmd)
 	}
 	return m, nil
+}
+
+// recordNav schreibt die Routen-History fort (DD2-184): hat ein Key-Handler die
+// View gewechselt, wird die vorige auf navBack geschoben und der Vorwärts-Zweig
+// gekappt. Unveränderte View (Overlays/Status/Picker zählen nicht als Route) → kein
+// Eintrag. navBack ist auf navHistMax begrenzt (kein unbegrenztes Wachstum).
+func recordNav(nm tea.Model, prev viewID, cmd tea.Cmd) (tea.Model, tea.Cmd) {
+	mm, ok := nm.(model)
+	if !ok || mm.view == prev {
+		return nm, cmd
+	}
+	mm.navBack = append(mm.navBack, prev)
+	if len(mm.navBack) > navHistMax {
+		mm.navBack = mm.navBack[len(mm.navBack)-navHistMax:]
+	}
+	mm.navFwd = nil
+	return mm, cmd
 }
 
 // handleMouse bindet die Maus an (DD2-51): Wheel scrollt (Tree-Cursor bzw.

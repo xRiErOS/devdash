@@ -140,8 +140,8 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case k == "q" && m.view == viewNavigateReviews: // DD2-220: q kehrt aus der Reviews-Liste zur Quell-View (Tree) zurück, nicht zur Lobby
 		m.view = m.topReturn
 		return m, nil
-	case k == "q": // DD2-124: q verlässt jede Projekt-View zur Lobby (immer Home)
-		return m.goHome()
+	case k == "q": // DD2-188: q verlässt die aktuelle View zum Project-Browser (Zentrum), NICHT zur Lobby (war goHome, DD2-124). esc bleibt der Home-Spine.
+		return m.goBrowse()
 	case keybind.Matches(msg, keys.Quit): // ctrl+c (q oben) — harter Beenden-Pfad → Confirm (DD2-49)
 		return m.requestQuit()
 	case keybind.Matches(msg, keys.Picker):
@@ -238,6 +238,69 @@ func (m model) openReviewsList() (tea.Model, tea.Cmd) {
 	m.rvlist = listState{}
 	m.status = ""
 	return m, loadReviewSprints(m.client)
+}
+
+// goBrowse verlässt eine Funktions-/Detail-View zurück zum Project-Browser
+// (viewBrowseProject = Navigations-Zentrum, DD2-188). Anders als goHome (Lobby)
+// bleibt der Nutzer im Projekt — q nutzt diesen Pfad, esc bleibt der Home-Spine.
+// Sind die Meilensteine noch nicht geladen, werden sie defensiv nachgeholt.
+func (m model) goBrowse() (tea.Model, tea.Cmd) {
+	m.view = viewBrowseProject
+	m.status = ""
+	if len(m.milestones) == 0 && m.client != nil {
+		return m, loadMilestones(m.client)
+	}
+	return m, nil
+}
+
+// navHistMax begrenzt die Routen-History (DD2-184), damit navBack nicht unbegrenzt
+// wächst (lange Sessions). Älteste Einträge fallen heraus.
+const navHistMax = 50
+
+// gotoView wechselt im Rahmen der Routen-History (DD2-184) auf eine Ziel-View und
+// lädt deren Kerndaten defensiv nach, falls der Modell-Cache leer ist. Reine
+// View-Umschaltung — kein History-Recording (Jump-Pfad verwaltet die Stacks selbst).
+func (m model) gotoView(v viewID) (tea.Model, tea.Cmd) {
+	m.view = v
+	m.status = ""
+	switch v {
+	case viewHome:
+		if len(m.projects) == 0 && m.global != nil {
+			return m, loadProjects(m.global)
+		}
+	case viewBrowseProject:
+		if len(m.milestones) == 0 && m.client != nil {
+			return m, loadMilestones(m.client)
+		}
+	case viewNavigateReviews:
+		if len(m.reviewSprints) == 0 && m.client != nil {
+			return m, loadReviewSprints(m.client)
+		}
+	}
+	return m, nil
+}
+
+// routeBack springt zur zuvor besuchten View zurück (DD2-184, alt+links/alt+j).
+// Die verlassene View wandert auf den Vorwärts-Zweig (navFwd) für alt+rechts.
+func (m model) routeBack() (tea.Model, tea.Cmd) {
+	if len(m.navBack) == 0 {
+		return m, nil
+	}
+	prev := m.navBack[len(m.navBack)-1]
+	m.navBack = m.navBack[:len(m.navBack)-1]
+	m.navFwd = append(m.navFwd, m.view)
+	return m.gotoView(prev)
+}
+
+// routeForward springt entlang des Vorwärts-Zweigs (DD2-184, alt+rechts/alt+l).
+func (m model) routeForward() (tea.Model, tea.Cmd) {
+	if len(m.navFwd) == 0 {
+		return m, nil
+	}
+	nxt := m.navFwd[len(m.navFwd)-1]
+	m.navFwd = m.navFwd[:len(m.navFwd)-1]
+	m.navBack = append(m.navBack, m.view)
+	return m.gotoView(nxt)
 }
 
 // openBacklog öffnet die Backlog-Liste und merkt die Quell-View (Tree/Columns)

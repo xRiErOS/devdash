@@ -4,8 +4,9 @@ package tui
 // (~/.config/devd-cli/config.yaml) direkt aus der TUI (Aufruf via Command
 // Palette → "Einstellungen"). Felder: theme.accent, layout.tree_width,
 // layout.modal_width, editor (DD2-221 D04: TUI-weiter Editor für Langtext-Felder).
-// Keybindings = read-only Placeholder (→ DD2-34). Nach Save wird die Config neu
-// geladen (LoadSettings) und der Merge angewendet (inkl. configuredEditor).
+// Nach Save wird die Config neu geladen (LoadSettings) und der Merge angewendet
+// (inkl. configuredEditor). DD2-181: Der obsolete Keybinding-Remap-Placeholder
+// (→ DD2-34) ist entfernt — die zentrale Keymap (DD2#33) macht ihn gegenstandslos.
 
 import (
 	"fmt"
@@ -62,8 +63,6 @@ func buildSettingsForm(cfg config.Settings) *huh.Form {
 		// Args tragen ("code -w"). Greift sofort (configuredEditor live-apply).
 		huh.NewInput().Key("editor").Title("editor").
 			Description("Editor for text fields — empty = nvim; may carry args (code -w)").Value(&editor),
-		huh.NewNote().Title("keybindings").
-			Description("read-only — key remapping comes in DD2-34"),
 	))
 }
 
