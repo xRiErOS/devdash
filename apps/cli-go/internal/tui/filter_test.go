@@ -112,7 +112,7 @@ func TestSprintClipTable(t *testing.T) {
 	g, bg := "Target", "Hintergrund\nmehrzeilig"
 	s := &api.Sprint{ID: 10, Key: "SPF#1", Name: "S1", Status: "in_progress", ItemCount: 1, DoneCount: 0,
 		Items: []api.Issue{{ID: 100, Key: "SPF-1", Title: "Issue A", Goal: &g, Background: &bg}}}
-	out := sprintClip(s)
+	out := sprintClip(s, nil)
 	if !strings.Contains(out, "| ID | Key | Title | Goal | Background |") {
 		t.Error("Issue-Tabellenkopf fehlt")
 	}

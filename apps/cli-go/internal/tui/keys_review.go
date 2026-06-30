@@ -22,17 +22,10 @@ func (m model) yankContext() (tea.Model, tea.Cmd) {
 			}
 		}
 	case 1:
+		// DD2-215: vollständigen Sprint-Kontext (Issues + Docs + ID) async fetchen.
 		if s := m.selSprint(); s != nil {
-			src := s
-			if m.curSprint != nil && m.curSprint.ID == s.ID {
-				src = m.curSprint
-			}
-			if err := clip.Copy(sprintClip(src)); err != nil {
-				m.errNote = "Clipboard-Fehler: " + err.Error()
-			} else {
-				m.errNote = ""
-				m.status = "Sprint context copied (" + s.Key + ")"
-			}
+			m.status = "copying sprint context …"
+			return m, doSprintYank(m.client, s.ID, s.Key)
 		}
 	default:
 		m.status = "Yank: on milestone (sprints) or sprint (issues) — h back"

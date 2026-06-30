@@ -42,19 +42,49 @@ func milestoneClip(ms *api.Milestone) string {
 	return b.String()
 }
 
-// sprintClip baut den Markdown-Kontext eines Sprints: Kopf + Issue-Tabelle.
-func sprintClip(s *api.Sprint) string {
+// sprintClip baut den Markdown-Kontext eines Sprints: Kopf (inkl. numerischer
+// ID + Key zur MCP/CLI-Identifikation, DD2-215) + Issue-Tabelle + angehängte
+// Dokumente. docs darf nil/leer sein (dann keine Documents-Sektion).
+func sprintClip(s *api.Sprint, docs []api.Document) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "# Sprint %s — %s\n\n", s.Key, s.Name)
+	// DD2-215: ID + Key explizit, damit der PO den Sprint direkt via MCP/CLI
+	// (`devd_sprint_context <id|key>`) ansprechen kann.
+	fmt.Fprintf(&b, "- ID: %d\n", s.ID)
+	fmt.Fprintf(&b, "- Key: %s\n", s.Key)
 	fmt.Fprintf(&b, "- Status: %s\n", s.Status)
 	if g := deref(s.Goal); g != "" {
 		fmt.Fprintf(&b, "- Goal: %s\n", g)
 	}
 	fmt.Fprintf(&b, "- Progress: %d/%d\n", s.DoneCount, s.ItemCount)
-	b.WriteString("\n| ID | Key | Title | Goal | Background | Results |\n|---|---|---|---|---|---|\n")
+	b.WriteString("\n## Issues\n\n")
+	b.WriteString("| ID | Key | Title | Goal | Background | Results |\n|---|---|---|---|---|---|\n")
 	for _, it := range s.Items {
 		fmt.Fprintf(&b, "| %d | %s | %s | %s | %s | %s |\n",
 			it.ID, it.Key, oneline(it.Title), oneline(deref(it.Goal)), oneline(deref(it.Background)), resultMark(it))
+	}
+	b.WriteString(sprintDocsSection(docs))
+	return b.String()
+}
+
+// sprintDocsSection rendert die an den Sprint angehängten Dokumente als Markdown
+// (Titel + Status + voller Body) für den Yank-Kontext (DD2-215). Leere Liste →
+// leerer String (keine Sektion).
+func sprintDocsSection(docs []api.Document) string {
+	if len(docs) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "\n## Documents (%d)\n", len(docs))
+	for _, d := range docs {
+		fmt.Fprintf(&b, "\n### %s", d.Title)
+		if d.Status != "" {
+			fmt.Fprintf(&b, "  _(%s)_", d.Status)
+		}
+		b.WriteString("\n")
+		if strings.TrimSpace(d.Body) != "" {
+			fmt.Fprintf(&b, "\n%s\n", d.Body)
+		}
 	}
 	return b.String()
 }

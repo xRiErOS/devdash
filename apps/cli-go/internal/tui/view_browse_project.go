@@ -778,17 +778,11 @@ func (m model) treeYank(nodes []treeNode) (tea.Model, tea.Cmd) {
 			m.status = "Milestone context copied (" + ms.Name + ")"
 		}
 	case tkSprint:
+		// DD2-215: vollständigen Kontext (Issues + Docs + ID) async fetchen statt
+		// aus dem ggf. unvollständigen Embedded/Cache-Sprint zu serialisieren.
 		sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
-		src := &sp
-		if m.curSprint != nil && m.curSprint.ID == sp.ID {
-			src = m.curSprint
-		}
-		if err := clip.Copy(sprintClip(src)); err != nil {
-			m.errNote = "Clipboard-Fehler: " + err.Error()
-		} else {
-			m.errNote = ""
-			m.status = "Sprint context copied (" + sp.Key + ")"
-		}
+		m.status = "copying sprint context …"
+		return m, doSprintYank(m.client, sp.ID, sp.Key)
 	default:
 		m.status = "Yank: on milestone or sprint"
 	}
