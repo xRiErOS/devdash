@@ -21,7 +21,23 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/muesli/termenv"
 )
+
+// rebaseBg hängt nach jedem Voll-Reset (ESC[0m) den Base-Hintergrund wieder an.
+// huh-Felder streuen intern Resets zwischen ihren Segmenten; die äußere Box-BG
+// (modalBox.Background) füllt nur das von lipgloss erzeugte Padding, NICHT die
+// von huh selbst emittierten Zellen hinter einem Reset. Folge: default-BG-Zellen
+// = Terminal-Default (schwarz auf nicht-Catppuccin-/transparenten Terminals,
+// B01). Profil-bewusst (TrueColor/256/16); im Ascii-Profil (kein Farb-SGR) No-op.
+func rebaseBg(s string) string {
+	c := lipgloss.ColorProfile().Color(string(theme.Base))
+	if c == nil {
+		return s // Ascii-Profil → keine Farbsequenzen, nichts zu rebasen
+	}
+	open := termenv.CSI + c.Sequence(true) + "m"
+	return strings.ReplaceAll(s, "\x1b[0m", "\x1b[0m"+open)
+}
 
 func nonEmpty(s string) error {
 	if strings.TrimSpace(s) == "" {
@@ -266,7 +282,9 @@ func (m model) editFieldUsesEditor() bool {
 // (T03: Box-gerahmt), Chrome über modalPanel.
 func (m model) formChrome() string {
 	innerW := formInnerWidth(m.width)
-	body := theme.Dim.Render(strings.Repeat("─", innerW)) + "\n" + m.form.View()
+	// B01: huh-View durch rebaseBg, sonst hinterlassen interne Resets schwarze
+	// (default-BG) Zellen in Feldern/Buttons auf nicht-Catppuccin-Terminals.
+	body := theme.Dim.Render(strings.Repeat("─", innerW)) + "\n" + rebaseBg(m.form.View())
 	hint := formFooterHint(m.formKind)
 	if m.editFieldUsesEditor() { // DD2-224: $EDITOR-Launch nur bei Langtext-Feldern anbieten
 		// Taste aus der Keymap-Single-Source ableiten (DD2-175-Prinzip) — driftet

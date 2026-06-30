@@ -20,6 +20,7 @@ func modalBox(inner string, width int, border lipgloss.Color) string {
 		Width(width).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(border).
+		BorderBackground(theme.Base). // B02: sonst Rahmen-Zellen = Terminal-Default-BG (schwarz)
 		Background(theme.Base).
 		Padding(0, 1).
 		Render(inner)
