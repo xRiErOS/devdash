@@ -20,28 +20,30 @@ type paletteAction struct {
 // paletteActions liefert die kontextabhängige Aktionsliste. Reviews (T17) und
 // Memory (T18) werden hier ergänzt, sobald die Views existieren.
 func paletteActions(m *model) []paletteAction {
+	// DD2-185: einheitliches Wording — Aktionen 'create: <entity>', Navigation
+	// 'go to: <ziel>'. Bessere Auffindbarkeit (PO-Audit).
 	acts := []paletteAction{
-		{"create_issue", "Neues Issue anlegen"},
-		{"create_milestone", "Create new milestone"},
-		{"create_sprint", "Create new sprint"},
-		{"create_memory", "Create new memory"},
-		{"go_reviews", "Go to: Open reviews"},
-		{"go_memory", "Go to: Memory browser"},
-		{"go_sstd", "Go to: SSTD slots"},          // DD2-166
-		{"go_notes", "Go to: User notes"},         // DD2-168
-		{"go_todos", "Go to: ToDos"},              // DD2-171
-		{"go_docs", "Go to: Documents"},           // DD2-167 (owner = focused tree node)
-		{"go_all_docs", "Go to: All documents"},   // DD2-163 Rework (project-wide)
-		{"go_search", "Go to: Search all issues"}, // DD2-91
-		{"go_backlog", "Go to: Backlog"},
-		{"go_tags", "Go to: Tag manager"},
-		{"go_settings", "Settings"},                 // DD2-125: edit user config
-		{"go_project_settings", "Project settings"}, // DD2-221: edit active project name
-		{"go_tutorial", "Tutorial: guided tour"}, // DD2-122
-		{"test_form", "Test Form"},               // Styling-Sandbox (kein Persist)
+		{"create_issue", "create: issue"},
+		{"create_milestone", "create: milestone"},
+		{"create_sprint", "create: sprint"},
+		{"create_memory", "create: memory"},
+		{"go_reviews", "go to: open reviews"},
+		{"go_memory", "go to: memory browser"},
+		{"go_sstd", "go to: SSTD slots"},          // DD2-166
+		{"go_notes", "go to: user notes"},         // DD2-168
+		{"go_todos", "go to: todos"},              // DD2-171
+		{"go_docs", "go to: documents"},           // DD2-167 (owner = focused tree node)
+		{"go_all_docs", "go to: all documents"},   // DD2-163 Rework (project-wide)
+		{"go_search", "go to: search all issues"}, // DD2-91
+		{"go_backlog", "go to: backlog"},
+		{"go_tags", "go to: tag manager"},
+		{"go_settings", "go to: settings"},                 // DD2-125: edit user config
+		{"go_project_settings", "go to: project settings"}, // DD2-221: edit active project name
+		{"go_tutorial", "go to: tutorial"},                 // DD2-122
+		{"test_form", "test: form sandbox"},                // Styling-Sandbox (kein Persist)
 	}
 	if m.global != nil {
-		acts = append(acts, paletteAction{"go_project", "Switch project"})
+		acts = append(acts, paletteAction{"go_project", "go to: switch project"})
 	}
 	return acts
 }

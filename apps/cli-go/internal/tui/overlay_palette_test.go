@@ -12,12 +12,12 @@ func TestFuzzyMatch(t *testing.T) {
 		query, target string
 		want          bool
 	}{
-		{"", "Neues Issue anlegen", true},      // leer matcht alles
-		{"issue", "Neues Issue anlegen", true}, // direkter Teilstring
-		{"nia", "Neues Issue anlegen", true},   // Subsequenz N..I..A
-		{"sprint", "Create new sprint", true},  // case-insensitiv
-		{"zzz", "Neues Issue anlegen", false},  // kein Match
-		{"mile", "Create new milestone", true}, // Umlaut-frei, Substring
+		{"", "create: issue", true},          // leer matcht alles
+		{"issue", "create: issue", true},     // direkter Teilstring
+		{"cti", "create: issue", true},       // Subsequenz c..t..i
+		{"sprint", "create: sprint", true},   // case-insensitiv
+		{"zzz", "create: issue", false},      // kein Match
+		{"mile", "create: milestone", true},  // Substring
 	}
 	for _, c := range cases {
 		if got := fuzzyMatch(c.query, c.target); got != c.want {
