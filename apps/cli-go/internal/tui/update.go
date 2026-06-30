@@ -176,6 +176,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.status = noticeText("Gespeichert: " + msg.sp.Name)
 		}
 		return m, nil
+	case projectUpdatedMsg: // DD2-221: Projekt-Settings gespeichert → m.project spiegeln + Toast
+		if msg.err != "" {
+			m.errNote = msg.err
+			return m, nil
+		}
+		if msg.project != nil {
+			m.errNote = ""
+			m.project = msg.project
+			m.status = noticeText("Project saved: " + msg.project.Name)
+			m.statusSticky = false
+			m.statusSeq++
+			return m, statusTimeout(m.statusSeq)
+		}
+		return m, nil
 	case assignSprintsMsg: // DD2-136: Ziel-Sprints für den Issue→Sprint-Picker
 		m.asSprints = msg.items
 		m.asMenu.setLen(len(m.asSprints))

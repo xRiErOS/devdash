@@ -3,8 +3,9 @@ package tui
 // form_edit_settings.go — DD2-125: Settings-Form. Bearbeitet die User-Config
 // (~/.config/devd-cli/config.yaml) direkt aus der TUI (Aufruf via Command
 // Palette → "Einstellungen"). Felder: theme.accent, layout.tree_width,
-// layout.modal_width. Keybindings = read-only Placeholder (→ DD2-34). Nach Save
-// wird die Config neu geladen (LoadSettings) und der Merge angewendet.
+// layout.modal_width, editor (DD2-221 D04: TUI-weiter Editor für Langtext-Felder).
+// Keybindings = read-only Placeholder (→ DD2-34). Nach Save wird die Config neu
+// geladen (LoadSettings) und der Merge angewendet (inkl. configuredEditor).
 
 import (
 	"fmt"
@@ -45,6 +46,7 @@ func buildSettingsForm(cfg config.Settings) *huh.Form {
 	accent := cfg.Theme.Accent
 	tw := strconv.Itoa(cfg.Layout.TreeWidth)
 	mw := strconv.Itoa(cfg.Layout.ModalWidth)
+	editor := cfg.Editor
 	return huh.NewForm(huh.NewGroup(
 		huh.NewInput().Key("accent").Title("theme.accent").
 			Description("Hex #rrggbb — empty = built-in mauve").Value(&accent).Validate(validateAccent),
@@ -52,6 +54,11 @@ func buildSettingsForm(cfg config.Settings) *huh.Form {
 			Description("Tree column width (24–60)").Value(&tw).Validate(validatePosInt),
 		huh.NewInput().Key("modal_width").Title("layout.modal_width").
 			Description("Modal box width (30–100)").Value(&mw).Validate(validatePosInt),
+		// DD2-221 (D04): TUI-weiter Editor für Langtext-Felder UI-konfigurierbar
+		// (ersetzt die alte $EDITOR-Env-Abhängigkeit). Leer = Default nvim. Darf
+		// Args tragen ("code -w"). Greift sofort (configuredEditor live-apply).
+		huh.NewInput().Key("editor").Title("editor").
+			Description("Editor for text fields — empty = nvim; may carry args (code -w)").Value(&editor),
 		huh.NewNote().Title("keybindings").
 			Description("read-only — key remapping comes in DD2-34"),
 	))
@@ -60,8 +67,8 @@ func buildSettingsForm(cfg config.Settings) *huh.Form {
 // saveAndApplySettings schreibt die User-Config, lädt sie neu (mit Clamp/Merge)
 // und wendet den Akzent + die Modalbreite global an. Single Source für den
 // Submit-Pfad (formCreateCmd) und Tests.
-func (m model) saveAndApplySettings(accent string, treeWidth, modalWidth int) (model, error) {
-	if err := config.SaveUserSettings(accent, treeWidth, modalWidth); err != nil {
+func (m model) saveAndApplySettings(accent string, treeWidth, modalWidth int, editor string) (model, error) {
+	if err := config.SaveUserSettings(accent, treeWidth, modalWidth, editor); err != nil {
 		return m, err
 	}
 	cfg, _ := config.LoadSettings() // re-read + clamp + Merge (User + lokaler Override)
@@ -70,5 +77,8 @@ func (m model) saveAndApplySettings(accent string, treeWidth, modalWidth int) (m
 		theme.SetAccent(cfg.Theme.Accent)
 	}
 	defaultModalWidth = cfg.Layout.ModalWidth
+	if cfg.Editor != "" { // DD2-221 (D04): Editor sofort übernehmen (kein Neustart nötig)
+		configuredEditor = cfg.Editor
+	}
 	return m, nil
 }
