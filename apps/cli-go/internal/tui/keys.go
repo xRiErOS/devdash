@@ -140,8 +140,8 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case k == "q" && m.view == viewNavigateReviews: // DD2-220: q kehrt aus der Reviews-Liste zur Quell-View (Tree) zurück, nicht zur Lobby
 		m.view = m.topReturn
 		return m, nil
-	case k == "q": // DD2-124: q verlässt jede Projekt-View zur Lobby (immer Home)
-		return m.goHome()
+	case k == "q": // DD2-188: q verlässt die aktuelle View zum Project-Browser (Zentrum), NICHT zur Lobby (war goHome, DD2-124). esc bleibt der Home-Spine.
+		return m.goBrowse()
 	case keybind.Matches(msg, keys.Quit): // ctrl+c (q oben) — harter Beenden-Pfad → Confirm (DD2-49)
 		return m.requestQuit()
 	case keybind.Matches(msg, keys.Picker):
@@ -238,6 +238,19 @@ func (m model) openReviewsList() (tea.Model, tea.Cmd) {
 	m.rvlist = listState{}
 	m.status = ""
 	return m, loadReviewSprints(m.client)
+}
+
+// goBrowse verlässt eine Funktions-/Detail-View zurück zum Project-Browser
+// (viewBrowseProject = Navigations-Zentrum, DD2-188). Anders als goHome (Lobby)
+// bleibt der Nutzer im Projekt — q nutzt diesen Pfad, esc bleibt der Home-Spine.
+// Sind die Meilensteine noch nicht geladen, werden sie defensiv nachgeholt.
+func (m model) goBrowse() (tea.Model, tea.Cmd) {
+	m.view = viewBrowseProject
+	m.status = ""
+	if len(m.milestones) == 0 && m.client != nil {
+		return m, loadMilestones(m.client)
+	}
+	return m, nil
 }
 
 // openBacklog öffnet die Backlog-Liste und merkt die Quell-View (Tree/Columns)

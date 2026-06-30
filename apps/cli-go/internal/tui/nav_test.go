@@ -24,6 +24,20 @@ func columnsModel() model {
 	return m
 }
 
+// TestQLeavesToBrowseProject sichert DD2-188: q verlässt eine Funktions-/Detail-View
+// zum Project-Browser (Zentrum), nicht bis zur Lobby (viewHome).
+func TestQLeavesToBrowseProject(t *testing.T) {
+	for _, v := range []viewID{viewDetailIssue, viewDetailMilestone, viewDetailSprint, viewBrowseBacklog} {
+		m := columnsModel()
+		m.view = v
+		mi, _ := m.Update(keyMsg("q"))
+		m = mi.(model)
+		if m.view != viewBrowseProject {
+			t.Errorf("q aus view=%d → view=%d, want viewBrowseProject (DD2-188)", v, m.view)
+		}
+	}
+}
+
 func TestPickerSelectSwitchesView(t *testing.T) {
 	m := newModel(nil, nil, api.NewClient(""))
 	if m.view != viewHome {
