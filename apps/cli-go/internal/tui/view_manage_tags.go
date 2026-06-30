@@ -57,15 +57,22 @@ func tagColorOptions() []huh.Option[string] {
 // tagMultiSelect liefert ein optionales Tag-Multiselect-Feld für die Create-Forms
 // (DD2-33: Tags direkt beim Anlegen setzen — spart Create-dann-Zuweisen). Wert wird
 // keyed gelesen (form.Get("tags").([]string)), nicht per Pointer (Value-Copy-Bruch).
-func tagMultiSelect(tags []api.Tag) *huh.MultiSelect[string] {
+// selected belegt das Feld vor (DD2-190/234: Tag-Auswahl überlebt Form-Neuaufbau);
+// nil = keine Vorauswahl.
+func tagMultiSelect(tags []api.Tag, selected []string) *huh.MultiSelect[string] {
 	opts := make([]huh.Option[string], 0, len(tags))
 	for _, t := range tags {
 		opts = append(opts, huh.NewOption(t.Name, strconv.Itoa(t.ID)))
 	}
-	return huh.NewMultiSelect[string]().Key("tags").
+	ms := huh.NewMultiSelect[string]().Key("tags").
 		Title("Tags (optional)").
 		Description("x: toggle · enter: next — leave empty = no tag").
 		Options(opts...)
+	if len(selected) > 0 {
+		sel := append([]string(nil), selected...) // Kopie: huh bindet per Pointer
+		ms = ms.Value(&sel)
+	}
+	return ms
 }
 
 // buildTagForm baut die Tag-huh-Form (Name + Farbe), vorbelegt für edit (DD2-75).

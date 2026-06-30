@@ -137,7 +137,7 @@ func (m model) openForm(kind string) (tea.Model, tea.Cmd) {
 	case "testform": // Styling-Sandbox (Palette-Action "Test Form"), kein Persist
 		f = buildTestForm()
 	case "issue":
-		f = buildIssueForm(m.tags)
+		f = buildIssueForm(m.tags, issueDraft{})
 	case "milestone":
 		f = buildMilestoneForm(m.milestones, m.tags)
 	case "sprint":
@@ -266,7 +266,9 @@ func formFooterHint(kind string) string {
 	case "editField", "tagCreate", "tagEdit", "project_settings":
 		return "enter save · esc cancel"
 	default:
-		return "alt+enter save · tab field · esc cancel"
+		// DD2-187: alt+enter verhält sich jetzt wie enter (huh-Commit), darum
+		// enter als Save-/Weiter-Taste ausweisen statt der alten alt+enter-Save.
+		return "enter next/save · tab field · esc cancel"
 	}
 }
 
@@ -290,6 +292,9 @@ func (m model) formChrome() string {
 		// Taste aus der Keymap-Single-Source ableiten (DD2-175-Prinzip) — driftet
 		// nie vom echten Binding (keys.Editor), kein hardcodeter Shortcut.
 		hint = "enter save · " + keys.Editor.Help().Key + " editor · esc cancel"
+	}
+	if m.formKind == "issue" { // DD2-233/234: ctrl+e editiert po_notes im konfigurierten Editor
+		hint = "enter next/save · " + keys.Editor.Help().Key + " PO-Notes editor · esc cancel"
 	}
 	return modalPanel(m.formTitle(), body, hint, modalBoxWidth(m.width), theme.Mauve)
 }
@@ -378,6 +383,41 @@ func (m *model) selectedTagIDs() []int {
 	return ids
 }
 
+// formTagStrings liest die gewählten Tag-Option-Werte (Tag-IDs als String) keyed
+// aus dem Formular — für den issueDraft (Tag-Auswahl über Form-Neuaufbauten halten).
+func (m *model) formTagStrings() []string {
+	raw, _ := m.form.Get("tags").([]string)
+	return append([]string(nil), raw...)
+}
+
+// currentIssueDraft schnappschießt die aktuellen Werte des offenen Create-Issue-
+// Formulars (DD2-190/234). Pflicht: nur bei m.formKind=="issue" mit gesetztem
+// m.form aufrufen.
+func (m *model) currentIssueDraft() issueDraft {
+	get := func(k string) string { return m.form.GetString(k) }
+	return issueDraft{
+		title:       get("title"),
+		poNotes:     get("po_notes"),
+		typ:         get("type"),
+		userStories: get("user_stories"),
+		priority:    get("priority"),
+		tagIDs:      m.formTagStrings(),
+	}
+}
+
+// openIssueFormWithDraft (re)öffnet das Create-Issue-Formular mit d vorbelegt —
+// gemeinsame Quelle für n/esc-Rückkehr (DD2-190) und den ctrl+e-Editor-Reseed
+// (DD2-234). styleForm liefert Theme + Maße wie openForm.
+func (m model) openIssueFormWithDraft(d issueDraft) (tea.Model, tea.Cmd) {
+	m.formKind = "issue"
+	m.formGroupIdx = 0
+	m.formGroupTitles = nil
+	m.formPartials = nil
+	m.status = ""
+	m.form = m.styleForm(buildIssueForm(m.tags, d))
+	return m, m.form.Init()
+}
+
 func (m *model) formCreateCmd() tea.Cmd {
 	get := func(k string) string { return strings.TrimSpace(m.form.GetString(k)) }
 	switch m.formKind {
@@ -403,7 +443,11 @@ func (m *model) formCreateCmd() tea.Cmd {
 		if typ == "" {
 			typ = "feature"
 		}
-		body := api.IssueCreateBody{Title: get("title"), Type: typ, Priority: 2}
+		prio := 3 // Default P3 — Medium, deckungsgleich mit buildIssueForm
+		if p, err := strconv.Atoi(m.form.GetString("priority")); err == nil && p >= 1 && p <= 5 {
+			prio = p
+		}
+		body := api.IssueCreateBody{Title: get("title"), Type: typ, Priority: prio}
 		if d := get("po_notes"); d != "" {
 			body.PoNotes = &d
 		}

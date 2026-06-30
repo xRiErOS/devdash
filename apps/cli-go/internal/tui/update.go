@@ -481,6 +481,25 @@ func (m model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil // keine Änderung → Form unangetastet weiter
 	}
+	// DD2-233/234: Editor-Rückkehr ins offene Create-Issue-Form. huh's eingebauter
+	// Editor ist hier bewusst NICHT im Spiel (ExternalEditor(false) auf den Text-
+	// Feldern): er liefe über $EDITOR statt des konfigurierten Editors (DD2-233) und
+	// broadcastet sein Ergebnis an ALLE Text-Felder der Gruppe (huh group.go Range)
+	// → po_notes-Inhalt blutet in user_stories (DD2-234). Stattdessen gezielt: nur
+	// po_notes im Draft überschreiben, übrige Felder erhalten, Form neu bauen.
+	if ef, ok := msg.(editorFinishedMsg); ok && m.formKind == "issue" {
+		if ef.err != nil {
+			m.status = noticeText("editor: " + ef.err.Error())
+			return m, nil
+		}
+		if ef.changed {
+			d := m.currentIssueDraft()
+			d.poNotes = ef.content
+			m.form = m.styleForm(buildIssueForm(m.tags, d))
+			return m, m.form.Init()
+		}
+		return m, nil
+	}
 	if k, ok := msg.(tea.KeyMsg); ok {
 		// esc bricht das Formular ab.
 		if k.Type == tea.KeyEsc {
@@ -492,11 +511,16 @@ func (m model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.status = ""
 			return m, nil
 		}
-		// alt+enter = speichern (terminal-taugliche Save-Taste, ersetzt ctrl+enter).
-		// Wird VOR huh abgefangen, damit es nicht als Newline im Textarea landet.
-		// DD2-93: submitForm öffnet für Create-Kinds erst den y/n-Confirm.
+		// DD2-187: alt+enter NICHT direkt submitForm() rufen. Das umging huh's
+		// Field-Commit — f.results füllt sich erst bei nextFieldMsg/StateCompleted,
+		// also las GetString den frisch getippten Feldinhalt als "" und ein leeres
+		// Save löschte das Feld (Backlog-po_notes / Create-Form). Stattdessen wie
+		// enter an huh weiterreichen: huh committet das aktive Feld + vervollständigt
+		// regulär → StateCompleted unten → submitForm() mit korrekten Werten (DD2-93
+		// y/n-Confirm bleibt). Behebt zugleich den alt+enter-umgeht-Validation-Caveat.
 		if k.String() == "alt+enter" {
-			return m.submitForm()
+			enter := tea.KeyMsg{Type: tea.KeyEnter}
+			msg, k = enter, enter
 		}
 		// DD2-224: ctrl+e öffnet das aktive Langtext-editField (po_notes & Co.) im
 		// $EDITOR. Der aktuelle (in der Form ggf. schon angetippte) Wert geht rein;
@@ -504,6 +528,11 @@ func (m model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// VOR huh abgefangen, sonst landete ctrl+e als Steuerzeichen im Textarea.
 		if keybind.Matches(k, keys.Editor) && m.editFieldUsesEditor() {
 			return m, editInEditor(m.form.GetString("value"), ".md")
+		}
+		// DD2-233/234: ctrl+e im Create-Issue-Form öffnet po_notes im konfigurierten
+		// Editor (editInEditor → configuredEditor). Reseed gezielt oben (nur po_notes).
+		if keybind.Matches(k, keys.Editor) && m.formKind == "issue" {
+			return m, editInEditor(m.form.GetString("po_notes"), ".md")
 		}
 	}
 
