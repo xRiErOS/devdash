@@ -213,15 +213,28 @@ func (m *model) treeNodesFiltered() []treeNode {
 				}
 			}
 			if spHit || len(iss) > 0 { // Sprint als Treffer ODER als Pfad-Vorfahr
+				// DD2-178: gespeicherten Expand-Zustand respektieren (kein Force-
+				// Expand-All mehr). Collapsed Sprint zeigt den ▸-Marker, blendet aber
+				// seine Issues aus — analog treeNodes(). Strikt: Treffer in collapsed
+				// Knoten bleiben verborgen (Q an PO; PO-Wunsch = Zustand bleibt nutzbar).
+				spOpen := m.treeExpSprint[sp.ID]
 				subs = append(subs, treeNode{kind: tkSprint, mileIdx: mi, sprIdx: si,
-					sprintID: sp.ID, depth: 1, expand: true, open: true})
-				subs = append(subs, iss...)
+					sprintID: sp.ID, depth: 1, expand: true, open: spOpen})
+				if spOpen {
+					subs = append(subs, iss...)
+				}
 			}
 		}
 		if mileHit || len(subs) > 0 {
+			// DD2-178: Meilenstein-Knoten zeigt den gespeicherten Zustand; collapsed
+			// blendet seine Sprints aus (subs entscheidet weiterhin die Sichtbarkeit
+			// des Meilensteins selbst, damit Treffer-Vorfahren expandierbar bleiben).
+			mileOpen := m.treeExpMile[ms.ID]
 			nodes = append(nodes, treeNode{kind: tkMile, mileIdx: mi, depth: 0,
-				expand: len(ms.Sprints) > 0, open: true})
-			nodes = append(nodes, subs...)
+				expand: len(ms.Sprints) > 0, open: mileOpen})
+			if mileOpen {
+				nodes = append(nodes, subs...)
+			}
 		}
 	}
 	return nodes
@@ -232,7 +245,7 @@ func (m *model) treeNodesFiltered() []treeNode {
 // (handleMouse, DD2-51) — sonst driften Render-Zeilen und Klick-Y auseinander.
 func (m model) treeLayout() (head, localKeys string, lw, rw, innerH int) {
 	w := m.termWidth()
-	head = m.breadcrumb("Project browser") // Zone 1: `> slug: Title` + globale Shortcuts
+	head = m.breadcrumb("Project Browser") // Zone 1: `> slug: Title` + globale Shortcuts (DD2-195)
 	// Zone 3 = NUR view-spezifische Tasten; globale (b/R/p/q/Cmd) stehen bereits im
 	// Header rechts → nicht doppeln (verwirrt, PO-Befund Augenschein).
 	hint := "i/k:↑↓  l/→:expand  j/←:collapse  1…n:section  s:status  S:milestone  d:delete  y:yank  /:search  f:filter  t:tags  ctrl+r:reload"

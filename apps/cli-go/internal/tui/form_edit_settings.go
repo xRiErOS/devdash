@@ -44,12 +44,15 @@ func validatePosInt(s string) error {
 // buildSettingsForm baut das Settings-Formular, vorbelegt mit der aktiven Config.
 func buildSettingsForm(cfg config.Settings) *huh.Form {
 	accent := cfg.Theme.Accent
+	startProject := cfg.StartProject
 	tw := strconv.Itoa(cfg.Layout.TreeWidth)
 	mw := strconv.Itoa(cfg.Layout.ModalWidth)
 	editor := cfg.Editor
 	return huh.NewForm(huh.NewGroup(
 		huh.NewInput().Key("accent").Title("theme.accent").
 			Description("Hex #rrggbb — empty = built-in mauve").Value(&accent).Validate(validateAccent),
+		huh.NewInput().Key("start_project").Title("start_project").
+			Description("Slug/prefix/id to boot into — empty = project picker (resolved at start)").Value(&startProject),
 		huh.NewInput().Key("tree_width").Title("layout.tree_width").
 			Description("Tree column width (24–60)").Value(&tw).Validate(validatePosInt),
 		huh.NewInput().Key("modal_width").Title("layout.modal_width").
@@ -66,9 +69,11 @@ func buildSettingsForm(cfg config.Settings) *huh.Form {
 
 // saveAndApplySettings schreibt die User-Config, lädt sie neu (mit Clamp/Merge)
 // und wendet den Akzent + die Modalbreite global an. Single Source für den
-// Submit-Pfad (formCreateCmd) und Tests.
-func (m model) saveAndApplySettings(accent string, treeWidth, modalWidth int, editor string) (model, error) {
-	if err := config.SaveUserSettings(accent, treeWidth, modalWidth, editor); err != nil {
+// Submit-Pfad (formCreateCmd) und Tests. editor (DD2-221) wird live übernommen;
+// startProject (DD2-162) wird nur persistiert (kein Live-Resolve im Form-Pfad —
+// der Boot löst auf, Fallback Picker bei ungültig).
+func (m model) saveAndApplySettings(accent, startProject string, treeWidth, modalWidth int, editor string) (model, error) {
+	if err := config.SaveUserSettings(accent, startProject, treeWidth, modalWidth, editor); err != nil {
 		return m, err
 	}
 	cfg, _ := config.LoadSettings() // re-read + clamp + Merge (User + lokaler Override)

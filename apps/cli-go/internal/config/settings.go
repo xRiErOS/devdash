@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -28,10 +29,11 @@ import (
 // Settings ist die TUI-Konfiguration (YAML). Nullwerte bedeuten „nicht gesetzt"
 // und werden beim Merge von der jeweils tieferen Schicht bzw. den Defaults gefüllt.
 type Settings struct {
-	Theme       ThemeSettings     `yaml:"theme"`
-	Layout      LayoutSettings    `yaml:"layout"`
-	Editor      string            `yaml:"editor,omitempty"` // DD2-224: TUI-weiter $EDITOR-Befehl (Default nvim), darf Args tragen ("code -w")
-	Keybindings map[string]string `yaml:"keybindings"`      // reserviert (DD2-34)
+	Theme        ThemeSettings     `yaml:"theme"`
+	Layout       LayoutSettings    `yaml:"layout"`
+	Editor       string            `yaml:"editor,omitempty"`        // DD2-224: TUI-weiter $EDITOR-Befehl (Default nvim), darf Args tragen ("code -w")
+	StartProject string            `yaml:"start_project,omitempty"` // DD2-162: Boot-Projekt (slug/prefix/id), getrennt von state.json/LastProject
+	Keybindings  map[string]string `yaml:"keybindings"`             // reserviert (DD2-34)
 }
 
 type ThemeSettings struct {
@@ -105,13 +107,13 @@ func UserConfigPath() (string, error) {
 	return filepath.Join(home, ".config", "devd-cli", "config.yaml"), nil
 }
 
-// SaveUserSettings schreibt theme.accent + layout.tree_width/modal_width + editor
-// in die USER-Config (DD2-125; editor: DD2-221) — NICHT den lokalen Override.
-// Read-modify-write: eine bestehende Datei wird gelesen, damit andere Felder
-// (z.B. keybindings, DD2-34) erhalten bleiben. Leerer accent/editor löscht das
-// jeweilige Feld (editor=leer → Default nvim greift beim Laden). Verzeichnis wird
-// angelegt.
-func SaveUserSettings(accent string, treeWidth, modalWidth int, editor string) error {
+// SaveUserSettings schreibt theme.accent + layout.tree_width/modal_width +
+// editor (DD2-221) + start_project (DD2-162) in die USER-Config (DD2-125) —
+// NICHT den lokalen Override. Read-modify-write: eine bestehende Datei wird
+// gelesen, damit andere Felder (z.B. keybindings, DD2-34) erhalten bleiben.
+// Leerer accent/editor/startProject löscht das jeweilige Feld (editor=leer →
+// Default nvim greift beim Laden). Verzeichnis wird angelegt.
+func SaveUserSettings(accent, startProject string, treeWidth, modalWidth int, editor string) error {
 	path, err := UserConfigPath()
 	if err != nil {
 		return err
@@ -121,6 +123,7 @@ func SaveUserSettings(accent string, treeWidth, modalWidth int, editor string) e
 		_ = yaml.Unmarshal(data, &s) // kaputtes YAML → bei Null beginnen
 	}
 	s.Theme.Accent = accent
+	s.StartProject = strings.TrimSpace(startProject)
 	s.Layout.TreeWidth = treeWidth
 	s.Layout.ModalWidth = modalWidth
 	s.Editor = editor
@@ -157,6 +160,9 @@ func mergeSettings(base, over Settings) Settings {
 	}
 	if over.Editor != "" { // DD2-224: leer = Default (nvim) bleibt
 		base.Editor = over.Editor
+	}
+	if over.StartProject != "" { // DD2-162: leer = kein Default-Projekt (Picker)
+		base.StartProject = over.StartProject
 	}
 	if len(over.Keybindings) > 0 {
 		if base.Keybindings == nil {

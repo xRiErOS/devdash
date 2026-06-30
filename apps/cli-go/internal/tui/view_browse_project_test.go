@@ -167,6 +167,12 @@ func treeFilterModel() model {
 		{Key: "DD2-1", Title: "Login bug", Type: "bug", Priority: 1, Status: "to_review"},
 		{Key: "DD2-2", Title: "Logout flow", Type: "feature", Priority: 2, Status: "planned"},
 	}
+	// DD2-178: Filter respektiert jetzt den Expand-State (kein Force-Expand-All).
+	// Diese Match-Tests prüfen die Treffer-/Pfad-Logik → Knoten explizit expandieren,
+	// sonst blendet der collapsed Default die Treffer in tieferen Ebenen aus.
+	m.treeExpMile[1] = true
+	m.treeExpSprint[10] = true
+	m.treeExpSprint[11] = true
 	return m
 }
 

@@ -18,14 +18,15 @@ var tuiCmd = &cobra.Command{
 		if len(args) > 0 {
 			token = args[0]
 		}
-		if token != "" {
-			p, err := global.ResolveProject(token)
-			if err != nil {
-				return err
-			}
-			return tui.Run(api.NewClient(strconv.Itoa(p.ID)), p, global)
+		// DD2-162: Präzedenz env > token > config start_project > LastProject > Picker.
+		p, err := resolveStartupProject(global, token)
+		if err != nil {
+			return err
 		}
-		return tui.Run(nil, nil, global) // Picker zuerst
+		if p == nil {
+			return tui.Run(nil, nil, global) // Picker zuerst
+		}
+		return tui.Run(api.NewClient(strconv.Itoa(p.ID)), p, global)
 	},
 }
 

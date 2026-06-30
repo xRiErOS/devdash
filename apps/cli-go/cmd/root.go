@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -70,17 +71,62 @@ func Execute() error {
 
 func runTUI(token string) error {
 	global := api.NewClient("")
-	if token == "" {
-		if st, err := config.Load(); err == nil && st.LastProject != "" {
-			if p, err := global.ResolveProject(st.LastProject); err == nil {
-				return tui.Run(api.NewClient(strconv.Itoa(p.ID)), p, global)
-			}
-		}
-		return tui.Run(nil, nil, global) // Picker
-	}
-	p, err := global.ResolveProject(token)
+	p, err := resolveStartupProject(global, token)
 	if err != nil {
 		return err
 	}
+	if p == nil {
+		return tui.Run(nil, nil, global) // Picker
+	}
 	return tui.Run(api.NewClient(strconv.Itoa(p.ID)), p, global)
+}
+
+// resolveStartupProject wählt das Boot-Projekt nach DD2-162-Präzedenz. Sammelt die
+// vier Quellen (env, token, config start_project, state.json LastProject) und
+// delegiert die reine Präzedenz-Logik an pickStartupProject.
+func resolveStartupProject(global *api.Client, token string) (*api.Project, error) {
+	cfg, _ := config.LoadSettings()
+	st, _ := config.Load()
+	p, _, err := pickStartupProject(global.ResolveProject,
+		os.Getenv("DEVD_START_PROJECT"), token, cfg.StartProject, st.LastProject)
+	return p, err
+}
+
+// pickStartupProject ist die reine DD2-162-Präzedenz (FS-/Netz-frei via resolve-
+// Closure, daher testbar). Reihenfolge:
+// env DEVD_START_PROJECT > token (--project/positional) > start_project > LastProject
+// > nil (Projekt-Picker). source = die gewinnende Quelle bzw. "picker".
+// Ungültige env/start_project/LastProject fallen STILL durch (stderr-Hinweis,
+// US-167 „Resolve-Fail → Picker-Fallback"). Ein explizit übergebener, ungültiger
+// token bleibt ein harter Fehler (Tippfehler-Schutz, bisheriges Verhalten).
+func pickStartupProject(resolve func(string) (*api.Project, error), env, token, startProject, lastProject string) (*api.Project, string, error) {
+	warn := func(src, val string) {
+		fmt.Fprintf(os.Stderr, "devd-cli: %s %q could not be resolved — falling back\n", src, val)
+	}
+	if env = strings.TrimSpace(env); env != "" {
+		if p, err := resolve(env); err == nil {
+			return p, "env", nil
+		}
+		warn("DEVD_START_PROJECT", env)
+	}
+	if token = strings.TrimSpace(token); token != "" {
+		p, err := resolve(token) // explizit → harter Fehler bei ungültig
+		if err != nil {
+			return nil, "", err
+		}
+		return p, "token", nil
+	}
+	if startProject = strings.TrimSpace(startProject); startProject != "" {
+		if p, err := resolve(startProject); err == nil {
+			return p, "start_project", nil
+		}
+		warn("start_project", startProject)
+	}
+	if lastProject = strings.TrimSpace(lastProject); lastProject != "" {
+		if p, err := resolve(lastProject); err == nil {
+			return p, "last_project", nil
+		}
+		warn("last_project", lastProject)
+	}
+	return nil, "picker", nil
 }

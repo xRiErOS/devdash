@@ -5,9 +5,25 @@ package theme
 
 import (
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 )
+
+// asciiIcons — DD2-194: opt-in ASCII-Ersatz-Glyphen für Terminals/Fonts, die die
+// (EAW-neutrale, aber font-seitig schwach abgedeckte) Unicode-Geometrie nicht
+// darstellen — z.B. WezTerm/macOS mit Standard-Font: Glyph fehlt → Tofu/leer.
+// ASCII ist garantiert verfügbar UND EAW=Neutral (kein Spalten-Drift, DD2-53).
+// Aktiv via DEVD_ASCII_ICONS=1|true|yes|on. Pro Aufruf gelesen (Render ist nicht
+// perf-kritisch) → auch in Tests setz-/rücksetzbar.
+func asciiIcons() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("DEVD_ASCII_ICONS"))) {
+	case "1", "true", "yes", "on":
+		return true
+	}
+	return false
+}
 
 // Catppuccin Macchiato — TrueColor-Hex.
 var (
@@ -83,6 +99,28 @@ func StatusStyle(status string) lipgloss.Style {
 	return lipgloss.NewStyle().Foreground(Subtext)
 }
 
+// statusGlyph — DD2-176: EIN gemeinsamer Glyph für ALLE Status; die Bedeutung
+// trägt allein die Farbe (StatusStyle). PO-Wunsch „gleiches Icon, verschiedene
+// Farben" — einfacher + konsistent, in_progress hebt sich über seine Farbe ab
+// statt über eine eigene Form. Glyph EAW=Neutral (DD2-53); Coverage-/macOS-
+// Sichtbarkeit gemeinsam mit DD2-194 entschieden.
+const statusGlyph = "◉"      // U+25C9 FISHEYE (neutral; war ● U+25CF = ambiguous)
+const statusGlyphASCII = "*" // DD2-194: ASCII-Ersatz (garantiert darstellbar, neutral)
+
+// statusIconGlyph wählt den Status-Glyph (DD2-194 ASCII-Fallback berücksichtigt).
+func statusIconGlyph() string {
+	if asciiIcons() {
+		return statusGlyphASCII
+	}
+	return statusGlyph
+}
+
+// StatusIcon liefert den einheitlichen, statusgefärbten Status-Glyph (Single
+// Source — statusDot ruft nur noch das hier, kein hardcodierter Switch mehr).
+func StatusIcon(status string) string {
+	return StatusStyle(status).Render(statusIconGlyph())
+}
+
 // --- Issue-Type Text-Icons (kein Emoji — Unicode-Geometrie, monospace-sicher) ---
 
 // DD2-53: ALLE Glyphen hier MÜSSEN East-Asian-Width = Neutral/Narrow sein (nie
@@ -106,17 +144,37 @@ var typeColor = map[string]lipgloss.Color{
 	"core":        Peach,
 }
 
-// TypeIcon liefert das gefärbte Text-Icon eines Issue-Typs (Fallback: "∙").
-func TypeIcon(t string) string {
-	ic, ok := typeIcon[t]
-	if !ok {
-		ic = "∙" // U+2219 (neutral; war • U+2022 = ambiguous)
+// typeIconASCII — DD2-194: ASCII-Ersatz je Typ (garantiert darstellbar, EAW-Neutral),
+// aktiv via DEVD_ASCII_ICONS. Distinkt pro Typ, damit der Typ ohne Farbe erkennbar bleibt.
+var typeIconASCII = map[string]string{
+	"bug":         "!",
+	"feature":     "+",
+	"improvement": "^",
+	"core":        "#",
+}
+
+// typeGlyph wählt den Type-Glyph (DD2-194 ASCII-Fallback berücksichtigt; Fallback-
+// Glyph für unbekannte Typen: "∙" bzw. "." im ASCII-Modus).
+func typeGlyph(t string) string {
+	if asciiIcons() {
+		if ic, ok := typeIconASCII[t]; ok {
+			return ic
+		}
+		return "."
 	}
+	if ic, ok := typeIcon[t]; ok {
+		return ic
+	}
+	return "∙" // U+2219 (neutral; war • U+2022 = ambiguous)
+}
+
+// TypeIcon liefert das gefärbte Text-Icon eines Issue-Typs (Fallback: "∙" / ".").
+func TypeIcon(t string) string {
 	col := typeColor[t]
 	if col == "" {
 		col = Subtext
 	}
-	return lipgloss.NewStyle().Foreground(col).Render(ic)
+	return lipgloss.NewStyle().Foreground(col).Render(typeGlyph(t))
 }
 
 // TypeStyle färbt einen Typ-Text.

@@ -19,7 +19,7 @@ func TestSaveAndApplySettings(t *testing.T) {
 	defer func() { configuredEditor = oldEd }()
 
 	m := model{}
-	m2, err := m.saveAndApplySettings("#abcdef", 30, 50, "code -w")
+	m2, err := m.saveAndApplySettings("#abcdef", "", 30, 50, "code -w")
 	if err != nil {
 		t.Fatalf("saveAndApplySettings: %v", err)
 	}
@@ -50,7 +50,7 @@ func TestSaveAndApplySettingsClamps(t *testing.T) {
 	defer func() { defaultModalWidth = old }()
 
 	m := model{}
-	m2, err := m.saveAndApplySettings("", 999, 999, "nvim")
+	m2, err := m.saveAndApplySettings("", "", 999, 999, "nvim")
 	if err != nil {
 		t.Fatalf("saveAndApplySettings: %v", err)
 	}

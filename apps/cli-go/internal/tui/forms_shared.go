@@ -437,10 +437,11 @@ func (m *model) formCreateCmd() tea.Cmd {
 		return doVerdict(m.client, m.rejectIssueID, "not_passed", comment, m.rejectSprintID)
 	case "settings": // DD2-125: schreibt User-Config, lädt neu, wendet an (in-place)
 		accent := strings.TrimSpace(get("accent"))
+		startProject := strings.TrimSpace(get("start_project")) // DD2-162
 		tw, _ := strconv.Atoi(get("tree_width"))
 		mw, _ := strconv.Atoi(get("modal_width"))
 		editor := strings.TrimSpace(get("editor")) // DD2-221 (D04): TUI-weiter Editor
-		nm, err := m.saveAndApplySettings(accent, tw, mw, editor)
+		nm, err := m.saveAndApplySettings(accent, startProject, tw, mw, editor)
 		*m = nm
 		if err != nil {
 			msg := "Save failed: " + err.Error()

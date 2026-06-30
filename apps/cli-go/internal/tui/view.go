@@ -554,20 +554,11 @@ func spKey(s *api.Sprint) string {
 	return s.Key
 }
 
-// statusDot codiert Status doppelt über Form + Farbe (D09): hohl ◦ = geplant/
-// nicht-gestartet, ✗ = abgebrochen/abgelehnt, sonst gefüllt ◉ = aktive/laufende
-// Zustände. Farbe immer aus statusColor. Glyphen East-Asian-neutral (DD2-53).
+// statusDot codiert den Status über EINEN gemeinsamen Glyph; die Bedeutung trägt
+// allein die Farbe (DD2-176, PO-Wunsch „gleiches Icon, verschiedene Farben"). Der
+// frühere Form-Switch (hohl/✗/gefüllt) ist raus — Single Source ist theme.StatusIcon.
 func statusDot(status string) string {
-	var glyph string
-	switch status {
-	case "new", "planned":
-		glyph = "◦" // U+25E6 noch nicht gestartet (neutral; war ○ U+25CB = ambiguous)
-	case "cancelled", "rejected":
-		glyph = "✗" // U+2717 abgebrochen (neutral)
-	default:
-		glyph = "◉" // U+25C9 aktiv/laufend/terminal-done (neutral; war ● U+25CF = ambiguous)
-	}
-	return theme.StatusStyle(status).Render(glyph)
+	return theme.StatusIcon(status)
 }
 
 func statusText(status string) string {

@@ -102,7 +102,9 @@ func TestProjectUpdatedMsgErrorKeepsProject(t *testing.T) {
 
 // DD2-221 (D04): die App-Settings-Form zeigt das editor-Feld, vorbelegt mit der Config.
 func TestSettingsFormHasEditorField(t *testing.T) {
-	m := model{cfg: config.Settings{Editor: "vim", Layout: config.LayoutSettings{TreeWidth: 36, ModalWidth: 64}}}
+	// Höhe 40: seit DD2-162 hat die Settings-Form 6 Felder (start_project dazu) —
+	// huh viewport-limitiert bei kleiner Höhe; ein realer Terminal-Frame zeigt alle.
+	m := model{width: 90, height: 40, cfg: config.Settings{Editor: "vim", Layout: config.LayoutSettings{TreeWidth: 36, ModalWidth: 64}}}
 	mi, _ := m.openForm("settings")
 	v := mi.(model).form.View()
 	if !strings.Contains(v, "editor") {
