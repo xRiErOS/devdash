@@ -40,7 +40,9 @@ Datei `view_browse_project.go` → Konstante `viewBrowseProject` → Methode
 | `view_tutorial.go` | `viewTutorial` | Onboarding |
 
 `view_detail_flat.go` bleibt EINE Datei: Milestone- und Sprint-Detail teilen sich
-`keyDetailFlat`/`detailFlatFields` — kein Split.
+das Accordion-Schema (`milestoneAccordionSections`/`sprintAccordionSections`,
+DD2-196) über die gemeinsame Fokus-Maschine `focusSections`/`keyDetailFocus` —
+kein Split. (D09-Flachliste durch DD2-196 abgelöst.)
 
 ## Forms / Boxes / Picker / Overlays
 

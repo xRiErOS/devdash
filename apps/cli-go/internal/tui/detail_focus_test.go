@@ -57,19 +57,19 @@ func TestEnterDetailFocusFromIssue(t *testing.T) {
 	}
 }
 
-// DD2-78: enter auf einem Meilenstein/Sprint geht jetzt in den Detail-Fokus (flache
-// Feldliste, einstufig, D09) — l/→ bleibt das Tree-Expand. Ersetzt das alte DD2#12-
-// Verhalten (kein Detail-Fokus auf Meilenstein/Sprint).
+// DD2-196: enter auf einem Meilenstein/Sprint geht in den Detail-Fokus — jetzt
+// zweistufig wie das Issue (Übersicht, Section-Ebene, Accordion zu). l/→ bleibt das
+// Tree-Expand.
 func TestDetailFocusEnterOnMilestoneFlat(t *testing.T) {
 	m := detailFocusModel()
 	m.treeCursor = 0 // Meilenstein
 	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter})
 	mm := mi.(model)
 	if !mm.detailFocus {
-		t.Fatal("enter auf Meilenstein sollte in den Detail-Fokus gehen (DD2-78)")
+		t.Fatal("enter auf Meilenstein sollte in den Detail-Fokus gehen (DD2-196)")
 	}
-	if mm.detailLevel != 1 || mm.fieldCursor != 0 {
-		t.Errorf("flach: level=%d fieldCursor=%d, want 1/0 (einstufig, erstes Feld)", mm.detailLevel, mm.fieldCursor)
+	if mm.detailLevel != 0 || mm.secCursor != 0 {
+		t.Errorf("zweistufig: level=%d sec=%d, want 0/0 (Übersicht, Section-Ebene)", mm.detailLevel, mm.secCursor)
 	}
 	// l/→ auf einem Meilenstein bleibt das Tree-Expand (kein Detail-Fokus).
 	m2 := detailFocusModel()

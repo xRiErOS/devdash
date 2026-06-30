@@ -4,16 +4,16 @@
 ││⌕ search with /  ∙  filter…  ││> DD2#9 Sprint Neun                                    ││
 ││ ▾ ◉ Meilenstein Eins        ││Meilenstein Eins Milestone  ∙  0/0 Progress to_review  ││
 ││▌  ▾ DD2#9 to_review         ││                                                       ││
-││       ⯁ P1 DD2-99           ││> Name                                                 ││
-││            Beispiel-Issue   ││  Sprint Neun                                          ││
-││            für den          ││> Goal                                                 ││
-││            Snapshot         ││  (empty)                                              ││
-││                             ││> Documents                                            ││
-││                             ││  (enter to browse documents)                          ││
+││       ⯁ P1 DD2-99           ││Sections: digit [1..n] opens                           ││
+││            Beispiel-Issue   ││> [1] Details  ▸                                       ││
+││            für den          ││> [2] Documents  ▸                                     ││
+││            Snapshot         ││> [3] Dependencies  ▸                                  ││
+││                             ││> [4] Issues (1)  ▸                                    ││
 ││                             ││                                                       ││
-││                             ││Dependencies: (loading …)                              ││
 ││                             ││                                                       ││
-││                             ││Documents: (loading …)                                 ││
+││                             ││                                                       ││
+││                             ││                                                       ││
+││                             ││                                                       ││
 ││                             ││                                                       ││
 │╰─────────────────────────────╯╰───────────────────────────────────────────────────────╯│
 │i/k:↑↓  l/→:expand  j/←:collapse  1…n:section  s:status  S:milestone  d:delete  y:yank  │

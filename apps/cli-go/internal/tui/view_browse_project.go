@@ -502,53 +502,6 @@ func (m model) syncSubtasks(nodes []treeNode) tea.Cmd {
 	return loadSubtasks(m.client, id)
 }
 
-// renderOwnerDocs rendert die Inline-Doc-Liste eines Meilenstein-/Sprint-Knotens aus
-// dem Lazy-Cache (DD2-163 Rework, read-only). Macht im Tree sichtbar „hier ist ein
-// Dokument"; geöffnet/editiert wird über das Documents-Feld (enter → Docs-Browser).
-func (m model) renderOwnerDocs(key string, w int) string {
-	docs, ok := m.ownerDocs[key]
-	if !ok {
-		return theme.Dim.Render("Documents: (loading …)")
-	}
-	if len(docs) == 0 {
-		return theme.Dim.Render("Documents: none")
-	}
-	var b strings.Builder
-	b.WriteString(theme.Dim.Render(fmt.Sprintf("Documents (%d)", len(docs))))
-	for _, d := range docs {
-		b.WriteString("\n" + truncate("  • "+d.Title, w))
-	}
-	return b.String()
-}
-
-// renderTreeDeps rendert Vorgänger/Nachfolger eines Milestone-/Sprint-Knotens aus
-// dem Lazy-Cache (DD2-89, read-only). Nicht gecacht → Lade-Hinweis; keine → "none".
-func (m model) renderTreeDeps(key string, w int) string {
-	d, ok := m.depsCache[key]
-	if !ok {
-		return theme.Dim.Render("Dependencies: (loading …)")
-	}
-	if len(d.Predecessors) == 0 && len(d.Successors) == 0 {
-		return theme.Dim.Render("Dependencies: none")
-	}
-	names := func(es []api.DepEntry) string {
-		out := make([]string, len(es))
-		for i, e := range es {
-			out[i] = e.Name
-		}
-		return strings.Join(out, ", ")
-	}
-	var b strings.Builder
-	b.WriteString(theme.Dim.Render("Dependencies"))
-	if len(d.Predecessors) > 0 {
-		b.WriteString("\n" + wrapText(theme.Dim.Render("Predecessors: ")+names(d.Predecessors), w))
-	}
-	if len(d.Successors) > 0 {
-		b.WriteString("\n" + wrapText(theme.Dim.Render("Successors: ")+names(d.Successors), w))
-	}
-	return b.String()
-}
-
 // treeDetail rendert die rechte Detail-Fläche für den selektierten Knoten —
 // breit, der eigentliche Mehrwert des Layouts (Platz für Felder/Accordion).
 func (m model) treeDetail(n treeNode, w int) string {
@@ -561,19 +514,25 @@ func (m model) treeDetail(n treeNode, w int) string {
 			return theme.Dim.Render("(nothing selected)")
 		}
 		ms := m.milestones[n.mileIdx]
-		// Meilenstein hat keinen Key → Titel ohne Key; Meta-Strip Fortschritt/Status.
-		b.WriteString(detailTitle("", mileDisplayName(ms.Name), w) + "\n")
+		// DD2-196: gleiches Schema wie das Issue — Übersicht-Kopf (Name editierbar) +
+		// ziffern-Accordion (Details/Documents/Dependencies/Sprints-Tabelle).
+		kopfActive := m.detailFocus && m.secCursor == 0
+		title := detailTitle("", mileDisplayName(ms.Name), w) // Meilenstein hat keinen Key
+		if kopfActive {
+			title = theme.Accent.Render("▌" + truncate(ansi.Strip(title), w-1))
+		}
+		b.WriteString(title + "\n")
 		b.WriteString(metaStrip([]metaPair{
 			{fmt.Sprintf("%d/%d", ms.Done, ms.Total), "Progress"},
 			{tagsInline(ms.Tags), "tags"}, // DD2-143
-		}, statusText(ms.Status), w) + "\n\n")
-		// DD2-78: editierbare Felder als flache, fokussierbare Liste (kein Accordion,
-		// D09). Bei Detail-Fokus auf diesem Knoten trägt das aktive Feld den D08-Balken.
-		fields := milestoneFields()
-		b.WriteString(renderFlatFields(fields, milestoneFieldValues(ms, fields), m.fieldCursor, m.detailFocus, w))
-		b.WriteString("\n\n" + m.renderTreeDeps(depCacheKey("m", ms.ID), w))  // DD2-89
-		b.WriteString("\n\n" + m.renderOwnerDocs(depCacheKey("m", ms.ID), w)) // DD2-163 Rework
-		b.WriteString("\n\n" + theme.Dim.Render(fmt.Sprintf("Sprints (%d)", len(ms.Sprints))) + "\n")
+		}, statusText(ms.Status), w))
+		if kopfActive && m.detailLevel == 1 {
+			b.WriteString("\n" + fieldStrip(milestoneKopfFields(), m.fieldCursor, w))
+		}
+		b.WriteString("\n\n" + theme.Muted.Render("Sections: digit [1..n] opens") + "\n")
+		focus := detailFocusView{active: m.detailFocus && m.secCursor >= 1,
+			level: m.detailLevel, sec: m.secCursor - 1, field: m.fieldCursor}
+		b.WriteString(renderAccordion(m.milestoneAccordionSections(ms, w-2), m.accOpen, w, focus))
 	case tkSprint:
 		if n.mileIdx < 0 || n.mileIdx >= len(m.milestones) ||
 			n.sprIdx < 0 || n.sprIdx >= len(m.milestones[n.mileIdx].Sprints) {
@@ -581,16 +540,23 @@ func (m model) treeDetail(n treeNode, w int) string {
 		}
 		ms := m.milestones[n.mileIdx]
 		sp := ms.Sprints[n.sprIdx]
-		b.WriteString(detailTitle(sp.Key, sp.Name, w) + "\n")
+		kopfActive := m.detailFocus && m.secCursor == 0
+		title := detailTitle(sp.Key, sp.Name, w)
+		if kopfActive {
+			title = theme.Accent.Render("▌" + truncate(ansi.Strip(title), w-1))
+		}
+		b.WriteString(title + "\n")
 		b.WriteString(metaStrip([]metaPair{
 			{sprintMilestoneName(&sp, &ms), "Milestone"},
 			{fmt.Sprintf("%d/%d", sp.DoneCount, sp.ItemCount), "Progress"},
-		}, statusText(sp.Status), w) + "\n\n")
-		// DD2-78: name/goal als flache, fokussierbare Feldliste (D09, kein Accordion).
-		fields := sprintFields()
-		b.WriteString(renderFlatFields(fields, sprintFieldValues(sp, fields), m.fieldCursor, m.detailFocus, w))
-		b.WriteString("\n\n" + m.renderTreeDeps(depCacheKey("s", sp.ID), w))  // DD2-89
-		b.WriteString("\n\n" + m.renderOwnerDocs(depCacheKey("s", sp.ID), w)) // DD2-163 Rework
+		}, statusText(sp.Status), w))
+		if kopfActive && m.detailLevel == 1 {
+			b.WriteString("\n" + fieldStrip(sprintKopfFields(), m.fieldCursor, w))
+		}
+		b.WriteString("\n\n" + theme.Muted.Render("Sections: digit [1..n] opens") + "\n")
+		focus := detailFocusView{active: m.detailFocus && m.secCursor >= 1,
+			level: m.detailLevel, sec: m.secCursor - 1, field: m.fieldCursor}
+		b.WriteString(renderAccordion(m.sprintAccordionSections(sp, w-2), m.accOpen, w, focus))
 	case tkIssue:
 		if n.issue == nil {
 			return theme.Dim.Render("(nothing selected)")

@@ -1,8 +1,9 @@
 package tui
 
-// DD2-78: Meilenstein/Sprint-Detail als flache, fokussierbare Feldliste (D09).
-// Einstufiger Feld-Fokus (kein Accordion, keine Section-Ebene): i/k bewegt direkt
-// zwischen den Feldern, Ziffer springt, h/← und esc geben den Fokus an den Tree.
+// DD2-196: Meilenstein/Sprint-Detail nutzt jetzt dasselbe zwei-stufige Accordion
+// wie das Issue (Overview-Kopf + ziffern-toggelbare Sektionen). Diese Tests prüfen
+// die Section-Navigation, den Digit-Sprung und das Rendering (muted empty + Child-
+// Tabelle). D09 (frühere Flachliste) durch DD2-196 abgelöst.
 
 import (
 	"strings"
@@ -31,55 +32,61 @@ func TestMilestoneSprintFieldSets(t *testing.T) {
 	}
 }
 
-// enter auf einem Meilenstein landet einstufig auf der Feld-Ebene; i/k bewegt den
-// fieldCursor über die 3 Felder, geklemmt.
-func TestFlatFieldNavMilestone(t *testing.T) {
+// enter auf einem Meilenstein landet zweistufig auf der Übersicht (Section-Ebene,
+// Accordion zu). k bewegt den secCursor über die Sektionen, die offene Section folgt.
+func TestMilestoneAccordionSectionNav(t *testing.T) {
 	m := detailFocusModel()
 	m.treeCursor = 0 // Meilenstein
 	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter})
 	m = mi.(model)
-	if !m.detailFocus || m.detailLevel != 1 {
-		t.Fatalf("enter → detailFocus=%v level=%d, want true/1", m.detailFocus, m.detailLevel)
+	if !m.detailFocus || m.detailLevel != 0 || m.secCursor != 0 {
+		t.Fatalf("enter → focus=%v level=%d sec=%d, want true/0/0 (Übersicht)", m.detailFocus, m.detailLevel, m.secCursor)
 	}
-	mi, _ = m.keyTree(key("k")) // Feld 1
+	mi, _ = m.keyTree(key("k")) // sec 1 (Details)
 	m = mi.(model)
-	if m.fieldCursor != 1 {
-		t.Errorf("k → fieldCursor=%d, want 1", m.fieldCursor)
+	if m.secCursor != 1 || m.accOpen != 1 {
+		t.Errorf("k → secCursor=%d accOpen=%d, want 1/1 (Details offen)", m.secCursor, m.accOpen)
 	}
-	mi, _ = m.keyTree(key("k"))
-	m = mi.(model)
-	mi, _ = m.keyTree(key("k")) // DD2-169: 4 Felder (name/desc/target/documents) → Index 3
-	m = mi.(model)
-	if m.fieldCursor != 3 {
-		t.Errorf("k geklemmt → fieldCursor=%d, want 3", m.fieldCursor)
+	// Bis zur letzten Section (Sprints-Tabelle) klemmen — focusSections = 5 (Overview+4).
+	for i := 0; i < 6; i++ {
+		mi, _ = m.keyTree(key("k"))
+		m = mi.(model)
 	}
-	mi, _ = m.keyTree(key("i")) // hoch
-	m = mi.(model)
-	if m.fieldCursor != 2 {
-		t.Errorf("i → fieldCursor=%d, want 2", m.fieldCursor)
+	if m.secCursor != 4 {
+		t.Errorf("k geklemmt → secCursor=%d, want 4 (Sprints-Tabelle)", m.secCursor)
 	}
 }
 
-// enter auf einem Sprint → flache 2-Feld-Liste (name/goal).
-func TestFlatFieldNavSprint(t *testing.T) {
+// Ziffer springt direkt in die n-te Content-Section (1 = erste Section nach Overview).
+func TestMilestoneAccordionDigitJump(t *testing.T) {
+	m := detailFocusModel()
+	m.treeCursor = 0
+	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter})
+	mi, _ = mi.(model).keyTree(key("1")) // erste Content-Section (Details)
+	m = mi.(model)
+	if m.secCursor != 1 || m.accOpen != 1 {
+		t.Errorf("Ziffer 1 → secCursor=%d accOpen=%d, want 1/1", m.secCursor, m.accOpen)
+	}
+}
+
+// Sprint nutzt dasselbe Accordion (Overview + Details/Documents/Dependencies/Issues).
+func TestSprintAccordionSectionNav(t *testing.T) {
 	m := detailFocusModel()
 	m.treeCursor = 1 // Sprint s10
 	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter})
 	m = mi.(model)
-	if !m.detailFocus || m.detailLevel != 1 {
-		t.Fatalf("enter auf Sprint → detailFocus=%v level=%d, want true/1", m.detailFocus, m.detailLevel)
+	if !m.detailFocus || m.detailLevel != 0 {
+		t.Fatalf("enter auf Sprint → focus=%v level=%d, want true/0", m.detailFocus, m.detailLevel)
 	}
-	mi, _ = m.keyTree(key("k"))
+	mi, _ = m.keyTree(key("k")) // Details
 	m = mi.(model)
-	mi, _ = m.keyTree(key("k")) // DD2-169: 3 Felder (name/goal/documents) → Index 2
-	m = mi.(model)
-	if m.fieldCursor != 2 {
-		t.Errorf("k (3 Felder) → fieldCursor=%d, want 2", m.fieldCursor)
+	if m.secCursor != 1 {
+		t.Errorf("k → secCursor=%d, want 1", m.secCursor)
 	}
 }
 
-// h/← und esc geben den Fokus an den Tree zurück (flach: keine Section-Ebene).
-func TestFlatExitToTree(t *testing.T) {
+// j/← auf der obersten Section bzw. esc geben den Fokus an den Tree zurück.
+func TestAccordionExitToTree(t *testing.T) {
 	for _, k := range []string{"j", "esc"} {
 		m := detailFocusModel()
 		m.treeCursor = 0
@@ -92,56 +99,38 @@ func TestFlatExitToTree(t *testing.T) {
 		}
 		mi, _ = mi.(model).keyTree(msg)
 		if mi.(model).detailFocus {
-			t.Errorf("%q sollte den Detail-Fokus verlassen (flach → Tree)", k)
+			t.Errorf("%q sollte den Detail-Fokus verlassen (oberste Section → Tree)", k)
 		}
 	}
 }
 
-// Ziffer springt direkt auf das n-te Feld.
-func TestFlatDigitJump(t *testing.T) {
-	m := detailFocusModel()
-	m.treeCursor = 0
-	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter})
-	mi, _ = mi.(model).keyTree(key("3")) // drittes Feld (target_date)
-	if fc := mi.(model).fieldCursor; fc != 2 {
-		t.Errorf("Ziffer 3 → fieldCursor=%d, want 2", fc)
-	}
-}
-
-// DD2-78: das Meilenstein-Detail rendert die Felder als flache Liste (Labels), und
-// das aktive Feld trägt bei Detail-Fokus den D08-Balken ▌.
-func TestFlatRenderMilestoneFields(t *testing.T) {
+// DD2-196: das Meilenstein-Detail rendert die Accordion-Sektionen; die offene
+// Details-Section zeigt Description/Target date mit muted (empty)-Platzhalter, und
+// die Sprints-Tabelle ist als Section vorhanden.
+func TestMilestoneAccordionRender(t *testing.T) {
 	lipgloss.SetColorProfile(termenv.TrueColor)
 	defer lipgloss.SetColorProfile(termenv.Ascii)
 
 	m := detailFocusModel()
 	m.treeCursor = 0
 	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter})
-	mi, _ = mi.(model).keyTree(key("k")) // fieldCursor → 1 (Beschreibung)
+	mi, _ = mi.(model).keyTree(key("1")) // Details-Section öffnen
 	m = mi.(model)
 
 	node := m.treeNodes()[0]
-	raw := m.treeDetail(node, 60)
-	out := ansi.Strip(raw)
-	for _, lbl := range []string{"Name", "Description", "Target date"} {
-		if !strings.Contains(out, lbl) {
-			t.Errorf("flache Liste fehlt Label %q: %q", lbl, out)
+	out := ansi.Strip(m.treeDetail(node, 60))
+	for _, want := range []string{"Details", "Description", "Target date", "Sprints ("} {
+		if !strings.Contains(out, want) {
+			t.Errorf("Accordion-Render fehlt %q:\n%s", want, out)
 		}
 	}
-	// Der D08-Balken steht an der aktiven Zeile (Beschreibung), nicht woanders.
-	var barLine string
-	for _, l := range strings.Split(out, "\n") {
-		if strings.Contains(l, "▌") {
-			barLine = l
-		}
-	}
-	if !strings.Contains(barLine, "Description") {
-		t.Errorf("D08-Balken nicht an aktivem Feld 'Beschreibung': %q", barLine)
+	if !strings.Contains(out, "(empty)") {
+		t.Errorf("leeres Feld soll muted (empty) zeigen:\n%s", out)
 	}
 }
 
-// Ohne Detail-Fokus kein D08-Balken in der flachen Liste (Regression).
-func TestFlatRenderNoBarWithoutFocus(t *testing.T) {
+// Ohne Detail-Fokus kein D08-Balken im Meilenstein-Detail (Regression).
+func TestMilestoneRenderNoBarWithoutFocus(t *testing.T) {
 	lipgloss.SetColorProfile(termenv.TrueColor)
 	defer lipgloss.SetColorProfile(termenv.Ascii)
 

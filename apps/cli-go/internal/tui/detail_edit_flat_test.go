@@ -11,12 +11,13 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// enter auf einem fokussierten Meilenstein-Feld öffnet die editField-Form, vorbelegt
-// mit dem aktuellen Wert; der Edit-State trägt entity=milestone.
+// DD2-196: enter auf der Übersicht (Name) öffnet — nach Eintritt in die Section —
+// die editField-Form mit entity=milestone/field=name, vorbelegt mit dem Wert.
 func TestFlatEditOpensFormMilestone(t *testing.T) {
 	m := detailFocusModel()
 	m.treeCursor = 0                                           // Meilenstein M1
-	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter})         // → Detail-Fokus, Feld 0 (name)
+	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter})         // → Detail-Fokus, Übersicht (sec 0)
+	mi, _ = mi.(model).keyTree(tea.KeyMsg{Type: tea.KeyEnter}) // → in die Übersicht, Feld 0 (name)
 	mi, _ = mi.(model).keyTree(tea.KeyMsg{Type: tea.KeyEnter}) // → editField-Form
 	mm := mi.(model)
 	if mm.form == nil || mm.formKind != "editField" {
@@ -30,16 +31,18 @@ func TestFlatEditOpensFormMilestone(t *testing.T) {
 	}
 }
 
-// l/→ auf einem Sprint-Feld (goal) öffnet die Form mit entity=sprint.
+// DD2-196: in der Details-Section eines Sprints öffnet enter die Form mit entity=sprint,
+// field=goal.
 func TestFlatEditOpensFormSprint(t *testing.T) {
 	m := detailFocusModel()
 	m.treeCursor = 1                                   // Sprint s10 (S1)
-	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter}) // Detail-Fokus, Feld 0
-	mi, _ = mi.(model).keyTree(key("k"))               // Feld 1 = goal
-	mi, _ = mi.(model).keyTree(key("l"))               // l/→ editiert das Feld
+	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter}) // Detail-Fokus, Übersicht (sec 0)
+	mi, _ = mi.(model).keyTree(key("k"))               // sec 1 = Details (goal)
+	mi, _ = mi.(model).keyTree(key("l"))               // in die Details-Section, Feld 0 = goal
+	mi, _ = mi.(model).keyTree(tea.KeyMsg{Type: tea.KeyEnter}) // editField
 	mm := mi.(model)
 	if mm.form == nil || mm.editEntity != "sprint" || mm.editField != "goal" {
-		t.Fatalf("l auf goal → entity=%q field=%q form=%v, want sprint/goal/gesetzt", mm.editEntity, mm.editField, mm.form != nil)
+		t.Fatalf("enter auf goal → entity=%q field=%q form=%v, want sprint/goal/gesetzt", mm.editEntity, mm.editField, mm.form != nil)
 	}
 }
 

@@ -13,12 +13,12 @@ func TestRenderTreeDeps(t *testing.T) {
 	m := columnsModel()
 	m.depsCache = map[string]*api.Dependencies{}
 
-	if got := m.renderTreeDeps(depCacheKey("m", 1), 60); !strings.Contains(got, "loading") {
+	if got := m.depsSectionBody(depCacheKey("m", 1), 60); !strings.Contains(got, "loading") {
 		t.Errorf("uncached → want loading-Hinweis, got %q", got)
 	}
 
 	m.depsCache[depCacheKey("m", 1)] = &api.Dependencies{}
-	if got := m.renderTreeDeps(depCacheKey("m", 1), 60); !strings.Contains(got, "none") {
+	if got := m.depsSectionBody(depCacheKey("m", 1), 60); !strings.Contains(got, "none") {
 		t.Errorf("leer → want none, got %q", got)
 	}
 
@@ -26,7 +26,7 @@ func TestRenderTreeDeps(t *testing.T) {
 		Predecessors: []api.DepEntry{{ID: 9, Name: "Setup"}},
 		Successors:   []api.DepEntry{{ID: 10, Name: "Launch"}},
 	}
-	got := m.renderTreeDeps(depCacheKey("s", 2), 60)
+	got := m.depsSectionBody(depCacheKey("s", 2), 60)
 	for _, want := range []string{"Predecessors", "Setup", "Successors", "Launch"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("deps render fehlt %q: %q", want, got)
