@@ -11,7 +11,7 @@ func keyMsg(s string) tea.KeyMsg {
 	return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)}
 }
 
-func columnsModel() model {
+func browseModel() model {
 	ms := []api.Milestone{
 		{ID: 1, Name: "M1", Status: "in_progress", Sprints: []api.Sprint{{ID: 10, Key: "SPF#1"}, {ID: 11, Key: "SPF#2"}}},
 		{ID: 2, Name: "M2", Status: "new", Sprints: []api.Sprint{{ID: 20, Key: "SPF#3"}}},

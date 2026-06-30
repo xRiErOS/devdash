@@ -33,13 +33,13 @@ func TestMemCatShort(t *testing.T) {
 }
 
 func memModel() model {
-	m := columnsModel()
+	m := browseModel()
 	m.view = viewManageMemory
 	return m
 }
 
 func TestOpenMemorySetsView(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	mi, cmd := m.openMemory()
 	m = mi.(model)
 	if m.view != viewManageMemory {

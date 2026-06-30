@@ -29,7 +29,7 @@ func TestFramedFillsHeightKeepsFooter(t *testing.T) {
 
 // DD2-30: G scrollt den Detail-Body ans Ende → unterer Inhalt wird sichtbar.
 func TestDetailScrollsToBottom(t *testing.T) {
-	m := reproColumnsModel(viewDetailIssue, 2)
+	m := reproBrowseModel(viewDetailIssue, 2)
 	m.height = 10 // kleines Terminal erzwingt Overflow
 	mi, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("G")})
 	m = mi.(model)

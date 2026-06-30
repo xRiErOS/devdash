@@ -13,7 +13,7 @@ import (
 // Tree-Detail genutzt) sie statt "(empty)". Die bisherigen Fixtures hatten kein
 // po_notes gesetzt → die Lücke blieb unentdeckt.
 func TestIssueSectionsShowsPoNotesAndGoal(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	po := "Bitte zuerst Auth fixen"
 	goal := "Login funktioniert end-to-end"
 	it := api.Issue{Key: "DD2-1", Title: "X", Goal: &goal, PoNotes: &po}

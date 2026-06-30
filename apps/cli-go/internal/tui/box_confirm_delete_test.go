@@ -6,8 +6,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func TestColumnsDOpensDeleteMilestone(t *testing.T) {
-	m := columnsModel()
+func TestBrowseDOpensDeleteMilestone(t *testing.T) {
+	m := browseModel()
 	mi, cmd := m.Update(keyMsg("d"))
 	m = mi.(model)
 	if !m.delConfirm || m.delKind != "milestone" {
@@ -25,7 +25,7 @@ func TestColumnsDOpensDeleteMilestone(t *testing.T) {
 }
 
 func TestDeletePreviewFillsCounts(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	mi, _ := m.Update(keyMsg("d"))
 	m = mi.(model)
 	mi, _ = m.Update(deletePreviewMsg{"milestone", 1, "M1", 2, 7, 0})
@@ -39,7 +39,7 @@ func TestDeletePreviewFillsCounts(t *testing.T) {
 }
 
 func TestDeleteConfirmWaitsForCountsThenDispatches(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	mi, _ := m.Update(keyMsg("d"))
 	m = mi.(model)
 	// enter während Laden: kein Dispatch, Dialog bleibt (DD2-174)
@@ -65,7 +65,7 @@ func TestDeleteConfirmWaitsForCountsThenDispatches(t *testing.T) {
 }
 
 func TestDeleteEscCancels(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	mi, _ := m.Update(keyMsg("d"))
 	m = mi.(model)
 	mi, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
@@ -76,7 +76,7 @@ func TestDeleteEscCancels(t *testing.T) {
 }
 
 func TestDeleteDoneReloads(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	m.view = viewDetailMilestone
 	mi, cmd := m.Update(deleteDoneMsg{"milestone", 1, "M1"})
 	m = mi.(model)

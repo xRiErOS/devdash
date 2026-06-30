@@ -10,7 +10,7 @@ import (
 // DD2-122: Tutorial öffnet auf Seite 1, blättert per jkli vor/zurück und kehrt
 // mit esc in die Heimat-View zurück. Seiten speisen sich aus der Keymap.
 func TestTutorialPagesAndNav(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	m.view = viewBrowseProject
 	mi, _ := m.openTutorial()
 	m = mi.(model)

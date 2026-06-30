@@ -18,8 +18,8 @@ func TestMilestoneTransitions(t *testing.T) {
 	}
 }
 
-func TestColumnsSOpensMilestoneStatus(t *testing.T) {
-	m := columnsModel()
+func TestBrowseSOpensMilestoneStatus(t *testing.T) {
+	m := browseModel()
 	m.milestones[0].Status = "new"
 	mi, _ := m.Update(keyMsg("s"))
 	m = mi.(model)
@@ -32,7 +32,7 @@ func TestColumnsSOpensMilestoneStatus(t *testing.T) {
 }
 
 func TestMilestoneStatusEnterDispatches(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	m.milestones[0].Status = "new"
 	mi, _ := m.Update(keyMsg("s"))
 	m = mi.(model)
@@ -47,7 +47,7 @@ func TestMilestoneStatusEnterDispatches(t *testing.T) {
 }
 
 func TestMilestoneStatusNoTransitionNotice(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	m.milestones[0].Status = "planned" // nicht in der Transitions-Map
 	mi, _ := m.Update(keyMsg("s"))
 	m = mi.(model)

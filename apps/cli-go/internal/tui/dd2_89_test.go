@@ -10,7 +10,7 @@ import (
 // DD2-89: renderTreeDeps zeigt Lade-Hinweis (uncached), "none" (leer) bzw.
 // Vorgänger/Nachfolger (gecacht) read-only an.
 func TestRenderTreeDeps(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	m.depsCache = map[string]*api.Dependencies{}
 
 	if got := m.depsSectionBody(depCacheKey("m", 1), 60); !strings.Contains(got, "loading") {
@@ -37,7 +37,7 @@ func TestRenderTreeDeps(t *testing.T) {
 // syncDeps liefert für einen uncached Milestone-Knoten einen Lade-Cmd, für einen
 // bereits gecachten nil.
 func TestSyncDepsLazyLoads(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	m.depsCache = map[string]*api.Dependencies{}
 	m.milestones = []api.Milestone{{ID: 7, Name: "M"}}
 	nodes := []treeNode{{kind: tkMile, mileIdx: 0}}

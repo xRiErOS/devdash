@@ -14,7 +14,7 @@ import (
 func TestDD2198SearchDetailMatchesBrowserLayout(t *testing.T) {
 	g, bg := "Erreiche X", "Hintergrund Y"
 	ms := "M2"
-	m := columnsModel()
+	m := browseModel()
 	m.treeFilterIssues = []api.Issue{
 		{Key: "DD2-1", Title: "Login bug", Type: "bug", Priority: 2, Status: "in_progress",
 			Milestone: &ms, Goal: &g, Background: &bg},

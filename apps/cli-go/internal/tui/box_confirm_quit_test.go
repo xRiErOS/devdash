@@ -18,7 +18,7 @@ func isQuit(cmd tea.Cmd) bool {
 // DD2-124: q aus einer Projekt-View landet in der Lobby (nicht Quit-Confirm). Erst
 // q/esc AUF der Lobby öffnet den Beenden-Confirm (DD2-49); y/enter beendet, n/esc bricht ab.
 func TestQuitConfirmFlow(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 
 	// q in Columns → Lobby, kein Confirm/Quit
 	mi, cmd := m.Update(keyMsg("q"))
@@ -64,7 +64,7 @@ func TestQuitConfirmFlow(t *testing.T) {
 
 // ctrl+c verhält sich identisch: erst Confirm, dann y beendet.
 func TestQuitConfirmCtrlC(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	mi, cmd := m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
 	m = mi.(model)
 	if !m.confirmQuit || isQuit(cmd) {
@@ -99,7 +99,7 @@ func TestQuitConfirmFromTree(t *testing.T) {
 // Prompt darüber. DD2-174: q ist kein Dialog-Cancel mehr (nur esc/n); q ist im
 // Dialog also ein No-Op, esc bricht ab.
 func TestQuitNotTriggeredInSubModal(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	m.delConfirm = true // simuliert offenen Delete-Dialog
 	mi, cmd := m.Update(keyMsg("q"))
 	m = mi.(model)

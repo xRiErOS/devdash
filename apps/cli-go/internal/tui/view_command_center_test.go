@@ -10,7 +10,7 @@ import (
 // DD2-91: openSearch öffnet die Ansicht, searchResults filtert projektweit,
 // Tippen filtert live, esc kehrt zur Heimat-View zurück.
 func TestSearchFiltersAndExits(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	m.treeFilterIssues = []api.Issue{
 		{Key: "DD2-1", Title: "Login bug", Type: "bug", Status: "new"},
 		{Key: "DD2-2", Title: "Search view", Type: "feature", Status: "planned"},

@@ -10,7 +10,7 @@ import (
 // --- Flow A: Sprint → Meilenstein ---
 
 func TestSprintDetailMOpensPicker(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	m.view = viewDetailSprint
 	mi, _ := m.Update(keyMsg("a")) // DD2-174: Assign=a (war m)
 	m = mi.(model)
@@ -29,7 +29,7 @@ func TestSprintDetailMOpensPicker(t *testing.T) {
 }
 
 func TestSprintMilestonePickerEnterDispatches(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	m.view = viewDetailSprint
 	mi, _ := m.Update(keyMsg("a")) // DD2-174: Assign=a (war m)
 	m = mi.(model)
@@ -47,7 +47,7 @@ func TestSprintMilestonePickerEnterDispatches(t *testing.T) {
 
 // DD2-27: geschlossene/stornierte Meilensteine erscheinen NICHT im Zuweisungs-Picker.
 func TestMilestonePickerFiltersClosed(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	m.milestones = append(m.milestones,
 		api.Milestone{ID: 3, Name: "M-Done", Status: "completed"},
 		api.Milestone{ID: 4, Name: "M-Cancel", Status: "cancelled"},
@@ -67,7 +67,7 @@ func TestMilestonePickerFiltersClosed(t *testing.T) {
 // --- Flow B: Meilenstein → Sprints ---
 
 func TestMilestoneAssignChecklistFlow(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	m.view = viewDetailMilestone
 	mi, cmd := m.Update(keyMsg("a"))
 	m = mi.(model)
@@ -106,7 +106,7 @@ func TestMilestoneAssignChecklistFlow(t *testing.T) {
 }
 
 func TestMilestoneAssignEnterNoChecksNotice(t *testing.T) {
-	m := columnsModel()
+	m := browseModel()
 	m.view = viewDetailMilestone
 	mi, _ := m.Update(keyMsg("a"))
 	m = mi.(model)

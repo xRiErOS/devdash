@@ -9,7 +9,7 @@ import (
 )
 
 func reviewModel() model {
-	m := columnsModel()
+	m := browseModel()
 	m.curSprint = &api.Sprint{ID: 10, Key: "SPF#1", Status: "to_review", Items: []api.Issue{
 		{ID: 100, Key: "SPF-1", Title: "A", Status: "to_review"},
 	}}
