@@ -250,14 +250,21 @@ func (m model) viewDocs() string {
 	leftW, rightW := m.masterDetailWidths(w)
 
 	left := m.docLeftPane(leftW, h)
-	detP := pane{title: "Detail", rows: m.docDetailRows(rightW - 2), isList: false}
+	// DD2-256: Suche verortet sich im Kopf der Detail-Pane statt im Footer (klobberte
+	// dort zuvor die Status-Zeile) — Prinzip wie treeSearchLine (view_browse_project.go),
+	// hier bewusst rechts (Detail), da PO das explizit so wünschte.
+	detTitle := "Detail"
+	if m.docSearching {
+		detTitle = "⌕ " + m.docQuery + "▏"
+	}
+	detP := pane{title: detTitle, rows: m.docDetailRows(rightW - 2), isList: false}
 	right := renderPane(detP, rightW, h, false)
 	body := lipgloss.JoinHorizontal(lipgloss.Top, left, right)
 
 	head := m.header() + "\n" + theme.Header.Render(m.screenTitle("Documents"))
 	footer := theme.Dim.Render("i/k:↑↓  /:search  enter:edit  n:new  d:delete  a:assign  r:rename  y:yank  f:filter  esc/q:back")
 	if m.docSearching {
-		footer = theme.Key.Render("Search: ") + m.docQuery + "▏"
+		footer = theme.Dim.Render("type: filter   enter: apply   esc: cancel")
 	} else if m.status != "" {
 		footer = m.status
 	}

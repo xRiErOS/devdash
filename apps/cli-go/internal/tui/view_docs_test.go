@@ -470,6 +470,21 @@ func TestDocsFilterKeyCycles(t *testing.T) {
 	}
 }
 
+// DD2-256: während der Suche zeigt der Kopf der Detail-Pane die Query statt
+// "Detail"; der Footer klobbert nicht mehr die Status-Zeile.
+func TestDocsSearchInDetailPane(t *testing.T) {
+	m := docsTestModel()
+	m.docSearching = true
+	m.docQuery = "plan"
+	out := m.View()
+	if !strings.Contains(out, "⌕ plan") {
+		t.Fatalf("detail pane header should show the search query, got:\n%s", out)
+	}
+	if strings.Contains(out, "Search: plan") {
+		t.Fatalf("search should no longer clobber the footer, got:\n%s", out)
+	}
+}
+
 // DD2-252: Formular-Abschluss feuert doRenameDocument; docRenamedMsg lädt neu bzw. zeigt Fehler.
 func TestDocRenamedMsgReloads(t *testing.T) {
 	m := docsTestModel()
