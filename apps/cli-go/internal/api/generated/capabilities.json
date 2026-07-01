@@ -1,6 +1,6 @@
 {
   "generatedFrom": "apps/cli/mcp/devd-mcp.js",
-  "toolCount": 128,
+  "toolCount": 119,
   "tools": {
     "devd_backlog_export": {
       "description": "READ: Export the project backlog in an LLM-friendly format — md (default) | json | yaml. Default status filter is new,refined (sprint-bound status excluded); narrow further via status (single or comma-list). Full triage context in one call. GET /api/backlog-export. Read-only.",
@@ -1011,86 +1011,6 @@
         "additionalProperties": false
       }
     },
-    "devd_issue_set_result": {
-      "description": "WRITE: Set the structured sprint result on an issue. Builds the YAML+Markdown result string and writes it via PUT /api/backlog/:id {result}. commits is required (D02). Use after sprint work is done, before sprint complete.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "project_id": {
-            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "integer",
-                "minimum": -9007199254740991,
-                "maximum": 9007199254740991
-              }
-            ]
-          },
-          "id_or_key": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Issue key (e.g. \"DD-42\") or numeric backlog id"
-          },
-          "outcome_type": {
-            "description": "Outcome type: feat | fix | refactor | chore | docs (default: feat)",
-            "type": "string",
-            "enum": [
-              "feat",
-              "fix",
-              "refactor",
-              "chore",
-              "docs"
-            ]
-          },
-          "outcome_summary": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Short summary of what was achieved (required)"
-          },
-          "files_changed": {
-            "description": "List of changed file paths",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "commits": {
-            "minItems": 1,
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1
-            },
-            "description": "List of commit SHAs or short descriptions (required — D02)"
-          },
-          "breaking_changes": {
-            "description": "Whether this introduces breaking changes (default false)",
-            "type": "boolean"
-          },
-          "lessons_learned": {
-            "description": "Lessons learned during implementation",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "vorgehen": {
-            "description": "Markdown body: approach, trade-offs, code snippets, links",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id_or_key",
-          "outcome_summary",
-          "commits"
-        ],
-        "additionalProperties": false
-      }
-    },
     "devd_issue_show": {
       "description": "Get full details of a single issue including tasks, feedback, attachments, tags. Read-only.",
       "inputSchema": {
@@ -1251,7 +1171,7 @@
       }
     },
     "devd_issue_update": {
-      "description": "WRITE: Update editable fields of an issue (title, goal, background, context_notes, relevant_files, priority, type, po_notes, result). po_notes is the PO-facing free-text field (replaces the removed description field, DD2-131/132). result documents the sprint outcome — required on completed/passed issues before sprint complete. E01/D09: per-issue acceptance_criteria + test_instruction are replaced by user_stories[].qa — manage them via devd_user_story_*. Does NOT change status or sprint assignment — use devd_issue_status for status transitions.",
+      "description": "WRITE: Update editable fields of an issue (title, goal, background, context_notes, relevant_files, priority, type, po_notes). po_notes is the PO-facing free-text field (replaces the removed description field, DD2-131/132). E01/D09: per-issue acceptance_criteria + test_instruction are replaced by user_stories[].qa — manage them via devd_user_story_*. Does NOT change status or sprint assignment — use devd_issue_status for status transitions.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -1303,10 +1223,6 @@
             ]
           },
           "po_notes": {
-            "type": "string"
-          },
-          "result": {
-            "description": "Sprint outcome documentation. Required on completed/passed issues before sprint complete. Markdown text — summarise what was implemented, decisions made, and lessons learned.",
             "type": "string"
           }
         },
@@ -2220,7 +2136,7 @@
       }
     },
     "devd_project_list": {
-      "description": "List all projects in DevDashboard. Global — no project_id required. Compact by default (DD-622, no sstd_content/prose); fields=full for everything. Read-only.",
+      "description": "List all projects in DevDashboard. Global — no project_id required. Compact by default (DD-622, no prose fields); fields=full for everything. Read-only.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -2831,52 +2747,6 @@
         "additionalProperties": false
       }
     },
-    "devd_project_sstd_get": {
-      "description": "Get the SSTD (Single Source of Truth Document) markdown content of a project. Resolves numeric id or slug. Returns null + hint when no SSTD set. Read-only. Followup zu DD-213.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "id_or_slug": {
-            "type": "string",
-            "description": "Numeric project id or slug string (e.g. \"devd\", \"2\")"
-          }
-        },
-        "required": [
-          "id_or_slug"
-        ],
-        "additionalProperties": false
-      }
-    },
-    "devd_project_sstd_set": {
-      "description": "WRITE (DEPRECATED seit MEM-18): Whole-Rewrite des Legacy-Blobs projects.sstd_content (last-write-wins, KEIN Versions-/Diff-Schutz). Fuer granulare, token-effiziente Updates stattdessen devd_sstd_slot_set / devd_sstd_slot_edit nutzen. sstd_content=null loescht den Legacy-Blob. Followup zu DD-213.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "id_or_slug": {
-            "type": "string",
-            "description": "Numeric project id or slug string (e.g. \"devd\", \"2\")"
-          },
-          "sstd_content": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Markdown-Inhalt (string) zum Setzen oder null zum Loeschen"
-          }
-        },
-        "required": [
-          "id_or_slug",
-          "sstd_content"
-        ],
-        "additionalProperties": false
-      }
-    },
     "devd_review_create": {
       "description": "WRITE: Create a review round with verdict in ONE atomic POST (Backend nimmt review_status + comment direkt). Auto-Transitions: passed → issue passed (aus to_review/rejected); not_passed → issue rejected (aus to_review ODER passed — das Verdict führt, ein bereits-passed Issue wird zurückgezogen, DD#81-Trap-Rest-Fix). Comment Pflicht bei not_passed.",
       "inputSchema": {
@@ -3114,7 +2984,7 @@
       }
     },
     "devd_sop_edit": {
-      "description": "WRITE: Token-efficient line edit of a SOP (analog to devd_sstd_slot_edit) — patch/insert_after/insert_before/delete a single line instead of a whole-content rewrite. expect guards the anchor line → 409 (no write) on mismatch. PATCH /api/sops/:key/line.",
+      "description": "WRITE: Token-efficient line edit of a SOP — patch/insert_after/insert_before/delete a single line instead of a whole-content rewrite. expect guards the anchor line → 409 (no write) on mismatch. PATCH /api/sops/:key/line.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -3292,7 +3162,7 @@
       }
     },
     "devd_sprint_context": {
-      "description": "Get full sprint context bundle formatted as Markdown — all issue fields plus per-issue user-stories (incl. QA), result fields of already-worked issues, and issue/sprint dependencies. Ideal for AI agents before starting work, no extra calls needed. Read-only.",
+      "description": "Get full sprint context bundle formatted as Markdown — all issue fields plus per-issue user-stories (incl. QA) and issue/sprint dependencies. Ideal for AI agents before starting work, no extra calls needed. Read-only.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -3970,183 +3840,6 @@
         },
         "required": [
           "sprint_key"
-        ],
-        "additionalProperties": false
-      }
-    },
-    "devd_sstd_get": {
-      "description": "Get the full reassembled SSTD of a project (6 Slots + Projektionen: Naechste Schritte <- offene ToDos, Session-Log <- letzte 40 session_log-Memories). Faellt auf den Legacy-Blob projects.sstd_content zurueck, solange alle Slots leer sind. Read-only (MEM-16/18).",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "id_or_slug": {
-            "type": "string",
-            "description": "Numeric project id or slug string (e.g. \"devd\", \"2\")"
-          }
-        },
-        "required": [
-          "id_or_slug"
-        ],
-        "additionalProperties": false
-      }
-    },
-    "devd_sstd_journal_add": {
-      "description": "WRITE: Append a session-log entry to a project. Alias, der ein project_memory (category=session_log, Auto-Datum) anlegt — kein eigener Journal-Store (D03-rev). Erscheint in der Session-Log-Projektion von devd_sstd_get (letzte 40) (MEM-16/18, DD2-19).",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "id_or_slug": {
-            "type": "string",
-            "description": "Numeric project id or slug string (e.g. \"devd\", \"2\")"
-          },
-          "content": {
-            "type": "string",
-            "description": "Session-log entry text (wird als session_log summary gespeichert)"
-          }
-        },
-        "required": [
-          "id_or_slug",
-          "content"
-        ],
-        "additionalProperties": false
-      }
-    },
-    "devd_sstd_slot_edit": {
-      "description": "WRITE: Line-level edit of one SSTD slot (token-effizient statt Whole-Rewrite). op=patch|insert_after|insert_before|delete, line is 1-based (insert_after erlaubt 0 = voranstellen). Optionaler expect-Guard: stimmt der aktuelle Zeileninhalt nicht, antwortet das Backend mit 409 (kein Write) (MEM-16/18).",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "id_or_slug": {
-            "type": "string",
-            "description": "Numeric project id or slug string (e.g. \"devd\", \"2\")"
-          },
-          "slot_key": {
-            "type": "string",
-            "enum": [
-              "architecture",
-              "conventions",
-              "sprint_state",
-              "roadmap",
-              "cross_refs",
-              "misc"
-            ],
-            "description": "One of the 6 fixed slots"
-          },
-          "op": {
-            "type": "string",
-            "enum": [
-              "patch",
-              "insert_after",
-              "insert_before",
-              "delete"
-            ],
-            "description": "Line operation"
-          },
-          "line": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "description": "1-based line number (insert_after also accepts 0 to prepend)"
-          },
-          "content": {
-            "description": "New line content (for patch / insert_*)",
-            "type": "string"
-          },
-          "expect": {
-            "description": "Guard: current content of the anchor line must match, else 409 (no write)",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id_or_slug",
-          "slot_key",
-          "op",
-          "line"
-        ],
-        "additionalProperties": false
-      }
-    },
-    "devd_sstd_slot_get": {
-      "description": "Get a single SSTD slot of a project. Read-only (MEM-16/18).",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "id_or_slug": {
-            "type": "string",
-            "description": "Numeric project id or slug string (e.g. \"devd\", \"2\")"
-          },
-          "slot_key": {
-            "type": "string",
-            "enum": [
-              "architecture",
-              "conventions",
-              "sprint_state",
-              "roadmap",
-              "cross_refs",
-              "misc"
-            ],
-            "description": "One of the 6 fixed slots"
-          }
-        },
-        "required": [
-          "id_or_slug",
-          "slot_key"
-        ],
-        "additionalProperties": false
-      }
-    },
-    "devd_sstd_slot_list": {
-      "description": "List all SSTD slots of a project (slot-key + raw content) in one call. Unlike devd_sstd_get (full reassembly incl. projections) this returns the raw editable slots as a list. Read-only (MEM-16/18, DD2-98).",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "id_or_slug": {
-            "type": "string",
-            "description": "Numeric project id or slug string (e.g. \"devd\", \"2\")"
-          }
-        },
-        "required": [
-          "id_or_slug"
-        ],
-        "additionalProperties": false
-      }
-    },
-    "devd_sstd_slot_set": {
-      "description": "WRITE: Replace a whole SSTD slot (last-write-wins). Use for the initial fill or full rewrite of one slot; for line-level edits use devd_sstd_slot_edit (MEM-16/18).",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "id_or_slug": {
-            "type": "string",
-            "description": "Numeric project id or slug string (e.g. \"devd\", \"2\")"
-          },
-          "slot_key": {
-            "type": "string",
-            "enum": [
-              "architecture",
-              "conventions",
-              "sprint_state",
-              "roadmap",
-              "cross_refs",
-              "misc"
-            ],
-            "description": "One of the 6 fixed slots"
-          },
-          "content": {
-            "type": "string",
-            "description": "Full new markdown content of the slot"
-          }
-        },
-        "required": [
-          "id_or_slug",
-          "slot_key",
-          "content"
         ],
         "additionalProperties": false
       }
