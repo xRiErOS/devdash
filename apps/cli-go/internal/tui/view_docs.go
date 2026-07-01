@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"path"
 	"strings"
 
 	"devd-cli/internal/api"
@@ -252,16 +253,22 @@ func (m model) docLeftPane(w, h int) string {
 		if wrapW < 8 {
 			wrapW = 8
 		}
-		segs := strings.Split(wrapText(d.Title, wrapW), "\n")
+		// DD2-251: Zeile 1 = Dateiname (Klammer-Notation wie ownerPrefix), Zeile 2+ =
+		// gewrappter Titel darunter — PO-Layout-Wunsch nach DD2-244.
+		fname := "(no file)"
+		if fp := deref(d.FilePath); fp != "" {
+			fname = path.Base(fp)
+		}
+		fileLine := ownerPrefix + "[" + fname + "]"
+		titleSegs := strings.Split(wrapText(d.Title, wrapW), "\n")
+		var allLines []string
+		allLines = append(allLines, fileLine)
+		for _, seg := range titleSegs {
+			allLines = append(allLines, indent+seg)
+		}
 		sel := i == m.doclist.cursor
 		var block []string
-		for j, seg := range segs {
-			plain := seg
-			if j == 0 {
-				plain = ownerPrefix + seg
-			} else {
-				plain = indent + seg
-			}
+		for j, plain := range allLines {
 			cursor := "  "
 			var text string
 			switch {
@@ -270,8 +277,8 @@ func (m model) docLeftPane(w, h int) string {
 					cursor = theme.Accent.Render("▸ ")
 				}
 				text = theme.Accent.Render(plain) // ganze Item-Zeile tönen
-			case j == 0 && ownerPrefix != "":
-				text = theme.Dim.Render(ownerPrefix) + seg
+			case j == 0:
+				text = theme.Dim.Render(plain) // Dateiname-Zeile gedimmt
 			default:
 				text = plain
 			}

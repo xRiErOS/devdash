@@ -229,6 +229,28 @@ func TestDocsListTitleWraps(t *testing.T) {
 	}
 }
 
+// DD2-251: Master-Liste zeigt Zeile 1 = Dateiname, Zeile 2 = Titel darunter.
+func TestDocsListShowsFilename(t *testing.T) {
+	m := docsTestModel()
+	fp := "docs/plan.md"
+	m.docList[0].FilePath = &fp
+	m.doclist.cursor = 0
+	out := m.docLeftPane(30, 10)
+	if !strings.Contains(out, "[plan.md]") {
+		t.Fatalf("filename [plan.md] should be shown above the title, got:\n%s", out)
+	}
+}
+
+// DD2-251: ohne file_path zeigt die Liste einen Platzhalter statt leerer Zeile.
+func TestDocsListShowsFilenamePlaceholder(t *testing.T) {
+	m := docsTestModel()
+	m.doclist.cursor = 0
+	out := m.docLeftPane(30, 10)
+	if !strings.Contains(out, "[(no file)]") {
+		t.Fatalf("missing file_path should render placeholder, got:\n%s", out)
+	}
+}
+
 // DD2-244: die Liste muss der Selektion nachscrollen (gleiche Fensterung wie ToDos,
 // DD2-239) — sonst würde das Wrappen den Cursor schneller aus dem Fenster laufen lassen.
 func TestDocsListFollowsCursor(t *testing.T) {
