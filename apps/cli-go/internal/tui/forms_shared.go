@@ -150,6 +150,8 @@ func (m model) openForm(kind string) (tea.Model, tea.Cmd) {
 		f = buildSettingsForm(m.cfg)
 	case "project_settings": // DD2-221: aktives Projekt bearbeiten (name; slug/prefix read-only)
 		f = buildProjectSettingsForm(m.project)
+	case "docRename": // DD2-252: Dokument-Dateiname umbenennen
+		f = buildDocRenameForm(m.docRenameCur)
 	}
 	if f == nil {
 		return m, nil
@@ -240,6 +242,8 @@ func (m model) formTitle() string {
 		return "Settings"
 	case "project_settings": // DD2-221
 		return "Project settings"
+	case "docRename": // DD2-252
+		return "Rename file"
 	case "editField":
 		return "Edit: " + m.editLabel
 	case "userStoryAdd":
@@ -259,7 +263,7 @@ func formFooterHint(kind string) string {
 	switch kind {
 	case "testform":
 		return "↑↓ select · enter next · ctrl+e editor · esc close"
-	case "editField", "tagCreate", "tagEdit", "project_settings":
+	case "editField", "tagCreate", "tagEdit", "project_settings", "docRename":
 		return "enter save · esc cancel"
 	default:
 		// DD2-187: alt+enter verhält sich jetzt wie enter (huh-Commit), darum
@@ -502,6 +506,8 @@ func (m *model) formCreateCmd() tea.Cmd {
 			return func() tea.Msg { return noticeMsg{"no active project"} }
 		}
 		return doUpdateProjectName(m.client, m.project.ID, get("name"))
+	case "docRename": // DD2-252: neuen file_path speichern
+		return doRenameDocument(m.client, m.docRenameOwnerType, m.docRenameOwnerID, m.docRenameID, get("file_path"))
 	}
 	return nil
 }

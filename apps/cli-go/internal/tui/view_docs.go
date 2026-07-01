@@ -123,6 +123,10 @@ func (m model) keyDocs(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if keybind.Matches(msg, keys.Assign) {
 		return m.openDocAssign()
 	}
+	// DD2-252: r öffnet die Rename-Form für den file_path des selektierten Dokuments.
+	if keybind.Matches(msg, keys.Rename) {
+		return m.openDocRename()
+	}
 	switch msg.String() {
 	case "esc", "q":
 		m.view = m.topReturn
@@ -202,7 +206,7 @@ func (m model) viewDocs() string {
 	body := lipgloss.JoinHorizontal(lipgloss.Top, left, right)
 
 	head := m.header() + "\n" + theme.Header.Render(m.screenTitle("Documents"))
-	footer := theme.Dim.Render("i/k:↑↓  /:search  enter:edit  n:new  d:delete  a:assign  esc/q:back")
+	footer := theme.Dim.Render("i/k:↑↓  /:search  enter:edit  n:new  d:delete  a:assign  r:rename  esc/q:back")
 	if m.docSearching {
 		footer = theme.Key.Render("Search: ") + m.docQuery + "▏"
 	} else if m.status != "" {

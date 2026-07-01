@@ -252,6 +252,14 @@ type model struct {
 	docAsOpts    []docAssignOpt
 	docAsMenu    listState
 
+	// Dokument-Datei umbenennen (DD2-252): r öffnet ein Single-Field-Form (huh,
+	// formKind "docRename"), vorbelegt mit dem aktuellen file_path. docRenameOwnerType/
+	// -ID = Owner der Route (auch im All-Modus über docOwnerOf aufgelöst).
+	docRenameID        int
+	docRenameOwnerType string
+	docRenameOwnerID   int
+	docRenameCur       string
+
 	// Command-Center (T16): globales Action-Palette-Modal (ctrl+k / shift+k).
 	paletteOpen bool
 	palQuery    string

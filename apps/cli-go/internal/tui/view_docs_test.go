@@ -340,3 +340,35 @@ func TestDocMovedMsgReloads(t *testing.T) {
 func TestGoldenDocs(t *testing.T) {
 	assertGolden(t, "docs", docsTestModel().View())
 }
+
+// DD2-252: r im Docs-Browser öffnet die Rename-Form, vorbelegt mit dem file_path.
+func TestDocsOpenRename(t *testing.T) {
+	m := docsTestModel()
+	fp := "docs/plan.md"
+	m.docList[0].FilePath = &fp
+	m.doclist.cursor = 0
+	nm, _ := m.keyDocs(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("r")})
+	got := nm.(model)
+	if got.formKind != "docRename" || got.docRenameID != 1 || got.form == nil {
+		t.Fatalf("r should open the docRename form for doc 1: kind=%q id=%d form=%v", got.formKind, got.docRenameID, got.form)
+	}
+	if v := got.form.View(); !strings.Contains(v, fp) {
+		t.Fatalf("form should be preset with current file_path %q, got:\n%s", fp, v)
+	}
+}
+
+// DD2-252: Formular-Abschluss feuert doRenameDocument; docRenamedMsg lädt neu bzw. zeigt Fehler.
+func TestDocRenamedMsgReloads(t *testing.T) {
+	m := docsTestModel()
+	nm, cmd := m.Update(docRenamedMsg{docID: 1})
+	if cmd == nil {
+		t.Fatal("success sollte Docs neu laden")
+	}
+	if !strings.Contains(nm.(model).status, "renamed") {
+		t.Fatalf("status should note the rename, got %q", nm.(model).status)
+	}
+	nm2, _ := m.Update(docRenamedMsg{docID: 1, err: "boom"})
+	if !strings.Contains(nm2.(model).status, "boom") {
+		t.Fatalf("error status should surface, got %q", nm2.(model).status)
+	}
+}

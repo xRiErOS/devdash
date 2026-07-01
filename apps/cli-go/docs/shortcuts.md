@@ -46,6 +46,7 @@ Direction cross: **jkli** — `i`=up, `j`=left/back, `k`=down, `l`=right/in (DD2
 | `d` | delete (cascade) |
 | `y` | Copy context |
 | `space/x` | Toggle facet |
+| `r` | Rename file (Docs) |
 
 ## Review
 

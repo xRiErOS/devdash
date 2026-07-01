@@ -46,6 +46,7 @@ type keyMap struct {
 	FilterClear keybind.Binding // X (Filter zurücksetzen)
 	Tags        keybind.Binding // T (Tag-Manager, DD2-75)
 	TagAssign   keybind.Binding // t (Tags zuweisen)
+	Rename      keybind.Binding // r (DD2-252: Dokument-Dateiname umbenennen, nur Docs-View)
 
 	// Review-Cockpit (DD2-173). Vorher rohe String-Literale in keys_review.go —
 	// jetzt Teil der Single-Source.
@@ -98,6 +99,7 @@ func newKeyMap() keyMap {
 		FilterClear: keybind.NewBinding(keybind.WithKeys("X"), keybind.WithHelp("X", "Clear filters")),
 		Tags:        keybind.NewBinding(keybind.WithKeys("T"), keybind.WithHelp("T", "Tag-Manager")),
 		TagAssign:   keybind.NewBinding(keybind.WithKeys("t"), keybind.WithHelp("t", "Assign tags")),
+		Rename:      keybind.NewBinding(keybind.WithKeys("r"), keybind.WithHelp("r", "Rename file (Docs)")),
 
 		// Review-Cockpit (DD2-173).
 		ReviewPass:     keybind.NewBinding(keybind.WithKeys("a"), keybind.WithHelp("a", "Pass verdict")),
@@ -131,7 +133,7 @@ func (k keyMap) helpGroups() []helpGroup {
 	return []helpGroup{
 		{"Navigation", []keybind.Binding{k.Up, k.Down, k.Left, k.Right, k.Enter, k.Back, k.Section}},
 		{"Views & Global", []keybind.Binding{k.Backlog, k.Reviews, k.Picker, k.Tags, k.Search, k.Filter, k.FilterClear, k.Refresh, k.Palette, k.Help, k.Quit}},
-		{"Actions", []keybind.Binding{k.Status, k.Sort, k.Assign, k.Create, k.TagAssign, k.Delete, k.Yank, k.Toggle}},
+		{"Actions", []keybind.Binding{k.Status, k.Sort, k.Assign, k.Create, k.TagAssign, k.Delete, k.Yank, k.Toggle, k.Rename}},
 		{"Review", []keybind.Binding{k.ReviewPass, k.ReviewReject, k.ReviewReopen, k.ReviewRework, k.ReviewPass2, k.SprintComplete}},
 	}
 }

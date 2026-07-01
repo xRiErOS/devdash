@@ -387,6 +387,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, loadAllDocs(m.client)
 		}
 		return m, loadDocs(m.client, m.docOwnerType, m.docOwnerID)
+	case docRenamedMsg: // DD2-252: Dateiname umbenannt — Liste neu laden (zeigt neuen file_path)
+		if msg.err != "" {
+			m.status = noticeText(msg.err)
+			return m, nil
+		}
+		m.status = noticeText("File renamed")
+		if m.docAllMode {
+			return m, loadAllDocs(m.client)
+		}
+		return m, loadDocs(m.client, m.docOwnerType, m.docOwnerID)
 	case tea.MouseMsg:
 		return m.handleMouse(msg)
 	case tea.KeyMsg:

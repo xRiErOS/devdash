@@ -20,4 +20,4 @@ dd2 — Documents
 │                              ││                                                        │
 │                              ││                                                        │
 ╰──────────────────────────────╯╰────────────────────────────────────────────────────────╯
-i/k:↑↓  /:search  enter:edit  n:new  d:delete  a:assign  esc/q:back
+i/k:↑↓  /:search  enter:edit  n:new  d:delete  a:assign  r:rename  esc/q:back
