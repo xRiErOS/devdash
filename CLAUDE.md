@@ -13,11 +13,7 @@ Sprint-/Backlog-/Review-Tool, Multi-Projekt, NAS-gehostet. Nach dem Clean-Cut (2
 
 Storybook (`src/storybook/`, kuratierte Stories) ist Design-Wahrheit **und** Bauquelle. `src/components/` hält die Bauteile, die die Stories rendern. `src/screens/_shell/` ist die dünne, handgepflegte App-Hülle (Frame/Rail/Topbar/Routing).
 
-**Promote-Loop pro Screen (Strangler):**
-1. Screen in Storybook bauen/finishen — **presentational** (Daten rein als Props, Mock via args/MSW).
-2. **Promote:** dünnen Connected-Wrapper schreiben (holt echte Daten via `src/lib`, reicht Props rein) + Route in `src/screens/_shell/routes.jsx` vom Platzhalter auf den Screen biegen.
-3. TDD nur für Logik/Verhalten (vitest node-env) + Wrapper-Datenfluss; Präsentation per Augenschein in Storybook.
-4. Fertig — **kein** PRD/FSD/C4/Contract/Heartbeat/data-ui-Gate.
+**Promote-Loop pro Screen (Strangler):** Prozedur (presentational Story → Connected-Wrapper + Route → TDD Logik → fertig) → [`docs/frontend-promote-loop.md`](docs/frontend-promote-loop.md).
 
 **Alignment-Garantie (statt Drift-Gates):** Story und Prod importieren dasselbe Bauteil — eine Kopie, kann nicht driften. Tokens kommen aus `src/index.css` (Single Source). Einziges Frontend-Netz: ein Render-Smoke (alle `*.stories.*` müssen rendern).
 
@@ -76,6 +72,9 @@ Wichtige Projektdateien hier eintragen. Neue zentrale Doku-Dateien → Zeile erg
 | TUI, Build, Install, go shadow, command go, bin/dd, devd-cli, dd-tui, Worktree-Build, stale Binary | `docs/cli-go-build.md` | Verlässliche Build/Install-Anleitung Go-TUI (`apps/cli-go`): `command go build/install`, `go`-Shadow-Falle, Verifikation, Worktree-Hinweis |
 | MCP-Notes, Tool-Notes, devd-MCP Export, Vault-Notes generieren, gen-mcp-notes, MCP-Dokumentation | `scripts/gen-mcp-notes.mjs` | Generiert pro MCP-Tool eine Obsidian-Note (Frontmatter + Flags-Tabelle) + Index nach Vault `DD-PO-Lokal/devd-MCP`. Re-runnbar: `node scripts/gen-mcp-notes.mjs`. Tool-Count-Guard anpassen bei MCP-Änderungen. |
 | Sprint durchführen, run-sprint, Sprint bearbeiten, Sprint-Layer, Ports, Git-Policy | `docs/sprint-project-layer.md` | Projekt-spezifischer Layer für `/run-sprint`: Identität (DD2/devd2/10), Git-Policy, Ports/Build, Promote/Build-Zeiger, Abschluss-Grenze |
+| Promote-Loop, Screen bauen, Storybook-Samen, Connected-Wrapper, Strangler | `docs/frontend-promote-loop.md` | Promote-Loop pro Screen (Tier 4): presentational Story → Connected-Wrapper + Route → TDD Logik → fertig, kein Gate |
+| CONTEXT.md, CONTEXT-MAP, Glossar, Begriffe, ubiquitous language, Bounded Context, Surface-Glossar | `CONTEXT-MAP.md` | Wurzel des Glossar-Netzes: verweist je Surface auf `CONTEXT.md` (Begriffe impl-frei); Wurzel-`CONTEXT.md` = übergreifende Begriffe (Issue/Sprint/Meilenstein/User-Story) |
+| domain-modeling, Begriff schärfen, Glossar pflegen, Term-Konflikt, ubiquitous language | `~/.claude/skills/domain-modeling/SKILL.md` | model-invoked Glossar-Pfleger: fordert Begriffe heraus, präzisiert, prüft gegen Code, schreibt `CONTEXT.md` fort |
 
 ## Doku-Archiv
 
