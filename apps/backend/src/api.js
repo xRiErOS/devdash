@@ -49,7 +49,7 @@ import { renderSnapshot as renderProjectMemorySnapshot, renderSplitSnapshot as r
 import { cascadeDeleteSprints, milestoneDeletePreview, sprintDocumentCount } from './lib/cascadeDelete.js'
 import {
   DocumentError,
-  createDocument, listDocuments, listAllDocuments, getDocument, updateDocument, deleteDocument,
+  createDocument, listDocuments, listAllDocuments, getDocument, updateDocument, moveDocument, deleteDocument,
 } from './lib/documents.js'
 import { listTags as listMemoryTags, createTag as createMemoryTag, renameTag as renameMemoryTag, deleteTag as deleteMemoryTag, pruneTagsNotInRegistry as pruneMemoryTags } from './lib/memoryTags.js'
 import { listIssueDependencies, countIssueDependencies } from './lib/issueDependencies.js'
@@ -1028,6 +1028,17 @@ function _registerDocumentRoutes(type, base) {
   app.put(`${base}/:id/documents/:docId`, (req, res) => {
     const owner = _resolveDocOwner(res, type, req.params.id); if (!owner) return
     try { res.json(updateDocument(db, owner, Number(req.params.docId), req.body || {})) }
+    catch (e) { return _sendDocumentError(res, e) }
+  })
+  // DD2-243: Dokument einem anderen Meilenstein/Sprint zuweisen (TUI-Picker, 'a').
+  app.put(`${base}/:id/documents/:docId/move`, (req, res) => {
+    const owner = _resolveDocOwner(res, type, req.params.id); if (!owner) return
+    const targetType = req.body?.target_type
+    if (targetType !== 'milestone' && targetType !== 'sprint') {
+      return res.status(400).json({ error: 'target_type must be milestone or sprint', code: 'TARGET_TYPE_INVALID' })
+    }
+    const target = _resolveDocOwner(res, targetType, req.body?.target_id); if (!target) return
+    try { res.json(moveDocument(db, owner, Number(req.params.docId), target)) }
     catch (e) { return _sendDocumentError(res, e) }
   })
   app.delete(`${base}/:id/documents/:docId`, (req, res) => {

@@ -90,6 +90,18 @@ func (c *Client) UpdateDocument(ownerType string, ownerID, docID int, body Docum
 	return &doc, json.Unmarshal(data, &doc)
 }
 
+// MoveDocument weist ein Dokument einem anderen Meilenstein/Sprint zu (DD2-243).
+// ownerType/ownerID = aktueller (Quell-)Owner, targetType/targetID = Ziel.
+func (c *Client) MoveDocument(ownerType string, ownerID, docID int, targetType string, targetID int) (*Document, error) {
+	body := map[string]any{"target_type": targetType, "target_id": targetID}
+	data, err := c.Do("PUT", fmt.Sprintf("%s/%d/move", docBase(ownerType, ownerID), docID), body)
+	if err != nil {
+		return nil, err
+	}
+	var doc Document
+	return &doc, json.Unmarshal(data, &doc)
+}
+
 // DeleteDocument löscht ein Dokument (204 No Content bei Erfolg).
 func (c *Client) DeleteDocument(ownerType string, ownerID, docID int) error {
 	_, err := c.Do("DELETE", fmt.Sprintf("%s/%d", docBase(ownerType, ownerID), docID), nil)

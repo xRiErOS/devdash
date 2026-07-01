@@ -129,6 +129,24 @@ export function updateDocument(db, owner, id, patch = {}) {
   return getDocument(db, owner, id)
 }
 
+// moveDocument hängt ein Dokument von owner (Quelle, path-verifiziert) auf target
+// (Ziel-Meilenstein/-Sprint) um — DD2-243. Setzt die eine Owner-Spalte, räumt die
+// andere. target-Existenz wird vom Caller (_resolveDocOwner) verifiziert, nicht hier.
+export function moveDocument(db, owner, id, target) {
+  const col = ownerColumn(owner)
+  const existing = db.prepare(`SELECT id FROM documents WHERE id = ? AND ${col} = ?`).get(id, owner.id)
+  if (!existing) {
+    throw new DocumentError(`document ${id} nicht gefunden`, { statusCode: 404, code: 'DOC_NOT_FOUND', field: 'id' })
+  }
+  const targetCol = ownerColumn(target)
+  const milestoneId = targetCol === 'milestone_id' ? target.id : null
+  const sprintId = targetCol === 'sprint_id' ? target.id : null
+  db.prepare(
+    `UPDATE documents SET milestone_id = ?, sprint_id = ?, updated_at = datetime('now') WHERE id = ? AND ${col} = ?`,
+  ).run(milestoneId, sprintId, id, owner.id)
+  return getDocument(db, target, id)
+}
+
 export function deleteDocument(db, owner, id) {
   const col = ownerColumn(owner)
   const result = db.prepare(`DELETE FROM documents WHERE id = ? AND ${col} = ?`).run(id, owner.id)

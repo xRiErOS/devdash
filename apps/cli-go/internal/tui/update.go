@@ -377,6 +377,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.status = noticeText("Tags gesetzt — " + msg.label)
 		return m, nil
+	case docMovedMsg: // DD2-243: Dokument-Zuweisung — Liste neu laden (alter Owner verliert das Doc)
+		if msg.err != "" {
+			m.status = noticeText(msg.err)
+			return m, nil
+		}
+		m.status = noticeText("Document moved")
+		if m.docAllMode {
+			return m, loadAllDocs(m.client)
+		}
+		return m, loadDocs(m.client, m.docOwnerType, m.docOwnerID)
 	case tea.MouseMsg:
 		return m.handleMouse(msg)
 	case tea.KeyMsg:
@@ -392,7 +402,7 @@ func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	// Modale/Picks sind tastaturgesteuert — Maus ignorieren (kein Fehlklick-Fokus).
 	if m.form != nil || m.paletteOpen || m.projPick || m.filtering || m.statusPick || m.sprintPick ||
 		m.msPick || m.smPick || m.maPick || m.tagPick || m.delConfirm || m.mcConfirm || m.createConfirm || m.usOpen ||
-		m.treeSearching || m.inputting {
+		m.treeSearching || m.inputting || m.docAsPick {
 		return m, nil
 	}
 	switch msg.Button {

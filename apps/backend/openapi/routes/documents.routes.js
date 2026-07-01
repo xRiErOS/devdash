@@ -48,6 +48,15 @@ for (const owner of ['milestones', 'sprints']) {
     res: z.record(z.string(), z.unknown()),
   });
   register({
+    method: 'PUT',
+    path: `/api/${owner}/:id/documents/:docId/move`,
+    tag: 'documents',
+    summary: 'Dokument einem anderen Meilenstein/Sprint zuweisen (DD2-243)',
+    params: z.object({ id: z.string(), docId: z.string() }),
+    body: z.object({ target_type: z.enum(['milestone', 'sprint']), target_id: z.union([z.string(), z.number()]) }),
+    res: z.record(z.string(), z.unknown()),
+  });
+  register({
     method: 'DELETE',
     path: `/api/${owner}/:id/documents/:docId`,
     tag: 'documents',

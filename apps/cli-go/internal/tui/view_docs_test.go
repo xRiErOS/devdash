@@ -214,6 +214,73 @@ func TestDocsDetailTitleWraps(t *testing.T) {
 	}
 }
 
+// DD2-243: docAssignOpts sammelt nur offene Meilensteine + deren nicht-finale Sprints.
+func TestDocAssignOptsFilter(t *testing.T) {
+	milestones := []api.Milestone{
+		{ID: 1, Name: "Open MS", Status: "in_progress", Sprints: []api.Sprint{
+			{ID: 10, Key: "DD2#10", Name: "Open Sprint", Status: "new"},
+			{ID: 11, Key: "DD2#11", Name: "Done Sprint", Status: "completed"},
+		}},
+		{ID: 2, Name: "Closed MS", Status: "completed", Sprints: []api.Sprint{
+			{ID: 12, Key: "DD2#12", Name: "Orphan Sprint", Status: "new"},
+		}},
+	}
+	opts := docAssignOpts(milestones)
+	if len(opts) != 2 {
+		t.Fatalf("want 2 targets (Open MS + its open sprint), got %d: %+v", len(opts), opts)
+	}
+	if opts[0].ownerType != "milestone" || opts[0].ownerID != 1 {
+		t.Fatalf("first opt should be Open MS: %+v", opts[0])
+	}
+	if opts[1].ownerType != "sprint" || opts[1].ownerID != 10 {
+		t.Fatalf("second opt should be its open sprint: %+v", opts[1])
+	}
+}
+
+// DD2-243: a im Docs-Browser öffnet den Zuweisungs-Picker für das selektierte Doc.
+func TestDocsOpenAssign(t *testing.T) {
+	m := docsTestModel()
+	m.milestones = []api.Milestone{{ID: 1, Name: "M1", Status: "in_progress"}}
+	m.doclist.cursor = 0
+	nm, _ := m.keyDocs(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("a")})
+	got := nm.(model)
+	if !got.docAsPick || got.docAsDocID != 1 || len(got.docAsOpts) != 1 {
+		t.Fatalf("a should open assign picker for doc 1: pick=%v docID=%d opts=%d", got.docAsPick, got.docAsDocID, len(got.docAsOpts))
+	}
+}
+
+// DD2-243: enter im Picker schließt ihn und feuert die Zuweisung.
+func TestDocAssignPickAndFire(t *testing.T) {
+	m := docsTestModel()
+	m.milestones = []api.Milestone{{ID: 1, Name: "M1", Status: "in_progress"}}
+	m.doclist.cursor = 0
+	nm, _ := m.keyDocs(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("a")})
+	m = nm.(model)
+	nm2, cmd := m.keyDocAssign(tea.KeyMsg{Type: tea.KeyEnter})
+	if nm2.(model).docAsPick {
+		t.Fatal("enter sollte den Picker schließen")
+	}
+	if cmd == nil {
+		t.Fatal("enter sollte die Zuweisung auslösen")
+	}
+}
+
+// DD2-243: docMovedMsg lädt die Docs-Liste neu (Erfolg) bzw. zeigt den Fehler (Notice).
+func TestDocMovedMsgReloads(t *testing.T) {
+	m := docsTestModel()
+	nm, cmd := m.Update(docMovedMsg{docID: 1})
+	if cmd == nil {
+		t.Fatal("success sollte Docs neu laden")
+	}
+	if !strings.Contains(nm.(model).status, "moved") {
+		t.Fatalf("status should note the move, got %q", nm.(model).status)
+	}
+	nm2, _ := m.Update(docMovedMsg{docID: 1, err: "boom"})
+	if !strings.Contains(nm2.(model).status, "boom") {
+		t.Fatalf("error status should surface, got %q", nm2.(model).status)
+	}
+}
+
 func TestGoldenDocs(t *testing.T) {
 	assertGolden(t, "docs", docsTestModel().View())
 }

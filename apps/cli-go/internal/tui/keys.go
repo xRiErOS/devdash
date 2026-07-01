@@ -66,6 +66,9 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.asPick { // DD2-136: Issue→Sprint-Picker (view-übergreifend, wie delConfirm)
 		return m.keyAssignSprint(msg)
 	}
+	if m.docAsPick { // DD2-243: Dokument→Meilenstein/Sprint-Picker (nur aus der Docs-View)
+		return m.keyDocAssign(msg)
+	}
 	// Meilenstein-Cascade-Complete-Confirm (DD2-28).
 	if m.mcConfirm {
 		return m.keyMilestoneCascade(msg)

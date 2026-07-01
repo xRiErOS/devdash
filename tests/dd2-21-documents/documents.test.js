@@ -6,7 +6,7 @@ import { tmpdir } from 'os'
 import { createTestDb } from '../_fixtures/in-memory-db.js'
 import { seedProject, seedMilestones, TEST_PROJECT_ID } from '../_fixtures/seed.js'
 import {
-  createDocument, listDocuments, listAllDocuments, getDocument, updateDocument, deleteDocument,
+  createDocument, listDocuments, listAllDocuments, getDocument, updateDocument, moveDocument, deleteDocument,
   DocumentError, DOCUMENT_STATUS,
 } from '../../apps/backend/src/lib/documents.js'
 import { milestoneDeletePreview, cascadeDeleteSprints, sprintDocumentCount } from '../../apps/backend/src/lib/cascadeDelete.js'
@@ -98,6 +98,20 @@ describe('DD2-21 — documents (DB-Blob, milestone/sprint owner)', () => {
     expect(up.status).toBe('archived')
     expect(() => createDocument(db, { type: 'milestone', id: milestoneId }, { title: 'x', status: 'bogus' })).toThrow(DocumentError)
     expect(DOCUMENT_STATUS).toEqual(['draft', 'active', 'archived'])
+  })
+
+  // DD2-243: Dokument einem anderen Meilenstein/Sprint zuweisen (TUI-Picker 'a').
+  test('moveDocument: Meilenstein-Doc → Sprint (Owner-Spalte wechselt, alte geräumt)', () => {
+    const doc = createDocument(db, { type: 'milestone', id: milestoneId }, { title: 'move-me' })
+    const moved = moveDocument(db, { type: 'milestone', id: milestoneId }, doc.id, { type: 'sprint', id: sprintId })
+    expect(moved).toMatchObject({ id: doc.id, milestone_id: null, sprint_id: sprintId, title: 'move-me' })
+    expect(getDocument(db, { type: 'milestone', id: milestoneId }, doc.id)).toBeNull()
+    expect(getDocument(db, { type: 'sprint', id: sprintId }, doc.id)).toMatchObject({ title: 'move-me' })
+  })
+
+  test('moveDocument: unbekanntes Dokument unter altem Owner wirft 404', () => {
+    expect(() => moveDocument(db, { type: 'milestone', id: milestoneId }, 999999, { type: 'sprint', id: sprintId }))
+      .toThrow(DocumentError)
   })
 
   // DD2-163 Rework: projektweite Doc-Liste (entitätsübergreifend) mit owner_type/owner_name.

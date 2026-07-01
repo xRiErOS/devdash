@@ -6,6 +6,7 @@ import (
 
 	"devd-cli/internal/api"
 	"devd-cli/internal/theme"
+	keybind "github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -116,6 +117,11 @@ func (m model) keyDocs(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.doclist.move(1)
 		return m, nil
 	}
+	// DD2-243: a öffnet den Meilenstein/Sprint-Zuweisungs-Picker (Parität zu Backlog,
+	// keys.Assign) — zentrale Keymap, restliche Docs-Keys bleiben roh (out-of-scope).
+	if keybind.Matches(msg, keys.Assign) {
+		return m.openDocAssign()
+	}
 	switch msg.String() {
 	case "esc", "q":
 		m.view = m.topReturn
@@ -196,7 +202,7 @@ func (m model) viewDocs() string {
 	body := lipgloss.JoinHorizontal(lipgloss.Top, left, right)
 
 	head := m.header() + "\n" + theme.Header.Render(m.screenTitle("Documents"))
-	footer := theme.Dim.Render("i/k:↑↓  /:search  enter:edit  n:new  d:delete  esc/q:back")
+	footer := theme.Dim.Render("i/k:↑↓  /:search  enter:edit  n:new  d:delete  a:assign  esc/q:back")
 	if m.docSearching {
 		footer = theme.Key.Render("Search: ") + m.docQuery + "▏"
 	} else if m.status != "" {

@@ -242,6 +242,16 @@ type model struct {
 	docEditID    int
 	docAllMode   bool // DD2-163 Rework: globaler All-Docs-Browser (entitätsübergreifend)
 
+	// Doc→Meilenstein/Sprint-Zuweisung (DD2-243): a öffnet einen Single-Select-Picker
+	// über offene Meilensteine + deren nicht-finale Sprints (Muster T03/DD2-136).
+	// docAsSrcType/-ID = Quell-Owner (beim Öffnen fixiert, auch im All-Modus).
+	docAsPick    bool
+	docAsDocID   int
+	docAsSrcType string
+	docAsSrcID   int
+	docAsOpts    []docAssignOpt
+	docAsMenu    listState
+
 	// Command-Center (T16): globales Action-Palette-Modal (ctrl+k / shift+k).
 	paletteOpen bool
 	palQuery    string
