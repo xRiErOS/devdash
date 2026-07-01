@@ -38,7 +38,7 @@ await import(join(REPO, 'apps/cli/mcp/devd-mcp.js'))
 // MCP-Änderungen (Tool hinzu/entfernt) läuft der Generator weiter und
 // dokumentiert die reale Zahl. Nur eine leere Liste (Import fehlgeschlagen,
 // nichts erfasst) bleibt ein echter Abbruch.
-const EXPECTED_TOOLS = 119
+const EXPECTED_TOOLS = 109
 if (tools.length === 0) {
   console.error('FAIL: 0 Tools erfasst — devd-mcp.js-Import lieferte keine server.tool-Calls. Abbruch.')
   process.exit(1)
@@ -68,8 +68,6 @@ const DOMAIN_RULES = [
   [/^subtask_/, 'Sub-Tasks'],
   [/^todo_/, 'Todos'],
   [/^tag_/, 'Tags'],
-  [/^sop_collection_/, 'SOPs'],
-  [/^sop_/, 'SOPs'],
   [/^document_/, 'Dokumente'],
   [/^user_note_/, 'User Notes'],
   [/^session_note_/, 'Session Notes'],

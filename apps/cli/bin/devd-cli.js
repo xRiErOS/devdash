@@ -128,27 +128,6 @@ const _client = createApiClient({
   token: DEVD_API_TOKEN,
 })
 
-// DD-519 (D50a): SOP-Bundle ausschliesslich aus dem DB-Store (/api/sops/bundle) — der
-// DB-Store ist Master (SOP-D01). Der frühere Filesystem-Fallback aus dem Vault-Pfad
-// (DD-214) ist ENTFERNT: kein Vault-Read mehr, damit remote/NAS-Agenten ohne Vault-Mount
-// nicht crashen. Bei API-Fehler oder leerem Bundle gibt es einen sauberen stderr-Hinweis
-// statt eines Dateisystem-Zugriffs. MCP-Pfad (mcp/devd-mcp.js → fetchSOPText) ist bereits
-// API-only und bleibt die Referenz.
-async function printSOPBundle(commandKey, sprintRef) {
-  try {
-    const qs = new URLSearchParams({ trigger: commandKey })
-    if (sprintRef) qs.set('sprint', String(sprintRef))
-    const bundle = await api('GET', `/api/sops/bundle?${qs.toString()}`)
-    if (bundle && Array.isArray(bundle.sops) && bundle.sops.length > 0) {
-      console.log('\n' + bundle.rendered + '\n')
-      return
-    }
-    console.error(`\n⚠ Keine SOP im DB-Store für '${commandKey}' getriggert — übersprungen.\n`)
-  } catch (err) {
-    console.error(`\n⚠ SOP-Bundle konnte nicht aus dem DB-Store geladen werden (${err.message}) — übersprungen.\n`)
-  }
-}
-
 function headers(extra = {}) {
   return _client.buildHeaders(extra)
 }
@@ -524,7 +503,6 @@ const COMMANDS = {
   async 'sprint:create'(flags) {
     const name = flags._[0]
     if (!name) { console.error('Usage: devd-cli sprint create <name> [--goal <text>]'); process.exit(2) }
-    await printSOPBundle('sprint:create')
     const body = { name, status: 'new' }
     if (flags.goal) body.goal = flags.goal
     parseOrThrow(sprintCreateContract, body, 'sprint create')   // DD-561: Client-Guard vor API
@@ -534,7 +512,6 @@ const COMMANDS = {
   },
   async 'sprint:start'(flags) {
     const id = await resolveSprintId(flags._[0])
-    await printSOPBundle('sprint:start', id)
     const s = await api('PATCH', `/api/sprints/${id}/status`, { to: 'in_progress' })
     console.log(`✓ Sprint ${formatSprintKey(s)} → ${s.status}`)
     await scopedLink(s, 'sprints', s.id)
@@ -947,7 +924,6 @@ const COMMANDS = {
       console.error('Usage: devd-cli issue create <title> [--type bug|feature|improvement|core] [--priority 1-5] [--description <text>]')
       process.exit(2)
     }
-    await printSOPBundle('issue:create')
     const body = {
       title,
       type: flags.type || 'feature',
@@ -1800,110 +1776,6 @@ const COMMANDS = {
     console.log(`\n${rows.length} Aktivitäten`)
   },
 
-  // ---- SOPs (DD-530) — global (kein project_id); token-effizienter Zeilen-Edit ----
-  async 'sop:list'() {
-    const rows = await api('GET', '/api/sops')
-    console.log(pad('KEY', 26), pad('TITLE', 42), 'UPDATED')
-    console.log('─'.repeat(92))
-    for (const s of rows) console.log(pad(s.sop_key, 26), pad(trunc(s.title, 40), 42), s.updated_at || '-')
-    console.log(`\n${rows.length} SOPs`)
-  },
-  async 'sop:show'(flags) {
-    const key = flags._[0]
-    if (!key) { console.error('Usage: devd-cli sop show <key> [--numbered]   # --numbered zeigt Zeilennummern für sop edit'); process.exit(2) }
-    const s = await api('GET', `/api/sops/${encodeURIComponent(key)}`)
-    console.log(`# ${s.title}  (${s.sop_key})\n`)
-    if (flags.numbered) {
-      String(s.content || '').split('\n').forEach((l, i) => console.log(`${String(i + 1).padStart(4)}  ${l}`))
-    } else {
-      process.stdout.write((s.content || '') + '\n')
-    }
-  },
-  async 'sop:edit'(flags) {
-    const key = flags._[0]
-    const op = flags.op
-    const line = flags.line
-    if (!key || !op || line === undefined || line === true) {
-      console.error('Usage: devd-cli sop edit <key> --op patch|insert_after|insert_before|delete --line <n> [--content <text>] [--expect <line-content>]')
-      process.exit(2)
-    }
-    // Op-Schreibweise tolerant: insert-after == insert_after (Backend nutzt Underscore).
-    const body = { op: String(op).replace(/-/g, '_'), line: Number(line) }
-    if (typeof flags.content === 'string') body.content = flags.content
-    if (typeof flags.expect === 'string') body.expect = flags.expect
-    const s = await api('PATCH', `/api/sops/${encodeURIComponent(key)}/line`, body)
-    console.log(`✓ SOP '${s.sop_key}' Line-Op '${op}' @${line}`)
-  },
-  async 'sop:set'(flags) {
-    const key = flags._[0]
-    if (!key || (typeof flags.content !== 'string' && typeof flags.file !== 'string')) {
-      console.error('Usage: devd-cli sop set <key> --content "<text>" | --file <path>   # Whole-Rewrite (last-write-wins)')
-      process.exit(2)
-    }
-    const content = typeof flags.file === 'string' ? readFileSync(flags.file, 'utf8') : flags.content
-    const s = await api('PUT', `/api/sops/${encodeURIComponent(key)}`, { content })
-    console.log(`✓ SOP '${s.sop_key}' überschrieben (${String(content).length} Zeichen)`)
-  },
-  async 'sop:create'(flags) {
-    const key = flags._[0]
-    if (!key || typeof flags.title !== 'string' || (typeof flags.content !== 'string' && typeof flags.file !== 'string')) {
-      console.error('Usage: devd-cli sop create <key> --title "<text>" --content "<text>" | --file <path> [--force]')
-      console.error('  Legt eine neue SOP an. Ohne --force Fehler, wenn der Key bereits existiert (dann sop set/edit nutzen).')
-      process.exit(2)
-    }
-    // Existenz-Guard: POST ist serverseitig ein Upsert; create darf nicht versehentlich überschreiben.
-    if (!flags.force) {
-      let exists = false
-      try { await api('GET', `/api/sops/${encodeURIComponent(key)}`); exists = true } catch { exists = false }
-      if (exists) { console.error(`SOP '${key}' existiert bereits — 'sop set'/'sop edit' nutzen oder --force.`); process.exit(2) }
-    }
-    const content = typeof flags.file === 'string' ? readFileSync(flags.file, 'utf8') : flags.content
-    const s = await api('POST', '/api/sops', { sop_key: key, title: flags.title, content })
-    console.log(`✓ SOP '${s.sop_key}' angelegt (${String(content).length} Zeichen)`)
-  },
-
-  // ---- SOP-Collections (ProjectPages T-be2, D-E) — global; benannte SOP-Gruppen + Export ----
-  async 'sop-collection:list'() {
-    const rows = await api('GET', '/api/sop-collections')
-    console.log(pad('KEY', 26), pad('NAME', 32), 'SOPS')
-    console.log('─'.repeat(70))
-    for (const c of rows) console.log(pad(c.collection_key, 26), pad(trunc(c.name, 30), 32), c.sop_count)
-    console.log(`\n${rows.length} Collections`)
-  },
-  async 'sop-collection:show'(flags) {
-    const key = flags._[0]
-    if (!key) { console.error('Usage: devd-cli sop-collection show <key>'); process.exit(2) }
-    const c = await api('GET', `/api/sop-collections/${encodeURIComponent(key)}`)
-    console.log(`# ${c.name}  (${c.collection_key})`)
-    if (c.description) console.log(c.description)
-    console.log(`\n${c.sops.length} SOPs:`)
-    for (const s of c.sops) console.log(`  - ${pad(s.sop_key, 26)} ${trunc(s.title, 40)}`)
-  },
-  async 'sop-collection:create'(flags) {
-    const key = flags._[0]
-    if (!key || typeof flags.name !== 'string') {
-      console.error('Usage: devd-cli sop-collection create <key> --name "<text>" [--description "<text>"]'); process.exit(2)
-    }
-    const body = { collection_key: key, name: flags.name }
-    if (typeof flags.description === 'string') body.description = flags.description
-    const c = await api('POST', '/api/sop-collections', body)
-    console.log(`✓ Collection '${c.collection_key}' angelegt`)
-  },
-  async 'sop-collection:set'(flags) {
-    const key = flags._[0]
-    if (!key || typeof flags.sops !== 'string') {
-      console.error('Usage: devd-cli sop-collection set <key> --sops "key-a,key-b,key-c"   # Replace, geordnet'); process.exit(2)
-    }
-    const sopKeys = flags.sops.split(',').map(s => s.trim()).filter(Boolean)
-    const r = await api('PUT', `/api/sop-collections/${encodeURIComponent(key)}/items`, { sopKeys })
-    console.log(`✓ Collection '${key}' Mitglieder gesetzt: ${r.sopKeys.join(', ')}`)
-  },
-  async 'sop-collection:export'(flags) {
-    const key = flags._[0]
-    if (!key) { console.error('Usage: devd-cli sop-collection export <key>   # Markdown-Bundle nach stdout'); process.exit(2) }
-    const md = await api('GET', `/api/sop-collections/${encodeURIComponent(key)}/export`)
-    process.stdout.write((typeof md === 'string' ? md : JSON.stringify(md)) + '\n')
-  },
   // DD2-6: Sprint-Export (CSV/MD) nach stdout. Backlog-CSV bleibt entfernt (DD2-123);
   // Sprint-Export behält CSV für Tabellen-/Tracking-Tools.
   async 'sprint:export'(flags) {
@@ -2113,12 +1985,6 @@ Issues (Key wie DD-161 oder globale ID):
   devd-cli issue delete <id|key> [--force]   # ohne --force → 409 (Status cancelled nutzen)
   devd-cli issue move <id|key> --to <project-id|slug>
   devd-cli issue activity <id|key> [--limit <n>]   # Audit-Log des Issues
-
-  devd-cli sop list
-  devd-cli sop show <key> [--numbered]              # --numbered für Zeilennummern (für sop edit)
-  devd-cli sop edit <key> --op patch|insert_after|insert_before|delete --line <n> [--content <text>] [--expect <line>]
-  devd-cli sop set <key> --content "<text>" | --file <path>   # Whole-Rewrite (Fallback)
-  devd-cli sop create <key> --title "<text>" --content "<text>" | --file <path> [--force]   # neue SOP anlegen (Guard gegen Überschreiben)
 
   devd-cli issue dep rm <key|id> --on <key|id>                    # Kante entfernen
 

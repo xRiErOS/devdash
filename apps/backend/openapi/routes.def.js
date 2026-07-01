@@ -8,6 +8,5 @@ import './routes/backlog.routes.js';
 import './routes/sprints.routes.js';
 import './routes/milestones.routes.js';
 import './routes/memory.routes.js';
-import './routes/sops.routes.js';
 import './routes/user-notes.routes.js';
 import './routes/documents.routes.js';
