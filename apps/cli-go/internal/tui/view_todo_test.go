@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -146,6 +147,28 @@ func TestTodoDetailHeading(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("detail rows should include a Details heading: %v", rows)
+	}
+}
+
+// DD2-239: die Liste muss der Selektion nachscrollen — bei mehr Einträgen als
+// Fensterhöhe bleibt der Cursor-Block sichtbar (Regression: vorher wurden immer
+// nur die ersten h Zeilen gerendert, egal wo der Cursor stand).
+func TestTodoListFollowsCursor(t *testing.T) {
+	m := todoTestModel()
+	todos := make([]api.Todo, 30)
+	for i := range todos {
+		todos[i] = api.Todo{ID: i + 1, Label: fmt.Sprintf("Item%d", i), Status: "open", Position: i}
+	}
+	m.todoAll = todos
+	m.todolist.setLen(len(todos))
+	m.todolist.cursor = 29 // ans Listenende springen
+
+	out := m.todoLeftPane(30, 10) // 2 Header-Zeilen + 8 Item-Zeilen Fenster
+	if !strings.Contains(out, "Item29") {
+		t.Fatalf("cursor item Item29 must stay visible, got:\n%s", out)
+	}
+	if strings.Contains(out, "Item0\n") || strings.Contains(out, "Item0 ") {
+		t.Fatalf("scrolled-past Item0 should not still be rendered, got:\n%s", out)
 	}
 }
 

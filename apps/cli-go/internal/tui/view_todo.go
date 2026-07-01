@@ -204,16 +204,22 @@ func todoCheckbox(status string) string {
 // Renderer (nicht renderPane), weil ein ToDo dadurch mehrere visuelle Zeilen belegt —
 // der Cursor markiert ALLE Zeilen seines Items (▸ auf der ersten, Accent auf allen).
 // Wrap-Breite explizit (Golden Rule #2: kein Auto-Wrap in der bordered Pane).
+//
+// DD2-239: die Blöcke werden über blockWindow/windowBlocks (view_browse_backlog.go,
+// Single Source für variabel hohe Block-Fensterung) auf die Innenhöhe gefenstert,
+// damit der Cursor-Block bei Navigation im sichtbaren Bereich bleibt.
 func (m model) todoLeftPane(w, h int) string {
 	title := m.todoListTitle()
-	lines := []string{
+	head := []string{
 		theme.Header.Render(truncate(title, w)),
 		theme.Dim.Render(strings.Repeat("─", min(w, lipgloss.Width(title)+2))),
 	}
 	list := m.filteredTodos()
 	if len(list) == 0 {
-		lines = append(lines, theme.Dim.Render("(none — n: new, / search, s status)"))
+		head = append(head, theme.Dim.Render("(none — n: new, / search, s status)"))
+		return borderedPane(head, w, h, theme.Mauve)
 	}
+	blocks := make([][]string, len(list))
 	for i, t := range list {
 		prefix := todoCheckbox(t.Status) + " "
 		indent := strings.Repeat(" ", lipgloss.Width(prefix))
@@ -223,6 +229,7 @@ func (m model) todoLeftPane(w, h int) string {
 		}
 		segs := strings.Split(wrapText(t.Label, wrapW), "\n")
 		sel := i == m.todolist.cursor
+		var block []string
 		for j, seg := range segs {
 			text := prefix + seg
 			if j > 0 {
@@ -235,9 +242,15 @@ func (m model) todoLeftPane(w, h int) string {
 				}
 				text = theme.Accent.Render(ansi.Strip(text)) // ganze Item-Zeile tönen
 			}
-			lines = append(lines, cursor+text)
+			block = append(block, cursor+text)
 		}
+		blocks[i] = block
 	}
+	itemH := h - len(head)
+	if itemH < 1 {
+		itemH = 1
+	}
+	lines := append(head, windowBlocks(blocks, itemH, m.todolist.cursor)...)
 	return borderedPane(lines, w, h, theme.Mauve)
 }
 
