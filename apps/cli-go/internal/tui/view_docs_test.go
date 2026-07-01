@@ -435,6 +435,41 @@ func TestDocClipFormat(t *testing.T) {
 	}
 }
 
+// DD2-255: f zykelt den Status-Filter in der dokumentierten Reihenfolge.
+func TestNextDocStatusCycle(t *testing.T) {
+	seq := []string{"open", "draft", "active", "archived", "all", "open"}
+	cur := "open"
+	for i := 1; i < len(seq); i++ {
+		cur = nextDocStatus(cur)
+		if cur != seq[i] {
+			t.Fatalf("step %d: got %q, want %q", i, cur, seq[i])
+		}
+	}
+}
+
+// DD2-255: f im Docs-Browser zykelt den Filter, setzt den Cursor zurück, zeigt
+// den aktiven Filter im Titel.
+func TestDocsFilterKeyCycles(t *testing.T) {
+	m := docsTestModel()
+	m.docStatusFilter = "open"
+	m.docList = []api.Document{
+		{ID: 1, Title: "Draft", Status: "draft"},
+		{ID: 2, Title: "Archived", Status: "archived"},
+	}
+	m.doclist.cursor = 1
+	nm, _ := m.keyDocs(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("f")})
+	got := nm.(model)
+	if got.docStatusFilter != "draft" {
+		t.Fatalf("f should cycle open→draft, got %q", got.docStatusFilter)
+	}
+	if got.doclist.cursor != 0 {
+		t.Fatalf("cursor should reset after filter change, got %d", got.doclist.cursor)
+	}
+	if !strings.Contains(got.docListTitle(), "[draft]") {
+		t.Fatalf("title should show active filter, got %q", got.docListTitle())
+	}
+}
+
 // DD2-252: Formular-Abschluss feuert doRenameDocument; docRenamedMsg lädt neu bzw. zeigt Fehler.
 func TestDocRenamedMsgReloads(t *testing.T) {
 	m := docsTestModel()

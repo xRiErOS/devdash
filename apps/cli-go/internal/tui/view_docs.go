@@ -19,6 +19,23 @@ import (
 // Delete (d). Einstieg via Command-Palette (nur sinnvoll mit fokussiertem
 // Meilenstein/Sprint).
 
+// nextDocStatus zykelt den Docs-Status-Filter (DD2-255, Taste f): open→draft→
+// active→archived→all→open. Vorbild nextTodoStatus (view_todo.go, DD2-242).
+func nextDocStatus(cur string) string {
+	switch cur {
+	case "open":
+		return "draft"
+	case "draft":
+		return "active"
+	case "active":
+		return "archived"
+	case "archived":
+		return "all"
+	default: // "all", "" (Sonderfall, sollte via openDocs/openAllDocs nicht vorkommen)
+		return "open"
+	}
+}
+
 // docMatchesStatusFilter meldet, ob ein Dokument-Status unter den aktiven Filter
 // fällt (DD2-254/255). "" und "all" zeigen alles; "open" bündelt draft+active
 // (Default — archivierte Dokumente ausgeblendet); sonst exakter Status-Match.
@@ -150,6 +167,15 @@ func (m model) keyDocs(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if keybind.Matches(msg, keys.Yank) {
 		return m.docYank()
 	}
+	// DD2-255: f zykelt den Status-Filter (Vorbild DD2-242 nextTodoStatus). Cursor
+	// zurücksetzen, sonst zeigt er nach dem Filterwechsel auf ein falsches Dokument.
+	if keybind.Matches(msg, keys.Filter) {
+		m.docStatusFilter = nextDocStatus(m.docStatusFilter)
+		m.doclist = listState{}
+		m.doclist.setLen(len(m.filteredDocs()))
+		m.status = ""
+		return m, nil
+	}
 	switch msg.String() {
 	case "esc", "q":
 		m.view = m.topReturn
@@ -229,7 +255,7 @@ func (m model) viewDocs() string {
 	body := lipgloss.JoinHorizontal(lipgloss.Top, left, right)
 
 	head := m.header() + "\n" + theme.Header.Render(m.screenTitle("Documents"))
-	footer := theme.Dim.Render("i/k:↑↓  /:search  enter:edit  n:new  d:delete  a:assign  r:rename  y:yank  esc/q:back")
+	footer := theme.Dim.Render("i/k:↑↓  /:search  enter:edit  n:new  d:delete  a:assign  r:rename  y:yank  f:filter  esc/q:back")
 	if m.docSearching {
 		footer = theme.Key.Render("Search: ") + m.docQuery + "▏"
 	} else if m.status != "" {
@@ -238,15 +264,24 @@ func (m model) viewDocs() string {
 	return head + "\n" + body + "\n" + footer
 }
 
+// docFilterLabel liefert den Anzeigenamen des Status-Filters für Titel/Footer (DD2-255).
+func docFilterLabel(filter string) string {
+	if filter == "" {
+		return "open"
+	}
+	return filter
+}
+
 func (m model) docListTitle() string {
+	filter := " [" + docFilterLabel(m.docStatusFilter) + "]"
 	if m.docAllMode { // DD2-163 Rework: projektweiter Modus
-		return fmt.Sprintf("All documents (%d)", len(m.filteredDocs()))
+		return fmt.Sprintf("All documents (%d)%s", len(m.filteredDocs()), filter)
 	}
 	owner := m.docOwnerName
 	if owner == "" {
 		owner = m.docOwnerType
 	}
-	return fmt.Sprintf("Docs ∙ %s (%d)", truncate(owner, 22), len(m.filteredDocs()))
+	return fmt.Sprintf("Docs ∙ %s (%d)%s", truncate(owner, 22), len(m.filteredDocs()), filter)
 }
 
 // docLeftPane rendert die Master-Liste mit umbrechenden Titeln (DD2-244 Rework,
