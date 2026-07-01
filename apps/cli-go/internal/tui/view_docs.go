@@ -240,7 +240,16 @@ func (m model) docDetailRows(width int) []string {
 	if cur == nil {
 		return []string{theme.Dim.Render("(select a document →)")}
 	}
-	rows := []string{theme.Header.Render(cur.Title)}
+	// DD2-244: langer Titel wird mehrzeilig gewrappt statt (via renderPane) auf
+	// eine Zeile abgeschnitten — im Detail soll der volle Titel lesbar sein.
+	titleW := width
+	if titleW < 8 {
+		titleW = 8
+	}
+	var rows []string
+	for _, line := range strings.Split(wrapText(cur.Title, titleW), "\n") {
+		rows = append(rows, theme.Header.Render(line))
+	}
 	// DD2-167 Rework: Metadaten-Header (created/updated/status).
 	if meta := entityMetaLine(cur.CreatedAt, cur.UpdatedAt, cur.Status); meta != "" {
 		rows = append(rows, meta)

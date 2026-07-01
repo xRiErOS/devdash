@@ -197,6 +197,23 @@ func TestTreeInlineDocs(t *testing.T) {
 	}
 }
 
+// DD2-244: ein langer Dokumenttitel wird im Detail mehrzeilig gewrappt statt
+// (via renderPane) auf eine Zeile abgeschnitten.
+func TestDocsDetailTitleWraps(t *testing.T) {
+	m := docsTestModel()
+	long := "This is a very long document title that should wrap onto multiple lines"
+	m.docList[0].Title = long
+	m.doclist.cursor = 0
+	rows := m.docDetailRows(26)
+	joined := strings.Join(rows, "\n")
+	if !strings.Contains(joined, "multiple") || !strings.Contains(joined, "wrap") {
+		t.Fatalf("long title should wrap (full text visible), got:\n%s", joined)
+	}
+	if rows[0] == long {
+		t.Fatalf("title should be split across rows, not one long row: %v", rows)
+	}
+}
+
 func TestGoldenDocs(t *testing.T) {
 	assertGolden(t, "docs", docsTestModel().View())
 }
