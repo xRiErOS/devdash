@@ -47,7 +47,7 @@ type accordionSection struct {
 }
 
 // subtaskGlyph rendert den Status-Marker einer Unteraufgabe (DD2-197): done ✓ grün,
-// open ○ muted — analog der Verdikt-/Result-Glyphen-Sprache.
+// open ○ muted — analog der Verdikt-Glyphen-Sprache.
 func subtaskGlyph(status string) string {
 	if status == "done" {
 		return lipgloss.NewStyle().Foreground(theme.Green).Render("✓")

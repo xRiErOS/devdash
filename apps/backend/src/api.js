@@ -714,7 +714,7 @@ function sendList(req, res, rows, compactKeys) {
 }
 
 // Identitäts-/Status-Felder für die Compact-Listen. Bewusst OHNE die SSTD-großen
-// Prosa-Felder (goal/background/context_notes/result/description …),
+// Prosa-Felder (goal/background/context_notes …),
 // die den 653K/75K-Output rissen (DD-620). key-Formatter (CLI) brauchen prefix+number.
 const COMPACT_BACKLOG_KEYS = [
   'id', 'key', 'project_prefix', 'project_number', 'title', 'status', 'type', 'priority',
