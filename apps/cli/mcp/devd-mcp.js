@@ -1801,7 +1801,7 @@ server.tool(
     pinned: z.boolean().optional().describe('Pin to top of lists/snapshots'),
     anchor: z.string().optional().describe('Stable addressable code (e.g. "D01") for section-patch (MEM-11)'),
     stability: z.enum(['stable', 'volatile']).optional().describe('stable=project rules (cache-warm prefix), volatile=task context'),
-    source_type: z.string().optional().describe('e.g. sstd | review | commit | manual'),
+    source_type: z.string().optional().describe('e.g. review | commit | manual'),
     source_ref: z.string().optional().describe('Reference to origin (e.g. "MEM §4 D05", issue key, commit sha)'),
   },
   async ({ project_id, ...body }) => {
@@ -1885,7 +1885,7 @@ const MEMORY_EDIT_FIELDS = {
   pinned: z.boolean().optional().describe('Pin to top of lists/snapshots'),
   anchor: z.string().optional().describe('Stable addressable code (e.g. "D01")'),
   stability: z.enum(['stable', 'volatile']).optional().describe('stable=project rules, volatile=task context'),
-  source_type: z.string().optional().describe('e.g. sstd | review | commit | manual'),
+  source_type: z.string().optional().describe('e.g. review | commit | manual'),
   source_ref: z.string().optional().describe('Reference to origin'),
 }
 

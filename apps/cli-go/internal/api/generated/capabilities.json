@@ -2264,7 +2264,7 @@
             ]
           },
           "source_type": {
-            "description": "e.g. sstd | review | commit | manual",
+            "description": "e.g. review | commit | manual",
             "type": "string"
           },
           "source_ref": {
@@ -2440,7 +2440,7 @@
             ]
           },
           "source_type": {
-            "description": "e.g. sstd | review | commit | manual",
+            "description": "e.g. review | commit | manual",
             "type": "string"
           },
           "source_ref": {
@@ -2619,7 +2619,7 @@
             ]
           },
           "source_type": {
-            "description": "e.g. sstd | review | commit | manual",
+            "description": "e.g. review | commit | manual",
             "type": "string"
           },
           "source_ref": {
@@ -2716,7 +2716,7 @@
             ]
           },
           "source_type": {
-            "description": "e.g. sstd | review | commit | manual",
+            "description": "e.g. review | commit | manual",
             "type": "string"
           },
           "source_ref": {

@@ -733,7 +733,7 @@ type ProjectMemoryAnchorPatchArgs struct {
 	Pinned *bool `json:"pinned,omitempty"`
 	// stable=project rules, volatile=task context
 	Stability *ProjectMemoryAnchorPatchArgsStability `json:"stability,omitempty"`
-	// e.g. sstd | review | commit | manual
+	// e.g. review | commit | manual
 	SourceType *string `json:"source_type,omitempty"`
 	// Reference to origin
 	SourceRef *string `json:"source_ref,omitempty"`
@@ -819,7 +819,7 @@ type ProjectMemoryLogArgs struct {
 	Anchor *string `json:"anchor,omitempty"`
 	// stable=project rules (cache-warm prefix), volatile=task context
 	Stability *ProjectMemoryLogArgsStability `json:"stability,omitempty"`
-	// e.g. sstd | review | commit | manual
+	// e.g. review | commit | manual
 	SourceType *string `json:"source_type,omitempty"`
 	// Reference to origin (e.g. "MEM §4 D05", issue key, commit sha)
 	SourceRef *string `json:"source_ref,omitempty"`
@@ -898,7 +898,7 @@ type ProjectMemorySupersedeArgs struct {
 	Anchor *string `json:"anchor,omitempty"`
 	// stable=project rules, volatile=task context
 	Stability *ProjectMemorySupersedeArgsStability `json:"stability,omitempty"`
-	// e.g. sstd | review | commit | manual
+	// e.g. review | commit | manual
 	SourceType *string `json:"source_type,omitempty"`
 	// Reference to origin
 	SourceRef *string `json:"source_ref,omitempty"`
@@ -945,7 +945,7 @@ type ProjectMemoryUpdateArgs struct {
 	Anchor *string `json:"anchor,omitempty"`
 	// stable=project rules, volatile=task context
 	Stability *ProjectMemoryUpdateArgsStability `json:"stability,omitempty"`
-	// e.g. sstd | review | commit | manual
+	// e.g. review | commit | manual
 	SourceType *string `json:"source_type,omitempty"`
 	// Reference to origin
 	SourceRef *string `json:"source_ref,omitempty"`
