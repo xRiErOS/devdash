@@ -2394,6 +2394,10 @@ app.patch('/api/backlog/bulk', (req, res) => {
           goal: item.goal, background: item.background,
           assigned_sprint: item.assigned_sprint,
           cancellationNotes: newStatus === 'cancelled' ? (payload.notes || 'bulk') : null,
+          // T04b/G1 (D16): user_stories auch im Bulk-Pfad plumben, damit der
+          // passed-Gate hier real erzwungen ist (nicht nur implizit via fehlendem
+          // hasPassedReview). Grandfathering Q06: 0 Stories = vacuously erfüllt.
+          userStories: listUserStories(db, id),
         }
         const { allowed, reason } = canTransition(item.status, newStatus, ctx)
         if (!allowed) { failed.push({ id, reason }); continue }
