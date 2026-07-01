@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -211,6 +212,39 @@ func TestDocsDetailTitleWraps(t *testing.T) {
 	}
 	if rows[0] == long {
 		t.Fatalf("title should be split across rows, not one long row: %v", rows)
+	}
+}
+
+// DD2-244 (Reject-Fix): der Titel muss auch in der MASTER-LISTE (linke Ranleiste)
+// mehrzeilig umbrechen, nicht nur im Detail — PO-Reject: "In der Ranleiste (links)
+// brechen die Dokumententitel weiterhin nicht um".
+func TestDocsListTitleWraps(t *testing.T) {
+	m := docsTestModel()
+	long := "This is a very long document title that should wrap onto multiple lines"
+	m.docList[0].Title = long
+	m.doclist.cursor = 0
+	out := m.docLeftPane(26, 18)
+	if !strings.Contains(out, "multiple") || !strings.Contains(out, "wrap") {
+		t.Fatalf("long title should wrap in the list pane (full text visible), got:\n%s", out)
+	}
+}
+
+// DD2-244: die Liste muss der Selektion nachscrollen (gleiche Fensterung wie ToDos,
+// DD2-239) — sonst würde das Wrappen den Cursor schneller aus dem Fenster laufen lassen.
+func TestDocsListFollowsCursor(t *testing.T) {
+	m := docsTestModel()
+	mid := 45
+	docs := make([]api.Document, 20)
+	for i := range docs {
+		docs[i] = api.Document{ID: i + 1, MilestoneID: &mid, Title: fmt.Sprintf("Doc%d", i)}
+	}
+	m.docList = docs
+	m.doclist.setLen(len(docs))
+	m.doclist.cursor = 19
+
+	out := m.docLeftPane(30, 10)
+	if !strings.Contains(out, "Doc19") {
+		t.Fatalf("cursor item Doc19 must stay visible, got:\n%s", out)
 	}
 }
 

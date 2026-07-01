@@ -195,9 +195,8 @@ func (m model) viewDocs() string {
 	h := m.bodyHeight()
 	leftW, rightW := m.masterDetailWidths(w)
 
-	listP := pane{title: m.docListTitle(), rows: m.docRows(), cursor: m.doclist.cursor, isList: true}
+	left := m.docLeftPane(leftW, h)
 	detP := pane{title: "Detail", rows: m.docDetailRows(rightW - 2), isList: false}
-	left := renderPane(listP, leftW, h, true)
 	right := renderPane(detP, rightW, h, false)
 	body := lipgloss.JoinHorizontal(lipgloss.Top, left, right)
 
@@ -222,23 +221,70 @@ func (m model) docListTitle() string {
 	return fmt.Sprintf("Docs ∙ %s (%d)", truncate(owner, 22), len(m.filteredDocs()))
 }
 
-func (m model) docRows() []string {
+// docLeftPane rendert die Master-Liste mit umbrechenden Titeln (DD2-244 Rework,
+// Reject-Fix — PO: Titel brechen in der Ranleiste weiterhin nicht um). Eigener
+// Renderer (nicht renderPane), analog todoLeftPane (DD2-171/DD2-239): ein Dokument
+// belegt dadurch mehrere visuelle Zeilen, blockWindow/windowBlocks fenstern die
+// Blöcke auf die Innenhöhe, der Cursor-Block bleibt sichtbar.
+func (m model) docLeftPane(w, h int) string {
+	title := m.docListTitle()
+	head := []string{
+		theme.Header.Render(truncate(title, w)),
+		theme.Dim.Render(strings.Repeat("─", min(w, lipgloss.Width(title)+2))),
+	}
 	list := m.filteredDocs()
 	if len(list) == 0 {
+		msg := "(none — n: new, / search)"
 		if m.docAllMode {
-			return []string{theme.Dim.Render("(no documents — / search)")}
+			msg = "(no documents — / search)"
 		}
-		return []string{theme.Dim.Render("(none — n: new, / search)")}
+		head = append(head, theme.Dim.Render(msg))
+		return borderedPane(head, w, h, theme.Mauve)
 	}
-	rows := make([]string, len(list))
+	blocks := make([][]string, len(list))
 	for i, d := range list {
+		ownerPrefix := ""
 		if m.docAllMode && d.OwnerName != "" { // Owner-Name voranstellen (entitätsübergreifend)
-			rows[i] = theme.Dim.Render("["+truncate(d.OwnerName, 14)+"] ") + d.Title
-		} else {
-			rows[i] = d.Title
+			ownerPrefix = "[" + truncate(d.OwnerName, 14) + "] "
 		}
+		indent := strings.Repeat(" ", lipgloss.Width(ownerPrefix))
+		wrapW := w - 2 - lipgloss.Width(ownerPrefix) // -2 = Cursor/Indent-Spalte
+		if wrapW < 8 {
+			wrapW = 8
+		}
+		segs := strings.Split(wrapText(d.Title, wrapW), "\n")
+		sel := i == m.doclist.cursor
+		var block []string
+		for j, seg := range segs {
+			plain := seg
+			if j == 0 {
+				plain = ownerPrefix + seg
+			} else {
+				plain = indent + seg
+			}
+			cursor := "  "
+			var text string
+			switch {
+			case sel:
+				if j == 0 {
+					cursor = theme.Accent.Render("▸ ")
+				}
+				text = theme.Accent.Render(plain) // ganze Item-Zeile tönen
+			case j == 0 && ownerPrefix != "":
+				text = theme.Dim.Render(ownerPrefix) + seg
+			default:
+				text = plain
+			}
+			block = append(block, cursor+text)
+		}
+		blocks[i] = block
 	}
-	return rows
+	itemH := h - len(head)
+	if itemH < 1 {
+		itemH = 1
+	}
+	lines := append(head, windowBlocks(blocks, itemH, m.doclist.cursor)...)
+	return borderedPane(lines, w, h, theme.Mauve)
 }
 
 func (m model) docDetailRows(width int) []string {
