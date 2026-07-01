@@ -19,17 +19,32 @@ import (
 // Delete (d). Einstieg via Command-Palette (nur sinnvoll mit fokussiertem
 // Meilenstein/Sprint).
 
-// filteredDocs wendet den clientseitigen Titel-Filter auf docList an.
+// docMatchesStatusFilter meldet, ob ein Dokument-Status unter den aktiven Filter
+// fällt (DD2-254/255). "" und "all" zeigen alles; "open" bündelt draft+active
+// (Default — archivierte Dokumente ausgeblendet); sonst exakter Status-Match.
+func docMatchesStatusFilter(status, filter string) bool {
+	switch filter {
+	case "", "all":
+		return true
+	case "open":
+		return status == "draft" || status == "active"
+	default:
+		return status == filter
+	}
+}
+
+// filteredDocs wendet Status-Filter (DD2-254) und Titel-Filter auf docList an.
 func (m *model) filteredDocs() []api.Document {
 	q := strings.ToLower(strings.TrimSpace(m.docQuery))
-	if q == "" {
-		return m.docList
-	}
 	out := make([]api.Document, 0, len(m.docList))
 	for _, d := range m.docList {
-		if strings.Contains(strings.ToLower(d.Title), q) {
-			out = append(out, d)
+		if !docMatchesStatusFilter(d.Status, m.docStatusFilter) {
+			continue
 		}
+		if q != "" && !strings.Contains(strings.ToLower(d.Title), q) {
+			continue
+		}
+		out = append(out, d)
 	}
 	return out
 }
@@ -73,6 +88,7 @@ func (m model) openDocs(ownerType string, ownerID int, ownerName string) (tea.Mo
 	m.docQuery = ""
 	m.docEditID = 0
 	m.docAllMode = false
+	m.docStatusFilter = "open" // DD2-254: Default blendet archivierte Dokumente aus
 	m.status = ""
 	return m, loadDocs(m.client, ownerType, ownerID)
 }
@@ -91,6 +107,7 @@ func (m model) openAllDocs() (tea.Model, tea.Cmd) {
 	m.docQuery = ""
 	m.docEditID = 0
 	m.docAllMode = true
+	m.docStatusFilter = "open" // DD2-254: Default blendet archivierte Dokumente aus
 	m.status = ""
 	return m, loadAllDocs(m.client)
 }

@@ -241,6 +241,9 @@ type model struct {
 	docQuery     string
 	docEditID    int
 	docAllMode   bool // DD2-163 Rework: globaler All-Docs-Browser (entitätsübergreifend)
+	// docStatusFilter (DD2-254/255): "open" (Default, draft+active) | "draft" |
+	// "active" | "archived" | "all" (""=all). Rein clientseitig auf m.docList.
+	docStatusFilter string
 
 	// Doc→Meilenstein/Sprint-Zuweisung (DD2-243): a öffnet einen Single-Select-Picker
 	// über offene Meilensteine + deren nicht-finale Sprints (Muster T03/DD2-136).

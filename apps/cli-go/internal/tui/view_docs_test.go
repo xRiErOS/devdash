@@ -341,6 +341,61 @@ func TestGoldenDocs(t *testing.T) {
 	assertGolden(t, "docs", docsTestModel().View())
 }
 
+// DD2-254: Default-Filter "open" (draft+active) blendet archivierte Dokumente aus.
+func TestDocsDefaultFilterHidesArchived(t *testing.T) {
+	mid := 45
+	m := model{client: nil}
+	nm, _ := m.openDocs("milestone", mid, "TUI M3")
+	got := nm.(model)
+	if got.docStatusFilter != "open" {
+		t.Fatalf("openDocs should default docStatusFilter to 'open', got %q", got.docStatusFilter)
+	}
+	got.docList = []api.Document{
+		{ID: 1, Title: "Draft doc", Status: "draft"},
+		{ID: 2, Title: "Active doc", Status: "active"},
+		{ID: 3, Title: "Archived doc", Status: "archived"},
+	}
+	list := got.filteredDocs()
+	if len(list) != 2 {
+		t.Fatalf("default filter should hide archived docs, got %d: %+v", len(list), list)
+	}
+	for _, d := range list {
+		if d.Status == "archived" {
+			t.Fatalf("archived doc leaked through default filter: %+v", d)
+		}
+	}
+}
+
+// DD2-254: openAllDocs setzt denselben Default (All-Docs-Modus).
+func TestDocsAllModeDefaultFilterHidesArchived(t *testing.T) {
+	m := model{client: nil}
+	nm, _ := m.openAllDocs()
+	if nm.(model).docStatusFilter != "open" {
+		t.Fatalf("openAllDocs should default docStatusFilter to 'open', got %q", nm.(model).docStatusFilter)
+	}
+}
+
+// DD2-254: docMatchesStatusFilter deckt alle Filterwerte ab.
+func TestDocMatchesStatusFilter(t *testing.T) {
+	cases := []struct {
+		status, filter string
+		want           bool
+	}{
+		{"draft", "open", true},
+		{"active", "open", true},
+		{"archived", "open", false},
+		{"archived", "all", true},
+		{"archived", "", true},
+		{"draft", "draft", true},
+		{"active", "draft", false},
+	}
+	for _, c := range cases {
+		if got := docMatchesStatusFilter(c.status, c.filter); got != c.want {
+			t.Errorf("docMatchesStatusFilter(%q, %q) = %v, want %v", c.status, c.filter, got, c.want)
+		}
+	}
+}
+
 // DD2-252: r im Docs-Browser öffnet die Rename-Form, vorbelegt mit dem file_path.
 func TestDocsOpenRename(t *testing.T) {
 	m := docsTestModel()
