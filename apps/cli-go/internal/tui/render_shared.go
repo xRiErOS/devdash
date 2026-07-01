@@ -72,7 +72,7 @@ func tagsInline(tags []api.Tag) string {
 }
 
 // issueFields rendert die vollen, untruncated Issue-Felder (Goal, Background,
-// …, Result, Review) plus User-Stories+QA als scrollbaren Detail-Block. Single
+// …, Review) plus User-Stories+QA als scrollbaren Detail-Block. Single
 // Source für viewDetailIssue (Tree) UND das Review-Cockpit (DD2-67) — eine
 // Kopie, kann nicht driften (Fix-in-Root). chrome() bricht den Block um.
 func issueFields(it *api.Issue) string {

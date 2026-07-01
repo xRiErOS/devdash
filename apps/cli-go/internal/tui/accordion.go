@@ -82,7 +82,7 @@ func userStoryFields(stories []api.UserStory) []detailField {
 
 // issueSections baut die Detail-Sektionen eines Issues in fester Reihenfolge
 // (Vorschlag DD2-50): 1=Goal/Beschreibung|PO-Notes, 2=Background/Context,
-// 3=Relevant Files, 4=User-Stories, 5=Result, 6=Review. bodyW = Innenbreite der
+// 3=Relevant Files, 4=User-Stories, 5=Review. bodyW = Innenbreite der
 // Body-Box (Border zieht außen 2 ab — s. renderAccordion). Alle Bodies werden hier
 // explizit auf bodyW umgebrochen (kein Auto-Wrap in der Box, #2).
 //

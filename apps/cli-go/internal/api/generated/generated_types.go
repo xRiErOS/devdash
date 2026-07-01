@@ -377,38 +377,6 @@ type IssueMoveArgs struct {
 	TargetProject any `json:"target_project"`
 }
 
-type IssueSetResultArgsOutcomeType string
-
-const (
-	IssueSetResultArgsOutcomeTypeFeat     IssueSetResultArgsOutcomeType = "feat"
-	IssueSetResultArgsOutcomeTypeFix      IssueSetResultArgsOutcomeType = "fix"
-	IssueSetResultArgsOutcomeTypeRefactor IssueSetResultArgsOutcomeType = "refactor"
-	IssueSetResultArgsOutcomeTypeChore    IssueSetResultArgsOutcomeType = "chore"
-	IssueSetResultArgsOutcomeTypeDocs     IssueSetResultArgsOutcomeType = "docs"
-)
-
-// IssueSetResultArgs: Argumente für MCP-Tool devd_issue_set_result.
-type IssueSetResultArgs struct {
-	// Project id or slug for X-Project-Id header (e.g. "7", "devd"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.
-	ProjectId any `json:"project_id,omitempty"`
-	// Issue key (e.g. "DD-42") or numeric backlog id
-	IdOrKey string `json:"id_or_key"`
-	// Outcome type: feat | fix | refactor | chore | docs (default: feat)
-	OutcomeType *IssueSetResultArgsOutcomeType `json:"outcome_type,omitempty"`
-	// Short summary of what was achieved (required)
-	OutcomeSummary string `json:"outcome_summary"`
-	// List of changed file paths
-	FilesChanged []string `json:"files_changed,omitempty"`
-	// List of commit SHAs or short descriptions (required — D02)
-	Commits []string `json:"commits"`
-	// Whether this introduces breaking changes (default false)
-	BreakingChanges *bool `json:"breaking_changes,omitempty"`
-	// Lessons learned during implementation
-	LessonsLearned []string `json:"lessons_learned,omitempty"`
-	// Markdown body: approach, trade-offs, code snippets, links
-	Vorgehen *string `json:"vorgehen,omitempty"`
-}
-
 // IssueShowArgs: Argumente für MCP-Tool devd_issue_show.
 type IssueShowArgs struct {
 	// Project id or slug for X-Project-Id header (e.g. "7", "devd"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.
@@ -472,8 +440,6 @@ type IssueUpdateArgs struct {
 	Priority      *int                 `json:"priority,omitempty"`
 	Type          *IssueUpdateArgsType `json:"type,omitempty"`
 	PoNotes       *string              `json:"po_notes,omitempty"`
-	// Sprint outcome documentation. Required on completed/passed issues before sprint complete. Markdown text — summarise what was implemented, decisions made, and lessons learned.
-	Result *string `json:"result,omitempty"`
 }
 
 // MemoryTagCreateArgs: Argumente für MCP-Tool devd_memory_tag_create.

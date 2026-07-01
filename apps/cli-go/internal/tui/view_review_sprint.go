@@ -301,8 +301,8 @@ func (m model) reviewSummary() string {
 }
 
 // reviewStandClip rendert den aktuellen Review-Stand des Sprints als Markdown
-// (DD2-121, US-53): Kopf + Verdikt-Zähler + Tabelle (Key/Title/Status/Verdict/
-// Result-vorhanden). Funktioniert auch vor Sprint-Abschluss — PO teilt den
+// (DD2-121, US-53): Kopf + Verdikt-Zähler + Tabelle (Key/Title/Status/Verdict).
+// Funktioniert auch vor Sprint-Abschluss — PO teilt den
 // Zwischenstand, ohne den Sprint zu schließen. Vorlage: sprintClip()-Stil.
 //
 // DD2-157: dünner Wrapper über reviewStandMarkdown. Denselben Markdown yankt der
@@ -513,7 +513,7 @@ func (m model) reviewHandoverClip() string {
 
 // reviewHints zeigt nur die im aktuellen Zustand gültigen Aktionen.
 func (m model) reviewHints() string {
-	hints := []string{"i/k:↑↓", "1-n:Section", "ctrl+d/u:scroll", "enter:accept", "s:status", "r:result", "a:pass", "x:reject", "y:copy→clipboard", "H:handover"}
+	hints := []string{"i/k:↑↓", "1-n:Section", "ctrl+d/u:scroll", "enter:accept", "s:status", "a:pass", "x:reject", "y:copy→clipboard", "H:handover"}
 	if it := m.reviewItem(); it != nil {
 		if it.Status == "to_review" {
 			hints = append(hints, "o:reopen")
@@ -675,7 +675,7 @@ func (m model) reviewMasterPane(w, h int) string {
 }
 
 // reviewDetailPane rendert das Detail des selektierten Issues als Tree-Accordion
-// (DD2-67 Rework #3): Header mit Issue-Key + Result-/User-Story-Dot (#4) + Meta-
+// (DD2-67 Rework #3): Header mit Issue-Key + User-Story-Dot (#4) + Meta-
 // Zeile, darunter die ziffern-toggelbaren Sektionen (issueSections/renderAccordion),
 // via m.scroll fensterbar.
 func (m model) reviewDetailPane(it *api.Issue, w, h int) string {
