@@ -9,6 +9,13 @@
 // Migriert: planning→new, active→in_progress, review→to_review, done→completed,
 // closed→entfernt (war Sprint-Dup zu completed).
 
+// T04b (Welle 4, D15/D16): Acceptance-Gate der Issues liegt auf den User Stories.
+// us_verdict-Vokabular (packages/api-types/userStory.contracts.js USER_STORY_VERDICTS)
+// = open|accepted|rejected. Auf Story-Ebene bedeutet 'accepted' „abgenommen" — das
+// Story-Äquivalent zu einem bestandenen (passed) Issue-Review. Hier bewusst als
+// lokale Konstante gehalten, damit lifecycle.js dependency-frei (pure) bleibt.
+const USER_STORY_PASSED_VERDICT = 'accepted'
+
 export const STATUS_COLORS = {
   new: 'yellow',
   refined: 'blue',
@@ -126,6 +133,15 @@ export function canTransition(from, to, ctx = {}) {
     to_review: {
       passed: () => {
         if (!ctx.hasPassedReview) return 'Review muss bestanden sein'
+        // T04b/G1 (Welle 4, D15): Acceptance-Gate liegt auf den User Stories
+        // (löst das entfernte `result`-Relikt aus T04a ab). us_verdict-Vokabular =
+        // open|accepted|rejected (USER_STORY_VERDICTS); 'accepted' = abgenommen.
+        // Grandfathering (Q06): Issues OHNE User Stories sind vacuously erfüllt —
+        // nur vorhandene, nicht-accepted Stories blocken den `passed`-Übergang.
+        const stories = ctx.userStories || []
+        if (stories.some((s) => s.us_verdict !== USER_STORY_PASSED_VERDICT)) {
+          return 'Alle User Stories müssen abgenommen (accepted) sein'
+        }
         return null
       },
       rejected: () => {
@@ -172,6 +188,29 @@ export function canTransition(from, to, ctx = {}) {
     return { allowed: false, reason }
   }
 
+  return { allowed: true, reason: '' }
+}
+
+/**
+ * canAssignSprint(ctx) → { allowed: boolean, reason: string }
+ *
+ * T04b/G2 (Welle 4, D16): Ein Issue darf einem Sprint nur zugewiesen werden, wenn
+ * es mindestens EINE User Story besitzt. Der Gate sitzt im Assign-Pfad (Endpoint
+ * PATCH /api/backlog/:id/sprint + Bulk set_sprint), nicht als globale Invariante
+ * über den Bestand.
+ *
+ * Grandfathering (Q06): nur die NEUE Zuweisung wird geprüft — bereits einem Sprint
+ * zugewiesene Issues werden NICHT rückwirkend invalidiert (kein Auto-Backfill,
+ * kein Reconcile). Unassign (sprint_id == null) läuft NICHT durch diesen Guard.
+ *
+ * ctx shape:
+ *   userStoryCount  number  — COUNT(*) der user_stories des Ziel-Issues (Default 0)
+ */
+export function canAssignSprint(ctx = {}) {
+  const count = ctx.userStoryCount ?? 0
+  if (count < 1) {
+    return { allowed: false, reason: 'Issue braucht mindestens eine User Story vor der Sprint-Zuweisung' }
+  }
   return { allowed: true, reason: '' }
 }
 

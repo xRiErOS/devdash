@@ -12,7 +12,7 @@ import { existsSync, mkdirSync, unlinkSync, renameSync, copyFileSync } from 'fs'
 import { body, validationResult } from 'express-validator'
 import rateLimit from 'express-rate-limit'
 import { randomUUID } from 'crypto'
-import { canTransition, canSprintTransition } from './lib/lifecycle.js'
+import { canTransition, canSprintTransition, canAssignSprint } from './lib/lifecycle.js'
 import { TAG_COLORS as TAG_COLORS_CONTRACT } from '@devd/api-types/tag.contracts.js'
 import {
   closeMilestoneWithIssues,
@@ -2411,6 +2411,10 @@ app.patch('/api/backlog/bulk', (req, res) => {
         if (sprintId != null) {
           const sprint = db.prepare('SELECT id FROM sprints WHERE id = ?').get(sprintId)
           if (!sprint) { failed.push({ id, reason: 'sprint not found' }); continue }
+          // T04b/G2 (D16): neue Sprint-Zuweisung nur bei >=1 User Story (Q06).
+          const usCount = db.prepare('SELECT COUNT(*) AS n FROM user_stories WHERE backlog_id = ?').get(id).n
+          const gate = canAssignSprint({ userStoryCount: usCount })
+          if (!gate.allowed) { failed.push({ id, reason: gate.reason }); continue }
           db.prepare('UPDATE backlog SET assigned_sprint = ? WHERE id = ?').run(sprintId, id)
           if (item.status === 'refined') db.prepare("UPDATE backlog SET status='planned' WHERE id=?").run(id)
         } else {
@@ -3142,6 +3146,9 @@ app.patch('/api/backlog/:id/status', (req, res) => {
     sprintWipLimit,
     sprintInProgressCount,
     isSystemTransition: false,
+    // T04b/G1 (D15): `passed` verlangt, dass alle User Stories abgenommen sind.
+    // Grandfathering (Q06): Issues ohne User Stories bleiben vacuously erfüllt.
+    userStories: listUserStories(db, req.params.id),
   }
 
   const { allowed, reason } = canTransition(item.status, newStatus, ctx)
@@ -3185,6 +3192,14 @@ app.patch('/api/backlog/:id/sprint', (req, res) => {
   }
 
   const { sprint_id } = req.body
+
+  // T04b/G2 (D16): Neue Sprint-Zuweisung nur bei >=1 User Story (Grandfathering Q06:
+  // greift nur auf NEUE Zuweisung, Unassign sprint_id==null bleibt frei).
+  if (sprint_id != null) {
+    const usCount = db.prepare('SELECT COUNT(*) AS n FROM user_stories WHERE backlog_id = ?').get(req.params.id).n
+    const gate = canAssignSprint({ userStoryCount: usCount })
+    if (!gate.allowed) return res.status(422).json({ error: gate.reason })
+  }
 
   const assignSprint = db.transaction(() => {
     if (sprint_id != null) {
