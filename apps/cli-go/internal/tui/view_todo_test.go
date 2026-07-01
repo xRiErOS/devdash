@@ -172,6 +172,17 @@ func TestTodoListFollowsCursor(t *testing.T) {
 	}
 }
 
+// DD2-240: die ToDo-ID muss im Meta-Strip des Detail-Headers sichtbar sein.
+func TestTodoDetailShowsID(t *testing.T) {
+	m := todoTestModel()
+	m.todolist.cursor = 0 // Zebra task, ID 1
+	rows := m.todoDetailRows(40)
+	joined := strings.Join(rows, "\n")
+	if !strings.Contains(joined, "#1") {
+		t.Fatalf("detail must show ToDo ID, got:\n%s", joined)
+	}
+}
+
 func TestGoldenToDos(t *testing.T) {
 	assertGolden(t, "todos", todoTestModel().View())
 }

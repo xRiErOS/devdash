@@ -4,7 +4,7 @@ dd2 — ToDos
 │ToDos ∙ all (3) ∙ pos         ││Detail                                                  │
 │───────────────────────       ││────────                                                │
 │▸ [ ] Zebra task              ││Zebra task                                              │
-│  [x] Alpha task              ││status: open                                            │
+│  [x] Alpha task              ││ToDo #1 · status: open                                  │
 │  [-] Mid task                ││                                                        │
 │                              ││Details                                                 │
 │                              ││                                                        │

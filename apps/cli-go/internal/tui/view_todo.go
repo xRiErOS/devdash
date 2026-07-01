@@ -261,7 +261,7 @@ func (m model) todoDetailRows(width int) []string {
 	}
 	rows := []string{
 		theme.Header.Render(cur.Label),
-		theme.Dim.Render("status: " + cur.Status),
+		theme.Dim.Render(fmt.Sprintf("ToDo #%d · status: %s", cur.ID, cur.Status)), // DD2-240: ID eindeutig referenzierbar
 		"",
 		theme.Dim.Render("Details"), // DD2-171 Rework: explizite Überschrift für den Detail-Block
 	}
