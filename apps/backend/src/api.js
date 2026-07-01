@@ -43,17 +43,6 @@ import {
   removeTodoLink,
   TodoLinkError,
 } from './lib/projectTodoLinks.js'
-import { getSstdSources, clearCache as clearSstdCache, SstdSourcesError } from './lib/sstdSources.js'
-import {
-  listSlots as listSstdSlots,
-  getSlot as getSstdSlot,
-  setSlot as setSstdSlot,
-  editSlotLine as editSstdSlotLine,
-  renderReadAll as renderSstdReadAll,
-  renderNextSteps as renderSstdNextSteps,
-  renderJournal as renderSstdJournal,
-  ProjectSlotError,
-} from './lib/sstdSlots.js'
 import { validateSpecPath, MilestoneSpecPathError } from './lib/milestoneSpecPath.js'
 import { listMemories as listProjectMemories, getMemory as getProjectMemory, createMemory as createProjectMemory, updateMemory as updateProjectMemory, deleteMemory as deleteProjectMemory, supersedeMemory as supersedeProjectMemory, searchMemories as searchProjectMemories, getMemoryByAnchor as getProjectMemoryByAnchor, patchByAnchor as patchProjectMemoryByAnchor, ProjectMemoryError } from './lib/projectMemories.js'
 import { renderSnapshot as renderProjectMemorySnapshot, renderSplitSnapshot as renderProjectMemorySplitSnapshot } from './lib/projectMemorySnapshot.js'
@@ -731,7 +720,7 @@ const COMPACT_MEMORY_KEYS = [
   'id', 'category', 'summary', 'anchor', 'stability', 'pinned', 'importance',
   'tags', 'source_type', 'source_ref', 'superseded_by', 'created_at', 'updated_at',
 ]
-// DD-622: projects ohne den sstd_content-Legacy-Blob + Project-Home-Prosa
+// DD-622: projects ohne die großen Project-Home-Prosa-Felder
 // (vision/goals/summary_*). CLI/MCP project list zeigen Identität + Counts.
 const COMPACT_PROJECT_KEYS = [
   'id', 'slug', 'name', 'prefix', 'color', 'archived', 'description',
@@ -746,7 +735,7 @@ app.get('/api/projects', (req, res) => {
 })
 
 // DD-223: Minimale Projektliste für PWA-Capture-Dropdown. Nur id/name/prefix/slug/color,
-// keine sstd_content / counts — bandbreitenschonend für Mobile.
+// keine Prosa / counts — bandbreitenschonend für Mobile.
 // DD-269 R3: slug ergänzt — Deeplink-Resolver in CaptureView braucht slug-Match.
 // Muss VOR /api/projects/:id stehen, sonst greift :id-Route bei "list-minimal".
 app.get('/api/projects/list-minimal', apiKeyAuth, (req, res) => {
@@ -973,117 +962,6 @@ app.put('/api/projects/:id', (req, res) => {
   vals.push(req.params.id)
   db.prepare(`UPDATE projects SET ${sets.join(', ')} WHERE id = ?`).run(...vals)
   res.json(db.prepare('SELECT * FROM projects WHERE id = ?').get(req.params.id))
-})
-
-function _sendProjectSlotError(res, e) {
-  if (e instanceof ProjectSlotError) {
-    return res.status(e.statusCode).json({ error: e.message, code: e.code, field: e.field })
-  }
-  console.error('[sstd-slots] unexpected error', e)
-  return res.status(500).json({ error: 'Internal Server Error' })
-}
-
-// DD-213 / MEM-16: SSTD — pro Projekt genau ein Markdown-Dokument, Master-Quelle ist die DB.
-// GET reassembliert seit MEM-16 (D07) aus den 6 Slots (project_sstd_slots) + zwei Projektionen
-// (Nächste Schritte ← offene project_todos; Session-Log ← letzte 40 session_log-Memories). Solange alle Slots
-// leer sind, fällt renderReadAll auf den Legacy-Blob projects.sstd_content zurück.
-app.get('/api/projects/:id/sstd', (req, res) => {
-  const project = db.prepare('SELECT id, sstd_updated_at FROM projects WHERE id = ?').get(req.params.id)
-  if (!project) return res.status(404).json({ error: 'Projekt nicht gefunden' })
-  try {
-    const sstd_content = renderSstdReadAll(db, project.id)
-    const slotMax = db.prepare('SELECT MAX(updated_at) AS m FROM project_sstd_slots WHERE project_id = ?').get(project.id).m
-    res.json({
-      project_id: project.id,
-      sstd_content,
-      sstd_updated_at: slotMax || project.sstd_updated_at,
-    })
-  } catch (e) {
-    return _sendProjectSlotError(res, e)
-  }
-})
-
-// MEM-16 Slot-Endpoints (D02-rev3 / D04 / D06). Pfad-gescopt über :id (wie GET/PUT /sstd).
-app.get('/api/projects/:id/sstd/slots', (req, res) => {
-  try {
-    res.json(listSstdSlots(db, Number(req.params.id)))
-  } catch (e) {
-    return _sendProjectSlotError(res, e)
-  }
-})
-
-// DD-361: Read-Only-Projektionen (Nächste Schritte ← offene project_todos; Session-Log ←
-// letzte 40 session_log-Memories, DD2-19). Liefert die beiden NICHT editierbaren Read-All-Sektionen als
-// fertiges Markdown, damit der SSTD-Tab sie separat von den 6 Slots rendern kann.
-// MUSS vor '/api/projects/:id/sstd/slots/:key' stehen — sonst matcht Express ':key'='projections'.
-app.get('/api/projects/:id/sstd/projections', (req, res) => {
-  try {
-    const projectId = Number(req.params.id)
-    res.json({
-      next_steps: renderSstdNextSteps(db, projectId) || '',
-      journal: renderSstdJournal(db, projectId) || '',
-    })
-  } catch (e) {
-    return _sendProjectSlotError(res, e)
-  }
-})
-
-app.get('/api/projects/:id/sstd/slots/:key', (req, res) => {
-  try {
-    res.json(getSstdSlot(db, Number(req.params.id), req.params.key))
-  } catch (e) {
-    return _sendProjectSlotError(res, e)
-  }
-})
-
-// PUT = Slot komplett neu schreiben (last-write-wins). Body: { content: <markdown> }.
-app.put('/api/projects/:id/sstd/slots/:key', (req, res) => {
-  const body = req.body || {}
-  if (!Object.prototype.hasOwnProperty.call(body, 'content')) {
-    return res.status(400).json({ error: "Body muss 'content' enthalten (string)." })
-  }
-  try {
-    res.json(setSstdSlot(db, Number(req.params.id), req.params.key, body.content))
-  } catch (e) {
-    return _sendProjectSlotError(res, e)
-  }
-})
-
-// PATCH = Line-Op (D04/D06). Body: { op: replace|insert|delete, line: <1-based>, content?, expect? }.
-// expect-Mismatch → 409. Ein parametrisiertes Verb statt mehrerer Endpoints.
-app.patch('/api/projects/:id/sstd/slots/:key/line', (req, res) => {
-  try {
-    res.json(editSstdSlotLine(db, Number(req.params.id), req.params.key, req.body || {}))
-  } catch (e) {
-    return _sendProjectSlotError(res, e)
-  }
-})
-
-// PUT /sstd — DEPRECATED seit MEM-16 (D07): Whole-Rewrite des Legacy-Blobs projects.sstd_content.
-// Neue Schreibpfade nutzen die Slot-Endpoints (PUT/PATCH …/sstd/slots/:key). Bleibt für Back-Compat
-// (CLI project sstd, MCP devd_project_sstd_set) erhalten, bis MEM-13 den Skill-Layer umstellt.
-// Strict: fehlender Key 'sstd_content' → 400 (verhindert Silent-Delete bei Body-Key-Mismatch, DD-218).
-// Explizit {sstd_content: null} oder "" löscht den Legacy-Blob (sstd_content NULL, updated_at NULL).
-app.put('/api/projects/:id/sstd', (req, res) => {
-  const project = db.prepare('SELECT id FROM projects WHERE id = ?').get(req.params.id)
-  if (!project) return res.status(404).json({ error: 'Projekt nicht gefunden' })
-  const body = req.body || {}
-  if (!Object.prototype.hasOwnProperty.call(body, 'sstd_content')) {
-    return res.status(400).json({
-      error: "Body muss 'sstd_content' enthalten (string oder null). Zum Löschen explizit {\"sstd_content\": null}."
-    })
-  }
-  const content = body.sstd_content
-  if (content !== null && typeof content !== 'string') {
-    return res.status(400).json({ error: 'sstd_content muss string oder null sein' })
-  }
-  if (content === null || content === '') {
-    db.prepare('UPDATE projects SET sstd_content = NULL, sstd_updated_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(project.id)
-    return res.json({ project_id: project.id, sstd_content: null, sstd_updated_at: null })
-  }
-  db.prepare('UPDATE projects SET sstd_content = ?, sstd_updated_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(content, project.id)
-  const row = db.prepare('SELECT id, sstd_content, sstd_updated_at FROM projects WHERE id = ?').get(project.id)
-  res.json({ project_id: row.id, sstd_content: row.sstd_content, sstd_updated_at: row.sstd_updated_at })
 })
 
 // ============================================================
@@ -4611,35 +4489,6 @@ app.delete('/api/project-memory-tags/:tag', (req, res) => {
   } catch (e) {
     return _sendProjectMemoryError(res, e)
   }
-})
-
-// ============================================================
-// DD-281 (M3-S01 T04): SSTD-Sources Endpoint mit Whitelist + Cache.
-// ============================================================
-
-app.get('/api/projects/:project_id/sstd-sources', (req, res) => {
-  const projectId = Number(req.params.project_id)
-  if (!Number.isInteger(projectId) || projectId <= 0) {
-    return res.status(400).json({ error: 'project_id muss positive Ganzzahl sein' })
-  }
-  try {
-    res.json(getSstdSources(db, projectId))
-  } catch (e) {
-    if (e instanceof SstdSourcesError) {
-      return res.status(e.statusCode).json({ error: e.message, code: e.code, field: e.field })
-    }
-    console.error('[sstd-sources] unexpected error', e)
-    res.status(500).json({ error: 'Internal Server Error' })
-  }
-})
-
-app.post('/api/projects/:project_id/sstd-sources/refresh', (req, res) => {
-  const projectId = Number(req.params.project_id)
-  if (!Number.isInteger(projectId) || projectId <= 0) {
-    return res.status(400).json({ error: 'project_id muss positive Ganzzahl sein' })
-  }
-  clearSstdCache(projectId)
-  res.json({ cleared: true, project_id: projectId })
 })
 
 const DIST_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'dist')

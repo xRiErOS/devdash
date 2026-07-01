@@ -100,12 +100,6 @@ import {
   sprintTagsContract,
   milestoneTagsContract,
 } from '@devd/api-types/tag.contracts.js'
-// DD-564: SSTD-Slot-Contracts (Single Source mit REST-Lib + MCP-Inline-Spiegel).
-import {
-  slotSetContract,
-  slotEditContract,
-  journalAddContract,
-} from '@devd/api-types/sstd.contracts.js'
 // DD-565: Subtask-Contracts (Single Source mit REST-Lib; MCP bleibt inline, kein dedupbares Literal).
 import {
   subtaskCreateContract,
@@ -234,7 +228,7 @@ function formatIssueKey(it) {
 }
 
 // Resolve <id|slug> → Projekt-Row über die Projektliste (CLI-Default-PROJECT_ID nicht zwingend
-// das Ziel-Projekt). Genutzt von den pfad-gescopten sstd-Subcommands (MEM-17).
+// das Ziel-Projekt). Genutzt von den pfad-gescopten Projekt-Subcommands.
 async function resolveProject(idOrSlug) {
   const projects = await api('GET', '/api/projects')
   const p = projects.find(x => String(x.id) === String(idOrSlug) || x.slug === idOrSlug)
@@ -431,7 +425,7 @@ function normalizeRelevantFiles(input) {
 const COMMANDS = {
   // ---- Projekt ----
   async 'project:list'(flags) {
-    // DD-622: compact-Default (ohne sstd_content/Prosa). --full / --fields full für Vollobjekte.
+    // DD-622: compact-Default (ohne große Prosa-Felder). --full / --fields full für Vollobjekte.
     const lp = new URLSearchParams()
     if (flags.full) lp.set('fields', 'full')
     else if (flags.fields) lp.set('fields', String(flags.fields))
@@ -480,37 +474,6 @@ const COMMANDS = {
     console.log(`Slug: ${p.slug}  Status: ${p.archived ? 'archiviert' : 'aktiv'}`)
     if (p.description) console.log(`\nBeschreibung:\n${p.description}`)
     if (p.color) console.log(`Color: ${p.color}`)
-  },
-  // DD-213: SSTD raw stdout, --rendered nutzt `glow` falls verfügbar.
-  async 'project:sstd'(flags) {
-    const idOrSlug = flags._[0]
-    if (!idOrSlug) { console.error('Usage: devd-cli project sstd <id|slug> [--rendered]'); process.exit(2) }
-    // Resolve id over project list (CLI default project_id env nicht zwingend richtig).
-    const projects = await api('GET', '/api/projects')
-    const p = projects.find(x => String(x.id) === String(idOrSlug) || x.slug === idOrSlug)
-    if (!p) { console.error(`Projekt ${idOrSlug} nicht gefunden`); process.exit(1) }
-    const res = await fetch(`${API}/api/projects/${p.id}/sstd`, { headers: headers() })
-    if (res.status === 404) {
-      console.error(`Keine SSTD für Projekt ${p.slug} (#${p.id}) hinterlegt`)
-      process.exit(1)
-    }
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
-      console.error(`SSTD-Abruf fehlgeschlagen: ${data.error || res.statusText}`)
-      process.exit(1)
-    }
-    const data = await res.json()
-    const content = data.sstd_content || ''
-    if (flags.rendered) {
-      const glow = spawnSync('glow', ['-'], { input: content, stdio: ['pipe', 'inherit', 'inherit'] })
-      if (glow.status !== 0) {
-        // Fallback: raw output
-        process.stdout.write(content)
-      }
-    } else {
-      process.stdout.write(content)
-      if (!content.endsWith('\n')) process.stdout.write('\n')
-    }
   },
 
   // ---- Sprint ----
@@ -1837,7 +1800,7 @@ const COMMANDS = {
     console.log(`\n${rows.length} Aktivitäten`)
   },
 
-  // ---- SOPs (DD-530) — global (kein project_id); Zeilen-Edit analog SSTD-Slot ----
+  // ---- SOPs (DD-530) — global (kein project_id); token-effizienter Zeilen-Edit ----
   async 'sop:list'() {
     const rows = await api('GET', '/api/sops')
     console.log(pad('KEY', 26), pad('TITLE', 42), 'UPDATED')
@@ -2039,89 +2002,6 @@ const COMMANDS = {
     console.log(`✓ User-Note #${id} gelöscht`)
   },
 
-  // ---- SSTD-Slots (MEM-17) — pfad-gescopt über Projekt-ID; spiegelt MEM-16-REST ----
-  async 'sstd:show'(flags) {
-    const idOrSlug = flags._[0]
-    if (!idOrSlug) { console.error('Usage: devd-cli sstd show <id|slug> [--rendered]'); process.exit(2) }
-    const p = await resolveProject(idOrSlug)
-    const data = await api('GET', `/api/projects/${p.id}/sstd`)
-    const content = data.sstd_content || ''
-    if (flags.rendered) {
-      const glow = spawnSync('glow', ['-'], { input: content, stdio: ['pipe', 'inherit', 'inherit'] })
-      if (glow.status !== 0) process.stdout.write(content + '\n')
-    } else {
-      process.stdout.write(content + '\n')
-    }
-  },
-  async 'sstd:slot'(flags) {
-    const [idOrSlug, key] = flags._
-    if (!idOrSlug || !key) { console.error('Usage: devd-cli sstd slot <id|slug> <slot_key>'); process.exit(2) }
-    const p = await resolveProject(idOrSlug)
-    const slot = await api('GET', `/api/projects/${p.id}/sstd/slots/${encodeURIComponent(key)}`)
-    console.log(`# ${slot.slot_key}${slot.updated_at ? `  (updated ${slot.updated_at})` : '  (leer)'}`)
-    if (slot.content) process.stdout.write(slot.content + '\n')
-  },
-  async 'sstd:set'(flags) {
-    const [idOrSlug, key] = flags._
-    if (!idOrSlug || !key) {
-      console.error('Usage: devd-cli sstd set <id|slug> <slot_key> [--content <text>]  (ohne --content: $EDITOR)')
-      process.exit(2)
-    }
-    const p = await resolveProject(idOrSlug)
-    let content
-    if (typeof flags.content === 'string') {
-      content = flags.content
-    } else if (typeof flags.file === 'string') {
-      content = readFileSync(flags.file, 'utf8')
-    } else {
-      const cur = await api('GET', `/api/projects/${p.id}/sstd/slots/${encodeURIComponent(key)}`)
-      const tmpFile = join(tmpdir(), `devd-sstd-${p.id}-${key}.md`)
-      writeFileSync(tmpFile, cur.content || '', 'utf8')
-      const editor = process.env.EDITOR || 'vi'
-      const r = spawnSync(editor, [tmpFile], { stdio: 'inherit' })
-      if (r.status !== 0) { console.error('Editor-Aufruf fehlgeschlagen — abgebrochen'); process.exit(1) }
-      content = readFileSync(tmpFile, 'utf8')
-    }
-    parseOrThrow(slotSetContract, { slot_key: key, content }, 'sstd set')   // DD-564: Client-Guard vor API
-    const slot = await api('PUT', `/api/projects/${p.id}/sstd/slots/${encodeURIComponent(key)}`, { content })
-    console.log(`✓ Slot '${slot.slot_key}' gespeichert (${content.length} Zeichen, project ${p.id})`)
-  },
-  async 'sstd:edit'(flags) {
-    const [idOrSlug, key] = flags._
-    const op = flags.op
-    const line = flags.line
-    if (!idOrSlug || !key || !op || line === undefined || line === true) {
-      console.error('Usage: devd-cli sstd edit <id|slug> <slot_key> --op patch|insert_after|insert_before|delete --line <n> [--content <text>] [--expect <line-content>]')
-      process.exit(2)
-    }
-    const p = await resolveProject(idOrSlug)
-    // Op-Schreibweise tolerant: insert-after == insert_after (Backend nutzt Underscore).
-    const body = { op: String(op).replace(/-/g, '_'), line: Number(line) }
-    if (typeof flags.content === 'string') body.content = flags.content
-    if (typeof flags.expect === 'string') body.expect = flags.expect
-    parseOrThrow(slotEditContract, { slot_key: key, ...body }, 'sstd edit')   // DD-564: Client-Guard vor API
-    const slot = await api('PATCH', `/api/projects/${p.id}/sstd/slots/${encodeURIComponent(key)}/line`, body)
-    console.log(`✓ Slot '${slot.slot_key}' Line-Op '${op}' @${line} (project ${p.id})`)
-  },
-  async 'sstd:journal'(flags) {
-    const idOrSlug = flags._[0]
-    if (!idOrSlug) {
-      console.error('Usage: devd-cli sstd journal <id|slug> [--add "<text>"]  (ohne --add: letzte Einträge)')
-      process.exit(2)
-    }
-    const p = await resolveProject(idOrSlug)
-    if (typeof flags.add === 'string') {
-      // Session-Log-Eintrag = session_log Project-Memory (kein eigener Store, D03-rev; DD2-19).
-      parseOrThrow(journalAddContract, { text: flags.add }, 'sstd journal')   // DD-564: Client-Guard vor API
-      const m = await api('POST', '/api/project-memories', { category: 'session_log', summary: flags.add }, p.id)
-      console.log(`✓ Session-Log-Eintrag #${m.id} (session_log, project ${p.id})`)
-    } else {
-      const rows = await api('GET', '/api/project-memories?category=session_log', null, p.id)
-      console.log(`\nSession-Log — letzte ${Math.min(rows.length, 40)} Einträge (project ${p.id})`)
-      for (const r of rows.slice(0, 40)) console.log(`  ${r.created_at} — ${trunc(r.summary, 70)}`)
-    }
-  },
-
   async help() {
     console.log(`DevDash CLI
 
@@ -2213,16 +2093,6 @@ Project-Memory (MEM-10 — projektgebundenes Wissen, FTS5, project-scoped):
   devd-cli tag delete <id> [--project <id|slug>]
   devd-cli issue tag-set <id|key> --tags "a,b,c"     # vollständiger Replace (leer = alle löschen)
   devd-cli issue tag-remove <id|key> --tags "a,b"    # nur genannte entfernen
-
-SSTD-Slots (MEM-17 — adressierbare SSTD-Slots, gezielte Per-Slot/Per-Line-Ops):
-  devd-cli sstd show <id|slug> [--rendered]            # vollständige SSTD (aus Slots reassembliert)
-  devd-cli sstd slot <id|slug> <slot_key>              # einzelnen Slot lesen
-  devd-cli sstd set <id|slug> <slot_key> [--content <text> | --file <pfad>]   # Slot komplett neu (sonst: $EDITOR)
-  devd-cli sstd edit <id|slug> <slot_key> --op patch|insert_after|insert_before|delete --line <n>
-                                          [--content <text>] [--expect <line-content>]
-  devd-cli sstd journal <id|slug> [--add "<text>"]     # Session-Log lesen / session_log-Eintrag anhängen
-       Slots: architecture | conventions | sprint_state | roadmap | cross_refs | misc
-       (project sstd <id|slug> bleibt als Read-All-Alias erhalten)
 
 Issues (Key wie DD-161 oder globale ID):
   devd-cli issue list [--sprint <key|id>] [--status <s>] [--search <q>] [--full|--fields <list>] [--limit <n>] [--offset <n>]

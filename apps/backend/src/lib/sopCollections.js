@@ -1,5 +1,5 @@
 // ProjectPages T-be2 (D-E): SOP-Collections — benannte Gruppen von SOPs + Markdown-Export.
-// Pure Funktionen ohne Express (Reuse-Pattern aus sops.js / sstdSlots.js). Daten: sop_collections
+// Pure Funktionen ohne Express (Reuse-Pattern aus sops.js). Daten: sop_collections
 // + sop_collection_items (Migration 061). Global wie sops (KEIN project_id, SOP-D02).
 // Speist SopCollectionsView (S3): collections[{id, name, sopKeys}] + Detail/Export.
 

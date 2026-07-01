@@ -1,5 +1,5 @@
 // MEM-23 (MEM#8): SOP-Entität — SOPs als DevDashboard-Entität in der DB (global, SOP-D02).
-// Pure Funktionen ohne Express-Abhängigkeit. Reuse-Pattern aus sstdSlots.js / projectMemories.js
+// Pure Funktionen ohne Express-Abhängigkeit. Reuse-Pattern aus projectMemories.js
 // (Fehlerklasse mit statusCode/code/field). Daten: sops + sop_triggers (Migration 044).
 //
 // SOP-D01 DB-Master (DB ist die Schreib-/Lesequelle), SOP-D02 nur global (KEIN project_id),
@@ -121,7 +121,7 @@ export function editSop(db, sopKey, { title, content } = {}) {
   return getSop(db, sopKey)
 }
 
-// DD-530: token-effizienter Zeilen-Patch auf dem SOP-content (analog sstdSlots.editSlotLine).
+// DD-530: token-effizienter Zeilen-Patch auf dem SOP-content.
 // Statt den ganzen (bis 200k) content per PUT zurückzuschreiben, adressiert dies eine einzelne
 // Zeile. op patch|delete brauchen eine existierende Zeile; insert_before/after fügen relativ ein.
 // expect guarded die Anker-Zeile → 409 bei Mismatch (kein Write), genau wie das SSTD-Slot-Modell.

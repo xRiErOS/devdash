@@ -633,48 +633,6 @@ func loadMemDetail(c *api.Client, id int) tea.Cmd {
 	}
 }
 
-// sstdMsg trägt die 6 Slots + 2 Projektionen (DD2-166). notice != "" → Toast nach
-// einem Save (sonst leer beim initialen Laden/Reload).
-type sstdMsg struct {
-	slots  []api.SstdSlot
-	proj   *api.SstdProjections
-	notice string
-}
-
-// loadSstd lädt Slots + Projektionen in einem Rutsch (DD2-166).
-func loadSstd(c *api.Client) tea.Cmd {
-	return func() tea.Msg {
-		slots, err := c.GetSstdSlots()
-		if err != nil {
-			return errMsg{err}
-		}
-		proj, err := c.GetSstdProjections()
-		if err != nil {
-			return errMsg{err}
-		}
-		return sstdMsg{slots: slots, proj: proj}
-	}
-}
-
-// saveSstdSlotCmd schreibt einen Slot neu und liefert den frischen Stand zurück
-// (Save + Reload in einem Cmd, damit das Detail den neuen Inhalt sofort zeigt).
-func saveSstdSlotCmd(c *api.Client, key, content string) tea.Cmd {
-	return func() tea.Msg {
-		if _, err := c.SetSstdSlot(key, content); err != nil {
-			return noticeMsg{cleanAPIErr(err)}
-		}
-		slots, err := c.GetSstdSlots()
-		if err != nil {
-			return errMsg{err}
-		}
-		proj, err := c.GetSstdProjections()
-		if err != nil {
-			return errMsg{err}
-		}
-		return sstdMsg{slots: slots, proj: proj, notice: "Slot '" + key + "' saved"}
-	}
-}
-
 // userNotesMsg trägt die geladene Notiz-Liste (DD2-168). notice != "" → Toast.
 type userNotesMsg struct {
 	items  []api.UserNote

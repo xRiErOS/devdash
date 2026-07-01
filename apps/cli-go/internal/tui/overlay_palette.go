@@ -29,7 +29,6 @@ func paletteActions(m *model) []paletteAction {
 		{"create_memory", "create: memory"},
 		{"go_reviews", "go to: open reviews"},
 		{"go_memory", "go to: memory browser"},
-		{"go_sstd", "go to: SSTD slots"},          // DD2-166
 		{"go_notes", "go to: user notes"},         // DD2-168
 		{"go_todos", "go to: todos"},              // DD2-171
 		{"go_docs", "go to: documents"},           // DD2-167 (owner = focused tree node)
@@ -129,8 +128,6 @@ func (m model) dispatchPalette(id string) (tea.Model, tea.Cmd) {
 		return m.openReviewsList()
 	case "go_memory":
 		return m.openMemory()
-	case "go_sstd": // DD2-166: SSTD-Slots-Browser
-		return m.openSSTD()
 	case "go_notes": // DD2-168: User-Notes-Browser
 		return m.openUserNotes()
 	case "go_todos": // DD2-171: ToDos-Browser

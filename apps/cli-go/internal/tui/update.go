@@ -240,17 +240,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.memDetailID = msg.mem.ID
 		}
 		return m, nil
-	case sstdMsg: // DD2-166: Slots + Projektionen geladen/neu gespeichert
-		m.sstdSlots = msg.slots
-		m.sstdProj = msg.proj
-		m.sstdList.setLen(len(m.sstdEntries()))
-		if msg.notice != "" {
-			m.status = noticeText(msg.notice)
-			m.statusSticky = false
-			m.statusSeq++
-			return m, statusTimeout(m.statusSeq)
-		}
-		return m, nil
 	case userNotesMsg: // DD2-168: Notiz-Liste geladen/neu gespeichert
 		m.unList = msg.items
 		m.unlist.setLen(len(m.unList))
@@ -295,10 +284,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, statusTimeout(m.statusSeq)
 		}
 		switch m.view {
-		case viewSSTD:
-			if m.sstdEditKey != "" {
-				return m, saveSstdSlotCmd(m.client, m.sstdEditKey, msg.content)
-			}
 		case viewUserNotes:
 			title := firstLineTitle(msg.content)
 			return m, saveUserNoteCmd(m.client, m.unEditID, title, msg.content, strings.TrimSpace(m.unQuery))

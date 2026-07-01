@@ -957,20 +957,6 @@ type ProjectShowArgs struct {
 	IdOrSlug string `json:"id_or_slug"`
 }
 
-// ProjectSstdGetArgs: Argumente für MCP-Tool devd_project_sstd_get.
-type ProjectSstdGetArgs struct {
-	// Numeric project id or slug string (e.g. "devd", "2")
-	IdOrSlug string `json:"id_or_slug"`
-}
-
-// ProjectSstdSetArgs: Argumente für MCP-Tool devd_project_sstd_set.
-type ProjectSstdSetArgs struct {
-	// Numeric project id or slug string (e.g. "devd", "2")
-	IdOrSlug string `json:"id_or_slug"`
-	// Markdown-Inhalt (string) zum Setzen oder null zum Loeschen
-	SstdContent *string `json:"sstd_content,omitempty"`
-}
-
 type ReviewCreateArgsVerdict string
 
 const (
@@ -1307,102 +1293,6 @@ type SprintUpdateArgs struct {
 	EndDate  *string `json:"end_date,omitempty"`
 	Capacity *int    `json:"capacity,omitempty"`
 	WipLimit *int    `json:"wip_limit,omitempty"`
-}
-
-// SstdGetArgs: Argumente für MCP-Tool devd_sstd_get.
-type SstdGetArgs struct {
-	// Numeric project id or slug string (e.g. "devd", "2")
-	IdOrSlug string `json:"id_or_slug"`
-}
-
-// SstdJournalAddArgs: Argumente für MCP-Tool devd_sstd_journal_add.
-type SstdJournalAddArgs struct {
-	// Numeric project id or slug string (e.g. "devd", "2")
-	IdOrSlug string `json:"id_or_slug"`
-	// Session-log entry text (wird als session_log summary gespeichert)
-	Content string `json:"content"`
-}
-
-type SstdSlotEditArgsSlotKey string
-
-const (
-	SstdSlotEditArgsSlotKeyArchitecture SstdSlotEditArgsSlotKey = "architecture"
-	SstdSlotEditArgsSlotKeyConventions  SstdSlotEditArgsSlotKey = "conventions"
-	SstdSlotEditArgsSlotKeySprintState  SstdSlotEditArgsSlotKey = "sprint_state"
-	SstdSlotEditArgsSlotKeyRoadmap      SstdSlotEditArgsSlotKey = "roadmap"
-	SstdSlotEditArgsSlotKeyCrossRefs    SstdSlotEditArgsSlotKey = "cross_refs"
-	SstdSlotEditArgsSlotKeyMisc         SstdSlotEditArgsSlotKey = "misc"
-)
-
-type SstdSlotEditArgsOp string
-
-const (
-	SstdSlotEditArgsOpPatch        SstdSlotEditArgsOp = "patch"
-	SstdSlotEditArgsOpInsertAfter  SstdSlotEditArgsOp = "insert_after"
-	SstdSlotEditArgsOpInsertBefore SstdSlotEditArgsOp = "insert_before"
-	SstdSlotEditArgsOpDelete       SstdSlotEditArgsOp = "delete"
-)
-
-// SstdSlotEditArgs: Argumente für MCP-Tool devd_sstd_slot_edit.
-type SstdSlotEditArgs struct {
-	// Numeric project id or slug string (e.g. "devd", "2")
-	IdOrSlug string `json:"id_or_slug"`
-	// One of the 6 fixed slots
-	SlotKey SstdSlotEditArgsSlotKey `json:"slot_key"`
-	// Line operation
-	Op SstdSlotEditArgsOp `json:"op"`
-	// 1-based line number (insert_after also accepts 0 to prepend)
-	Line int `json:"line"`
-	// New line content (for patch / insert_*)
-	Content *string `json:"content,omitempty"`
-	// Guard: current content of the anchor line must match, else 409 (no write)
-	Expect *string `json:"expect,omitempty"`
-}
-
-type SstdSlotGetArgsSlotKey string
-
-const (
-	SstdSlotGetArgsSlotKeyArchitecture SstdSlotGetArgsSlotKey = "architecture"
-	SstdSlotGetArgsSlotKeyConventions  SstdSlotGetArgsSlotKey = "conventions"
-	SstdSlotGetArgsSlotKeySprintState  SstdSlotGetArgsSlotKey = "sprint_state"
-	SstdSlotGetArgsSlotKeyRoadmap      SstdSlotGetArgsSlotKey = "roadmap"
-	SstdSlotGetArgsSlotKeyCrossRefs    SstdSlotGetArgsSlotKey = "cross_refs"
-	SstdSlotGetArgsSlotKeyMisc         SstdSlotGetArgsSlotKey = "misc"
-)
-
-// SstdSlotGetArgs: Argumente für MCP-Tool devd_sstd_slot_get.
-type SstdSlotGetArgs struct {
-	// Numeric project id or slug string (e.g. "devd", "2")
-	IdOrSlug string `json:"id_or_slug"`
-	// One of the 6 fixed slots
-	SlotKey SstdSlotGetArgsSlotKey `json:"slot_key"`
-}
-
-// SstdSlotListArgs: Argumente für MCP-Tool devd_sstd_slot_list.
-type SstdSlotListArgs struct {
-	// Numeric project id or slug string (e.g. "devd", "2")
-	IdOrSlug string `json:"id_or_slug"`
-}
-
-type SstdSlotSetArgsSlotKey string
-
-const (
-	SstdSlotSetArgsSlotKeyArchitecture SstdSlotSetArgsSlotKey = "architecture"
-	SstdSlotSetArgsSlotKeyConventions  SstdSlotSetArgsSlotKey = "conventions"
-	SstdSlotSetArgsSlotKeySprintState  SstdSlotSetArgsSlotKey = "sprint_state"
-	SstdSlotSetArgsSlotKeyRoadmap      SstdSlotSetArgsSlotKey = "roadmap"
-	SstdSlotSetArgsSlotKeyCrossRefs    SstdSlotSetArgsSlotKey = "cross_refs"
-	SstdSlotSetArgsSlotKeyMisc         SstdSlotSetArgsSlotKey = "misc"
-)
-
-// SstdSlotSetArgs: Argumente für MCP-Tool devd_sstd_slot_set.
-type SstdSlotSetArgs struct {
-	// Numeric project id or slug string (e.g. "devd", "2")
-	IdOrSlug string `json:"id_or_slug"`
-	// One of the 6 fixed slots
-	SlotKey SstdSlotSetArgsSlotKey `json:"slot_key"`
-	// Full new markdown content of the slot
-	Content string `json:"content"`
 }
 
 // SubtaskAddArgs: Argumente für MCP-Tool devd_subtask_add.
