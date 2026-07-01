@@ -377,38 +377,6 @@ type IssueMoveArgs struct {
 	TargetProject any `json:"target_project"`
 }
 
-type IssueSetResultArgsOutcomeType string
-
-const (
-	IssueSetResultArgsOutcomeTypeFeat     IssueSetResultArgsOutcomeType = "feat"
-	IssueSetResultArgsOutcomeTypeFix      IssueSetResultArgsOutcomeType = "fix"
-	IssueSetResultArgsOutcomeTypeRefactor IssueSetResultArgsOutcomeType = "refactor"
-	IssueSetResultArgsOutcomeTypeChore    IssueSetResultArgsOutcomeType = "chore"
-	IssueSetResultArgsOutcomeTypeDocs     IssueSetResultArgsOutcomeType = "docs"
-)
-
-// IssueSetResultArgs: Argumente für MCP-Tool devd_issue_set_result.
-type IssueSetResultArgs struct {
-	// Project id or slug for X-Project-Id header (e.g. "7", "devd"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.
-	ProjectId any `json:"project_id,omitempty"`
-	// Issue key (e.g. "DD-42") or numeric backlog id
-	IdOrKey string `json:"id_or_key"`
-	// Outcome type: feat | fix | refactor | chore | docs (default: feat)
-	OutcomeType *IssueSetResultArgsOutcomeType `json:"outcome_type,omitempty"`
-	// Short summary of what was achieved (required)
-	OutcomeSummary string `json:"outcome_summary"`
-	// List of changed file paths
-	FilesChanged []string `json:"files_changed,omitempty"`
-	// List of commit SHAs or short descriptions (required — D02)
-	Commits []string `json:"commits"`
-	// Whether this introduces breaking changes (default false)
-	BreakingChanges *bool `json:"breaking_changes,omitempty"`
-	// Lessons learned during implementation
-	LessonsLearned []string `json:"lessons_learned,omitempty"`
-	// Markdown body: approach, trade-offs, code snippets, links
-	Vorgehen *string `json:"vorgehen,omitempty"`
-}
-
 // IssueShowArgs: Argumente für MCP-Tool devd_issue_show.
 type IssueShowArgs struct {
 	// Project id or slug for X-Project-Id header (e.g. "7", "devd"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.
@@ -472,8 +440,6 @@ type IssueUpdateArgs struct {
 	Priority      *int                 `json:"priority,omitempty"`
 	Type          *IssueUpdateArgsType `json:"type,omitempty"`
 	PoNotes       *string              `json:"po_notes,omitempty"`
-	// Sprint outcome documentation. Required on completed/passed issues before sprint complete. Markdown text — summarise what was implemented, decisions made, and lessons learned.
-	Result *string `json:"result,omitempty"`
 }
 
 // MemoryTagCreateArgs: Argumente für MCP-Tool devd_memory_tag_create.
@@ -991,20 +957,6 @@ type ProjectShowArgs struct {
 	IdOrSlug string `json:"id_or_slug"`
 }
 
-// ProjectSstdGetArgs: Argumente für MCP-Tool devd_project_sstd_get.
-type ProjectSstdGetArgs struct {
-	// Numeric project id or slug string (e.g. "devd", "2")
-	IdOrSlug string `json:"id_or_slug"`
-}
-
-// ProjectSstdSetArgs: Argumente für MCP-Tool devd_project_sstd_set.
-type ProjectSstdSetArgs struct {
-	// Numeric project id or slug string (e.g. "devd", "2")
-	IdOrSlug string `json:"id_or_slug"`
-	// Markdown-Inhalt (string) zum Setzen oder null zum Loeschen
-	SstdContent *string `json:"sstd_content,omitempty"`
-}
-
 type ReviewCreateArgsVerdict string
 
 const (
@@ -1032,97 +984,6 @@ type ReviewReopenArgs struct {
 	ProjectId any `json:"project_id,omitempty"`
 	// Issue key (e.g. "DD-42") or numeric backlog id — must be in status to_review
 	IdOrKey string `json:"id_or_key"`
-}
-
-// SopBundleArgs: Argumente für MCP-Tool devd_sop_bundle.
-type SopBundleArgs struct {
-	// Project id or slug for X-Project-Id header (e.g. "7", "devd"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.
-	ProjectId any `json:"project_id,omitempty"`
-	// Lifecycle trigger key, e.g. "sprint:start", "issue:create", "sprint:create"
-	Trigger string `json:"trigger"`
-	// Sprint key (e.g. "DD#20") or numeric id — adds sprint header + issue table
-	SprintKey *string `json:"sprint_key,omitempty"`
-}
-
-// SopCollectionCreateArgs: Argumente für MCP-Tool devd_sop_collection_create.
-type SopCollectionCreateArgs struct {
-	// Collection key — lowercase [a-z0-9-]
-	Key string `json:"key"`
-	// Human-readable name, e.g. "Backlog-Pflege"
-	Name string `json:"name"`
-	// Optional description
-	Description *string `json:"description,omitempty"`
-}
-
-// SopCollectionExportArgs: Argumente für MCP-Tool devd_sop_collection_export.
-type SopCollectionExportArgs struct {
-	// Collection key
-	Key string `json:"key"`
-}
-
-// SopCollectionGetArgs: Argumente für MCP-Tool devd_sop_collection_get.
-type SopCollectionGetArgs struct {
-	// Collection key, e.g. "backlog-pflege"
-	Key string `json:"key"`
-}
-
-// SopCollectionListArgs: Argumente für MCP-Tool devd_sop_collection_list.
-type SopCollectionListArgs struct {
-}
-
-// SopCollectionSetItemsArgs: Argumente für MCP-Tool devd_sop_collection_set_items.
-type SopCollectionSetItemsArgs struct {
-	// Collection key
-	Key string `json:"key"`
-	// Ordered list of SOP keys (replaces current membership)
-	SopKeys []string `json:"sopKeys"`
-}
-
-// SopCreateArgs: Argumente für MCP-Tool devd_sop_create.
-type SopCreateArgs struct {
-	// SOP key — lowercase [a-z0-9-], e.g. "report-markdown-prozess"
-	Key string `json:"key"`
-	// Human-readable title, e.g. "SOP - Report für markdowngetriebene Realisierungsprozesse"
-	Title string `json:"title"`
-	// Full SOP markdown content
-	Content string `json:"content"`
-	// Overwrite if the key already exists (default false → conflict error)
-	Force *bool `json:"force,omitempty"`
-}
-
-type SopEditArgsOp string
-
-const (
-	SopEditArgsOpPatch        SopEditArgsOp = "patch"
-	SopEditArgsOpInsertAfter  SopEditArgsOp = "insert_after"
-	SopEditArgsOpInsertBefore SopEditArgsOp = "insert_before"
-	SopEditArgsOpDelete       SopEditArgsOp = "delete"
-)
-
-// SopEditArgs: Argumente für MCP-Tool devd_sop_edit.
-type SopEditArgs struct {
-	// SOP key
-	Key string `json:"key"`
-	// Line operation
-	Op SopEditArgsOp `json:"op"`
-	// 1-based line number (insert_after allows 0)
-	Line int `json:"line"`
-	// New line content (patch/insert)
-	Content *string `json:"content,omitempty"`
-	// Guard: current content of the anchor line (409 on mismatch)
-	Expect *string `json:"expect,omitempty"`
-}
-
-// SopGetArgs: Argumente für MCP-Tool devd_sop_get.
-type SopGetArgs struct {
-	// SOP key, e.g. "sprint-durchfuehrung"
-	Key string `json:"key"`
-	// Return content as {n, text} lines for line-addressing
-	Numbered *bool `json:"numbered,omitempty"`
-}
-
-// SopListArgs: Argumente für MCP-Tool devd_sop_list.
-type SopListArgs struct {
 }
 
 // SprintActivityArgs: Argumente für MCP-Tool devd_sprint_activity.
@@ -1341,102 +1202,6 @@ type SprintUpdateArgs struct {
 	EndDate  *string `json:"end_date,omitempty"`
 	Capacity *int    `json:"capacity,omitempty"`
 	WipLimit *int    `json:"wip_limit,omitempty"`
-}
-
-// SstdGetArgs: Argumente für MCP-Tool devd_sstd_get.
-type SstdGetArgs struct {
-	// Numeric project id or slug string (e.g. "devd", "2")
-	IdOrSlug string `json:"id_or_slug"`
-}
-
-// SstdJournalAddArgs: Argumente für MCP-Tool devd_sstd_journal_add.
-type SstdJournalAddArgs struct {
-	// Numeric project id or slug string (e.g. "devd", "2")
-	IdOrSlug string `json:"id_or_slug"`
-	// Session-log entry text (wird als session_log summary gespeichert)
-	Content string `json:"content"`
-}
-
-type SstdSlotEditArgsSlotKey string
-
-const (
-	SstdSlotEditArgsSlotKeyArchitecture SstdSlotEditArgsSlotKey = "architecture"
-	SstdSlotEditArgsSlotKeyConventions  SstdSlotEditArgsSlotKey = "conventions"
-	SstdSlotEditArgsSlotKeySprintState  SstdSlotEditArgsSlotKey = "sprint_state"
-	SstdSlotEditArgsSlotKeyRoadmap      SstdSlotEditArgsSlotKey = "roadmap"
-	SstdSlotEditArgsSlotKeyCrossRefs    SstdSlotEditArgsSlotKey = "cross_refs"
-	SstdSlotEditArgsSlotKeyMisc         SstdSlotEditArgsSlotKey = "misc"
-)
-
-type SstdSlotEditArgsOp string
-
-const (
-	SstdSlotEditArgsOpPatch        SstdSlotEditArgsOp = "patch"
-	SstdSlotEditArgsOpInsertAfter  SstdSlotEditArgsOp = "insert_after"
-	SstdSlotEditArgsOpInsertBefore SstdSlotEditArgsOp = "insert_before"
-	SstdSlotEditArgsOpDelete       SstdSlotEditArgsOp = "delete"
-)
-
-// SstdSlotEditArgs: Argumente für MCP-Tool devd_sstd_slot_edit.
-type SstdSlotEditArgs struct {
-	// Numeric project id or slug string (e.g. "devd", "2")
-	IdOrSlug string `json:"id_or_slug"`
-	// One of the 6 fixed slots
-	SlotKey SstdSlotEditArgsSlotKey `json:"slot_key"`
-	// Line operation
-	Op SstdSlotEditArgsOp `json:"op"`
-	// 1-based line number (insert_after also accepts 0 to prepend)
-	Line int `json:"line"`
-	// New line content (for patch / insert_*)
-	Content *string `json:"content,omitempty"`
-	// Guard: current content of the anchor line must match, else 409 (no write)
-	Expect *string `json:"expect,omitempty"`
-}
-
-type SstdSlotGetArgsSlotKey string
-
-const (
-	SstdSlotGetArgsSlotKeyArchitecture SstdSlotGetArgsSlotKey = "architecture"
-	SstdSlotGetArgsSlotKeyConventions  SstdSlotGetArgsSlotKey = "conventions"
-	SstdSlotGetArgsSlotKeySprintState  SstdSlotGetArgsSlotKey = "sprint_state"
-	SstdSlotGetArgsSlotKeyRoadmap      SstdSlotGetArgsSlotKey = "roadmap"
-	SstdSlotGetArgsSlotKeyCrossRefs    SstdSlotGetArgsSlotKey = "cross_refs"
-	SstdSlotGetArgsSlotKeyMisc         SstdSlotGetArgsSlotKey = "misc"
-)
-
-// SstdSlotGetArgs: Argumente für MCP-Tool devd_sstd_slot_get.
-type SstdSlotGetArgs struct {
-	// Numeric project id or slug string (e.g. "devd", "2")
-	IdOrSlug string `json:"id_or_slug"`
-	// One of the 6 fixed slots
-	SlotKey SstdSlotGetArgsSlotKey `json:"slot_key"`
-}
-
-// SstdSlotListArgs: Argumente für MCP-Tool devd_sstd_slot_list.
-type SstdSlotListArgs struct {
-	// Numeric project id or slug string (e.g. "devd", "2")
-	IdOrSlug string `json:"id_or_slug"`
-}
-
-type SstdSlotSetArgsSlotKey string
-
-const (
-	SstdSlotSetArgsSlotKeyArchitecture SstdSlotSetArgsSlotKey = "architecture"
-	SstdSlotSetArgsSlotKeyConventions  SstdSlotSetArgsSlotKey = "conventions"
-	SstdSlotSetArgsSlotKeySprintState  SstdSlotSetArgsSlotKey = "sprint_state"
-	SstdSlotSetArgsSlotKeyRoadmap      SstdSlotSetArgsSlotKey = "roadmap"
-	SstdSlotSetArgsSlotKeyCrossRefs    SstdSlotSetArgsSlotKey = "cross_refs"
-	SstdSlotSetArgsSlotKeyMisc         SstdSlotSetArgsSlotKey = "misc"
-)
-
-// SstdSlotSetArgs: Argumente für MCP-Tool devd_sstd_slot_set.
-type SstdSlotSetArgs struct {
-	// Numeric project id or slug string (e.g. "devd", "2")
-	IdOrSlug string `json:"id_or_slug"`
-	// One of the 6 fixed slots
-	SlotKey SstdSlotSetArgsSlotKey `json:"slot_key"`
-	// Full new markdown content of the slot
-	Content string `json:"content"`
 }
 
 // SubtaskAddArgs: Argumente für MCP-Tool devd_subtask_add.

@@ -1,6 +1,6 @@
 // DD2-141 (Sub: DD2-92/95/96) — Single-Source-Serialisierung des Sprint-Kontext-Markdown
 // für devd_sprint_context. Pure Funktion ohne Express-/DB-Abhängigkeit: erhält den Sprint
-// + die bereits angereicherten Items (user_stories, result, dependencies) und rendert den
+// + die bereits angereicherten Items (user_stories, dependencies) und rendert den
 // LLM-tauglichen Markdown-Payload. Ein gemeinsamer additiver Pfad verhindert Drift zwischen
 // den drei Sub-Issues (Epic-Vorgabe: nicht drei getrennte Render-Pfade).
 
@@ -53,10 +53,6 @@ export function buildSprintContextMarkdown(sprint, items = []) {
     }
     // DD2-92: Issue-Dependencies (blockers/blocked_by).
     renderIssueDependencies(lines, i.dependencies)
-    // DD2-95: Result-Feld bereits bearbeiteter Issues (Freitext-YAML/Markdown).
-    if (i.result && String(i.result).trim()) {
-      lines.push(`\n**Result:**\n${i.result}`)
-    }
     if (i.review_status) lines.push(`\n**Review:** ${i.review_status}${i.review_comment ? ` — ${i.review_comment}` : ''}`)
     if (i.po_notes) lines.push(`\n**PO notes:** ${i.po_notes}`)
   }

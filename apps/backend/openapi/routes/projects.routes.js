@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { register } from '../registry.js';
-import { slotSetContract, slotEditContract } from '@devd/api-types/sstd.contracts.js';
 import { todoCreateContract, todoUpdateContract, todoLinkContract } from '@devd/api-types/todo.contracts.js';
 
 const projectRow = z.record(z.string(), z.unknown());
@@ -108,84 +107,6 @@ register({
 });
 
 register({
-  method: 'GET',
-  path: '/api/projects/:id/sstd',
-  tag: 'projects',
-  summary: 'SSTD eines Projekts (reassembliert aus Slots)',
-  params: z.object({ id: z.string() }),
-  res: z.object({
-    project_id: z.number(),
-    sstd_content: z.string().nullable(),
-    sstd_updated_at: z.string().nullable(),
-  }),
-});
-
-register({
-  method: 'GET',
-  path: '/api/projects/:id/sstd/slots',
-  tag: 'projects',
-  summary: 'Alle SSTD-Slots eines Projekts auflisten',
-  params: z.object({ id: z.string() }),
-  res: z.array(z.record(z.string(), z.unknown())),
-});
-
-register({
-  method: 'GET',
-  path: '/api/projects/:id/sstd/projections',
-  tag: 'projects',
-  summary: 'SSTD-Read-Only-Projektionen (Nächste Schritte + Journal)',
-  params: z.object({ id: z.string() }),
-  res: z.object({
-    next_steps: z.string(),
-    journal: z.string(),
-  }),
-});
-
-register({
-  method: 'GET',
-  path: '/api/projects/:id/sstd/slots/:key',
-  tag: 'projects',
-  summary: 'Einzelnen SSTD-Slot lesen',
-  params: z.object({ id: z.string(), key: z.string() }),
-  res: z.record(z.string(), z.unknown()),
-});
-
-register({
-  method: 'PUT',
-  path: '/api/projects/:id/sstd/slots/:key',
-  tag: 'projects',
-  summary: 'SSTD-Slot komplett neu schreiben (last-write-wins)',
-  params: z.object({ id: z.string(), key: z.string() }),
-  body: slotSetContract,
-  res: z.record(z.string(), z.unknown()),
-});
-
-register({
-  method: 'PATCH',
-  path: '/api/projects/:id/sstd/slots/:key/line',
-  tag: 'projects',
-  summary: 'SSTD-Slot Line-Op (patch/insert/delete, --expect-guarded)',
-  params: z.object({ id: z.string(), key: z.string() }),
-  body: slotEditContract,
-  res: z.record(z.string(), z.unknown()),
-});
-
-register({
-  method: 'PUT',
-  path: '/api/projects/:id/sstd',
-  tag: 'projects',
-  summary: 'SSTD Legacy-Blob whole-rewrite (deprecated)',
-  params: z.object({ id: z.string() }),
-  body: z.object({ sstd_content: z.string().nullable() }),
-  res: z.object({
-    project_id: z.number(),
-    sstd_content: z.string().nullable(),
-    sstd_updated_at: z.string().nullable(),
-  }),
-  deprecated: true,
-});
-
-register({
   method: 'DELETE',
   path: '/api/projects/:id',
   tag: 'projects',
@@ -276,23 +197,3 @@ register({
   status: 204,
 });
 
-register({
-  method: 'GET',
-  path: '/api/projects/:project_id/sstd-sources',
-  tag: 'projects',
-  summary: 'SSTD-Quellen eines Projekts',
-  params: z.object({ project_id: z.string() }),
-  res: z.record(z.string(), z.unknown()),
-});
-
-register({
-  method: 'POST',
-  path: '/api/projects/:project_id/sstd-sources/refresh',
-  tag: 'projects',
-  summary: 'SSTD-Source-Cache eines Projekts leeren',
-  params: z.object({ project_id: z.string() }),
-  res: z.object({
-    cleared: z.boolean(),
-    project_id: z.number(),
-  }),
-});

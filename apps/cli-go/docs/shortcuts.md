@@ -55,7 +55,6 @@ Direction cross: **jkli** — `i`=up, `j`=left/back, `k`=down, `l`=right/in (DD2
 | `x` | Reject + comment |
 | `o` | Reopen issue |
 | `w` | Rework issue |
-| `r` | Set result |
 | `P` | Mark review pass |
 | `C` | Complete sprint |
 

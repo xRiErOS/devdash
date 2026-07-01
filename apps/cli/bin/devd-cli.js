@@ -29,7 +29,6 @@
  *                                  [--goal-editor|--background-editor|--context-notes-editor|
  *                                   --po-notes-editor|--description-editor]
  *   devd-cli issue status <id|key> <new-status>
- *   devd-cli issue set-result <id|key>       # öffnet $EDITOR mit YAML+Markdown-Template
  *   devd-cli issue assign-sprint <id|key> --sprint <key|id|null|none>
  *
  *   devd-cli subtask add <id|key> --title <text> [--qa <text>]
@@ -50,7 +49,7 @@
  *   DEVD_API_TOKEN    — DD-285 Defense-in-Depth Token; als X-Devd-Token-Header
  *                       bei jeder Anfrage gesendet (Pflicht in Production wenn
  *                       Backend DEVD_API_TOKEN gesetzt hat)
- *   EDITOR            — Editor für 'issue set-result' (Default: vi)
+ *   EDITOR            — Editor für die --<feld>-editor-Flows (Default: vi)
  */
 import { writeFileSync, readFileSync, existsSync } from 'fs'
 import { spawnSync } from 'child_process'
@@ -101,12 +100,6 @@ import {
   sprintTagsContract,
   milestoneTagsContract,
 } from '@devd/api-types/tag.contracts.js'
-// DD-564: SSTD-Slot-Contracts (Single Source mit REST-Lib + MCP-Inline-Spiegel).
-import {
-  slotSetContract,
-  slotEditContract,
-  journalAddContract,
-} from '@devd/api-types/sstd.contracts.js'
 // DD-565: Subtask-Contracts (Single Source mit REST-Lib; MCP bleibt inline, kein dedupbares Literal).
 import {
   subtaskCreateContract,
@@ -135,27 +128,6 @@ const _client = createApiClient({
   token: DEVD_API_TOKEN,
 })
 
-// DD-519 (D50a): SOP-Bundle ausschliesslich aus dem DB-Store (/api/sops/bundle) — der
-// DB-Store ist Master (SOP-D01). Der frühere Filesystem-Fallback aus dem Vault-Pfad
-// (DD-214) ist ENTFERNT: kein Vault-Read mehr, damit remote/NAS-Agenten ohne Vault-Mount
-// nicht crashen. Bei API-Fehler oder leerem Bundle gibt es einen sauberen stderr-Hinweis
-// statt eines Dateisystem-Zugriffs. MCP-Pfad (mcp/devd-mcp.js → fetchSOPText) ist bereits
-// API-only und bleibt die Referenz.
-async function printSOPBundle(commandKey, sprintRef) {
-  try {
-    const qs = new URLSearchParams({ trigger: commandKey })
-    if (sprintRef) qs.set('sprint', String(sprintRef))
-    const bundle = await api('GET', `/api/sops/bundle?${qs.toString()}`)
-    if (bundle && Array.isArray(bundle.sops) && bundle.sops.length > 0) {
-      console.log('\n' + bundle.rendered + '\n')
-      return
-    }
-    console.error(`\n⚠ Keine SOP im DB-Store für '${commandKey}' getriggert — übersprungen.\n`)
-  } catch (err) {
-    console.error(`\n⚠ SOP-Bundle konnte nicht aus dem DB-Store geladen werden (${err.message}) — übersprungen.\n`)
-  }
-}
-
 function headers(extra = {}) {
   return _client.buildHeaders(extra)
 }
@@ -180,44 +152,6 @@ function parseFlags(args) {
     }
   }
   return out
-}
-
-function buildResultFromFlags(flags, issue) {
-  const splitList = (val) => {
-    if (val === undefined || val === true || val === '') return []
-    return String(val).split(',').map(s => s.trim()).filter(Boolean)
-  }
-  const yamlList = (items) => items.length === 0 ? '  -' : items.map(x => `  - ${x}`).join('\n')
-  const yamlScalar = (val) => {
-    if (val === undefined || val === true) return ''
-    const s = String(val)
-    return /[:#"'\n]/.test(s) ? JSON.stringify(s) : s
-  }
-  const breaking = flags['breaking-changes'] === true
-    || flags['breaking-changes'] === 'true'
-  const outcomeType = (flags['outcome-type'] && flags['outcome-type'] !== true)
-    ? String(flags['outcome-type']) : 'feat'
-  const vorgehen = (flags['vorgehen'] && flags['vorgehen'] !== true)
-    ? String(flags['vorgehen']) : '(Begründung, Trade-offs, Code-Snippets, Verlinkungen)'
-
-  return `---
-outcome_summary: ${yamlScalar(flags['outcome-summary'])}
-outcome_type: ${outcomeType}
-files_changed:
-${yamlList(splitList(flags['files-changed']))}
-commits:
-${yamlList(splitList(flags['commits']))}
-breaking_changes: ${breaking}
-lessons_learned:
-${yamlList(splitList(flags['lessons-learned']))}
-related_issues:
-  - ${formatIssueKey(issue)}
----
-
-## Vorgehen
-
-${vorgehen}
-`
 }
 
 function pad(s, n) { s = String(s ?? ''); return s.length >= n ? s : s + ' '.repeat(n - s.length) }
@@ -273,7 +207,7 @@ function formatIssueKey(it) {
 }
 
 // Resolve <id|slug> → Projekt-Row über die Projektliste (CLI-Default-PROJECT_ID nicht zwingend
-// das Ziel-Projekt). Genutzt von den pfad-gescopten sstd-Subcommands (MEM-17).
+// das Ziel-Projekt). Genutzt von den pfad-gescopten Projekt-Subcommands.
 async function resolveProject(idOrSlug) {
   const projects = await api('GET', '/api/projects')
   const p = projects.find(x => String(x.id) === String(idOrSlug) || x.slug === idOrSlug)
@@ -470,7 +404,7 @@ function normalizeRelevantFiles(input) {
 const COMMANDS = {
   // ---- Projekt ----
   async 'project:list'(flags) {
-    // DD-622: compact-Default (ohne sstd_content/Prosa). --full / --fields full für Vollobjekte.
+    // DD-622: compact-Default (ohne große Prosa-Felder). --full / --fields full für Vollobjekte.
     const lp = new URLSearchParams()
     if (flags.full) lp.set('fields', 'full')
     else if (flags.fields) lp.set('fields', String(flags.fields))
@@ -519,37 +453,6 @@ const COMMANDS = {
     console.log(`Slug: ${p.slug}  Status: ${p.archived ? 'archiviert' : 'aktiv'}`)
     if (p.description) console.log(`\nBeschreibung:\n${p.description}`)
     if (p.color) console.log(`Color: ${p.color}`)
-  },
-  // DD-213: SSTD raw stdout, --rendered nutzt `glow` falls verfügbar.
-  async 'project:sstd'(flags) {
-    const idOrSlug = flags._[0]
-    if (!idOrSlug) { console.error('Usage: devd-cli project sstd <id|slug> [--rendered]'); process.exit(2) }
-    // Resolve id over project list (CLI default project_id env nicht zwingend richtig).
-    const projects = await api('GET', '/api/projects')
-    const p = projects.find(x => String(x.id) === String(idOrSlug) || x.slug === idOrSlug)
-    if (!p) { console.error(`Projekt ${idOrSlug} nicht gefunden`); process.exit(1) }
-    const res = await fetch(`${API}/api/projects/${p.id}/sstd`, { headers: headers() })
-    if (res.status === 404) {
-      console.error(`Keine SSTD für Projekt ${p.slug} (#${p.id}) hinterlegt`)
-      process.exit(1)
-    }
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
-      console.error(`SSTD-Abruf fehlgeschlagen: ${data.error || res.statusText}`)
-      process.exit(1)
-    }
-    const data = await res.json()
-    const content = data.sstd_content || ''
-    if (flags.rendered) {
-      const glow = spawnSync('glow', ['-'], { input: content, stdio: ['pipe', 'inherit', 'inherit'] })
-      if (glow.status !== 0) {
-        // Fallback: raw output
-        process.stdout.write(content)
-      }
-    } else {
-      process.stdout.write(content)
-      if (!content.endsWith('\n')) process.stdout.write('\n')
-    }
   },
 
   // ---- Sprint ----
@@ -600,7 +503,6 @@ const COMMANDS = {
   async 'sprint:create'(flags) {
     const name = flags._[0]
     if (!name) { console.error('Usage: devd-cli sprint create <name> [--goal <text>]'); process.exit(2) }
-    await printSOPBundle('sprint:create')
     const body = { name, status: 'new' }
     if (flags.goal) body.goal = flags.goal
     parseOrThrow(sprintCreateContract, body, 'sprint create')   // DD-561: Client-Guard vor API
@@ -610,7 +512,6 @@ const COMMANDS = {
   },
   async 'sprint:start'(flags) {
     const id = await resolveSprintId(flags._[0])
-    await printSOPBundle('sprint:start', id)
     const s = await api('PATCH', `/api/sprints/${id}/status`, { to: 'in_progress' })
     console.log(`✓ Sprint ${formatSprintKey(s)} → ${s.status}`)
     await scopedLink(s, 'sprints', s.id)
@@ -709,7 +610,6 @@ const COMMANDS = {
         }
         lines.push('')
       }
-      if (it.result) { lines.push('**Result:**'); lines.push(it.result); lines.push('') }
       lines.push('---')
       lines.push('')
     }
@@ -998,7 +898,6 @@ const COMMANDS = {
     if (it.context_notes) console.log(`\nContext:\n${it.context_notes}`)
     if (it.relevant_files) console.log(`\nFiles: ${it.relevant_files}`)
     if (it.po_notes) console.log(`\nPO-Notes:\n${it.po_notes}`)
-    if (it.result) console.log(`\nResult:\n${it.result}`)
     const userStories = Array.isArray(it.user_stories) ? it.user_stories : []
     if (userStories.length > 0) {
       console.log(`\nUser Stories (${userStories.length}):`)
@@ -1025,7 +924,6 @@ const COMMANDS = {
       console.error('Usage: devd-cli issue create <title> [--type bug|feature|improvement|core] [--priority 1-5] [--description <text>]')
       process.exit(2)
     }
-    await printSOPBundle('issue:create')
     const body = {
       title,
       type: flags.type || 'feature',
@@ -1115,74 +1013,6 @@ const COMMANDS = {
     const r = await api('PATCH', `/api/backlog/${id}/status`, body)
     console.log(`✓ ${formatIssueKey(r)} → ${r.status}`)
     await scopedLink(r, 'issues', r.id, r.project_number)
-  },
-  async 'issue:set-result'(flags) {
-    const ref = flags._[0]
-    if (!ref) {
-      console.error('Usage: devd-cli issue set-result <id|key>\n' +
-        '  Editor-Mode (default):  devd-cli issue set-result DD-42\n' +
-        '  Inline-Mode (KI/CI):    devd-cli issue set-result DD-42 \\\n' +
-        '                            --outcome-type feat --outcome-summary "..." \\\n' +
-        '                            [--files-changed a.js,b.js] [--commits sha1,sha2] \\\n' +
-        '                            [--breaking-changes] [--lessons-learned "..."] \\\n' +
-        '                            [--vorgehen "Markdown-Body"]')
-      process.exit(2)
-    }
-    const id = await resolveIssueId(ref)
-    const it = await api('GET', `/api/backlog/${id}`)
-
-    const INLINE_KEYS = ['outcome-type', 'outcome-summary', 'files-changed', 'commits',
-                         'breaking-changes', 'lessons-learned', 'vorgehen']
-    const hasInline = INLINE_KEYS.some(k => flags[k] !== undefined)
-
-    if (hasInline) {
-      if (flags['outcome-summary'] === undefined || flags['outcome-summary'] === true) {
-        console.error('Inline-Mode: --outcome-summary <text> ist Pflicht')
-        process.exit(2)
-      }
-      const content = buildResultFromFlags(flags, it)
-      const updated = await api('PUT', `/api/backlog/${id}`, { result: content })
-      console.log(`✓ ${formatIssueKey(updated)} result gespeichert (inline, ${content.length} Zeichen)`)
-      return
-    }
-
-    const template = it.result || `---
-outcome_summary:
-outcome_type: feat
-files_changed:
-  -
-commits:
-  -
-breaking_changes: false
-lessons_learned:
-  -
-related_issues:
-  - ${formatIssueKey(it)}
----
-
-## Vorgehen
-
-(Begründung, Trade-offs, Code-Snippets, Verlinkungen)
-`
-    const tmpFile = join(tmpdir(), `devd-result-${id}.md`)
-    writeFileSync(tmpFile, template, 'utf8')
-    const editor = process.env.EDITOR || 'vi'
-    const r = spawnSync(editor, [tmpFile], { stdio: 'inherit' })
-    if (r.status !== 0) {
-      console.error('Editor-Aufruf fehlgeschlagen — abgebrochen')
-      process.exit(1)
-    }
-    if (!existsSync(tmpFile)) {
-      console.error('Tempfile verschwunden — abgebrochen')
-      process.exit(1)
-    }
-    const content = readFileSync(tmpFile, 'utf8')
-    if (content.trim() === template.trim()) {
-      console.log('Keine Änderung — abgebrochen.')
-      process.exit(0)
-    }
-    const updated = await api('PUT', `/api/backlog/${id}`, { result: content })
-    console.log(`✓ ${formatIssueKey(updated)} result gespeichert (${content.length} Zeichen)`)
   },
   async 'issue:assign-sprint'(flags) {
     const ref = flags._[0]
@@ -1946,110 +1776,6 @@ related_issues:
     console.log(`\n${rows.length} Aktivitäten`)
   },
 
-  // ---- SOPs (DD-530) — global (kein project_id); Zeilen-Edit analog SSTD-Slot ----
-  async 'sop:list'() {
-    const rows = await api('GET', '/api/sops')
-    console.log(pad('KEY', 26), pad('TITLE', 42), 'UPDATED')
-    console.log('─'.repeat(92))
-    for (const s of rows) console.log(pad(s.sop_key, 26), pad(trunc(s.title, 40), 42), s.updated_at || '-')
-    console.log(`\n${rows.length} SOPs`)
-  },
-  async 'sop:show'(flags) {
-    const key = flags._[0]
-    if (!key) { console.error('Usage: devd-cli sop show <key> [--numbered]   # --numbered zeigt Zeilennummern für sop edit'); process.exit(2) }
-    const s = await api('GET', `/api/sops/${encodeURIComponent(key)}`)
-    console.log(`# ${s.title}  (${s.sop_key})\n`)
-    if (flags.numbered) {
-      String(s.content || '').split('\n').forEach((l, i) => console.log(`${String(i + 1).padStart(4)}  ${l}`))
-    } else {
-      process.stdout.write((s.content || '') + '\n')
-    }
-  },
-  async 'sop:edit'(flags) {
-    const key = flags._[0]
-    const op = flags.op
-    const line = flags.line
-    if (!key || !op || line === undefined || line === true) {
-      console.error('Usage: devd-cli sop edit <key> --op patch|insert_after|insert_before|delete --line <n> [--content <text>] [--expect <line-content>]')
-      process.exit(2)
-    }
-    // Op-Schreibweise tolerant: insert-after == insert_after (Backend nutzt Underscore).
-    const body = { op: String(op).replace(/-/g, '_'), line: Number(line) }
-    if (typeof flags.content === 'string') body.content = flags.content
-    if (typeof flags.expect === 'string') body.expect = flags.expect
-    const s = await api('PATCH', `/api/sops/${encodeURIComponent(key)}/line`, body)
-    console.log(`✓ SOP '${s.sop_key}' Line-Op '${op}' @${line}`)
-  },
-  async 'sop:set'(flags) {
-    const key = flags._[0]
-    if (!key || (typeof flags.content !== 'string' && typeof flags.file !== 'string')) {
-      console.error('Usage: devd-cli sop set <key> --content "<text>" | --file <path>   # Whole-Rewrite (last-write-wins)')
-      process.exit(2)
-    }
-    const content = typeof flags.file === 'string' ? readFileSync(flags.file, 'utf8') : flags.content
-    const s = await api('PUT', `/api/sops/${encodeURIComponent(key)}`, { content })
-    console.log(`✓ SOP '${s.sop_key}' überschrieben (${String(content).length} Zeichen)`)
-  },
-  async 'sop:create'(flags) {
-    const key = flags._[0]
-    if (!key || typeof flags.title !== 'string' || (typeof flags.content !== 'string' && typeof flags.file !== 'string')) {
-      console.error('Usage: devd-cli sop create <key> --title "<text>" --content "<text>" | --file <path> [--force]')
-      console.error('  Legt eine neue SOP an. Ohne --force Fehler, wenn der Key bereits existiert (dann sop set/edit nutzen).')
-      process.exit(2)
-    }
-    // Existenz-Guard: POST ist serverseitig ein Upsert; create darf nicht versehentlich überschreiben.
-    if (!flags.force) {
-      let exists = false
-      try { await api('GET', `/api/sops/${encodeURIComponent(key)}`); exists = true } catch { exists = false }
-      if (exists) { console.error(`SOP '${key}' existiert bereits — 'sop set'/'sop edit' nutzen oder --force.`); process.exit(2) }
-    }
-    const content = typeof flags.file === 'string' ? readFileSync(flags.file, 'utf8') : flags.content
-    const s = await api('POST', '/api/sops', { sop_key: key, title: flags.title, content })
-    console.log(`✓ SOP '${s.sop_key}' angelegt (${String(content).length} Zeichen)`)
-  },
-
-  // ---- SOP-Collections (ProjectPages T-be2, D-E) — global; benannte SOP-Gruppen + Export ----
-  async 'sop-collection:list'() {
-    const rows = await api('GET', '/api/sop-collections')
-    console.log(pad('KEY', 26), pad('NAME', 32), 'SOPS')
-    console.log('─'.repeat(70))
-    for (const c of rows) console.log(pad(c.collection_key, 26), pad(trunc(c.name, 30), 32), c.sop_count)
-    console.log(`\n${rows.length} Collections`)
-  },
-  async 'sop-collection:show'(flags) {
-    const key = flags._[0]
-    if (!key) { console.error('Usage: devd-cli sop-collection show <key>'); process.exit(2) }
-    const c = await api('GET', `/api/sop-collections/${encodeURIComponent(key)}`)
-    console.log(`# ${c.name}  (${c.collection_key})`)
-    if (c.description) console.log(c.description)
-    console.log(`\n${c.sops.length} SOPs:`)
-    for (const s of c.sops) console.log(`  - ${pad(s.sop_key, 26)} ${trunc(s.title, 40)}`)
-  },
-  async 'sop-collection:create'(flags) {
-    const key = flags._[0]
-    if (!key || typeof flags.name !== 'string') {
-      console.error('Usage: devd-cli sop-collection create <key> --name "<text>" [--description "<text>"]'); process.exit(2)
-    }
-    const body = { collection_key: key, name: flags.name }
-    if (typeof flags.description === 'string') body.description = flags.description
-    const c = await api('POST', '/api/sop-collections', body)
-    console.log(`✓ Collection '${c.collection_key}' angelegt`)
-  },
-  async 'sop-collection:set'(flags) {
-    const key = flags._[0]
-    if (!key || typeof flags.sops !== 'string') {
-      console.error('Usage: devd-cli sop-collection set <key> --sops "key-a,key-b,key-c"   # Replace, geordnet'); process.exit(2)
-    }
-    const sopKeys = flags.sops.split(',').map(s => s.trim()).filter(Boolean)
-    const r = await api('PUT', `/api/sop-collections/${encodeURIComponent(key)}/items`, { sopKeys })
-    console.log(`✓ Collection '${key}' Mitglieder gesetzt: ${r.sopKeys.join(', ')}`)
-  },
-  async 'sop-collection:export'(flags) {
-    const key = flags._[0]
-    if (!key) { console.error('Usage: devd-cli sop-collection export <key>   # Markdown-Bundle nach stdout'); process.exit(2) }
-    const md = await api('GET', `/api/sop-collections/${encodeURIComponent(key)}/export`)
-    process.stdout.write((typeof md === 'string' ? md : JSON.stringify(md)) + '\n')
-  },
   // DD2-6: Sprint-Export (CSV/MD) nach stdout. Backlog-CSV bleibt entfernt (DD2-123);
   // Sprint-Export behält CSV für Tabellen-/Tracking-Tools.
   async 'sprint:export'(flags) {
@@ -2148,89 +1874,6 @@ related_issues:
     console.log(`✓ User-Note #${id} gelöscht`)
   },
 
-  // ---- SSTD-Slots (MEM-17) — pfad-gescopt über Projekt-ID; spiegelt MEM-16-REST ----
-  async 'sstd:show'(flags) {
-    const idOrSlug = flags._[0]
-    if (!idOrSlug) { console.error('Usage: devd-cli sstd show <id|slug> [--rendered]'); process.exit(2) }
-    const p = await resolveProject(idOrSlug)
-    const data = await api('GET', `/api/projects/${p.id}/sstd`)
-    const content = data.sstd_content || ''
-    if (flags.rendered) {
-      const glow = spawnSync('glow', ['-'], { input: content, stdio: ['pipe', 'inherit', 'inherit'] })
-      if (glow.status !== 0) process.stdout.write(content + '\n')
-    } else {
-      process.stdout.write(content + '\n')
-    }
-  },
-  async 'sstd:slot'(flags) {
-    const [idOrSlug, key] = flags._
-    if (!idOrSlug || !key) { console.error('Usage: devd-cli sstd slot <id|slug> <slot_key>'); process.exit(2) }
-    const p = await resolveProject(idOrSlug)
-    const slot = await api('GET', `/api/projects/${p.id}/sstd/slots/${encodeURIComponent(key)}`)
-    console.log(`# ${slot.slot_key}${slot.updated_at ? `  (updated ${slot.updated_at})` : '  (leer)'}`)
-    if (slot.content) process.stdout.write(slot.content + '\n')
-  },
-  async 'sstd:set'(flags) {
-    const [idOrSlug, key] = flags._
-    if (!idOrSlug || !key) {
-      console.error('Usage: devd-cli sstd set <id|slug> <slot_key> [--content <text>]  (ohne --content: $EDITOR)')
-      process.exit(2)
-    }
-    const p = await resolveProject(idOrSlug)
-    let content
-    if (typeof flags.content === 'string') {
-      content = flags.content
-    } else if (typeof flags.file === 'string') {
-      content = readFileSync(flags.file, 'utf8')
-    } else {
-      const cur = await api('GET', `/api/projects/${p.id}/sstd/slots/${encodeURIComponent(key)}`)
-      const tmpFile = join(tmpdir(), `devd-sstd-${p.id}-${key}.md`)
-      writeFileSync(tmpFile, cur.content || '', 'utf8')
-      const editor = process.env.EDITOR || 'vi'
-      const r = spawnSync(editor, [tmpFile], { stdio: 'inherit' })
-      if (r.status !== 0) { console.error('Editor-Aufruf fehlgeschlagen — abgebrochen'); process.exit(1) }
-      content = readFileSync(tmpFile, 'utf8')
-    }
-    parseOrThrow(slotSetContract, { slot_key: key, content }, 'sstd set')   // DD-564: Client-Guard vor API
-    const slot = await api('PUT', `/api/projects/${p.id}/sstd/slots/${encodeURIComponent(key)}`, { content })
-    console.log(`✓ Slot '${slot.slot_key}' gespeichert (${content.length} Zeichen, project ${p.id})`)
-  },
-  async 'sstd:edit'(flags) {
-    const [idOrSlug, key] = flags._
-    const op = flags.op
-    const line = flags.line
-    if (!idOrSlug || !key || !op || line === undefined || line === true) {
-      console.error('Usage: devd-cli sstd edit <id|slug> <slot_key> --op patch|insert_after|insert_before|delete --line <n> [--content <text>] [--expect <line-content>]')
-      process.exit(2)
-    }
-    const p = await resolveProject(idOrSlug)
-    // Op-Schreibweise tolerant: insert-after == insert_after (Backend nutzt Underscore).
-    const body = { op: String(op).replace(/-/g, '_'), line: Number(line) }
-    if (typeof flags.content === 'string') body.content = flags.content
-    if (typeof flags.expect === 'string') body.expect = flags.expect
-    parseOrThrow(slotEditContract, { slot_key: key, ...body }, 'sstd edit')   // DD-564: Client-Guard vor API
-    const slot = await api('PATCH', `/api/projects/${p.id}/sstd/slots/${encodeURIComponent(key)}/line`, body)
-    console.log(`✓ Slot '${slot.slot_key}' Line-Op '${op}' @${line} (project ${p.id})`)
-  },
-  async 'sstd:journal'(flags) {
-    const idOrSlug = flags._[0]
-    if (!idOrSlug) {
-      console.error('Usage: devd-cli sstd journal <id|slug> [--add "<text>"]  (ohne --add: letzte Einträge)')
-      process.exit(2)
-    }
-    const p = await resolveProject(idOrSlug)
-    if (typeof flags.add === 'string') {
-      // Session-Log-Eintrag = session_log Project-Memory (kein eigener Store, D03-rev; DD2-19).
-      parseOrThrow(journalAddContract, { text: flags.add }, 'sstd journal')   // DD-564: Client-Guard vor API
-      const m = await api('POST', '/api/project-memories', { category: 'session_log', summary: flags.add }, p.id)
-      console.log(`✓ Session-Log-Eintrag #${m.id} (session_log, project ${p.id})`)
-    } else {
-      const rows = await api('GET', '/api/project-memories?category=session_log', null, p.id)
-      console.log(`\nSession-Log — letzte ${Math.min(rows.length, 40)} Einträge (project ${p.id})`)
-      for (const r of rows.slice(0, 40)) console.log(`  ${r.created_at} — ${trunc(r.summary, 70)}`)
-    }
-  },
-
   async help() {
     console.log(`DevDash CLI
 
@@ -2323,16 +1966,6 @@ Project-Memory (MEM-10 — projektgebundenes Wissen, FTS5, project-scoped):
   devd-cli issue tag-set <id|key> --tags "a,b,c"     # vollständiger Replace (leer = alle löschen)
   devd-cli issue tag-remove <id|key> --tags "a,b"    # nur genannte entfernen
 
-SSTD-Slots (MEM-17 — adressierbare SSTD-Slots, gezielte Per-Slot/Per-Line-Ops):
-  devd-cli sstd show <id|slug> [--rendered]            # vollständige SSTD (aus Slots reassembliert)
-  devd-cli sstd slot <id|slug> <slot_key>              # einzelnen Slot lesen
-  devd-cli sstd set <id|slug> <slot_key> [--content <text> | --file <pfad>]   # Slot komplett neu (sonst: $EDITOR)
-  devd-cli sstd edit <id|slug> <slot_key> --op patch|insert_after|insert_before|delete --line <n>
-                                          [--content <text>] [--expect <line-content>]
-  devd-cli sstd journal <id|slug> [--add "<text>"]     # Session-Log lesen / session_log-Eintrag anhängen
-       Slots: architecture | conventions | sprint_state | roadmap | cross_refs | misc
-       (project sstd <id|slug> bleibt als Read-All-Alias erhalten)
-
 Issues (Key wie DD-161 oder globale ID):
   devd-cli issue list [--sprint <key|id>] [--status <s>] [--search <q>] [--full|--fields <list>] [--limit <n>] [--offset <n>]
   devd-cli issue show <id|key>
@@ -2343,7 +1976,6 @@ Issues (Key wie DD-161 oder globale ID):
                                   po-notes, description, test-instruction.
                                   --<feld>-editor öffnet $EDITOR mit aktuellem Wert.
   devd-cli issue status <id|key> <status> [--notes <text>]
-  devd-cli issue set-result <id|key>        # öffnet $EDITOR (Hybrid YAML+MD-Template)
   devd-cli issue assign-sprint <id|key> --sprint <key|id|null|none>
                                 # Assign to sprint (DD#20) or unassign (--sprint null)
   devd-cli issue dep add <key|id> --on <key|id> [--note <text>]   # MEM-14: Abhängigkeit setzen
@@ -2353,12 +1985,6 @@ Issues (Key wie DD-161 oder globale ID):
   devd-cli issue delete <id|key> [--force]   # ohne --force → 409 (Status cancelled nutzen)
   devd-cli issue move <id|key> --to <project-id|slug>
   devd-cli issue activity <id|key> [--limit <n>]   # Audit-Log des Issues
-
-  devd-cli sop list
-  devd-cli sop show <key> [--numbered]              # --numbered für Zeilennummern (für sop edit)
-  devd-cli sop edit <key> --op patch|insert_after|insert_before|delete --line <n> [--content <text>] [--expect <line>]
-  devd-cli sop set <key> --content "<text>" | --file <path>   # Whole-Rewrite (Fallback)
-  devd-cli sop create <key> --title "<text>" --content "<text>" | --file <path> [--force]   # neue SOP anlegen (Guard gegen Überschreiben)
 
   devd-cli issue dep rm <key|id> --on <key|id>                    # Kante entfernen
 

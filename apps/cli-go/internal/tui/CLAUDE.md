@@ -12,7 +12,7 @@ Datei `view_browse_project.go` → Konstante `viewBrowseProject` → Methode
 | `art_` | Bedeutung | Verben (Beispiele) |
 |---|---|---|
 | `view_` | Vollbild-Screen im `viewID`-Dispatcher (`view.go::viewBase`) | browse, navigate, review, detail, manage, command |
-| `form_` | huh.Form-Overlay (Eingabe) | create, edit, capture, reject |
+| `form_` | huh.Form-Overlay (Eingabe) | create, edit, reject |
 | `box_` | y/n-Confirm-Box | confirm |
 | `picker_` | Auswahl-/Zuweisungs-Menü | assign |
 | `overlay_` | schwebende Utility (kein `viewID`) | palette, shortcuts |
@@ -47,7 +47,7 @@ kein Split. (D09-Flachliste durch DD2-196 abgelöst.)
 ## Forms / Boxes / Picker / Overlays
 
 `form_create_{issue,sprint,milestone,memory}.go` · `form_edit_{userstory,settings}.go`
-· `form_capture_result.go` · `form_reject_issue.go` · `form_sandbox.go` (Dev-only).
+· `form_reject_issue.go` · `form_sandbox.go` (Dev-only).
 `box_confirm_{create,delete,quit}.go`. `picker_assign_{milestone,sprint}.go`.
 `overlay_{palette,shortcuts}.go`.
 
@@ -56,7 +56,7 @@ kein Split. (D09-Flachliste durch DD2-196 abgelöst.)
 Kein Screen → kein Präfix: `app.go` (model+Update-Dispatch), `view.go`
 (`viewBase`-Dispatcher + Frame/Chrome-Primitive), `update.go`, `keys.go`,
 `keys_review.go`, `keymap.go` (Single-Source-Keymap), `list.go`, `types.go`,
-`messages.go`, `context.go`, `result.go`, `create.go`.
+`messages.go`, `context.go`, `create.go`.
 Render-/Modal-Komponentenschicht: `render_shared.go` (pane/renderPane/tagsInline/
 issueFields/borderedPane), `forms_shared.go` (huh-Theme/Reset/Chrome), `modal.go`,
 `overlay.go`, `accordion.go`.

@@ -23,7 +23,6 @@ const (
 	viewManageTags    // DD2-75: Tag-Manager (projektweite Tag-CRUD)
 	viewCommandCenter // DD2-91: projektweite Issue-Such-Ansicht (Command-Center)
 	viewTutorial      // DD2-122: geführtes, seitenweises Onboarding
-	viewSSTD          // DD2-166: SSTD-Slots MasterDetail (6 Slots + 2 Projektionen)
 	viewUserNotes     // DD2-168: User-Notes MasterDetail (FTS-Suche, neovim-Edit)
 	viewToDos         // DD2-171: Projekt-ToDos MasterDetail (Suche/Sort/Filter)
 	viewDocs          // DD2-167: Dokumente-Browser (owner-gebunden, neovim-Edit)
@@ -212,13 +211,6 @@ type model struct {
 	memQuery     string
 	memCat       string // aktiver Kategorie-Filter ("" = alle)
 
-	// SSTD-Browser (DD2-166): MasterDetail über die 6 editierbaren Slots + 2
-	// read-only Projektionen. sstdEditKey merkt sich den Slot vor dem neovim-Edit.
-	sstdSlots   []api.SstdSlot
-	sstdProj    *api.SstdProjections
-	sstdList    listState
-	sstdEditKey string
-
 	// User-Notes-Browser (DD2-168): MasterDetail über user_notes mit FTS-Suche.
 	// unEditID = 0 → Create-Modus beim nächsten editorFinishedMsg, >0 → Update.
 	unList      []api.UserNote
@@ -257,7 +249,7 @@ type model struct {
 
 	// Eingebettetes huh-Create-Formular (T16). nil = inaktiv.
 	form     *huh.Form
-	formKind string // issue | milestone | sprint | memory | result
+	formKind string // issue | milestone | sprint | memory | reject | settings
 
 	// Multi-Tab-Forms (DD2-36): Tab-Strip für mehrblättrige Create-Formulare.
 	// formGroupTitles != nil → Tab-Strip sichtbar. formGroupIdx = aktiver Tab (0-basiert).
@@ -265,11 +257,6 @@ type model struct {
 	formGroupIdx    int
 	formGroupTitles []string
 	formPartials    map[string]string
-
-	// Ziel des result-Formulars (I02): r im Cockpit füllt das Ergebnisfeld.
-	resultIssueID  int
-	resultIssueKey string
-	resultSprintID int
 
 	// Ziel des Reject-Formulars (DD2-119, US-50): x im Cockpit öffnet das
 	// mehrzeilige Reject-Kommentar-Modal statt der einzeiligen Footer-Eingabe.

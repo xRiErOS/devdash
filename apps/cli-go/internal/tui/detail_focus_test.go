@@ -193,39 +193,6 @@ func TestDetailFocusDigitJump(t *testing.T) {
 	}
 }
 
-// Read-only-Section (keine editierbaren Felder) → l/→ ist no-op. Seit DD2-144 ist
-// die User-Stories-Section editierbar (Add/Edit); die verbleibende read-only Section
-// ist Result — darauf navigieren und l/→ als no-op prüfen.
-func TestDetailFocusReadOnlySectionNoFieldEntry(t *testing.T) {
-	m := treeModel()
-	m.treeExpMile[1] = true
-	r := "Implemented and merged"
-	m.treeIssues[10] = []api.Issue{{
-		Key: "DD2-9", Title: "RO", Type: "bug", Priority: 1, Status: "to_review",
-		Result: &r,
-	}}
-	m.treeExpSprint[10] = true
-	m.view = viewBrowseProject
-	m.treeCursor = 2
-	// focusSections (full): [Overview, Goal/PO, Background/Context, Relevant Files,
-	// User-Stories, Result(read-only)]. enter → Overview; auf die letzte (Result-)
-	// Section laufen, dann l/→ = no-op.
-	mi, _ := m.keyTree(tea.KeyMsg{Type: tea.KeyEnter})
-	m = mi.(model)
-	last := len(m.focusSections()) - 1
-	for m.secCursor < last {
-		mi, _ = m.keyTree(key("k"))
-		m = mi.(model)
-	}
-	if got := m.focusSections()[last]; len(got.fields) != 0 {
-		t.Fatalf("letzte Section %q ist nicht feldlos (%d Felder)", got.title, len(got.fields))
-	}
-	mi, _ = m.keyTree(key("l"))
-	if mi.(model).detailLevel != 0 {
-		t.Errorf("l/→ in feldlose Section → level=%d, want 0 (no-op)", mi.(model).detailLevel)
-	}
-}
-
 // issueSections trägt die editierbaren Felder je Section (Single Source für Nav +
 // späteren Edit). Section 1 = goal/description/po_notes; Section 2 = background.
 func TestIssueSectionsCarryFields(t *testing.T) {

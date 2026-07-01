@@ -73,15 +73,6 @@ const PROJECT_ID_PARAM = z
 // (DD-562-Lesson: t10-Muster). DD2-19: session_note -> session_log + knowledge ergänzt.
 const MEMORY_CATEGORIES = ['architecture_decision', 'dead_end', 'bug_pattern', 'convention', 'external_constraint', 'session_log', 'knowledge']
 
-// MEM-18: SSTD-Slot-Keys (mirror of migration 043 / sstdSlots.js SLOT_KEYS).
-// DD-564: Die Single Source der Werte liegt in contracts/sstd.contracts.js + der REST-Lib.
-// Diese Inline-Literale bleiben BEWUSST stehen (nicht aus dem Contract importiert) — sie sind
-// Source-Shape-Anker: tests/mem18-sstd-mcp/sstdMcpWiring.test.js liest mcp/devd-mcp.js als Text und
-// assertet `toContain('architecture'…)` sowie `toContain(op)` für jeden Line-Op im slot_edit-Block.
-// Ein Dedup auf z.enum(CONTRACT_SLOT_KEYS) würde diesen t10-Muster-Guard brechen (DD-562/563-Lesson).
-const SLOT_KEYS = ['architecture', 'conventions', 'sprint_state', 'roadmap', 'cross_refs', 'misc']
-const SLOT_LINE_OPS = ['patch', 'insert_after', 'insert_before', 'delete']
-
 function resolveProjectId(p) {
   const v = p ?? DEFAULT_PROJECT_ID
   if (v === null || v === undefined || v === '') {
@@ -175,66 +166,6 @@ function spillToFile(data, text) {
 }
 
 // ---------------------------------------------------------------------------
-// DD-376: SOP once-per-session delivery (MCP-side de-dup)
-//
-// Problem: the CLI's printSOPContext/printSOPBundle prints the FULL SOP text on
-// EVERY issue:create call. Run 15× in a session → SOP printed 15× → context
-// bloat. The MCP tools previously returned no SOP at all (the only SOP source
-// was the explicit devd_sop_bundle tool).
-//
-// Solution (per PO): the MCP wrapper passively delivers the SOP exactly ONCE per
-// session, transparently. The agent needs no knowledge of the mechanism — the
-// first call to an issue-creation tool returns a `sop_context` field; every
-// subsequent call in the same session omits it.
-//
-// Session identity: stdio MCP has no per-request session id exposed by the SDK
-// transport here — one client connects to one long-lived server process over
-// stdio. We therefore fall back to a SINGLE GLOBAL per-process session: the SOP
-// is delivered once per MCP server process start (a fresh `node mcp/devd-mcp.js`
-// = a fresh session). `deliveredSOPs` is keyed by the SOP/trigger key so that
-// different triggers (issue:create vs. sprint:start) can each deliver once.
-//
-// In-memory only — no DB write. The CLI behaviour (bin/devd-cli.js
-// printSOPContext) is unchanged; only the MCP path is de-duped.
-const deliveredSOPs = new Set()
-
-// Loads the rendered SOP text for a lifecycle trigger from the DB-backed
-// /api/sops/bundle endpoint — the SAME source devd_sop_bundle and the CLI's
-// printSOPBundle use (DB master, filesystem-independent). Returns the rendered
-// string, or null when the endpoint is unreachable / has no SOPs (graceful: the
-// create still succeeds without SOP).
-async function fetchSOPText(trigger, projectId) {
-  try {
-    const qs = new URLSearchParams({ trigger })
-    const data = await apiRequest('GET', `/api/sops/bundle?${qs.toString()}`, null, projectId)
-    if (data && !data.error && Array.isArray(data.sops) && data.sops.length > 0) {
-      return data.rendered || null
-    }
-  } catch {
-    // unreachable endpoint → no SOP; create proceeds normally
-  }
-  return null
-}
-
-// Returns the SOP text for `trigger` on the FIRST call per process, then null on
-// every subsequent call (once-per-session de-dup). `sopKey` defaults to the
-// trigger so each lifecycle trigger delivers independently.
-async function maybeSOPContext(trigger, projectId, sopKey = trigger) {
-  if (deliveredSOPs.has(sopKey)) return null
-  // Mark as delivered BEFORE the await so two concurrent first-calls cannot both
-  // resolve to "not yet delivered" and emit the SOP twice.
-  deliveredSOPs.add(sopKey)
-  const text = await fetchSOPText(trigger, projectId)
-  if (!text) {
-    // Endpoint had nothing to deliver — un-mark so a later call (e.g. after the
-    // API comes back) can still deliver once.
-    deliveredSOPs.delete(sopKey)
-    return null
-  }
-  return text
-}
-
-// ---------------------------------------------------------------------------
 // Resolve id_or_key → numeric backlog id
 // Accepts numeric string ("42"), or issue key ("DD-42", "MBT-7")
 // We resolve keys by fetching the backlog and searching by project_number + prefix.
@@ -282,27 +213,6 @@ async function resolveSprintId(keyOrId, projectId = null) {
 }
 
 // ---------------------------------------------------------------------------
-// Resolve project id_or_slug → numeric project id
-// Backend /api/projects/:id akzeptiert nur numerische Id (kein Slug-Resolve).
-// DD-215: Helper für die SSTD-Tools, die slug-eingaben transparent auflösen.
-// ---------------------------------------------------------------------------
-
-async function resolveProjectNumericId(idOrSlug) {
-  const s = String(idOrSlug).trim()
-  if (/^\d+$/.test(s)) return s
-
-  const list = await apiRequest('GET', '/api/projects')
-  if (!Array.isArray(list)) {
-    throw new Error(`Konnte Projektliste nicht laden für Slug-Resolve "${idOrSlug}"`)
-  }
-  const found = list.find((p) => p.slug === s)
-  if (!found) {
-    throw new Error(`Projekt "${idOrSlug}" nicht gefunden (weder numerische id noch slug)`)
-  }
-  return String(found.id)
-}
-
-// ---------------------------------------------------------------------------
 // MCP Server
 // ---------------------------------------------------------------------------
 
@@ -317,7 +227,7 @@ const server = new McpServer({
 
 server.tool(
   'devd_project_list',
-  'List all projects in DevDashboard. Global — no project_id required. Compact by default (DD-622, no sstd_content/prose); fields=full for everything. Read-only.',
+  'List all projects in DevDashboard. Global — no project_id required. Compact by default (DD-622, no prose fields); fields=full for everything. Read-only.',
   {
     include_archived: z.boolean().optional().describe('Include archived projects (default false)'),
     fields: z.enum(['compact', 'full']).optional().describe('DD-622: compact (default, token-safe) or full'),
@@ -338,148 +248,6 @@ server.tool(
   { id_or_slug: z.string().describe('Numeric project id or slug string (e.g. "devd", "2")') },
   async ({ id_or_slug }) => {
     const data = await apiRequest('GET', `/api/projects/${encodeURIComponent(id_or_slug)}`)
-    return ok(data)
-  },
-)
-
-server.tool(
-  'devd_project_sstd_get',
-  'Get the SSTD (Single Source of Truth Document) markdown content of a project. Resolves numeric id or slug. Returns null + hint when no SSTD set. Read-only. Followup zu DD-213.',
-  { id_or_slug: z.string().describe('Numeric project id or slug string (e.g. "devd", "2")') },
-  async ({ id_or_slug }) => {
-    let pid
-    try {
-      pid = await resolveProjectNumericId(id_or_slug)
-    } catch (e) {
-      return ok({ error: true, message: e.message })
-    }
-    const data = await apiRequest('GET', `/api/projects/${pid}/sstd`)
-    if (data && data.error === true && data.status === 404) {
-      return ok({
-        project_id: Number(pid),
-        sstd_content: null,
-        sstd_updated_at: null,
-        hint: `Keine SSTD für Projekt "${id_or_slug}" hinterlegt — via devd_project_sstd_set oder UI anlegen.`,
-      })
-    }
-    return ok(data)
-  },
-)
-
-server.tool(
-  'devd_project_sstd_set',
-  'WRITE (DEPRECATED seit MEM-18): Whole-Rewrite des Legacy-Blobs projects.sstd_content (last-write-wins, KEIN Versions-/Diff-Schutz). Fuer granulare, token-effiziente Updates stattdessen devd_sstd_slot_set / devd_sstd_slot_edit nutzen. sstd_content=null loescht den Legacy-Blob. Followup zu DD-213.',
-  {
-    id_or_slug: z.string().describe('Numeric project id or slug string (e.g. "devd", "2")'),
-    sstd_content: z
-      .union([z.string(), z.null()])
-      .describe('Markdown-Inhalt (string) zum Setzen oder null zum Loeschen'),
-  },
-  async ({ id_or_slug, sstd_content }) => {
-    let pid
-    try {
-      pid = await resolveProjectNumericId(id_or_slug)
-    } catch (e) {
-      return ok({ error: true, message: e.message })
-    }
-    const data = await apiRequest('PUT', `/api/projects/${pid}/sstd`, { sstd_content })
-    return ok(data)
-  },
-)
-
-// ---------------------------------------------------------------------------
-// SSTD-Slots (MEM-18) — adressierbare Slots, gezielte Per-Slot/Per-Line-Ops.
-// Spiegelt die MEM-16-Slot-REST. Pfad-gescopt → slug via resolveProjectNumericId.
-// ---------------------------------------------------------------------------
-
-server.tool(
-  'devd_sstd_get',
-  'Get the full reassembled SSTD of a project (6 Slots + Projektionen: Naechste Schritte <- offene ToDos, Session-Log <- letzte 40 session_log-Memories). Faellt auf den Legacy-Blob projects.sstd_content zurueck, solange alle Slots leer sind. Read-only (MEM-16/18).',
-  { id_or_slug: z.string().describe('Numeric project id or slug string (e.g. "devd", "2")') },
-  async ({ id_or_slug }) => {
-    let pid
-    try { pid = await resolveProjectNumericId(id_or_slug) } catch (e) { return ok({ error: true, message: e.message }) }
-    const data = await apiRequest('GET', `/api/projects/${pid}/sstd`)
-    return ok(data)
-  },
-)
-
-server.tool(
-  'devd_sstd_slot_get',
-  'Get a single SSTD slot of a project. Read-only (MEM-16/18).',
-  {
-    id_or_slug: z.string().describe('Numeric project id or slug string (e.g. "devd", "2")'),
-    slot_key: z.enum(SLOT_KEYS).describe('One of the 6 fixed slots'),
-  },
-  async ({ id_or_slug, slot_key }) => {
-    let pid
-    try { pid = await resolveProjectNumericId(id_or_slug) } catch (e) { return ok({ error: true, message: e.message }) }
-    const data = await apiRequest('GET', `/api/projects/${pid}/sstd/slots/${encodeURIComponent(slot_key)}`)
-    return ok(data)
-  },
-)
-
-server.tool(
-  'devd_sstd_slot_list',
-  'List all SSTD slots of a project (slot-key + raw content) in one call. Unlike devd_sstd_get (full reassembly incl. projections) this returns the raw editable slots as a list. Read-only (MEM-16/18, DD2-98).',
-  { id_or_slug: z.string().describe('Numeric project id or slug string (e.g. "devd", "2")') },
-  async ({ id_or_slug }) => {
-    let pid
-    try { pid = await resolveProjectNumericId(id_or_slug) } catch (e) { return ok({ error: true, message: e.message }) }
-    const data = await apiRequest('GET', `/api/projects/${pid}/sstd/slots`)
-    return ok(data)
-  },
-)
-
-server.tool(
-  'devd_sstd_slot_set',
-  'WRITE: Replace a whole SSTD slot (last-write-wins). Use for the initial fill or full rewrite of one slot; for line-level edits use devd_sstd_slot_edit (MEM-16/18).',
-  {
-    id_or_slug: z.string().describe('Numeric project id or slug string (e.g. "devd", "2")'),
-    slot_key: z.enum(SLOT_KEYS).describe('One of the 6 fixed slots'),
-    content: z.string().describe('Full new markdown content of the slot'),
-  },
-  async ({ id_or_slug, slot_key, content }) => {
-    let pid
-    try { pid = await resolveProjectNumericId(id_or_slug) } catch (e) { return ok({ error: true, message: e.message }) }
-    const data = await apiRequest('PUT', `/api/projects/${pid}/sstd/slots/${encodeURIComponent(slot_key)}`, { content })
-    return ok(data)
-  },
-)
-
-server.tool(
-  'devd_sstd_slot_edit',
-  'WRITE: Line-level edit of one SSTD slot (token-effizient statt Whole-Rewrite). op=patch|insert_after|insert_before|delete, line is 1-based (insert_after erlaubt 0 = voranstellen). Optionaler expect-Guard: stimmt der aktuelle Zeileninhalt nicht, antwortet das Backend mit 409 (kein Write) (MEM-16/18).',
-  {
-    id_or_slug: z.string().describe('Numeric project id or slug string (e.g. "devd", "2")'),
-    slot_key: z.enum(SLOT_KEYS).describe('One of the 6 fixed slots'),
-    op: z.enum(SLOT_LINE_OPS).describe('Line operation'),
-    line: z.number().int().describe('1-based line number (insert_after also accepts 0 to prepend)'),
-    content: z.string().optional().describe('New line content (for patch / insert_*)'),
-    expect: z.string().optional().describe('Guard: current content of the anchor line must match, else 409 (no write)'),
-  },
-  async ({ id_or_slug, slot_key, op, line, content, expect }) => {
-    let pid
-    try { pid = await resolveProjectNumericId(id_or_slug) } catch (e) { return ok({ error: true, message: e.message }) }
-    const body = { op, line }
-    if (content !== undefined) body.content = content
-    if (expect !== undefined) body.expect = expect
-    const data = await apiRequest('PATCH', `/api/projects/${pid}/sstd/slots/${encodeURIComponent(slot_key)}/line`, body)
-    return ok(data)
-  },
-)
-
-server.tool(
-  'devd_sstd_journal_add',
-  'WRITE: Append a session-log entry to a project. Alias, der ein project_memory (category=session_log, Auto-Datum) anlegt — kein eigener Journal-Store (D03-rev). Erscheint in der Session-Log-Projektion von devd_sstd_get (letzte 40) (MEM-16/18, DD2-19).',
-  {
-    id_or_slug: z.string().describe('Numeric project id or slug string (e.g. "devd", "2")'),
-    content: z.string().describe('Session-log entry text (wird als session_log summary gespeichert)'),
-  },
-  async ({ id_or_slug, content }) => {
-    let pid
-    try { pid = await resolveProjectNumericId(id_or_slug) } catch (e) { return ok({ error: true, message: e.message }) }
-    const data = await apiRequest('POST', '/api/project-memories', { category: 'session_log', summary: content }, pid)
     return ok(data)
   },
 )
@@ -522,7 +290,7 @@ server.tool(
 
 server.tool(
   'devd_sprint_context',
-  'Get full sprint context bundle formatted as Markdown — all issue fields plus per-issue user-stories (incl. QA), result fields of already-worked issues, and issue/sprint dependencies. Ideal for AI agents before starting work, no extra calls needed. Read-only.',
+  'Get full sprint context bundle formatted as Markdown — all issue fields plus per-issue user-stories (incl. QA) and issue/sprint dependencies. Ideal for AI agents before starting work, no extra calls needed. Read-only.',
   {
     project_id: PROJECT_ID_PARAM,
     sprint_key: z.string().describe('Sprint key (e.g. "DD#20") or numeric sprint id'),
@@ -745,142 +513,8 @@ server.tool(
   },
 )
 
-// MEM-24: SOP-Bundle — schließt das MCP-SOP-Loch (DD-214). Liefert die getriggerten SOP(s) als
-// Volltext + (bei sprint_key) kompakten Sprint-Header + Issue-Tabelle mit blocked_by (Build-
-// Reihenfolge). Gleicher `rendered`-Output wie die CLI (server-seitig erzeugt), DB-Master statt
-// Dateisystem. Bewusst lean: keine vollen Issue-Bodies / kein SSTD-Dump (on-demand via
-// devd_issue_show / devd_sstd_get).
-server.tool(
-  'devd_sop_bundle',
-  'READ: SOP bundle for a lifecycle trigger. Returns the triggered SOP(s) full text plus — when sprint_key is given — a compact sprint header and an issue table with a blocked_by column (dependency build order). Mirrors `devd-cli sprint start` output, sourced from the DB (no filesystem). trigger e.g. "sprint:start" | "issue:create" | "sprint:create".',
-  {
-    project_id: PROJECT_ID_PARAM,
-    trigger: z.string().describe('Lifecycle trigger key, e.g. "sprint:start", "issue:create", "sprint:create"'),
-    sprint_key: z.string().optional().describe('Sprint key (e.g. "DD#20") or numeric id — adds sprint header + issue table'),
-  },
-  async ({ project_id, trigger, sprint_key }) => {
-    const pid = resolveProjectId(project_id)
-    if (typeof pid === 'object' && pid.error) return ok(pid)
-    const qs = new URLSearchParams({ trigger })
-    if (sprint_key) qs.set('sprint', String(sprint_key))
-    const data = await apiRequest('GET', `/api/sops/bundle?${qs.toString()}`, null, pid)
-    return { content: [{ type: 'text', text: data.rendered || JSON.stringify(data, null, 2) }] }
-  },
-)
-
-// DD-530: SOP zeilen-basiert lesen + editieren (analog SSTD-Slot-Edit). SOPs sind global
-// (kein project_id). devd_sop_get liefert den content mit Zeilennummern für devd_sop_edit.
-server.tool(
-  'devd_sop_list',
-  'List all SOPs (metadata only — key, title, updated_at; no content). Read-only.',
-  {},
-  async () => ok(await apiRequest('GET', '/api/sops')),
-)
-
-server.tool(
-  'devd_sop_get',
-  'Get one SOP by key. With numbered=true the content is returned as a numbered-line array (use the line numbers for devd_sop_edit). Read-only.',
-  {
-    key: z.string().describe('SOP key, e.g. "sprint-durchfuehrung"'),
-    numbered: z.boolean().optional().describe('Return content as {n, text} lines for line-addressing'),
-  },
-  async ({ key, numbered }) => {
-    const data = await apiRequest('GET', `/api/sops/${encodeURIComponent(key)}`)
-    if (data && data.error) return ok(data)
-    if (numbered) {
-      const lines = String(data.content || '').split('\n').map((text, i) => ({ n: i + 1, text }))
-      return ok({ sop_key: data.sop_key, title: data.title, lines })
-    }
-    return ok(data)
-  },
-)
-
-server.tool(
-  'devd_sop_edit',
-  'WRITE: Token-efficient line edit of a SOP (analog to devd_sstd_slot_edit) — patch/insert_after/insert_before/delete a single line instead of a whole-content rewrite. expect guards the anchor line → 409 (no write) on mismatch. PATCH /api/sops/:key/line.',
-  {
-    key: z.string().describe('SOP key'),
-    op: z.enum(['patch', 'insert_after', 'insert_before', 'delete']).describe('Line operation'),
-    line: z.number().int().describe('1-based line number (insert_after allows 0)'),
-    content: z.string().optional().describe('New line content (patch/insert)'),
-    expect: z.string().optional().describe('Guard: current content of the anchor line (409 on mismatch)'),
-  },
-  async ({ key, op, line, content, expect }) => {
-    const body = { op, line }
-    if (content !== undefined) body.content = content
-    if (expect !== undefined) body.expect = expect
-    return ok(await apiRequest('PATCH', `/api/sops/${encodeURIComponent(key)}/line`, body))
-  },
-)
-
-server.tool(
-  'devd_sop_create',
-  'WRITE: Create a new SOP via POST /api/sops. Guarded by default — errors if the key already exists (use devd_sop_edit for line changes, or force=true to overwrite the existing SOP). Requires key + title + content. SOPs are global (no project_id).',
-  {
-    key: z.string().describe('SOP key — lowercase [a-z0-9-], e.g. "report-markdown-prozess"'),
-    title: z.string().describe('Human-readable title, e.g. "SOP - Report für markdowngetriebene Realisierungsprozesse"'),
-    content: z.string().describe('Full SOP markdown content'),
-    force: z.boolean().optional().describe('Overwrite if the key already exists (default false → conflict error)'),
-  },
-  async ({ key, title, content, force }) => {
-    if (!force) {
-      const existing = await apiRequest('GET', `/api/sops/${encodeURIComponent(key)}`)
-      if (existing && !existing.error) {
-        return ok({ error: `SOP '${key}' existiert bereits — force=true zum Überschreiben oder devd_sop_edit nutzen.`, code: 'SOP_EXISTS' })
-      }
-    }
-    return ok(await apiRequest('POST', '/api/sops', { sop_key: key, title, content }))
-  },
-)
-
-// ProjectPages T-be2 (D-E): SOP-Collections — benannte Gruppen von SOPs + Markdown-Export.
-// Global wie SOPs (kein project_id). Speist SopCollectionsView.
-server.tool(
-  'devd_sop_collection_list',
-  'List SOP-collections (key, name, description, sopKeys[], sop_count; no SOP content). Read-only.',
-  {},
-  async () => ok(await apiRequest('GET', '/api/sop-collections')),
-)
-
-server.tool(
-  'devd_sop_collection_get',
-  'Get one SOP-collection by key with its full member SOPs (ordered). Read-only.',
-  { key: z.string().describe('Collection key, e.g. "backlog-pflege"') },
-  async ({ key }) => ok(await apiRequest('GET', `/api/sop-collections/${encodeURIComponent(key)}`)),
-)
-
-server.tool(
-  'devd_sop_collection_export',
-  'Export a SOP-collection as a single concatenated Markdown bundle (all member SOPs, ordered). Read-only.',
-  { key: z.string().describe('Collection key') },
-  async ({ key }) => ok(await apiRequest('GET', `/api/sop-collections/${encodeURIComponent(key)}/export`)),
-)
-
-server.tool(
-  'devd_sop_collection_create',
-  'WRITE: Create a SOP-collection via POST /api/sop-collections. key (lowercase [a-z0-9-]) + name required; description optional. 409 if the key already exists.',
-  {
-    key: z.string().describe('Collection key — lowercase [a-z0-9-]'),
-    name: z.string().describe('Human-readable name, e.g. "Backlog-Pflege"'),
-    description: z.string().optional().describe('Optional description'),
-  },
-  async ({ key, name, description }) =>
-    ok(await apiRequest('POST', '/api/sop-collections', { collection_key: key, name, description })),
-)
-
-server.tool(
-  'devd_sop_collection_set_items',
-  'WRITE: Set a collection\'s member SOPs (replace, ordered as given) via PUT /api/sop-collections/:key/items. Unknown sop_key or collection → error.',
-  {
-    key: z.string().describe('Collection key'),
-    sopKeys: z.array(z.string()).describe('Ordered list of SOP keys (replaces current membership)'),
-  },
-  async ({ key, sopKeys }) =>
-    ok(await apiRequest('PUT', `/api/sop-collections/${encodeURIComponent(key)}/items`, { sopKeys })),
-)
-
 // ProjectPages T-be1 (D-D, Modell B): user_notes — NEUE separate Rich-Entity (user-verfasste
-// Notizen, UserNotesWidget). KEIN Ersatz des SSTD-Auto-Journals (devd_sstd_journal_add bleibt
+// Notizen, UserNotesWidget). KEIN Ersatz des Session-Log-Auto-Journals (project_memory bleibt
 // project_memories). project-gescopt (X-Project-Id via project_id).
 server.tool(
   'devd_user_note_list',
@@ -958,7 +592,7 @@ server.tool(
 // Response-Cap (DD-623) schützt diese potenziell großen Outputs automatisch.
 
 // Markdown-/CSV-Text direkt durchreichen (apiRequest liefert bei text/* einen String);
-// Fehlerobjekte als JSON. Spiegelt das devd_sop_bundle-Muster.
+// Fehlerobjekte als JSON.
 function okTextOrError(data) {
   if (data && typeof data === 'object' && data.error) return ok(data)
   return { content: [{ type: 'text', text: typeof data === 'string' ? data : JSON.stringify(data, null, 2) }] }
@@ -1518,18 +1152,13 @@ server.tool(
     if (goal) body.goal = goal
     if (po_notes) body.po_notes = po_notes
     const data = await apiRequest('POST', '/api/backlog', body, pid)
-    // DD-376: attach SOP text once per session (first issue:create call only).
-    if (data && !data.error) {
-      const sop = await maybeSOPContext('issue:create', pid)
-      if (sop) return ok({ ...data, sop_context: sop })
-    }
     return ok(data)
   },
 )
 
 server.tool(
   'devd_issue_update',
-  'WRITE: Update editable fields of an issue (title, goal, background, context_notes, relevant_files, priority, type, po_notes, result). po_notes is the PO-facing free-text field (replaces the removed description field, DD2-131/132). result documents the sprint outcome — required on completed/passed issues before sprint complete. E01/D09: per-issue acceptance_criteria + test_instruction are replaced by user_stories[].qa — manage them via devd_user_story_*. Does NOT change status or sprint assignment — use devd_issue_status for status transitions.',
+  'WRITE: Update editable fields of an issue (title, goal, background, context_notes, relevant_files, priority, type, po_notes). po_notes is the PO-facing free-text field (replaces the removed description field, DD2-131/132). E01/D09: per-issue acceptance_criteria + test_instruction are replaced by user_stories[].qa — manage them via devd_user_story_*. Does NOT change status or sprint assignment — use devd_issue_status for status transitions.',
   {
     project_id: PROJECT_ID_PARAM,
     id_or_key: z.string().describe('Issue key (e.g. "DD-42") or numeric backlog id'),
@@ -1541,7 +1170,6 @@ server.tool(
     priority: z.number().int().min(1).max(5).optional(),
     type: z.enum(ISSUE_TYPES).optional(),
     po_notes: z.string().optional(),
-    result: z.string().optional().describe('Sprint outcome documentation. Required on completed/passed issues before sprint complete. Markdown text — summarise what was implemented, decisions made, and lessons learned.'),
   },
   async ({ project_id, id_or_key, ...fields }) => {
     const pid = resolveProjectId(project_id)
@@ -1602,109 +1230,6 @@ server.tool(
     const data = await apiRequest('PATCH', `/api/backlog/${issueId}/sprint`, {
       sprint_id: sprintId,
     }, pid)
-    return ok(data)
-  },
-)
-
-// DD2-99: Outcome-Type-Vokabular inline (kein Contract) — enum-validiert, default feat.
-const SET_RESULT_OUTCOME_TYPES = ['feat', 'fix', 'refactor', 'chore', 'docs']
-
-server.tool(
-  'devd_issue_set_result',
-  'WRITE: Set the structured sprint result on an issue. Builds the YAML+Markdown result string and writes it via PUT /api/backlog/:id {result}. commits is required (D02). Use after sprint work is done, before sprint complete.',
-  {
-    project_id: PROJECT_ID_PARAM,
-    id_or_key: z.string({ error: 'id_or_key ist Pflichtfeld' }).trim().min(1, { error: 'id_or_key darf nicht leer sein' }).describe('Issue key (e.g. "DD-42") or numeric backlog id'),
-    // DD2-99: enum statt Free-String — ungültiger Typ schlägt klar an der Grenze fehl.
-    outcome_type: z
-      .enum(SET_RESULT_OUTCOME_TYPES, { error: 'outcome_type muss feat|fix|refactor|chore|docs sein' })
-      .optional()
-      .describe('Outcome type: feat | fix | refactor | chore | docs (default: feat)'),
-    // DD2-99: non-empty Pflicht — leere Summary erzeugte zuvor ein nutzloses Result.
-    outcome_summary: z
-      .string({ error: 'outcome_summary ist Pflichtfeld' })
-      .trim()
-      .min(1, { error: 'outcome_summary darf nicht leer sein' })
-      .describe('Short summary of what was achieved (required)'),
-    files_changed: z
-      .array(z.string())
-      .optional()
-      .describe('List of changed file paths'),
-    // DD2-99: mind. 1 non-empty Commit (D02) — [] erzeugte zuvor einen leeren YAML-Eintrag.
-    commits: z
-      .array(z.string().trim().min(1, { error: 'commit darf nicht leer sein' }), { error: 'commits muss ein Array sein' })
-      .min(1, { error: 'commits ist Pflicht — mind. 1 Eintrag (D02)' })
-      .describe('List of commit SHAs or short descriptions (required — D02)'),
-    breaking_changes: z
-      .boolean()
-      .optional()
-      .describe('Whether this introduces breaking changes (default false)'),
-    lessons_learned: z
-      .array(z.string())
-      .optional()
-      .describe('Lessons learned during implementation'),
-    vorgehen: z
-      .string()
-      .optional()
-      .describe('Markdown body: approach, trade-offs, code snippets, links'),
-  },
-  async ({
-    project_id,
-    id_or_key,
-    outcome_type,
-    outcome_summary,
-    files_changed,
-    commits,
-    breaking_changes,
-    lessons_learned,
-    vorgehen,
-  }) => {
-    const pid = resolveProjectId(project_id)
-    if (typeof pid === 'object' && pid.error) return ok(pid)
-    const id = await resolveIssueId(id_or_key, pid)
-    const issue = await apiRequest('GET', `/api/backlog/${id}`, null, pid)
-    // DD2-99: Issue nicht auflösbar/nicht gefunden → klar abbrechen, statt ein
-    // Result mit `#undefined`-related_issues zu bauen und blind zu PUTten.
-    if (!issue || issue.error || issue.id == null) {
-      return ok(issue && issue.error ? issue : { error: true, message: `Issue ${id_or_key} nicht gefunden` })
-    }
-
-    // Build issue key for related_issues block
-    const issueKey = (issue.project_prefix && issue.project_number != null)
-      ? `${issue.project_prefix}-${issue.project_number}`
-      : `#${issue.id}`
-
-    const yamlList = (items) =>
-      !items || items.length === 0 ? '  -' : items.map(x => `  - ${x}`).join('\n')
-    const yamlScalar = (val) => {
-      if (val === undefined || val === null) return ''
-      const s = String(val)
-      return /[:#"'\n]/.test(s) ? JSON.stringify(s) : s
-    }
-
-    const outcomeTypeStr = outcome_type || 'feat'
-    const vorgehenText = vorgehen || '(Begründung, Trade-offs, Code-Snippets, Verlinkungen)'
-
-    const result = `---
-outcome_summary: ${yamlScalar(outcome_summary)}
-outcome_type: ${outcomeTypeStr}
-files_changed:
-${yamlList(files_changed)}
-commits:
-${yamlList(commits)}
-breaking_changes: ${breaking_changes === true}
-lessons_learned:
-${yamlList(lessons_learned)}
-related_issues:
-  - ${issueKey}
----
-
-## Vorgehen
-
-${vorgehenText}
-`
-
-    const data = await apiRequest('PUT', `/api/backlog/${id}`, { result }, pid)
     return ok(data)
   },
 )
@@ -2007,9 +1532,6 @@ server.tool(
       assigned_sprint: created.assigned_sprint,
       item: created,
     }
-    // DD-376: attach SOP text once per session (first issue:create call only).
-    const sop = await maybeSOPContext('issue:create', pid)
-    if (sop) result.sop_context = sop
     return ok(result)
   },
 )
@@ -2099,10 +1621,6 @@ server.tool(
       failed: results.filter((r) => r.error && !r.id).length,
     }
     const out = { summary, results }
-    // DD-376: attach SOP text once per session — for the whole batch, not per
-    // item (the SOP describes the create action, not each issue).
-    const sop = await maybeSOPContext('issue:create', pid)
-    if (sop) out.sop_context = sop
     return ok(out)
   },
 )

@@ -16,7 +16,7 @@ func TestReviewStandMarkdownIsMarkdownNotJSON(t *testing.T) {
 		Key:  "SPF#1",
 		Name: "Demo",
 		Items: []api.Issue{
-			{Key: "SPF-1", Title: "A", Status: "passed", ReviewStatus: strptr("passed"), Result: strptr("done")},
+			{Key: "SPF-1", Title: "A", Status: "passed", ReviewStatus: strptr("passed")},
 		},
 	}
 	out := strings.TrimSpace(reviewStandMarkdown(s))

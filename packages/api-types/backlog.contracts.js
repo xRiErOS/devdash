@@ -7,6 +7,16 @@
 // in server/api.js + server/lib/lifecycle.js. E01.1/D09: issue-level acceptance_criteria +
 // test_instruction sind ABGELOEST (user_stories[].qa = Single-Source per-US-Pruefgrundlage,
 // contracts/userStory.contracts.js); daher aus Create/Update-Schema entfernt (harter Replace).
+//
+// T04b (Welle 4, D15/D16) — Acceptance-Gate auf user_stories (löst `result`-Relikt ab):
+//   G1: Issue → `passed` nur, wenn ALLE user_stories us_verdict='accepted' haben
+//       (Grandfathering Q06: 0 Stories = vacuously erfüllt). Guard: lifecycle.js
+//       canTransition (to_review→passed, ctx.userStories).
+//   G2: Sprint-Zuweisung nur bei COUNT(user_stories) >= 1 (nur NEUE Zuweisung, Q06).
+//       Guard: lifecycle.js canAssignSprint(ctx.userStoryCount), verdrahtet im
+//       Assign-Pfad (PATCH /api/backlog/:id/sprint + Bulk set_sprint).
+// Beide Regeln sind Business-Invarianten (leben in lifecycle.js/api.js), NICHT in den
+// Struktur-Schemas hier — dieses Modul dokumentiert sie nur.
 
 import { z } from 'zod'
 
@@ -54,7 +64,6 @@ export const issueUpdateContract = z.object({
   context_notes: z.string().nullish(),
   relevant_files: z.string().nullish(),
   po_notes: z.string().nullish(),
-  result: z.string().nullish(),
   files: z.array(z.string()).optional(),
 })
 

@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// DD2-163: Foundation-Client-Tests (documents/user_notes/sstd/todos) gegen einen
+// DD2-163: Foundation-Client-Tests (documents/user_notes/todos) gegen einen
 // httptest-Server. Verifiziert Pfad, Methode, Body-Mapping und Response-Unmarshal.
 
 func newTestClient(t *testing.T, handler http.HandlerFunc) *Client {
@@ -85,47 +85,6 @@ func TestUserNotesClient(t *testing.T) {
 	}
 	if err := c.DeleteUserNote(7); err != nil {
 		t.Fatalf("DeleteUserNote: %v", err)
-	}
-}
-
-func TestSstdClient(t *testing.T) {
-	var gotPath, gotMethod string
-	var gotBody map[string]any
-	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
-		gotPath, gotMethod = r.URL.Path, r.Method
-		if r.Body != nil {
-			b, _ := io.ReadAll(r.Body)
-			_ = json.Unmarshal(b, &gotBody)
-		}
-		switch gotPath {
-		case "/api/projects/10/sstd/slots":
-			w.Write([]byte(`[{"slot_key":"architecture","content":"a","updated_at":"t"}]`))
-		case "/api/projects/10/sstd/projections":
-			w.Write([]byte(`{"next_steps":"## Next","journal":"## Log"}`))
-		case "/api/projects/10/sstd/slots/architecture":
-			w.Write([]byte(`{"slot_key":"architecture","content":"new","updated_at":"t2"}`))
-		default:
-			w.Write([]byte(`{}`))
-		}
-	})
-
-	slots, err := c.GetSstdSlots()
-	if err != nil || len(slots) != 1 || slots[0].SlotKey != "architecture" {
-		t.Fatalf("GetSstdSlots: %v %+v", err, slots)
-	}
-	proj, err := c.GetSstdProjections()
-	if err != nil || proj.NextSteps != "## Next" || proj.Journal != "## Log" {
-		t.Fatalf("GetSstdProjections: %v %+v", err, proj)
-	}
-	slot, err := c.SetSstdSlot("architecture", "new")
-	if err != nil || slot.Content != "new" {
-		t.Fatalf("SetSstdSlot: %v %+v", err, slot)
-	}
-	if gotMethod != "PUT" || gotBody["content"] != "new" {
-		t.Fatalf("set slot body: %s %v", gotMethod, gotBody)
-	}
-	if len(SstdSlotKeys) != 6 {
-		t.Fatalf("expected 6 slot keys, got %d", len(SstdSlotKeys))
 	}
 }
 

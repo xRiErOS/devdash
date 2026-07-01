@@ -12,7 +12,7 @@ import { existsSync, mkdirSync, unlinkSync, renameSync, copyFileSync } from 'fs'
 import { body, validationResult } from 'express-validator'
 import rateLimit from 'express-rate-limit'
 import { randomUUID } from 'crypto'
-import { canTransition, canSprintTransition } from './lib/lifecycle.js'
+import { canTransition, canSprintTransition, canAssignSprint } from './lib/lifecycle.js'
 import { TAG_COLORS as TAG_COLORS_CONTRACT } from '@devd/api-types/tag.contracts.js'
 import {
   closeMilestoneWithIssues,
@@ -43,17 +43,6 @@ import {
   removeTodoLink,
   TodoLinkError,
 } from './lib/projectTodoLinks.js'
-import { getSstdSources, clearCache as clearSstdCache, SstdSourcesError } from './lib/sstdSources.js'
-import {
-  listSlots as listSstdSlots,
-  getSlot as getSstdSlot,
-  setSlot as setSstdSlot,
-  editSlotLine as editSstdSlotLine,
-  renderReadAll as renderSstdReadAll,
-  renderNextSteps as renderSstdNextSteps,
-  renderJournal as renderSstdJournal,
-  ProjectSlotError,
-} from './lib/sstdSlots.js'
 import { validateSpecPath, MilestoneSpecPathError } from './lib/milestoneSpecPath.js'
 import { listMemories as listProjectMemories, getMemory as getProjectMemory, createMemory as createProjectMemory, updateMemory as updateProjectMemory, deleteMemory as deleteProjectMemory, supersedeMemory as supersedeProjectMemory, searchMemories as searchProjectMemories, getMemoryByAnchor as getProjectMemoryByAnchor, patchByAnchor as patchProjectMemoryByAnchor, ProjectMemoryError } from './lib/projectMemories.js'
 import { renderSnapshot as renderProjectMemorySnapshot, renderSplitSnapshot as renderProjectMemorySplitSnapshot } from './lib/projectMemorySnapshot.js'
@@ -70,7 +59,6 @@ import { resolveCaptureClientIp, captureCapRejection, PUBLIC_CAPTURE_MAX_FILE_BY
 import { createApiKeyAuth } from './middleware/apiKeyAuth.js'
 import { createDevdTokenAuth } from './middleware/devdToken.js'
 import { isTrustedSource } from './lib/trustedSource.js'
-import { listSprintIssuesMissingResult } from './lib/sprintCompleteGuards.js'
 import { applyBacklogUpdate, BacklogUpdateError } from './lib/backlogUpdate.js'
 // DD-560: backlog/issue-Payloads via geteiltem Zod-Contract (Single Source, CONTRACT-GATEWAY-PATTERN #303).
 import { issueCreateContract } from '@devd/api-types/backlog.contracts.js'
@@ -95,23 +83,6 @@ import {
   setUserStoryVerdict,
   deleteUserStory,
 } from './lib/userStories.js'
-import {
-  SopError,
-  listSops,
-  getSop,
-  upsertSop,
-  editSop,
-  editSopLine,
-  getSopsByTrigger,
-} from './lib/sops.js'
-import { buildSopBundle, renderSopBundle } from './lib/sopBundle.js'
-import {
-  createCollection as createSopCollection,
-  listCollections as listSopCollections,
-  getCollection as getSopCollection,
-  setCollectionItems as setSopCollectionItems,
-  exportCollection as exportSopCollection,
-} from './lib/sopCollections.js'
 import {
   UserNoteError,
   createUserNote, listUserNotes, getUserNote, updateUserNote, deleteUserNote,
@@ -715,7 +686,7 @@ function sendList(req, res, rows, compactKeys) {
 }
 
 // Identitäts-/Status-Felder für die Compact-Listen. Bewusst OHNE die SSTD-großen
-// Prosa-Felder (goal/background/context_notes/result/description …),
+// Prosa-Felder (goal/background/context_notes …),
 // die den 653K/75K-Output rissen (DD-620). key-Formatter (CLI) brauchen prefix+number.
 const COMPACT_BACKLOG_KEYS = [
   'id', 'key', 'project_prefix', 'project_number', 'title', 'status', 'type', 'priority',
@@ -732,7 +703,7 @@ const COMPACT_MEMORY_KEYS = [
   'id', 'category', 'summary', 'anchor', 'stability', 'pinned', 'importance',
   'tags', 'source_type', 'source_ref', 'superseded_by', 'created_at', 'updated_at',
 ]
-// DD-622: projects ohne den sstd_content-Legacy-Blob + Project-Home-Prosa
+// DD-622: projects ohne die großen Project-Home-Prosa-Felder
 // (vision/goals/summary_*). CLI/MCP project list zeigen Identität + Counts.
 const COMPACT_PROJECT_KEYS = [
   'id', 'slug', 'name', 'prefix', 'color', 'archived', 'description',
@@ -747,7 +718,7 @@ app.get('/api/projects', (req, res) => {
 })
 
 // DD-223: Minimale Projektliste für PWA-Capture-Dropdown. Nur id/name/prefix/slug/color,
-// keine sstd_content / counts — bandbreitenschonend für Mobile.
+// keine Prosa / counts — bandbreitenschonend für Mobile.
 // DD-269 R3: slug ergänzt — Deeplink-Resolver in CaptureView braucht slug-Match.
 // Muss VOR /api/projects/:id stehen, sonst greift :id-Route bei "list-minimal".
 app.get('/api/projects/list-minimal', apiKeyAuth, (req, res) => {
@@ -974,242 +945,6 @@ app.put('/api/projects/:id', (req, res) => {
   vals.push(req.params.id)
   db.prepare(`UPDATE projects SET ${sets.join(', ')} WHERE id = ?`).run(...vals)
   res.json(db.prepare('SELECT * FROM projects WHERE id = ?').get(req.params.id))
-})
-
-function _sendProjectSlotError(res, e) {
-  if (e instanceof ProjectSlotError) {
-    return res.status(e.statusCode).json({ error: e.message, code: e.code, field: e.field })
-  }
-  console.error('[sstd-slots] unexpected error', e)
-  return res.status(500).json({ error: 'Internal Server Error' })
-}
-
-// DD-213 / MEM-16: SSTD — pro Projekt genau ein Markdown-Dokument, Master-Quelle ist die DB.
-// GET reassembliert seit MEM-16 (D07) aus den 6 Slots (project_sstd_slots) + zwei Projektionen
-// (Nächste Schritte ← offene project_todos; Session-Log ← letzte 40 session_log-Memories). Solange alle Slots
-// leer sind, fällt renderReadAll auf den Legacy-Blob projects.sstd_content zurück.
-app.get('/api/projects/:id/sstd', (req, res) => {
-  const project = db.prepare('SELECT id, sstd_updated_at FROM projects WHERE id = ?').get(req.params.id)
-  if (!project) return res.status(404).json({ error: 'Projekt nicht gefunden' })
-  try {
-    const sstd_content = renderSstdReadAll(db, project.id)
-    const slotMax = db.prepare('SELECT MAX(updated_at) AS m FROM project_sstd_slots WHERE project_id = ?').get(project.id).m
-    res.json({
-      project_id: project.id,
-      sstd_content,
-      sstd_updated_at: slotMax || project.sstd_updated_at,
-    })
-  } catch (e) {
-    return _sendProjectSlotError(res, e)
-  }
-})
-
-// MEM-16 Slot-Endpoints (D02-rev3 / D04 / D06). Pfad-gescopt über :id (wie GET/PUT /sstd).
-app.get('/api/projects/:id/sstd/slots', (req, res) => {
-  try {
-    res.json(listSstdSlots(db, Number(req.params.id)))
-  } catch (e) {
-    return _sendProjectSlotError(res, e)
-  }
-})
-
-// DD-361: Read-Only-Projektionen (Nächste Schritte ← offene project_todos; Session-Log ←
-// letzte 40 session_log-Memories, DD2-19). Liefert die beiden NICHT editierbaren Read-All-Sektionen als
-// fertiges Markdown, damit der SSTD-Tab sie separat von den 6 Slots rendern kann.
-// MUSS vor '/api/projects/:id/sstd/slots/:key' stehen — sonst matcht Express ':key'='projections'.
-app.get('/api/projects/:id/sstd/projections', (req, res) => {
-  try {
-    const projectId = Number(req.params.id)
-    res.json({
-      next_steps: renderSstdNextSteps(db, projectId) || '',
-      journal: renderSstdJournal(db, projectId) || '',
-    })
-  } catch (e) {
-    return _sendProjectSlotError(res, e)
-  }
-})
-
-app.get('/api/projects/:id/sstd/slots/:key', (req, res) => {
-  try {
-    res.json(getSstdSlot(db, Number(req.params.id), req.params.key))
-  } catch (e) {
-    return _sendProjectSlotError(res, e)
-  }
-})
-
-// PUT = Slot komplett neu schreiben (last-write-wins). Body: { content: <markdown> }.
-app.put('/api/projects/:id/sstd/slots/:key', (req, res) => {
-  const body = req.body || {}
-  if (!Object.prototype.hasOwnProperty.call(body, 'content')) {
-    return res.status(400).json({ error: "Body muss 'content' enthalten (string)." })
-  }
-  try {
-    res.json(setSstdSlot(db, Number(req.params.id), req.params.key, body.content))
-  } catch (e) {
-    return _sendProjectSlotError(res, e)
-  }
-})
-
-// PATCH = Line-Op (D04/D06). Body: { op: replace|insert|delete, line: <1-based>, content?, expect? }.
-// expect-Mismatch → 409. Ein parametrisiertes Verb statt mehrerer Endpoints.
-app.patch('/api/projects/:id/sstd/slots/:key/line', (req, res) => {
-  try {
-    res.json(editSstdSlotLine(db, Number(req.params.id), req.params.key, req.body || {}))
-  } catch (e) {
-    return _sendProjectSlotError(res, e)
-  }
-})
-
-// PUT /sstd — DEPRECATED seit MEM-16 (D07): Whole-Rewrite des Legacy-Blobs projects.sstd_content.
-// Neue Schreibpfade nutzen die Slot-Endpoints (PUT/PATCH …/sstd/slots/:key). Bleibt für Back-Compat
-// (CLI project sstd, MCP devd_project_sstd_set) erhalten, bis MEM-13 den Skill-Layer umstellt.
-// Strict: fehlender Key 'sstd_content' → 400 (verhindert Silent-Delete bei Body-Key-Mismatch, DD-218).
-// Explizit {sstd_content: null} oder "" löscht den Legacy-Blob (sstd_content NULL, updated_at NULL).
-app.put('/api/projects/:id/sstd', (req, res) => {
-  const project = db.prepare('SELECT id FROM projects WHERE id = ?').get(req.params.id)
-  if (!project) return res.status(404).json({ error: 'Projekt nicht gefunden' })
-  const body = req.body || {}
-  if (!Object.prototype.hasOwnProperty.call(body, 'sstd_content')) {
-    return res.status(400).json({
-      error: "Body muss 'sstd_content' enthalten (string oder null). Zum Löschen explizit {\"sstd_content\": null}."
-    })
-  }
-  const content = body.sstd_content
-  if (content !== null && typeof content !== 'string') {
-    return res.status(400).json({ error: 'sstd_content muss string oder null sein' })
-  }
-  if (content === null || content === '') {
-    db.prepare('UPDATE projects SET sstd_content = NULL, sstd_updated_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(project.id)
-    return res.json({ project_id: project.id, sstd_content: null, sstd_updated_at: null })
-  }
-  db.prepare('UPDATE projects SET sstd_content = ?, sstd_updated_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(content, project.id)
-  const row = db.prepare('SELECT id, sstd_content, sstd_updated_at FROM projects WHERE id = ?').get(project.id)
-  res.json({ project_id: row.id, sstd_content: row.sstd_content, sstd_updated_at: row.sstd_updated_at })
-})
-
-// ============================================================
-// MEM-23 (MEM#8): SOP-Entität — global (SOP-D02, KEIN project_id), DB-Master (SOP-D01).
-// Löst das DD-214-SOP-Loch: SOPs dateisystem-unabhängig über REST (→ auch MCP/CLI via MEM-24).
-// Trigger-Map (SOP-D03) liefert pro Lifecycle-Aktion die getriggerten SOPs (Bundle-Quelle).
-// ============================================================
-function _sendSopError(res, e) {
-  if (e instanceof SopError) {
-    return res.status(e.statusCode).json({ error: e.message, code: e.code, field: e.field })
-  }
-  console.error('[sops] unexpected error', e)
-  return res.status(500).json({ error: 'Internal Server Error' })
-}
-
-app.get('/api/sops', (_req, res) => {
-  res.json(listSops(db))
-})
-
-// Trigger-Resolution (MEM-24-Bundle-Quelle). MUSS vor '/api/sops/:key' stehen, sonst matcht
-// Express 5 ':key' = 'triggered'. GET /api/sops/triggered?trigger=sprint:start
-app.get('/api/sops/triggered', (req, res) => {
-  const trigger = req.query.trigger
-  if (!trigger || typeof trigger !== 'string') {
-    return res.status(400).json({ error: "Query-Param 'trigger' erforderlich (z.B. sprint:start)" })
-  }
-  res.json(getSopsByTrigger(db, trigger))
-})
-
-// MEM-24: SOP-Bundle (eine Quelle für CLI + MCP). Liefert getriggerte SOPs + Sprint-Header +
-// Issue-Tabelle (mit blocked_by) als strukturierte Daten + `rendered` (Markdown, identisch für
-// alle Konsumenten). Sprint optional; projekt-gescopt über X-Project-Id (für Sprint/Issue-Teil).
-// MUSS vor '/api/sops/:key' stehen (sonst matcht ':key' = 'bundle').
-app.get('/api/sops/bundle', (req, res) => {
-  const trigger = req.query.trigger ? String(req.query.trigger) : null
-  const sprint = req.query.sprint ? String(req.query.sprint) : null
-  const projectId = currentProjectId(req)
-  try {
-    const bundle = buildSopBundle(db, { trigger, sprint, projectId })
-    res.json({ ...bundle, rendered: renderSopBundle(bundle) })
-  } catch (e) {
-    return _sendSopError(res, e)
-  }
-})
-
-app.get('/api/sops/:key', (req, res) => {
-  try {
-    res.json(getSop(db, req.params.key))
-  } catch (e) {
-    return _sendSopError(res, e)
-  }
-})
-
-// POST = upsert (create-or-update). Body: { sop_key, title, content?, source_path? }.
-app.post('/api/sops', (req, res) => {
-  try {
-    res.status(201).json(upsertSop(db, req.body || {}))
-  } catch (e) {
-    return _sendSopError(res, e)
-  }
-})
-
-// PUT = DB-Master-Edit einer bestehenden SOP. Body: { content?, title? } (mind. eins).
-app.put('/api/sops/:key', (req, res) => {
-  const body = req.body || {}
-  const hasContent = Object.prototype.hasOwnProperty.call(body, 'content')
-  const hasTitle = Object.prototype.hasOwnProperty.call(body, 'title')
-  if (!hasContent && !hasTitle) {
-    return res.status(400).json({ error: "Body muss 'content' und/oder 'title' enthalten." })
-  }
-  try {
-    res.json(editSop(db, req.params.key, body))
-  } catch (e) {
-    return _sendSopError(res, e)
-  }
-})
-
-// DD-530: PATCH = token-effizienter Zeilen-Patch (analog SSTD-Slot-Line-Edit).
-// Body: { op: patch|insert_after|insert_before|delete, line: N, content?, expect? }.
-// expect guarded die Anker-Zeile → 409 bei Mismatch (kein Write).
-app.patch('/api/sops/:key/line', (req, res) => {
-  try {
-    res.json(editSopLine(db, req.params.key, req.body || {}))
-  } catch (e) {
-    return _sendSopError(res, e)
-  }
-})
-
-// --- SOP-Collections (ProjectPages T-be2, D-E) — global wie SOPs. SopError-Schema reused. ---
-// GET Liste mit sopKeys + sop_count (ohne Inhalt).
-app.get('/api/sop-collections', (_req, res) => {
-  res.json(listSopCollections(db))
-})
-
-// GET Markdown-Export-Bundle (MUSS vor '/:key' stehen). 404 wenn Collection fehlt.
-app.get('/api/sop-collections/:key/export', (req, res) => {
-  const md = exportSopCollection(db, req.params.key)
-  if (md === null) return res.status(404).json({ error: `Collection '${req.params.key}' nicht gefunden`, code: 'COLLECTION_NOT_FOUND' })
-  res.type('text/markdown').send(md)
-})
-
-// GET Detail mit vollen SOPs. 404 wenn Collection fehlt.
-app.get('/api/sop-collections/:key', (req, res) => {
-  const c = getSopCollection(db, req.params.key)
-  if (!c) return res.status(404).json({ error: `Collection '${req.params.key}' nicht gefunden`, code: 'COLLECTION_NOT_FOUND' })
-  res.json(c)
-})
-
-// POST = Collection anlegen. Body: { collection_key, name, description? }.
-app.post('/api/sop-collections', (req, res) => {
-  try {
-    res.status(201).json(createSopCollection(db, req.body || {}))
-  } catch (e) {
-    return _sendSopError(res, e)
-  }
-})
-
-// PUT = Mitgliedschaft setzen (Replace, geordnet). Body: { sopKeys: [key,...] }.
-app.put('/api/sop-collections/:key/items', (req, res) => {
-  try {
-    const sopKeys = (req.body && req.body.sopKeys) || []
-    res.json({ collection_key: req.params.key, sopKeys: setSopCollectionItems(db, req.params.key, sopKeys) })
-  } catch (e) {
-    return _sendSopError(res, e)
-  }
 })
 
 // --- user_notes (DD2-161, ehem. session_notes/ProjectPages T-be1) — project-gescopt
@@ -1481,8 +1216,7 @@ app.get('/api/sprints/:id/context', (req, res) => {
     }
     // DD2-141: Kontext-Payload additiv anreichern, damit der Coding-Agent
     // ohne Extra-Calls arbeitet. DD2-96 user_stories (inkl. qa), DD2-92
-    // Issue-Dependencies (blockers/blocked_by). result (DD2-95) ist bereits
-    // via b.* in der Zeile enthalten.
+    // Issue-Dependencies (blockers/blocked_by).
     i.user_stories = listUserStories(db, i.id)
     i.dependencies = listIssueDependencies(db, i.id)
   }
@@ -2396,6 +2130,10 @@ app.patch('/api/backlog/bulk', (req, res) => {
           goal: item.goal, background: item.background,
           assigned_sprint: item.assigned_sprint,
           cancellationNotes: newStatus === 'cancelled' ? (payload.notes || 'bulk') : null,
+          // T04b/G1 (D16): user_stories auch im Bulk-Pfad plumben, damit der
+          // passed-Gate hier real erzwungen ist (nicht nur implizit via fehlendem
+          // hasPassedReview). Grandfathering Q06: 0 Stories = vacuously erfüllt.
+          userStories: listUserStories(db, id),
         }
         const { allowed, reason } = canTransition(item.status, newStatus, ctx)
         if (!allowed) { failed.push({ id, reason }); continue }
@@ -2413,6 +2151,10 @@ app.patch('/api/backlog/bulk', (req, res) => {
         if (sprintId != null) {
           const sprint = db.prepare('SELECT id FROM sprints WHERE id = ?').get(sprintId)
           if (!sprint) { failed.push({ id, reason: 'sprint not found' }); continue }
+          // T04b/G2 (D16): neue Sprint-Zuweisung nur bei >=1 User Story (Q06).
+          const usCount = db.prepare('SELECT COUNT(*) AS n FROM user_stories WHERE backlog_id = ?').get(id).n
+          const gate = canAssignSprint({ userStoryCount: usCount })
+          if (!gate.allowed) { failed.push({ id, reason: gate.reason }); continue }
           db.prepare('UPDATE backlog SET assigned_sprint = ? WHERE id = ?').run(sprintId, id)
           if (item.status === 'refined') db.prepare("UPDATE backlog SET status='planned' WHERE id=?").run(id)
         } else {
@@ -3144,6 +2886,9 @@ app.patch('/api/backlog/:id/status', (req, res) => {
     sprintWipLimit,
     sprintInProgressCount,
     isSystemTransition: false,
+    // T04b/G1 (D15): `passed` verlangt, dass alle User Stories abgenommen sind.
+    // Grandfathering (Q06): Issues ohne User Stories bleiben vacuously erfüllt.
+    userStories: listUserStories(db, req.params.id),
   }
 
   const { allowed, reason } = canTransition(item.status, newStatus, ctx)
@@ -3187,6 +2932,14 @@ app.patch('/api/backlog/:id/sprint', (req, res) => {
   }
 
   const { sprint_id } = req.body
+
+  // T04b/G2 (D16): Neue Sprint-Zuweisung nur bei >=1 User Story (Grandfathering Q06:
+  // greift nur auf NEUE Zuweisung, Unassign sprint_id==null bleibt frei).
+  if (sprint_id != null) {
+    const usCount = db.prepare('SELECT COUNT(*) AS n FROM user_stories WHERE backlog_id = ?').get(req.params.id).n
+    const gate = canAssignSprint({ userStoryCount: usCount })
+    if (!gate.allowed) return res.status(422).json({ error: gate.reason })
+  }
 
   const assignSprint = db.transaction(() => {
     if (sprint_id != null) {
@@ -3912,21 +3665,6 @@ app.post('/api/sprints/:id/complete', (req, res) => {
     })
   }
 
-  const missingResults = listSprintIssuesMissingResult(db, req.params.id)
-  if (missingResults.length > 0) {
-    return res.status(422).json({
-      error: 'Sprint kann nicht abgeschlossen werden — result ist für completed/passed Issues Pflicht.',
-      issue_keys: missingResults.map(i => i.key),
-      issues: missingResults.map(i => ({
-        id: i.id,
-        key: i.key,
-        project_number: i.project_number,
-        title: i.title,
-        status: i.status,
-      })),
-    })
-  }
-
   const today = new Date().toISOString().slice(0, 10)
 
   // ADR 2026-04-29 / DD2-155: sprint complete setzt alle passed-Items final auf completed.
@@ -4609,35 +4347,6 @@ app.delete('/api/project-memory-tags/:tag', (req, res) => {
   } catch (e) {
     return _sendProjectMemoryError(res, e)
   }
-})
-
-// ============================================================
-// DD-281 (M3-S01 T04): SSTD-Sources Endpoint mit Whitelist + Cache.
-// ============================================================
-
-app.get('/api/projects/:project_id/sstd-sources', (req, res) => {
-  const projectId = Number(req.params.project_id)
-  if (!Number.isInteger(projectId) || projectId <= 0) {
-    return res.status(400).json({ error: 'project_id muss positive Ganzzahl sein' })
-  }
-  try {
-    res.json(getSstdSources(db, projectId))
-  } catch (e) {
-    if (e instanceof SstdSourcesError) {
-      return res.status(e.statusCode).json({ error: e.message, code: e.code, field: e.field })
-    }
-    console.error('[sstd-sources] unexpected error', e)
-    res.status(500).json({ error: 'Internal Server Error' })
-  }
-})
-
-app.post('/api/projects/:project_id/sstd-sources/refresh', (req, res) => {
-  const projectId = Number(req.params.project_id)
-  if (!Number.isInteger(projectId) || projectId <= 0) {
-    return res.status(400).json({ error: 'project_id muss positive Ganzzahl sein' })
-  }
-  clearSstdCache(projectId)
-  res.json({ cleared: true, project_id: projectId })
 })
 
 const DIST_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'dist')

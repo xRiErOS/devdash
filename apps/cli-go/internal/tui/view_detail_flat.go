@@ -344,7 +344,7 @@ func (m model) viewDetailSprint() string {
 		typePrio := theme.TypeIcon(it.Type) + " " + theme.Priority(it.Priority)
 		b.WriteString("  " + cockpitRow(
 			typePrio, it.Key, truncate(it.Title, colTitle),
-			statusText(it.Status), reviewBadge(it), resultDot(it)) + "\n")
+			statusText(it.Status), reviewBadge(it)) + "\n")
 	}
 	if len(items) > 0 {
 		old := m.curSprint

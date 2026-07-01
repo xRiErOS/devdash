@@ -45,7 +45,7 @@ describe('DD-317 / E01 D09 — MCP issue field schema', () => {
   })
 
   test('issue_update tool description lists current editable fields (no description)', () => {
-    expect(src).toMatch(/title, goal, background, context_notes, relevant_files, priority, type, po_notes, result/)
+    expect(src).toMatch(/title, goal, background, context_notes, relevant_files, priority, type, po_notes\)/)
   })
 
   test('issue_create_full tool description lists refinement fields (no description)', () => {

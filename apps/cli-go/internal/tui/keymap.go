@@ -53,7 +53,6 @@ type keyMap struct {
 	ReviewReject   keybind.Binding // x — reject + comment
 	ReviewReopen   keybind.Binding // o — reopen issue
 	ReviewRework   keybind.Binding // w — rework issue
-	ReviewResult   keybind.Binding // r — set result field
 	ReviewPass2    keybind.Binding // P — mark review pass
 	SprintComplete keybind.Binding // C — complete sprint
 
@@ -105,7 +104,6 @@ func newKeyMap() keyMap {
 		ReviewReject:   keybind.NewBinding(keybind.WithKeys("x"), keybind.WithHelp("x", "Reject + comment")),
 		ReviewReopen:   keybind.NewBinding(keybind.WithKeys("o"), keybind.WithHelp("o", "Reopen issue")),
 		ReviewRework:   keybind.NewBinding(keybind.WithKeys("w"), keybind.WithHelp("w", "Rework issue")),
-		ReviewResult:   keybind.NewBinding(keybind.WithKeys("r"), keybind.WithHelp("r", "Set result")),
 		ReviewPass2:    keybind.NewBinding(keybind.WithKeys("P"), keybind.WithHelp("P", "Mark review pass")),
 		SprintComplete: keybind.NewBinding(keybind.WithKeys("C"), keybind.WithHelp("C", "Complete sprint")),
 
@@ -134,7 +132,7 @@ func (k keyMap) helpGroups() []helpGroup {
 		{"Navigation", []keybind.Binding{k.Up, k.Down, k.Left, k.Right, k.Enter, k.Back, k.Section}},
 		{"Views & Global", []keybind.Binding{k.Backlog, k.Reviews, k.Picker, k.Tags, k.Search, k.Filter, k.FilterClear, k.Refresh, k.Palette, k.Help, k.Quit}},
 		{"Actions", []keybind.Binding{k.Status, k.Sort, k.Assign, k.Create, k.TagAssign, k.Delete, k.Yank, k.Toggle}},
-		{"Review", []keybind.Binding{k.ReviewPass, k.ReviewReject, k.ReviewReopen, k.ReviewRework, k.ReviewResult, k.ReviewPass2, k.SprintComplete}},
+		{"Review", []keybind.Binding{k.ReviewPass, k.ReviewReject, k.ReviewReopen, k.ReviewRework, k.ReviewPass2, k.SprintComplete}},
 	}
 }
 

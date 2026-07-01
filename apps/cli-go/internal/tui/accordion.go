@@ -47,7 +47,7 @@ type accordionSection struct {
 }
 
 // subtaskGlyph rendert den Status-Marker einer Unteraufgabe (DD2-197): done ✓ grün,
-// open ○ muted — analog der Verdikt-/Result-Glyphen-Sprache.
+// open ○ muted — analog der Verdikt-Glyphen-Sprache.
 func subtaskGlyph(status string) string {
 	if status == "done" {
 		return lipgloss.NewStyle().Foreground(theme.Green).Render("✓")
@@ -82,7 +82,7 @@ func userStoryFields(stories []api.UserStory) []detailField {
 
 // issueSections baut die Detail-Sektionen eines Issues in fester Reihenfolge
 // (Vorschlag DD2-50): 1=Goal/Beschreibung|PO-Notes, 2=Background/Context,
-// 3=Relevant Files, 4=User-Stories, 5=Result, 6=Review. bodyW = Innenbreite der
+// 3=Relevant Files, 4=User-Stories, 5=Review. bodyW = Innenbreite der
 // Body-Box (Border zieht außen 2 ab — s. renderAccordion). Alle Bodies werden hier
 // explizit auf bodyW umgebrochen (kein Auto-Wrap in der Box, #2).
 //
@@ -179,11 +179,6 @@ func (m model) issueSections(it api.Issue, bodyW int, full bool) []accordionSect
 		secs = append(secs, accordionSection{
 			title: fmt.Sprintf("Subtasks (%d/%d)", done, len(subs)),
 			body:  wrapText(strings.TrimRight(sb.String(), "\n"), bodyW)})
-	}
-
-	// Sektion 5: Result (read-only, nur Review — D06).
-	if r := deref(it.Result); r != "" {
-		secs = append(secs, accordionSection{title: "Result", body: wrapText(r, bodyW)})
 	}
 
 	// Sektion 6: Review (read-only). DD2-225: alle Runden als Tabelle (Round/Verdict/

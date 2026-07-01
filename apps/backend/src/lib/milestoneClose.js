@@ -6,7 +6,7 @@
 //   - 'backlog'   → assigned_sprint=NULL, milestone-Text geleert, Status auf
 //                   'refined' (wenn planned) bzw. 'new' (wenn new) zurueck.
 //   - 'completed' → status='completed', completed_at=NOW. PO-Triggered Direct-Set.
-//   - 'cancelled' → status='cancelled', completed_at=NOW, result-Annex.
+//   - 'cancelled' → status='cancelled', completed_at=NOW. Cancel-Grund im auditLog.
 //
 // Helper ist pure: keine Express-Abhaengigkeiten, akzeptiert better-sqlite3-DB
 // + Audit-Log-Funktion (Dependency-Injection fuer Tests).
@@ -79,18 +79,14 @@ function applyAssignment(db, milestone, issue, target, auditLog) {
 
   if (target === 'cancelled') {
     const reason = `Milestone "${milestone.name}" closed`
-    // result-Feld erhaelt einen Cancel-Reason-Annex (statt zu ueberschreiben).
-    const old = db.prepare('SELECT result FROM backlog WHERE id = ?').get(issue.id)
-    const oldResult = old?.result || ''
-    const annex = `cancelled_reason: ${JSON.stringify(reason)}`
-    const newResult = oldResult ? `${oldResult.trim()}\n\n${annex}` : annex
+    // Cancel-Grund wird ausschliesslich im auditLog festgehalten (D14/T04a: das
+    // issue-gebundene result-Feld ist entfernt, kein Annex-Ziel mehr).
     db.prepare(`
       UPDATE backlog
          SET status = 'cancelled',
-             completed_at = CURRENT_TIMESTAMP,
-             result = ?
+             completed_at = CURRENT_TIMESTAMP
        WHERE id = ?
-    `).run(newResult, issue.id)
+    `).run(issue.id)
     auditLog('backlog', issue.id, 'milestone_close_cancelled',
       { status: oldStatus },
       { status: 'cancelled', reason, milestone_id: milestone.id },

@@ -22,8 +22,6 @@ export function buildRoutes() {
         <Route path="/home" element={<ToolHome />} />
         <Route path="/projects" element={<Navigate to="/home" replace />} />
         <Route path="/settings" element={<Stub name="global-settings" title="Einstellungen" />} />
-        <Route path="/settings/sops" element={<Stub name="sop-list" title="SOPs" />} />
-        <Route path="/settings/sops/:key" element={<Stub name="sop-view" title="SOP" />} />
 
         {/* projekt-scoped — ProjectScope setzt projectStore synchron aus :slug */}
         <Route path="/:slug" element={<ProjectScope />}>

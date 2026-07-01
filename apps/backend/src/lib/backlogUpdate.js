@@ -21,7 +21,6 @@ const NULLABLE_FIELDS = [
   'context_notes',
   'relevant_files',
   'po_notes',
-  'result',
 ]
 
 export function applyBacklogUpdate(db, id, body = {}) {

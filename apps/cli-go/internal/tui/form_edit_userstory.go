@@ -4,6 +4,12 @@ package tui
 // Detail-Fokus (DD2-144). Zwei Felder: Title (Pflicht) + QA (Akzeptanzkriterium,
 // D09). Vanilla huh, Werte werden nach StateCompleted keyed gelesen (us_title/us_qa),
 // nicht per Pointer (Value-Copy-Bruch) — Preset-Binding nur für den Initialwert.
+//
+// T04b/G2 (Welle 4, D16): Das Anlegen einer User Story hier ist die Vorbedingung für
+// die Sprint-Zuweisung — der Backend-Gate (canAssignSprint, PATCH …/sprint) lehnt eine
+// Zuweisung ohne >=1 User Story mit 422 ab. Der TUI-Assign-Flow surfaced diesen Gate
+// aktuell nicht eigenständig (Backend ist die erzwingende Instanz); Fehler kommen als
+// Toast aus der API-Antwort zurück.
 
 import (
 	"strconv"
