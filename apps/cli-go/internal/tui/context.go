@@ -58,10 +58,10 @@ func sprintClip(s *api.Sprint, docs []api.Document) string {
 	}
 	fmt.Fprintf(&b, "- Progress: %d/%d\n", s.DoneCount, s.ItemCount)
 	b.WriteString("\n## Issues\n\n")
-	b.WriteString("| ID | Key | Title | Goal | Background | Results |\n|---|---|---|---|---|---|\n")
+	b.WriteString("| ID | Key | Title | Goal | Background |\n|---|---|---|---|---|\n")
 	for _, it := range s.Items {
-		fmt.Fprintf(&b, "| %d | %s | %s | %s | %s | %s |\n",
-			it.ID, it.Key, oneline(it.Title), oneline(deref(it.Goal)), oneline(deref(it.Background)), resultMark(it))
+		fmt.Fprintf(&b, "| %d | %s | %s | %s | %s |\n",
+			it.ID, it.Key, oneline(it.Title), oneline(deref(it.Goal)), oneline(deref(it.Background)))
 	}
 	b.WriteString(sprintDocsSection(docs))
 	return b.String()
@@ -107,13 +107,4 @@ func backlogClip(vis []api.Issue, filterSummary string) string {
 			it.Key, it.Type, it.Priority, it.Status, oneline(it.Title), oneline(deref(it.PoNotes)))
 	}
 	return b.String()
-}
-
-// resultMark ist die Text-Variante des Ergebnis-Indikators für Clipboard/Markdown
-// (✓ result vorhanden, ✗ fehlt) — spiegelt den Dot aus der TUI (I01).
-func resultMark(it api.Issue) string {
-	if strings.TrimSpace(deref(it.Result)) != "" {
-		return "✓"
-	}
-	return "✗"
 }

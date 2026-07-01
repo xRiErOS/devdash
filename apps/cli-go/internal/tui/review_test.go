@@ -71,10 +71,10 @@ func TestRejectFormCreateCmdDispatches(t *testing.T) {
 }
 
 func TestReviewStandClipRendersMarkdown(t *testing.T) {
-	// DD2-121: y rendert den Review-Stand als Markdown-Tabelle (Key/Verdict/Result).
+	// DD2-121: y rendert den Review-Stand als Markdown-Tabelle (Key/Verdict).
 	m := reviewModel()
 	m.curSprint.Items = []api.Issue{
-		{Key: "SPF-1", Title: "A", Status: "passed", ReviewStatus: strptr("passed"), Result: strptr("done")},
+		{Key: "SPF-1", Title: "A", Status: "passed", ReviewStatus: strptr("passed")},
 		{Key: "SPF-2", Title: "B", Status: "to_review"},
 	}
 	out := m.reviewStandClip()
@@ -90,7 +90,7 @@ func TestReviewStandClipRendersMarkdown(t *testing.T) {
 func TestReviewStandClipIncludesRejectComments(t *testing.T) {
 	m := reviewModel()
 	m.curSprint.Items = []api.Issue{
-		{Key: "SPF-1", Title: "A", Status: "passed", ReviewStatus: strptr("passed"), Result: strptr("done")},
+		{Key: "SPF-1", Title: "A", Status: "passed", ReviewStatus: strptr("passed")},
 		{Key: "SPF-2", Title: "B", Status: "rejected", ReviewStatus: strptr("not_passed"), ReviewComment: strptr("Edge-Case X fehlt")},
 	}
 	out := m.reviewStandClip()

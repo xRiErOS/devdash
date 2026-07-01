@@ -135,7 +135,6 @@ function activitiesOf(name) {
     if (s === 'issue_update') add('Backlog', 'Refinement')
     if (s === 'issue_status') add('Refinement', 'Sprintplanung', 'Sprintdurchführung')
     if (s === 'issue_assign_sprint') add('Sprintplanung')
-    if (s === 'issue_set_result') add('Sprintdurchführung', 'Sprint-Review')
     if (s === 'issue_activity') add('Sprintdurchführung')
     if (s === 'issue_lost') add('Sprintdurchführung', 'Sprint-Review')
   }

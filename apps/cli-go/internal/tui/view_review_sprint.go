@@ -121,26 +121,15 @@ func col(s string, w int) string {
 }
 
 // cockpitRow setzt eine Cockpit-Zeile aus den Zellen typprio|key|title|status|
-// verdikt|rest; alle bis auf die letzte werden auf ihre Spaltenbreite gepadded.
-func cockpitRow(typePrio, key, title, status, verdikt, rest string) string {
+// verdikt; alle bis auf die letzte werden auf ihre Spaltenbreite gepadded.
+func cockpitRow(typePrio, key, title, status, verdikt string) string {
 	return col(typePrio, colTypePrio) + " " + col(key, colKey) + " " +
-		col(title, colTitle) + " " + col(status, colStatus) + " " +
-		col(verdikt, colVerdikt) + " " + rest
+		col(title, colTitle) + " " + col(status, colStatus) + " " + verdikt
 }
 
 // issueColHeader liefert die Spalten-Überschrift, deckungsgleich mit cockpitRow.
-// Letzte Spalte "Results" = result-Indikator (I01, Gate für Sprint-Abschluss).
 func issueColHeader() string {
-	return theme.Dim.Render(cockpitRow("Type", "Key", "Title", "Status", "Review verdict", "Results"))
-}
-
-// resultDot zeigt, ob das result-Feld gepflegt ist (grün) oder fehlt (rot).
-// Fehlendes result blockt den Sprint-Abschluss (Backend-Gate), I01.
-func resultDot(it api.Issue) string {
-	if strings.TrimSpace(deref(it.Result)) != "" {
-		return lipgloss.NewStyle().Foreground(theme.Green).Render("◉") // U+25C9 (neutral; war ● U+25CF = ambiguous, DD2-53)
-	}
-	return lipgloss.NewStyle().Foreground(theme.Red).Render("◉")
+	return theme.Dim.Render(cockpitRow("Type", "Key", "Title", "Status", "Review verdict"))
 }
 
 // sprintStatusMenu: schwebendes Sprint-Status-Menü (Taste S), zeigt gültige Transitions.
@@ -258,8 +247,8 @@ func usSummaryDot(it api.Issue) string {
 }
 
 // sprintReviewReady prüft den lokalen Abschluss-Zustand (DD2-70): jedes
-// nicht-stornierte Issue trägt ein passed-Verdikt UND ein gepflegtes result-Feld.
-// Spiegelt das serverseitige completeness-Gate (api.js:2241) ohne Roundtrip, damit
+// nicht-stornierte Issue trägt ein passed-Verdikt.
+// Spiegelt das serverseitige completeness-Gate (api.js) ohne Roundtrip, damit
 // das Cockpit die Abschluss-Bereitschaft prominent signalisieren kann.
 func sprintReviewReady(s *api.Sprint) bool {
 	if s == nil {
@@ -274,22 +263,18 @@ func sprintReviewReady(s *api.Sprint) bool {
 		if deref(it.ReviewStatus) != "passed" {
 			return false
 		}
-		if strings.TrimSpace(deref(it.Result)) == "" {
-			return false
-		}
 	}
 	return any
 }
 
 // reviewSummary fasst die Review-Runden zusammen (für Sprint-Abschluss-Readiness).
-// DD2-70: result-Lücken bei passed-Issues werden mitgezählt, und die Abschluss-
-// Bereitschaft prüft Verdikt UND result (nicht nur Verdikte) — erst dann der
+// Erst wenn jedes nicht-stornierte Issue ein passed-Verdikt trägt, erscheint der
 // prominente „Abschluss-bereit"-Hinweis Richtung C.
 func (m model) reviewSummary() string {
 	if m.curSprint == nil {
 		return ""
 	}
-	var passed, rejected, pending, missingResult int
+	var passed, rejected, pending int
 	for _, it := range m.curSprint.Items {
 		if it.Status == "cancelled" {
 			continue
@@ -302,17 +287,11 @@ func (m model) reviewSummary() string {
 		default:
 			pending++
 		}
-		if strings.TrimSpace(deref(it.Result)) == "" {
-			missingResult++
-		}
 	}
 	parts := []string{
 		lipgloss.NewStyle().Foreground(theme.Green).Render(fmt.Sprintf("✓ %d passed", passed)),
 		lipgloss.NewStyle().Foreground(theme.Red).Render(fmt.Sprintf("✗ %d not_passed", rejected)),
 		theme.Dim.Render(fmt.Sprintf("∙ %d open", pending)),
-	}
-	if missingResult > 0 {
-		parts = append(parts, lipgloss.NewStyle().Foreground(theme.Red).Render(fmt.Sprintf("◉ %d without result", missingResult)))
 	}
 	head := theme.Dim.Render("Review rounds: ")
 	if sprintReviewReady(m.curSprint) {
@@ -353,18 +332,14 @@ func reviewStandMarkdown(s *api.Sprint) string {
 		}
 	}
 	b.WriteString(fmt.Sprintf("Verdicts: %d passed · %d not_passed · %d open\n\n", passed, rejected, pending))
-	b.WriteString("| Key | Title | Status | Verdict | Result |\n")
-	b.WriteString("|-----|-------|--------|---------|--------|\n")
+	b.WriteString("| Key | Title | Status | Verdict |\n")
+	b.WriteString("|-----|-------|--------|---------|\n")
 	for _, it := range s.Items {
 		verdict := deref(it.ReviewStatus)
 		if verdict == "" {
 			verdict = "—"
 		}
-		result := "—"
-		if strings.TrimSpace(deref(it.Result)) != "" {
-			result = "yes"
-		}
-		b.WriteString(fmt.Sprintf("| %s | %s | %s | %s | %s |\n", it.Key, it.Title, it.Status, verdict, result))
+		b.WriteString(fmt.Sprintf("| %s | %s | %s | %s |\n", it.Key, it.Title, it.Status, verdict))
 	}
 	// DD2-152: Reject-Kommentare je not_passed-Issue UNTER der Tabelle anhängen. Der
 	// Handover-Markdown (y → Clipboard) trägt damit die Ablehnungsgründe direkt — der
@@ -512,11 +487,7 @@ func (m model) reviewHandoverClip() string {
 	if len(passed) > 0 {
 		b.WriteString("## Passed\n")
 		for _, it := range passed {
-			res := ""
-			if strings.TrimSpace(deref(it.Result)) != "" {
-				res = " — result attached"
-			}
-			b.WriteString(fmt.Sprintf("- %s %s%s\n", it.Key, it.Title, res))
+			b.WriteString(fmt.Sprintf("- %s %s\n", it.Key, it.Title))
 		}
 		b.WriteString("\n")
 	}
@@ -727,7 +698,7 @@ func (m model) reviewDetailPane(it *api.Issue, w, h int) string {
 		}, "", w), w))
 	}
 	header = append(header,
-		truncate(theme.Dim.Render("Result ")+resultDot(*it)+theme.Dim.Render("   User-Stories ")+usSummaryDot(*it), w),
+		truncate(theme.Dim.Render("User-Stories ")+usSummaryDot(*it), w),
 		theme.Dim.Render(strings.Repeat("─", min(w, 24))),
 	)
 	acc := renderAccordion(m.issueSections(*it, w-2, false), m.accOpen, w, detailFocusView{}) // read-only Preview (DD2-144)

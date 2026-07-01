@@ -35,7 +35,6 @@ function makeItem(overrides = {}) {
     context_notes: null,
     relevant_files: null,
     user_stories: [],
-    result: null,
     dependencies: { blockers: [], blocked_by: [] },
     review_status: null,
     review_comment: null,
@@ -65,21 +64,6 @@ describe('DD2-141 — buildSprintContextMarkdown', () => {
     expect(md).toContain('Als Agent sehe ich QA')
     expect(md).toContain('Aktion X → erwartetes Y')
     expect(md).toContain('[open]')
-  })
-
-  test('DD2-95: Result-Feld bearbeiteter Issues wird gerendert', () => {
-    const item = makeItem({
-      status: 'to_review',
-      result: 'outcome_type: feat\noutcome_summary: Done the thing',
-    })
-    const md = buildSprintContextMarkdown(makeSprint(), [item])
-    expect(md).toContain('**Result:**')
-    expect(md).toContain('outcome_summary: Done the thing')
-  })
-
-  test('DD2-95: kein Result-Block wenn result leer', () => {
-    const md = buildSprintContextMarkdown(makeSprint(), [makeItem({ result: null })])
-    expect(md).not.toContain('**Result:**')
   })
 
   test('DD2-92: Issue-Dependencies (blockers/blocked_by) werden gerendert', () => {

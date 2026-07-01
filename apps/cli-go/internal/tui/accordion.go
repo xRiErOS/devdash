@@ -181,11 +181,6 @@ func (m model) issueSections(it api.Issue, bodyW int, full bool) []accordionSect
 			body:  wrapText(strings.TrimRight(sb.String(), "\n"), bodyW)})
 	}
 
-	// Sektion 5: Result (read-only, nur Review — D06).
-	if r := deref(it.Result); r != "" {
-		secs = append(secs, accordionSection{title: "Result", body: wrapText(r, bodyW)})
-	}
-
 	// Sektion 6: Review (read-only). DD2-225: alle Runden als Tabelle (Round/Verdict/
 	// Comment), damit bei rejected der PO-Kommentar sichtbar ist (latest-only versteckte
 	// ihn bei auto-reopen). Fallback auf das Latest-Verdikt, falls keine Runden geladen.

@@ -70,7 +70,6 @@ import { resolveCaptureClientIp, captureCapRejection, PUBLIC_CAPTURE_MAX_FILE_BY
 import { createApiKeyAuth } from './middleware/apiKeyAuth.js'
 import { createDevdTokenAuth } from './middleware/devdToken.js'
 import { isTrustedSource } from './lib/trustedSource.js'
-import { listSprintIssuesMissingResult } from './lib/sprintCompleteGuards.js'
 import { applyBacklogUpdate, BacklogUpdateError } from './lib/backlogUpdate.js'
 // DD-560: backlog/issue-Payloads via geteiltem Zod-Contract (Single Source, CONTRACT-GATEWAY-PATTERN #303).
 import { issueCreateContract } from '@devd/api-types/backlog.contracts.js'
@@ -1481,8 +1480,7 @@ app.get('/api/sprints/:id/context', (req, res) => {
     }
     // DD2-141: Kontext-Payload additiv anreichern, damit der Coding-Agent
     // ohne Extra-Calls arbeitet. DD2-96 user_stories (inkl. qa), DD2-92
-    // Issue-Dependencies (blockers/blocked_by). result (DD2-95) ist bereits
-    // via b.* in der Zeile enthalten.
+    // Issue-Dependencies (blockers/blocked_by).
     i.user_stories = listUserStories(db, i.id)
     i.dependencies = listIssueDependencies(db, i.id)
   }
@@ -3908,21 +3906,6 @@ app.post('/api/sprints/:id/complete', (req, res) => {
         title: i.title,
         review_status: i.review_status || 'pending',
         review_round: i.review_round || null,
-      })),
-    })
-  }
-
-  const missingResults = listSprintIssuesMissingResult(db, req.params.id)
-  if (missingResults.length > 0) {
-    return res.status(422).json({
-      error: 'Sprint kann nicht abgeschlossen werden — result ist für completed/passed Issues Pflicht.',
-      issue_keys: missingResults.map(i => i.key),
-      issues: missingResults.map(i => ({
-        id: i.id,
-        key: i.key,
-        project_number: i.project_number,
-        title: i.title,
-        status: i.status,
       })),
     })
   }

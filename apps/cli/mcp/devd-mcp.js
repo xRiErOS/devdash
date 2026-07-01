@@ -522,7 +522,7 @@ server.tool(
 
 server.tool(
   'devd_sprint_context',
-  'Get full sprint context bundle formatted as Markdown — all issue fields plus per-issue user-stories (incl. QA), result fields of already-worked issues, and issue/sprint dependencies. Ideal for AI agents before starting work, no extra calls needed. Read-only.',
+  'Get full sprint context bundle formatted as Markdown — all issue fields plus per-issue user-stories (incl. QA) and issue/sprint dependencies. Ideal for AI agents before starting work, no extra calls needed. Read-only.',
   {
     project_id: PROJECT_ID_PARAM,
     sprint_key: z.string().describe('Sprint key (e.g. "DD#20") or numeric sprint id'),
@@ -1529,7 +1529,7 @@ server.tool(
 
 server.tool(
   'devd_issue_update',
-  'WRITE: Update editable fields of an issue (title, goal, background, context_notes, relevant_files, priority, type, po_notes, result). po_notes is the PO-facing free-text field (replaces the removed description field, DD2-131/132). result documents the sprint outcome — required on completed/passed issues before sprint complete. E01/D09: per-issue acceptance_criteria + test_instruction are replaced by user_stories[].qa — manage them via devd_user_story_*. Does NOT change status or sprint assignment — use devd_issue_status for status transitions.',
+  'WRITE: Update editable fields of an issue (title, goal, background, context_notes, relevant_files, priority, type, po_notes). po_notes is the PO-facing free-text field (replaces the removed description field, DD2-131/132). E01/D09: per-issue acceptance_criteria + test_instruction are replaced by user_stories[].qa — manage them via devd_user_story_*. Does NOT change status or sprint assignment — use devd_issue_status for status transitions.',
   {
     project_id: PROJECT_ID_PARAM,
     id_or_key: z.string().describe('Issue key (e.g. "DD-42") or numeric backlog id'),
@@ -1541,7 +1541,6 @@ server.tool(
     priority: z.number().int().min(1).max(5).optional(),
     type: z.enum(ISSUE_TYPES).optional(),
     po_notes: z.string().optional(),
-    result: z.string().optional().describe('Sprint outcome documentation. Required on completed/passed issues before sprint complete. Markdown text — summarise what was implemented, decisions made, and lessons learned.'),
   },
   async ({ project_id, id_or_key, ...fields }) => {
     const pid = resolveProjectId(project_id)
@@ -1602,109 +1601,6 @@ server.tool(
     const data = await apiRequest('PATCH', `/api/backlog/${issueId}/sprint`, {
       sprint_id: sprintId,
     }, pid)
-    return ok(data)
-  },
-)
-
-// DD2-99: Outcome-Type-Vokabular inline (kein Contract) — enum-validiert, default feat.
-const SET_RESULT_OUTCOME_TYPES = ['feat', 'fix', 'refactor', 'chore', 'docs']
-
-server.tool(
-  'devd_issue_set_result',
-  'WRITE: Set the structured sprint result on an issue. Builds the YAML+Markdown result string and writes it via PUT /api/backlog/:id {result}. commits is required (D02). Use after sprint work is done, before sprint complete.',
-  {
-    project_id: PROJECT_ID_PARAM,
-    id_or_key: z.string({ error: 'id_or_key ist Pflichtfeld' }).trim().min(1, { error: 'id_or_key darf nicht leer sein' }).describe('Issue key (e.g. "DD-42") or numeric backlog id'),
-    // DD2-99: enum statt Free-String — ungültiger Typ schlägt klar an der Grenze fehl.
-    outcome_type: z
-      .enum(SET_RESULT_OUTCOME_TYPES, { error: 'outcome_type muss feat|fix|refactor|chore|docs sein' })
-      .optional()
-      .describe('Outcome type: feat | fix | refactor | chore | docs (default: feat)'),
-    // DD2-99: non-empty Pflicht — leere Summary erzeugte zuvor ein nutzloses Result.
-    outcome_summary: z
-      .string({ error: 'outcome_summary ist Pflichtfeld' })
-      .trim()
-      .min(1, { error: 'outcome_summary darf nicht leer sein' })
-      .describe('Short summary of what was achieved (required)'),
-    files_changed: z
-      .array(z.string())
-      .optional()
-      .describe('List of changed file paths'),
-    // DD2-99: mind. 1 non-empty Commit (D02) — [] erzeugte zuvor einen leeren YAML-Eintrag.
-    commits: z
-      .array(z.string().trim().min(1, { error: 'commit darf nicht leer sein' }), { error: 'commits muss ein Array sein' })
-      .min(1, { error: 'commits ist Pflicht — mind. 1 Eintrag (D02)' })
-      .describe('List of commit SHAs or short descriptions (required — D02)'),
-    breaking_changes: z
-      .boolean()
-      .optional()
-      .describe('Whether this introduces breaking changes (default false)'),
-    lessons_learned: z
-      .array(z.string())
-      .optional()
-      .describe('Lessons learned during implementation'),
-    vorgehen: z
-      .string()
-      .optional()
-      .describe('Markdown body: approach, trade-offs, code snippets, links'),
-  },
-  async ({
-    project_id,
-    id_or_key,
-    outcome_type,
-    outcome_summary,
-    files_changed,
-    commits,
-    breaking_changes,
-    lessons_learned,
-    vorgehen,
-  }) => {
-    const pid = resolveProjectId(project_id)
-    if (typeof pid === 'object' && pid.error) return ok(pid)
-    const id = await resolveIssueId(id_or_key, pid)
-    const issue = await apiRequest('GET', `/api/backlog/${id}`, null, pid)
-    // DD2-99: Issue nicht auflösbar/nicht gefunden → klar abbrechen, statt ein
-    // Result mit `#undefined`-related_issues zu bauen und blind zu PUTten.
-    if (!issue || issue.error || issue.id == null) {
-      return ok(issue && issue.error ? issue : { error: true, message: `Issue ${id_or_key} nicht gefunden` })
-    }
-
-    // Build issue key for related_issues block
-    const issueKey = (issue.project_prefix && issue.project_number != null)
-      ? `${issue.project_prefix}-${issue.project_number}`
-      : `#${issue.id}`
-
-    const yamlList = (items) =>
-      !items || items.length === 0 ? '  -' : items.map(x => `  - ${x}`).join('\n')
-    const yamlScalar = (val) => {
-      if (val === undefined || val === null) return ''
-      const s = String(val)
-      return /[:#"'\n]/.test(s) ? JSON.stringify(s) : s
-    }
-
-    const outcomeTypeStr = outcome_type || 'feat'
-    const vorgehenText = vorgehen || '(Begründung, Trade-offs, Code-Snippets, Verlinkungen)'
-
-    const result = `---
-outcome_summary: ${yamlScalar(outcome_summary)}
-outcome_type: ${outcomeTypeStr}
-files_changed:
-${yamlList(files_changed)}
-commits:
-${yamlList(commits)}
-breaking_changes: ${breaking_changes === true}
-lessons_learned:
-${yamlList(lessons_learned)}
-related_issues:
-  - ${issueKey}
----
-
-## Vorgehen
-
-${vorgehenText}
-`
-
-    const data = await apiRequest('PUT', `/api/backlog/${id}`, { result }, pid)
     return ok(data)
   },
 )

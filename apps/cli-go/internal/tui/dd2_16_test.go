@@ -57,32 +57,33 @@ func TestReopenDispatchFromPassed(t *testing.T) {
 	}
 }
 
-// DD2-70: Abschluss-Bereitschaft verlangt Verdikt UND result je nicht-storniertem Issue.
+// DD2-70 / T04a: Abschluss-Bereitschaft verlangt ein passed-Verdikt je
+// nicht-storniertem Issue (das result-Gate ist mit D14 entfallen).
 func TestSprintReviewReady(t *testing.T) {
 	// leerer/nil Sprint → nicht bereit
 	if sprintReviewReady(nil) {
 		t.Error("nil-Sprint darf nicht abschlussbereit sein")
 	}
-	// passed aber ohne result → nicht bereit
+	// ohne passed-Verdikt → nicht bereit
 	s := &api.Sprint{Items: []api.Issue{
-		{Status: "to_review", ReviewStatus: strptr("passed")},
+		{Status: "to_review", ReviewStatus: strptr("to_review")},
 	}}
 	if sprintReviewReady(s) {
-		t.Error("passed ohne result darf nicht abschlussbereit sein")
+		t.Error("ohne passed-Verdikt darf nicht abschlussbereit sein")
 	}
-	// passed + result → bereit
-	s.Items[0].Result = strptr("done & shipped")
+	// alle passed → bereit
+	s.Items[0].ReviewStatus = strptr("passed")
 	if !sprintReviewReady(s) {
-		t.Error("passed + result sollte abschlussbereit sein")
+		t.Error("alle passed sollte abschlussbereit sein")
 	}
 	// ein not_passed kippt die Bereitschaft
-	s.Items = append(s.Items, api.Issue{Status: "to_review", ReviewStatus: strptr("not_passed"), Result: strptr("x")})
+	s.Items = append(s.Items, api.Issue{Status: "to_review", ReviewStatus: strptr("not_passed")})
 	if sprintReviewReady(s) {
 		t.Error("not_passed darf nicht abschlussbereit sein")
 	}
 	// stornierte Issues werden ignoriert
 	s2 := &api.Sprint{Items: []api.Issue{
-		{Status: "passed", ReviewStatus: strptr("passed"), Result: strptr("ok")},
+		{Status: "passed", ReviewStatus: strptr("passed")},
 		{Status: "cancelled"},
 	}}
 	if !sprintReviewReady(s2) {
@@ -102,13 +103,12 @@ func TestIssueFieldsRendersFull(t *testing.T) {
 		Goal:       strptr("Das Goal"),
 		Background: strptr(long),
 		PoNotes:    strptr("PO-Hinweis"),
-		Result:     strptr("Ergebnis-Text"),
 		UserStories: []api.UserStory{
 			{Title: "US Eins", Verdict: "accepted", QA: strptr("Aktion X → Y")},
 		},
 	}
 	out := issueFields(it)
-	for _, want := range []string{"Goal", "Das Goal", "Background", "PO Notes", "PO-Hinweis", "Result", "Ergebnis-Text", "US Eins", "Aktion X → Y"} {
+	for _, want := range []string{"Goal", "Das Goal", "Background", "PO Notes", "PO-Hinweis", "US Eins", "Aktion X → Y"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("issueFields fehlt %q\n%s", want, out)
 		}

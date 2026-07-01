@@ -89,7 +89,6 @@ func issueFields(it *api.Issue) string {
 	field("Context Notes", deref(it.ContextNotes))
 	field("Relevant Files", deref(it.RelevantFiles))
 	field("PO Notes", deref(it.PoNotes))
-	field("Result", deref(it.Result))
 	if rs := deref(it.ReviewStatus); rs != "" {
 		field("Review", rs+"  "+deref(it.ReviewComment))
 	}

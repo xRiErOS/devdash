@@ -357,7 +357,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.rlist.setLen(len(m.curSprint.Items))
 		}
 		if msg.yanked {
-			m.status = noticeText("Sprint completed — result handover in clipboard")
+			m.status = noticeText("Sprint completed — handover in clipboard")
 		} else {
 			m.status = noticeText("Sprint completed (handover yank failed)")
 		}

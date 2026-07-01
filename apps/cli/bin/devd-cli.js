@@ -29,7 +29,6 @@
  *                                  [--goal-editor|--background-editor|--context-notes-editor|
  *                                   --po-notes-editor|--description-editor]
  *   devd-cli issue status <id|key> <new-status>
- *   devd-cli issue set-result <id|key>       # öffnet $EDITOR mit YAML+Markdown-Template
  *   devd-cli issue assign-sprint <id|key> --sprint <key|id|null|none>
  *
  *   devd-cli subtask add <id|key> --title <text> [--qa <text>]
@@ -50,7 +49,7 @@
  *   DEVD_API_TOKEN    — DD-285 Defense-in-Depth Token; als X-Devd-Token-Header
  *                       bei jeder Anfrage gesendet (Pflicht in Production wenn
  *                       Backend DEVD_API_TOKEN gesetzt hat)
- *   EDITOR            — Editor für 'issue set-result' (Default: vi)
+ *   EDITOR            — Editor für die --<feld>-editor-Flows (Default: vi)
  */
 import { writeFileSync, readFileSync, existsSync } from 'fs'
 import { spawnSync } from 'child_process'
@@ -180,44 +179,6 @@ function parseFlags(args) {
     }
   }
   return out
-}
-
-function buildResultFromFlags(flags, issue) {
-  const splitList = (val) => {
-    if (val === undefined || val === true || val === '') return []
-    return String(val).split(',').map(s => s.trim()).filter(Boolean)
-  }
-  const yamlList = (items) => items.length === 0 ? '  -' : items.map(x => `  - ${x}`).join('\n')
-  const yamlScalar = (val) => {
-    if (val === undefined || val === true) return ''
-    const s = String(val)
-    return /[:#"'\n]/.test(s) ? JSON.stringify(s) : s
-  }
-  const breaking = flags['breaking-changes'] === true
-    || flags['breaking-changes'] === 'true'
-  const outcomeType = (flags['outcome-type'] && flags['outcome-type'] !== true)
-    ? String(flags['outcome-type']) : 'feat'
-  const vorgehen = (flags['vorgehen'] && flags['vorgehen'] !== true)
-    ? String(flags['vorgehen']) : '(Begründung, Trade-offs, Code-Snippets, Verlinkungen)'
-
-  return `---
-outcome_summary: ${yamlScalar(flags['outcome-summary'])}
-outcome_type: ${outcomeType}
-files_changed:
-${yamlList(splitList(flags['files-changed']))}
-commits:
-${yamlList(splitList(flags['commits']))}
-breaking_changes: ${breaking}
-lessons_learned:
-${yamlList(splitList(flags['lessons-learned']))}
-related_issues:
-  - ${formatIssueKey(issue)}
----
-
-## Vorgehen
-
-${vorgehen}
-`
 }
 
 function pad(s, n) { s = String(s ?? ''); return s.length >= n ? s : s + ' '.repeat(n - s.length) }
@@ -709,7 +670,6 @@ const COMMANDS = {
         }
         lines.push('')
       }
-      if (it.result) { lines.push('**Result:**'); lines.push(it.result); lines.push('') }
       lines.push('---')
       lines.push('')
     }
@@ -998,7 +958,6 @@ const COMMANDS = {
     if (it.context_notes) console.log(`\nContext:\n${it.context_notes}`)
     if (it.relevant_files) console.log(`\nFiles: ${it.relevant_files}`)
     if (it.po_notes) console.log(`\nPO-Notes:\n${it.po_notes}`)
-    if (it.result) console.log(`\nResult:\n${it.result}`)
     const userStories = Array.isArray(it.user_stories) ? it.user_stories : []
     if (userStories.length > 0) {
       console.log(`\nUser Stories (${userStories.length}):`)
@@ -1115,74 +1074,6 @@ const COMMANDS = {
     const r = await api('PATCH', `/api/backlog/${id}/status`, body)
     console.log(`✓ ${formatIssueKey(r)} → ${r.status}`)
     await scopedLink(r, 'issues', r.id, r.project_number)
-  },
-  async 'issue:set-result'(flags) {
-    const ref = flags._[0]
-    if (!ref) {
-      console.error('Usage: devd-cli issue set-result <id|key>\n' +
-        '  Editor-Mode (default):  devd-cli issue set-result DD-42\n' +
-        '  Inline-Mode (KI/CI):    devd-cli issue set-result DD-42 \\\n' +
-        '                            --outcome-type feat --outcome-summary "..." \\\n' +
-        '                            [--files-changed a.js,b.js] [--commits sha1,sha2] \\\n' +
-        '                            [--breaking-changes] [--lessons-learned "..."] \\\n' +
-        '                            [--vorgehen "Markdown-Body"]')
-      process.exit(2)
-    }
-    const id = await resolveIssueId(ref)
-    const it = await api('GET', `/api/backlog/${id}`)
-
-    const INLINE_KEYS = ['outcome-type', 'outcome-summary', 'files-changed', 'commits',
-                         'breaking-changes', 'lessons-learned', 'vorgehen']
-    const hasInline = INLINE_KEYS.some(k => flags[k] !== undefined)
-
-    if (hasInline) {
-      if (flags['outcome-summary'] === undefined || flags['outcome-summary'] === true) {
-        console.error('Inline-Mode: --outcome-summary <text> ist Pflicht')
-        process.exit(2)
-      }
-      const content = buildResultFromFlags(flags, it)
-      const updated = await api('PUT', `/api/backlog/${id}`, { result: content })
-      console.log(`✓ ${formatIssueKey(updated)} result gespeichert (inline, ${content.length} Zeichen)`)
-      return
-    }
-
-    const template = it.result || `---
-outcome_summary:
-outcome_type: feat
-files_changed:
-  -
-commits:
-  -
-breaking_changes: false
-lessons_learned:
-  -
-related_issues:
-  - ${formatIssueKey(it)}
----
-
-## Vorgehen
-
-(Begründung, Trade-offs, Code-Snippets, Verlinkungen)
-`
-    const tmpFile = join(tmpdir(), `devd-result-${id}.md`)
-    writeFileSync(tmpFile, template, 'utf8')
-    const editor = process.env.EDITOR || 'vi'
-    const r = spawnSync(editor, [tmpFile], { stdio: 'inherit' })
-    if (r.status !== 0) {
-      console.error('Editor-Aufruf fehlgeschlagen — abgebrochen')
-      process.exit(1)
-    }
-    if (!existsSync(tmpFile)) {
-      console.error('Tempfile verschwunden — abgebrochen')
-      process.exit(1)
-    }
-    const content = readFileSync(tmpFile, 'utf8')
-    if (content.trim() === template.trim()) {
-      console.log('Keine Änderung — abgebrochen.')
-      process.exit(0)
-    }
-    const updated = await api('PUT', `/api/backlog/${id}`, { result: content })
-    console.log(`✓ ${formatIssueKey(updated)} result gespeichert (${content.length} Zeichen)`)
   },
   async 'issue:assign-sprint'(flags) {
     const ref = flags._[0]
@@ -2343,7 +2234,6 @@ Issues (Key wie DD-161 oder globale ID):
                                   po-notes, description, test-instruction.
                                   --<feld>-editor öffnet $EDITOR mit aktuellem Wert.
   devd-cli issue status <id|key> <status> [--notes <text>]
-  devd-cli issue set-result <id|key>        # öffnet $EDITOR (Hybrid YAML+MD-Template)
   devd-cli issue assign-sprint <id|key> --sprint <key|id|null|none>
                                 # Assign to sprint (DD#20) or unassign (--sprint null)
   devd-cli issue dep add <key|id> --on <key|id> [--note <text>]   # MEM-14: Abhängigkeit setzen

@@ -7,8 +7,8 @@ package tui
 // StateCompleted per keyed GetString aus dem Formular gelesen.
 //
 // Die kind-spezifischen Form-Builder liegen je in eigener Datei
-// (form_create_issue.go, form_create_milestone.go, form_create_sprint.go, form_create_memory.go,
-// form_capture_result.go) — alle vanilla huh. Hier nur das geteilte Gerüst: openForm,
+// (form_create_issue.go, form_create_milestone.go, form_create_sprint.go,
+// form_create_memory.go) — alle vanilla huh. Hier nur das geteilte Gerüst: openForm,
 // formCreateCmd, editField-Form, Helpers.
 
 import (
@@ -124,7 +124,7 @@ func formInnerHeight(termH int) int {
 
 // openForm initialisiert das Formular für kind.
 // Alle Kinds nutzen vanilla huh (kind-spezifische Builder in
-// form_issue/milestone/sprint/memory/result.go).
+// form_issue/milestone/sprint/memory.go).
 func (m model) openForm(kind string) (tea.Model, tea.Cmd) {
 	m.formKind = kind
 	m.formGroupIdx = 0
@@ -144,8 +144,6 @@ func (m model) openForm(kind string) (tea.Model, tea.Cmd) {
 		f = buildSprintForm(m.milestones, m.tags)
 	case "memory":
 		f = buildMemoryForm()
-	case "result":
-		f = buildResultForm()
 	case "reject": // DD2-119: mehrzeiliges Reject-Kommentar-Modal
 		f = buildRejectForm()
 	case "settings": // DD2-125: User-Config bearbeiten
@@ -236,8 +234,6 @@ func (m model) formTitle() string {
 		return "New sprint"
 	case "memory":
 		return "New memory"
-	case "result":
-		return "Set result field"
 	case "reject":
 		return "Reject — comment"
 	case "settings":
@@ -482,15 +478,6 @@ func (m *model) formCreateCmd() tea.Cmd {
 			body.Anchor = &a
 		}
 		return doCreateMemory(m.client, body)
-	case "result":
-		yaml := buildResultYAML(
-			get("outcome_summary"),
-			m.form.GetString("outcome_type"),
-			splitCSV(get("commits")),
-			get("vorgehen"),
-			m.resultIssueKey,
-		)
-		return doSetResult(m.client, m.resultIssueID, yaml, m.resultSprintID)
 	case "reject": // DD2-119: not_passed-Verdikt mit mehrzeiligem Kommentar
 		comment := get("comment")
 		if comment == "" {

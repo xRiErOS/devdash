@@ -378,17 +378,6 @@ func doStatus(c *api.Client, issueID int, status string, sprintID int) tea.Cmd {
 	}
 }
 
-// doSetResult schreibt das Ergebnisfeld (I02) und lädt den Sprint neu, damit der
-// Ergebnis-Dot im Cockpit sofort grün wird.
-func doSetResult(c *api.Client, issueID int, result string, sprintID int) tea.Cmd {
-	return func() tea.Msg {
-		if _, err := c.UpdateIssue(issueID, map[string]any{"result": result}); err != nil {
-			return noticeMsg{cleanAPIErr(err)}
-		}
-		return refreshSprint(c, sprintID)
-	}
-}
-
 // issueUpdatedMsg trägt die Antwort eines Feld-Edits (DD2-77). issue gesetzt =
 // Erfolg (Cache-Merge); err gesetzt = Aktions-Fehler (→ errNote rot, D05).
 type issueUpdatedMsg struct {

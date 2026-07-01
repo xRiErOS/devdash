@@ -257,7 +257,7 @@ type model struct {
 
 	// Eingebettetes huh-Create-Formular (T16). nil = inaktiv.
 	form     *huh.Form
-	formKind string // issue | milestone | sprint | memory | result
+	formKind string // issue | milestone | sprint | memory | reject | settings
 
 	// Multi-Tab-Forms (DD2-36): Tab-Strip für mehrblättrige Create-Formulare.
 	// formGroupTitles != nil → Tab-Strip sichtbar. formGroupIdx = aktiver Tab (0-basiert).
@@ -265,11 +265,6 @@ type model struct {
 	formGroupIdx    int
 	formGroupTitles []string
 	formPartials    map[string]string
-
-	// Ziel des result-Formulars (I02): r im Cockpit füllt das Ergebnisfeld.
-	resultIssueID  int
-	resultIssueKey string
-	resultSprintID int
 
 	// Ziel des Reject-Formulars (DD2-119, US-50): x im Cockpit öffnet das
 	// mehrzeilige Reject-Kommentar-Modal statt der einzeiligen Footer-Eingabe.

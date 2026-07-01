@@ -47,7 +47,6 @@ type Issue struct {
 	ContextNotes   *string       `json:"context_notes"`
 	PoNotes        *string       `json:"po_notes"`
 	RelevantFiles  *string       `json:"relevant_files"`
-	Result         *string       `json:"result"`
 	CreatedAt      *string       `json:"created_at"`
 	RefinedAt      *string       `json:"refined_at"`
 	Tags           []Tag         `json:"tags,omitempty"`

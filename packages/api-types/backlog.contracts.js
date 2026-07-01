@@ -54,7 +54,6 @@ export const issueUpdateContract = z.object({
   context_notes: z.string().nullish(),
   relevant_files: z.string().nullish(),
   po_notes: z.string().nullish(),
-  result: z.string().nullish(),
   files: z.array(z.string()).optional(),
 })
 

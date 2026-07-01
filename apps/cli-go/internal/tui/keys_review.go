@@ -107,14 +107,6 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.uslist = listState{}
 		m.status = ""
 		return m, loadUserStories(m.client, it.ID)
-	case keybind.Matches(msg, keys.ReviewResult): // I02: Ergebnisfeld setzen (löst das result-Gate ohne Tool-Wechsel)
-		if it == nil {
-			return m, nil
-		}
-		m.resultIssueID = it.ID
-		m.resultIssueKey = it.Key
-		m.resultSprintID = m.curSprint.ID
-		return m.openForm("result")
 	case keybind.Matches(msg, keys.Status): // Issue-Status manuell mutieren — nur lifecycle-gültige Ziele
 		sid := 0
 		if m.curSprint != nil {

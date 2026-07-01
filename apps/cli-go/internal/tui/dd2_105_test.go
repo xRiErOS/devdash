@@ -14,12 +14,11 @@ func strp(s string) *string { return &s }
 
 func handoverModel() model {
 	goal := "Login works end-to-end"
-	res := "implemented"
 	return model{curSprint: &api.Sprint{
 		Key: "DD2#29", Name: "TUI Features", Goal: &goal, Status: "to_review",
 		DoneCount: 1, ItemCount: 3,
 		Items: []api.Issue{
-			{Key: "DD2-1", Title: "Pass me", Status: "passed", ReviewStatus: strp("passed"), Result: &res},
+			{Key: "DD2-1", Title: "Pass me", Status: "passed", ReviewStatus: strp("passed")},
 			{Key: "DD2-2", Title: "Reject me", Status: "rejected", ReviewStatus: strp("not_passed"), ReviewComment: strp("Edge case X fehlt")},
 			{Key: "DD2-3", Title: "Open one", Status: "to_review"},
 		},
@@ -36,7 +35,6 @@ func TestReviewHandoverArtifact(t *testing.T) {
 		"DD2-2",
 		"Edge case X fehlt", // Reject-Kommentar (DD2-152-Link)
 		"## Passed",
-		"result attached", // Passed mit Result
 		"## Pending review",
 		"DD2-3",
 		"## Next steps",
