@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"devd-cli/internal/api"
+	"devd-cli/internal/clip"
 	"devd-cli/internal/theme"
 	keybind "github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -127,6 +128,11 @@ func (m model) keyDocs(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if keybind.Matches(msg, keys.Rename) {
 		return m.openDocRename()
 	}
+	// DD2-253: y kopiert das selektierte Dokument (Titel+Body als Markdown), Parität
+	// zum Yank im Tree-Browser (keys.Yank, view_browse_project.go::treeYank).
+	if keybind.Matches(msg, keys.Yank) {
+		return m.docYank()
+	}
 	switch msg.String() {
 	case "esc", "q":
 		m.view = m.topReturn
@@ -206,7 +212,7 @@ func (m model) viewDocs() string {
 	body := lipgloss.JoinHorizontal(lipgloss.Top, left, right)
 
 	head := m.header() + "\n" + theme.Header.Render(m.screenTitle("Documents"))
-	footer := theme.Dim.Render("i/k:↑↓  /:search  enter:edit  n:new  d:delete  a:assign  r:rename  esc/q:back")
+	footer := theme.Dim.Render("i/k:↑↓  /:search  enter:edit  n:new  d:delete  a:assign  r:rename  y:yank  esc/q:back")
 	if m.docSearching {
 		footer = theme.Key.Render("Search: ") + m.docQuery + "▏"
 	} else if m.status != "" {
@@ -327,4 +333,25 @@ func (m model) docDetailRows(width int) []string {
 		rows = append(rows, "", theme.Dim.Render("file: "+fp))
 	}
 	return rows
+}
+
+// docClip baut den Markdown-Kontext eines Dokuments fürs Yank (DD2-253) — Titel
+// als Kopfzeile, Body darunter (Vorbild milestoneClip/sprintClip, context.go).
+func docClip(d *api.Document) string {
+	return "# " + d.Title + "\n\n" + d.Body
+}
+
+// docYank kopiert das selektierte Dokument in die Zwischenablage (DD2-253),
+// Parität zum Tree-Yank (keys.Yank → yankContext/treeYank).
+func (m model) docYank() (tea.Model, tea.Cmd) {
+	cur := m.selDoc()
+	if cur == nil {
+		return m, nil
+	}
+	if err := clip.Copy(docClip(cur)); err != nil {
+		m.status = noticeText("Clipboard error: " + err.Error())
+		return m, nil
+	}
+	m.status = noticeText("Document copied (" + cur.Title + ")")
+	return m, nil
 }

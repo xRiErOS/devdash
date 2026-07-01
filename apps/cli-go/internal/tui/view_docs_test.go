@@ -357,6 +357,29 @@ func TestDocsOpenRename(t *testing.T) {
 	}
 }
 
+// DD2-253: y im Docs-Browser kopiert Titel+Body als Markdown, setzt Erfolgs-Status.
+func TestDocsYank(t *testing.T) {
+	m := docsTestModel()
+	m.doclist.cursor = 0
+	nm, cmd := m.keyDocs(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("y")})
+	if cmd != nil {
+		t.Fatal("docYank ist synchron, sollte keinen Cmd liefern")
+	}
+	if !strings.Contains(nm.(model).status, "copied") {
+		t.Fatalf("status should note the copy, got %q", nm.(model).status)
+	}
+}
+
+// DD2-253: docClip baut Titel als Markdown-Kopfzeile + Body darunter.
+func TestDocClipFormat(t *testing.T) {
+	d := &api.Document{Title: "Plan", Body: "body one"}
+	got := docClip(d)
+	want := "# Plan\n\nbody one"
+	if got != want {
+		t.Fatalf("docClip = %q, want %q", got, want)
+	}
+}
+
 // DD2-252: Formular-Abschluss feuert doRenameDocument; docRenamedMsg lädt neu bzw. zeigt Fehler.
 func TestDocRenamedMsgReloads(t *testing.T) {
 	m := docsTestModel()
