@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// @index
+// title: migrate
+// desc: DevD Migration Runner — wendet *.sql idempotent via schema_migrations an
+// @end
 /**
  * DevD Migration Runner. Idempotent via schema_migrations-Tabelle.
  *

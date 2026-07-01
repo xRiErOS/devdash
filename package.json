@@ -29,6 +29,8 @@
     "gen:composition:check": "npm --prefix apps/frontend run gen:composition:check",
     "generate-pwa-icons": "node scripts/generate-pwa-icons.mjs",
     "gen:mcp-notes": "node scripts/gen-mcp-notes.mjs",
+    "gen:index": "node scripts/gen-index.mjs",
+    "gen:index:check": "node scripts/gen-index.mjs scripts --check",
     "prepare": "husky || true"
   },
   "lint-staged": {

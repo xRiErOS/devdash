@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# @index
+# title: secret-scan
+# desc: Secret-Scanner für staged changes; blockt hardcodierte Keys/Credentials (Bypass SKIP_SECRET_SCAN=1)
+# @end
 #
 # secret-scan: Secret-Scanner (tracked Spiegel des frueheren .git/hooks/pre-commit)
 # Blockt Commits mit hardcodierten API-Keys / Credentials in STAGED changes.

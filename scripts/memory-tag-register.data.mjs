@@ -1,3 +1,7 @@
+// @index
+// title: memory-tag-register.data
+// desc: Daten — PO-freigegebenes Seed + Merge-Map für das memory_tags-Register (Single Source)
+// @end
 // MEM-25: PO-freigegebenes Seed + Merge-Map für das memory_tags-Register (Projekt 2, devd).
 // Quelle: PO-Gate E01 (21-UserInputFiles/2026-06-21 DD UserInput — Memory-Tag-Register …),
 // PO Erik 2026-06-21. Single Source für das Apply-Script + den Validierungs-Test.

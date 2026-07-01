@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// @index
+// title: gen-mcp-notes
+// desc: Generiert pro devd-MCP-Tool eine Obsidian-Note + Index via Zod-Introspektion
+// @end
 /**
  * gen-mcp-notes.mjs — generiert pro devd-MCP-Tool eine Obsidian-Note
  * (Bases-taugliches Frontmatter + Flags-Tabelle aus dem Zod-Input-Schema)

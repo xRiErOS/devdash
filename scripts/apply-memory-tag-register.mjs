@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// @index
+// title: apply-memory-tag-register
+// desc: Wendet Seed/Merge/Prune auf das memory_tags-Register via NAS-REST-API an (--yes = real, MEM-25)
+// @end
 // MEM-25 (T08): wendet das PO-freigegebene Seed + Merge + Prune auf das memory_tags-Register
 // an — gegen die NAS-REST-API (DEVD_API_URL). AKTIVIERT den Hard-Block (D07).
 //

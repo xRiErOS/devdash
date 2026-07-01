@@ -75,7 +75,23 @@ Wichtige Projektdateien hier eintragen. Neue zentrale Doku-Dateien → Zeile erg
 | Promote-Loop, Screen bauen, Storybook-Samen, Connected-Wrapper, Strangler | `docs/frontend-promote-loop.md` | Promote-Loop pro Screen (Tier 4): presentational Story → Connected-Wrapper + Route → TDD Logik → fertig, kein Gate |
 | CONTEXT.md, CONTEXT-MAP, Glossar, Begriffe, ubiquitous language, Bounded Context, Surface-Glossar | `CONTEXT-MAP.md` | Wurzel des Glossar-Netzes: verweist je Surface auf `CONTEXT.md` (Begriffe impl-frei); Wurzel-`CONTEXT.md` = übergreifende Begriffe (Issue/Sprint/Meilenstein/User-Story) |
 | domain-modeling, Begriff schärfen, Glossar pflegen, Term-Konflikt, ubiquitous language | `~/.claude/skills/domain-modeling/SKILL.md` | model-invoked Glossar-Pfleger: fordert Begriffe heraus, präzisiert, prüft gegen Code, schreibt `CONTEXT.md` fort |
+| Hilfsskript, Script, gibt es schon ein Script, scripts/, Utility ausführen | `scripts/INDEX.md` | Generierte Manifest-Tabelle aller `scripts/` (Titel/Beschreibung/Pfad). Vor Neubau eines Helfers hier prüfen. Pflege via `@index`-Block + `npm run gen:index -- scripts` (Guard: `gen:index:check`) |
 
 ## Doku-Archiv
 
 Die alte Doku-Basis (`specs-DD/`, PRD/FSD/C4, RPDs, Mockups, Agent-Context) liegt **außerhalb** dieses Repos im Status-Quo-Archiv (`../DeveloperDashboard_backup/`). PO zieht bei Bedarf daraus — sie ist Referenz, nicht erzwungene Kette.
+
+<!-- context-model:base-rules v1 — managed, nicht hand-editieren; via /context-model aktualisieren -->
+### Context-Model — Grundregeln (managed)
+
+Diese Regeln halten die Wissens-Architektur driftfest. Sie sind Invarianten, kein Ablauf.
+
+- **CLAUDE.md = Invariant + Router.** Nur unumstößliche Regeln und Trigger→Fundstelle-Zeiger. Keine Prozedur, kein Schritt-für-Schritt-Ablauf — der gehört in einen Skill oder nach `docs/`.
+- **Single Source of Truth.** Genau eine autoritative Heimat je Wissensstück. Kein Fakt an zwei Orten pflegen.
+- **Glossar = nur Begriffe.** `CONTEXT.md` definiert Begriffe, niemals Pfade/Locations (die wandern bei Refactors). Locations → Router; Decisions → Wissensbasis.
+- **Churn-gerecht platzieren.** Häufig Änderndes wo Änderung billig ist (Router, `docs/`); Stabiles wo Stabilität zählt (Glossar, Invarianten).
+- **Generierte Dateien nie von Hand editieren.** Jede generierte Datei (z.B. `INDEX.md`) hat einen `--check`-Drift-Guard; Änderung nur über den Generator.
+- **Enumerierbare Buckets bekommen eine generierte `INDEX.md`** (`title | description | path`), auffindbar über eine Router-Zeile in dieser Datei — kein Auto-Load, keine Hand-Liste.
+- **Gedächtnis-Schichtung.** Decisions/Patterns/Lessons in die abfragbare Wissensbasis (nicht am Issue vergraben); git history ist das chronologische Gedächtnis (ein Commit je Issue mit Key). Kein Parallel-Journal.
+- **Nur Router + CONTEXT-MAP zeigen quer** über Schichten. Ein Leaf-Dokument referenziert nie eine ferne Nicht-Nachbarschicht.
+<!-- /context-model:base-rules -->

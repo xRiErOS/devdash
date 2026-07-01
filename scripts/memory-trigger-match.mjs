@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// @index
+// title: memory-trigger-match
+// desc: UserPromptSubmit-Hook — matcht Prompt gegen memory-triggers.json, Signal-only (MEM-25)
+// @end
 // MEM-25 T10 — UserPromptSubmit-Trigger-Hook (Signal-only). Grill 2026-06-21 D08.
 //
 // Scannt den Nutzer-Prompt gegen ein statisches, geteiltes Trigger-Register

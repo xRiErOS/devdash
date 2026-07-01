@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// @index
+// title: generate-pwa-icons
+// desc: Erzeugt PWA-Icon-Set + apple-touch-icon aus public/favicon.svg (DD-226)
+// @end
 // DD-226: Generate PWA icon set + apple-touch-icon from public/favicon.svg.
 // Re-run with `node scripts/generate-pwa-icons.mjs` whenever the source SVG changes.
 import { readFileSync, writeFileSync } from 'fs'
