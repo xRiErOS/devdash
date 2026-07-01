@@ -7,6 +7,7 @@ import (
 
 	"devd-cli/internal/api"
 	"devd-cli/internal/theme"
+	keybind "github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
@@ -14,8 +15,9 @@ import (
 
 // view_todo.go — Projekt-ToDos-Browser (DD2-171): MasterDetail über project_todos
 // (DD-280). Status-Filter (s, serverseitig), Label-Suche (/, clientseitig), Sort
-// (o, pos|label). enter toggelt open<->done, e editiert die details in neovim,
-// n legt an, d löscht. Einstieg via Command-Palette.
+// (S, pos|label — DD2-242: zentrale keymap, Parität zu Backlog). enter toggelt
+// open<->done, e editiert die details in neovim, n legt an, d löscht. Einstieg
+// via Command-Palette.
 
 // filteredTodos wendet den clientseitigen Label-Filter + Sort auf todoAll an.
 func (m *model) filteredTodos() []api.Todo {
@@ -56,18 +58,19 @@ func nextTodoStatus(cur string) string {
 	}
 }
 
-// openToDos öffnet den ToDo-Browser (lädt alle ToDos).
+// openToDos öffnet den ToDo-Browser (lädt standardmäßig nur offene ToDos, DD2-241 —
+// erledigte verrauschen sonst den Einstieg; s cycelt weiter zu done/cancelled/all).
 func (m model) openToDos() (tea.Model, tea.Cmd) {
 	m.view = viewToDos
 	m.todolist = listState{}
 	m.todoAll = nil
-	m.todoStatus = ""
+	m.todoStatus = "open"
 	m.todoSearching = false
 	m.todoQuery = ""
 	m.todoSort = "pos"
 	m.todoEditID = 0
 	m.status = ""
-	return m, loadTodos(m.client, "")
+	return m, loadTodos(m.client, "open")
 }
 
 // keyToDos steuert den Browser. Voll-Intercept (/ tippt Suche).
@@ -83,27 +86,33 @@ func (m model) keyToDos(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.todolist.move(1)
 		return m, nil
 	}
-	switch msg.String() {
-	case "esc", "q":
-		m.view = m.topReturn
-		m.status = ""
-		return m, nil
-	case "/":
+	// DD2-242: Search/Status/Sort laufen jetzt über die zentrale keymap (vorher
+	// inline msg.String()) — Sort zieht dabei auf 'S' (keys.Sort), Parität zu
+	// Backlog (dort ebenfalls Sort=S). Restliche Keys bewusst roh (out-of-scope,
+	// Sonderfunktionen ohne Backlog-Äquivalent).
+	switch {
+	case keybind.Matches(msg, keys.Search):
 		m.todoSearching = true
 		m.todoQuery = ""
 		m.status = ""
 		return m, nil
-	case "s": // status-Filter zyklisch (serverseitig neu laden)
+	case keybind.Matches(msg, keys.Status): // Status-Filter zyklisch (serverseitig neu laden)
 		m.todoStatus = nextTodoStatus(m.todoStatus)
 		m.todolist = listState{}
 		return m, loadTodos(m.client, m.todoStatus)
-	case "o": // Sort umschalten (clientseitig)
+	case keybind.Matches(msg, keys.Sort): // Sort umschalten (clientseitig) — war 'o'
 		if m.todoSort == "label" {
 			m.todoSort = "pos"
 		} else {
 			m.todoSort = "label"
 		}
 		m.todolist = listState{}
+		return m, nil
+	}
+	switch msg.String() {
+	case "esc", "q":
+		m.view = m.topReturn
+		m.status = ""
 		return m, nil
 	case "enter", " ": // toggle open<->done (DD2-171 Rework: space = quick-complete)
 		cur := m.selTodo()
@@ -171,7 +180,7 @@ func (m model) viewToDos() string {
 	body := lipgloss.JoinHorizontal(lipgloss.Top, left, right)
 
 	head := m.header() + "\n" + theme.Header.Render(m.screenTitle("ToDos"))
-	footer := theme.Dim.Render("i/k:↑↓  enter/space:toggle  e:edit  n:new  d:del  /:search  s:status  o:sort  esc/q:back")
+	footer := theme.Dim.Render("i/k:↑↓  enter/space:toggle  e:edit  n:new  d:del  /:search  s:status  S:sort  esc/q:back")
 	if m.todoSearching {
 		footer = theme.Key.Render("Search: ") + m.todoQuery + "▏"
 	} else if m.status != "" {

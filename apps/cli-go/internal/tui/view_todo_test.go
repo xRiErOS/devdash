@@ -55,9 +55,9 @@ func TestTodoStatusCycle(t *testing.T) {
 
 func TestTodoSortToggle(t *testing.T) {
 	m := todoTestModel()
-	nm, _ := m.keyToDos(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("o")})
+	nm, _ := m.keyToDos(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("S")})
 	if nm.(model).todoSort != "label" {
-		t.Fatalf("o should toggle sort to label")
+		t.Fatalf("S should toggle sort to label")
 	}
 }
 

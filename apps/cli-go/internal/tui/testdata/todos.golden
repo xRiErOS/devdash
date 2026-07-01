@@ -20,4 +20,4 @@ dd2 — ToDos
 │                              ││                                                        │
 │                              ││                                                        │
 ╰──────────────────────────────╯╰────────────────────────────────────────────────────────╯
-i/k:↑↓  enter/space:toggle  e:edit  n:new  d:del  /:search  s:status  o:sort  esc/q:back
+i/k:↑↓  enter/space:toggle  e:edit  n:new  d:del  /:search  s:status  S:sort  esc/q:back
