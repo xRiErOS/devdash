@@ -35,8 +35,6 @@ export default async function globalSetup() {
       color       TEXT,
       prefix      TEXT,
       archived    INTEGER DEFAULT 0,
-      sstd_content TEXT,
-      sstd_updated_at DATETIME,
       preview_url TEXT,
       ai_summary TEXT,
       ai_summary_updated_at DATETIME,
@@ -183,21 +181,6 @@ export default async function globalSetup() {
 
     -- DD-284 (M3-S02 T07): Project-Home ToDo-Liste (Migration 037). project_todos
     -- ZUERST (todo_links referenziert via FK).
-    -- MEM-16 (Migration 043): SSTD-Slots. GET /api/projects/:id/sstd reassembliert
-    -- aus project_sstd_slots; fehlt die Tabelle -> "no such table" -> SSTD-Fetch 500
-    -- -> Project-Home/Overview blockiert (t07/t09). Schema verbatim aus 043.
-    CREATE TABLE IF NOT EXISTS project_sstd_slots (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-      slot_key TEXT NOT NULL CHECK (slot_key IN (
-        'architecture', 'conventions', 'sprint_state', 'roadmap', 'cross_refs', 'misc'
-      )),
-      content TEXT NOT NULL DEFAULT '',
-      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-      UNIQUE (project_id, slot_key)
-    );
-    CREATE INDEX IF NOT EXISTS idx_project_sstd_slots_project ON project_sstd_slots(project_id);
-
     CREATE TABLE IF NOT EXISTS project_todos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,

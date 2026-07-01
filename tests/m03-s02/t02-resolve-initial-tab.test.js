@@ -26,15 +26,15 @@ describe('T02 — resolveInitialTab (URL > localStorage > default)', () => {
   afterEach(() => { clearWindow() })
 
   // DD-487 (T02): SOLL-Tab-Set — Todo/Settings entfernt, Memories aufgenommen.
-  // DD-666: Backlog + Roadmap entfernt — SOLL-Tab-Set = overview/sstd/memory.
+  // DD-666: Backlog + Roadmap entfernt; Welle 4: sstd entfernt — SOLL-Tab-Set = overview/memory.
   test('URL ?tab=memory gewinnt vor localStorage', () => {
-    store.set(LS_KEY, 'sstd')
+    store.set(LS_KEY, 'overview')
     expect(resolveInitialTab(PROJECT_ID, '?tab=memory')).toBe('memory')
   })
 
   test('ohne URL: localStorage gewinnt', () => {
-    store.set(LS_KEY, 'sstd')
-    expect(resolveInitialTab(PROJECT_ID, '')).toBe('sstd')
+    store.set(LS_KEY, 'memory')
+    expect(resolveInitialTab(PROJECT_ID, '')).toBe('memory')
   })
 
   test('weder URL noch localStorage: Default "overview"', () => {
@@ -43,8 +43,8 @@ describe('T02 — resolveInitialTab (URL > localStorage > default)', () => {
   })
 
   test('Ungültiger URL-Wert wird abgelehnt, fällt auf localStorage zurück', () => {
-    store.set(LS_KEY, 'sstd')
-    expect(resolveInitialTab(PROJECT_ID, '?tab=evil')).toBe('sstd')
+    store.set(LS_KEY, 'memory')
+    expect(resolveInitialTab(PROJECT_ID, '?tab=evil')).toBe('memory')
   })
 
   // DD-666: ein gespeichertes/URL backlog|roadmap ist KEIN gültiger Tab mehr →
@@ -73,10 +73,15 @@ describe('T02 — resolveInitialTab (URL > localStorage > default)', () => {
   })
 
   test('Search-String ohne führendes ? wird auch verarbeitet', () => {
-    expect(resolveInitialTab(PROJECT_ID, 'tab=sstd')).toBe('sstd')
+    expect(resolveInitialTab(PROJECT_ID, 'tab=memory')).toBe('memory')
   })
 
-  test('TAB_IDS enthält genau die 3 SOLL-Tabs in dieser Reihenfolge (DD-487/DD-666)', () => {
-    expect(TAB_IDS).toEqual(['overview', 'sstd', 'memory'])
+  test('DD-666: stale localStorage sstd wird ignoriert → Default overview', () => {
+    store.set(LS_KEY, 'sstd')
+    expect(resolveInitialTab(PROJECT_ID, '')).toBe(DEFAULT_TAB)
+  })
+
+  test('TAB_IDS enthält genau die 2 SOLL-Tabs in dieser Reihenfolge (DD-487/DD-666, Welle 4)', () => {
+    expect(TAB_IDS).toEqual(['overview', 'memory'])
   })
 })

@@ -10,8 +10,8 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 // DD-666: Backlog + Roadmap raus — beide haben native AppShell-Views + Tastatur-
 // Shortcuts ('b'/'r'); die eingebetteten Tabs waren redundant. Die TAB_IDS.includes()-
 // Guards lassen ein gespeichertes/URL ?tab=backlog|roadmap nun auf den Default
-// (overview) zurückfallen. SOLL-Tab-Set = overview/sstd/memory.
-export const TAB_IDS = Object.freeze(['overview', 'sstd', 'memory'])
+// (overview) zurückfallen. SOLL-Tab-Set = overview/memory.
+export const TAB_IDS = Object.freeze(['overview', 'memory'])
 export const DEFAULT_TAB = 'overview'
 
 function keyFor(projectId) {
