@@ -2443,18 +2443,18 @@ server.tool(
 
 server.tool(
   'devd_issue_dep_add',
-  'WRITE: Add a dependency edge — issue depends_on another issue (depends_on must finish first → it blocks issue). Self-reference, duplicate and cycles are rejected by the backend. Same-project only (keys resolve within the project). Accepts issue keys (e.g. "MEM-9") or numeric ids.',
+  'WRITE: Add a dependency edge — issue depends_on another issue (depends_on must finish first → it blocks issue). Self-reference, duplicate and cycles are rejected by the backend. Same-project only (keys resolve within the project). Accepts issue keys (e.g. "MEM-9") or numeric ids — same "either representation" pattern as sprint/milestone deps (predecessor_id/successor_id), just resolved client-side (DD2-259).',
   {
     project_id: PROJECT_ID_PARAM,
-    issue: z.string().describe('The dependent issue (key or numeric id)'),
-    depends_on: z.string().describe('The issue it depends on / is blocked by (key or numeric id)'),
+    issue: z.union([z.string(), z.number()]).describe('The dependent issue (key or numeric id)'),
+    depends_on: z.union([z.string(), z.number()]).describe('The issue it depends on / is blocked by (key or numeric id)'),
     note: z.string().optional().describe('Optional note on the edge'),
   },
   async ({ project_id, issue, depends_on, note }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    const issueId = await resolveIssueId(issue, pid)
-    const onId = await resolveIssueId(depends_on, pid)
+    const issueId = await resolveIssueId(String(issue), pid)
+    const onId = await resolveIssueId(String(depends_on), pid)
     const body = { depends_on_id: Number(onId) }
     if (note !== undefined) body.note = note
     const data = await apiRequest('POST', `/api/backlog/${issueId}/dependencies`, body, pid)
