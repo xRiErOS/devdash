@@ -243,18 +243,41 @@ export function emitTool(tool) {
 
   const fields = fieldInfoMap(tool)
   const resolvers = collectResolvers(analysis)
+  const resolversUsedInPath = new Set(
+    analysis.pathParts.filter((p) => p.kind === 'resolvedIssue' || p.kind === 'resolvedSprint').map((p) => `${p.kind}:${p.argName}`),
+  )
   const resolverVarNames = new Map()
   const resolverLines = []
+  if (resolvers.length > 0) resolverLines.push('var err error')
   for (const r of resolvers) {
     const fi = fields.get(r.argName)
     if (!fi) return { ok: false, reason: `resolver references unknown field ${r.argName}` }
     if (fi.kind === 'object' || fi.kind === 'array') return { ok: false, reason: `resolver arg ${r.argName} has unsupported kind ${fi.kind}` }
+    const key = `${r.kind}:${r.argName}`
+    if (fi.pointer && resolversUsedInPath.has(key)) {
+      return { ok: false, reason: `resolver arg ${r.argName} is optional but used in the path — no safe unconditional path shape` }
+    }
     const varName = resolverVarName(r.kind, r.argName)
-    resolverVarNames.set(`${r.kind}:${r.argName}`, varName)
+    resolverVarNames.set(key, varName)
     const method = r.kind === 'resolvedIssue' ? 'ResolveIssueID' : 'ResolveSprintID'
     const raw = fi.pointer ? `*args.${fi.goField}` : `args.${fi.goField}`
     const argExpr = fi.kind === 'scalar' && fi.goType === 'string' ? raw : `fmt.Sprintf("%v", ${raw})`
-    resolverLines.push(`${varName}, err := c.${method}(${argExpr})`, `if err != nil {`, `\treturn nil, err`, `}`)
+    if (fi.pointer) {
+      // Optionale Resolver-Quelle: nur auflösen, wenn gesetzt — Var bleibt sonst 0 (Zero-Value)
+      // und wird ausschließlich innerhalb des korrespondierenden, ebenfalls Pointer-gegateten
+      // Query-/Body-Codes gelesen (nie im Pfad, s. Check oben).
+      resolverLines.push(
+        `var ${varName} int`,
+        `if args.${fi.goField} != nil {`,
+        `\t${varName}, err = c.${method}(${argExpr})`,
+        `\tif err != nil {`,
+        `\t\treturn nil, err`,
+        `\t}`,
+        `}`,
+      )
+    } else {
+      resolverLines.push(`${varName}, err := c.${method}(${argExpr})`, `if err != nil {`, `\treturn nil, err`, `}`)
+    }
   }
 
   const segResults = analysis.pathParts.map((p) => pathSegmentExpr(p, fields, resolverVarNames))

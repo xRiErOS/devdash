@@ -44,13 +44,9 @@ func TestDD2_206_GeneratedFuncsSmoke(t *testing.T) {
 		}
 	}
 
-	// 2) POST — IssueCreate
-	// type ist im MCP-Zod-Schema optional, im Backend-Contract (backlog.contracts.js:39)
-	// aber Pflicht — vorbestehender Schema-Mismatch (B-Fund, nicht DD2#35-Scope), darum
-	// hier explizit gesetzt.
+	// 2) POST — IssueCreate (type ist seit DD2-269 Pflicht, wie im Backend-Contract)
 	title := "DD2-206 smoke test issue"
-	issueType := generated.IssueCreateArgsTypeFeature
-	raw, err := c.IssueCreate(generated.IssueCreateArgs{Title: title, Type: &issueType})
+	raw, err := c.IssueCreate(generated.IssueCreateArgs{Title: title, Type: generated.IssueCreateArgsTypeFeature})
 	if err != nil {
 		t.Fatalf("IssueCreate: %v", err)
 	}

@@ -197,7 +197,7 @@ const (
 
 type IssueBulkCreateArgsIssuesItem struct {
 	Title         string                                     `json:"title"`
-	Type          *IssueBulkCreateArgsIssuesItemType         `json:"type,omitempty"`
+	Type          IssueBulkCreateArgsIssuesItemType          `json:"type"`
 	Priority      *int                                       `json:"priority,omitempty"`
 	Goal          *string                                    `json:"goal,omitempty"`
 	Background    *string                                    `json:"background,omitempty"`
@@ -232,8 +232,8 @@ type IssueCreateArgs struct {
 	ProjectId any `json:"project_id,omitempty"`
 	// Issue title (required)
 	Title string `json:"title"`
-	// Issue type
-	Type *IssueCreateArgsType `json:"type,omitempty"`
+	// Issue type (required)
+	Type IssueCreateArgsType `json:"type"`
 	// Priority 1 (highest) to 5 (lowest)
 	Priority *int `json:"priority,omitempty"`
 	// Issue goal — primary refinement field
@@ -264,8 +264,8 @@ type IssueCreateFullArgs struct {
 	ProjectId any `json:"project_id,omitempty"`
 	// Issue title (required)
 	Title string `json:"title"`
-	// Issue type (default feature)
-	Type *IssueCreateFullArgsType `json:"type,omitempty"`
+	// Issue type (required)
+	Type IssueCreateFullArgsType `json:"type"`
 	// 1 (highest) – 5 (lowest)
 	Priority *int `json:"priority,omitempty"`
 	// What outcome — pflicht für status=refined

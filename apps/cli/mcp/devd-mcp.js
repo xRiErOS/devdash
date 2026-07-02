@@ -1142,8 +1142,7 @@ server.tool(
     title: z.string().describe('Issue title (required)'),
     type: z
       .enum(ISSUE_TYPES)
-      .optional()
-      .describe('Issue type'),
+      .describe('Issue type (required)'),
     priority: z
       .number()
       .int()
@@ -1157,8 +1156,7 @@ server.tool(
   async ({ project_id, title, type, priority, goal, po_notes }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    const body = { title }
-    if (type) body.type = type
+    const body = { title, type }
     if (priority !== undefined) body.priority = priority
     if (goal) body.goal = goal
     if (po_notes) body.po_notes = po_notes
@@ -1464,8 +1462,7 @@ server.tool(
     title: z.string().describe('Issue title (required)'),
     type: z
       .enum(ISSUE_TYPES)
-      .optional()
-      .describe('Issue type (default feature)'),
+      .describe('Issue type (required)'),
     priority: z.number().int().min(1).max(5).optional().describe('1 (highest) – 5 (lowest)'),
     goal: z.string().optional().describe('What outcome — pflicht für status=refined'),
     background: z.string().optional().describe('Why — pflicht für status=refined'),
@@ -1522,8 +1519,7 @@ server.tool(
     // Backend POST /api/backlog akzeptiert seit DD-Erweiterung 2026-05-07 alle
     // Refinement-Felder + sprint_id atomar (siehe ADR MCP
     // Tools 2026-05-07). Ein Call genügt — keine PUT/PATCH-Follow-ups mehr.
-    const createBody = { title }
-    if (type) createBody.type = type
+    const createBody = { title, type }
     if (priority !== undefined) createBody.priority = priority
     if (goal) createBody.goal = goal
     if (background) createBody.background = background
@@ -1556,7 +1552,7 @@ server.tool(
       .array(
         z.object({
           title: z.string(),
-          type: z.enum(ISSUE_TYPES).optional(),
+          type: z.enum(ISSUE_TYPES),
           priority: z.number().int().min(1).max(5).optional(),
           goal: z.string().optional(),
           background: z.string().optional(),

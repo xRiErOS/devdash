@@ -51,9 +51,13 @@ func (c *Client) DashboardHome(args generated.DashboardHomeArgs) (json.RawMessag
 
 // DependenciesGraph entspricht MCP-Tool devd_dependencies_graph.
 func (c *Client) DependenciesGraph(args generated.DependenciesGraphArgs) (json.RawMessage, error) {
-	sprintKeySprintID, err := c.ResolveSprintID(*args.SprintKey)
-	if err != nil {
-		return nil, err
+	var err error
+	var sprintKeySprintID int
+	if args.SprintKey != nil {
+		sprintKeySprintID, err = c.ResolveSprintID(*args.SprintKey)
+		if err != nil {
+			return nil, err
+		}
 	}
 	q := url.Values{}
 	if args.SprintKey != nil {
@@ -72,6 +76,7 @@ func (c *Client) DependenciesGraph(args generated.DependenciesGraphArgs) (json.R
 
 // IssueActivity entspricht MCP-Tool devd_issue_activity.
 func (c *Client) IssueActivity(args generated.IssueActivityArgs) (json.RawMessage, error) {
+	var err error
 	idOrKeyIssueID, err := c.ResolveIssueID(args.IdOrKey)
 	if err != nil {
 		return nil, err
@@ -93,6 +98,7 @@ func (c *Client) IssueActivity(args generated.IssueActivityArgs) (json.RawMessag
 
 // IssueAssignSprint entspricht MCP-Tool devd_issue_assign_sprint.
 func (c *Client) IssueAssignSprint(args generated.IssueAssignSprintArgs) (json.RawMessage, error) {
+	var err error
 	idOrKeyIssueID, err := c.ResolveIssueID(args.IdOrKey)
 	if err != nil {
 		return nil, err
@@ -111,9 +117,7 @@ func (c *Client) IssueAssignSprint(args generated.IssueAssignSprintArgs) (json.R
 func (c *Client) IssueCreate(args generated.IssueCreateArgs) (json.RawMessage, error) {
 	body := map[string]any{}
 	body["title"] = args.Title
-	if args.Type != nil {
-		body["type"] = *args.Type
-	}
+	body["type"] = args.Type
 	if args.Priority != nil {
 		body["priority"] = *args.Priority
 	}
@@ -133,6 +137,7 @@ func (c *Client) IssueCreate(args generated.IssueCreateArgs) (json.RawMessage, e
 
 // IssueDelete entspricht MCP-Tool devd_issue_delete.
 func (c *Client) IssueDelete(args generated.IssueDeleteArgs) (json.RawMessage, error) {
+	var err error
 	idOrKeyIssueID, err := c.ResolveIssueID(args.IdOrKey)
 	if err != nil {
 		return nil, err
@@ -154,6 +159,7 @@ func (c *Client) IssueDelete(args generated.IssueDeleteArgs) (json.RawMessage, e
 
 // IssueDepAdd entspricht MCP-Tool devd_issue_dep_add.
 func (c *Client) IssueDepAdd(args generated.IssueDepAddArgs) (json.RawMessage, error) {
+	var err error
 	idOrKeyIssueID, err := c.ResolveIssueID(fmt.Sprintf("%v", args.IdOrKey))
 	if err != nil {
 		return nil, err
@@ -177,6 +183,7 @@ func (c *Client) IssueDepAdd(args generated.IssueDepAddArgs) (json.RawMessage, e
 
 // IssueDepList entspricht MCP-Tool devd_issue_dep_list.
 func (c *Client) IssueDepList(args generated.IssueDepListArgs) (json.RawMessage, error) {
+	var err error
 	idOrKeyIssueID, err := c.ResolveIssueID(args.IdOrKey)
 	if err != nil {
 		return nil, err
@@ -201,6 +208,7 @@ func (c *Client) IssueLost(args generated.IssueLostArgs) (json.RawMessage, error
 
 // IssueShow entspricht MCP-Tool devd_issue_show.
 func (c *Client) IssueShow(args generated.IssueShowArgs) (json.RawMessage, error) {
+	var err error
 	idOrKeyIssueID, err := c.ResolveIssueID(args.IdOrKey)
 	if err != nil {
 		return nil, err
@@ -215,6 +223,7 @@ func (c *Client) IssueShow(args generated.IssueShowArgs) (json.RawMessage, error
 
 // IssueStatus entspricht MCP-Tool devd_issue_status.
 func (c *Client) IssueStatus(args generated.IssueStatusArgs) (json.RawMessage, error) {
+	var err error
 	idOrKeyIssueID, err := c.ResolveIssueID(args.IdOrKey)
 	if err != nil {
 		return nil, err
@@ -234,6 +243,7 @@ func (c *Client) IssueStatus(args generated.IssueStatusArgs) (json.RawMessage, e
 
 // IssueUpdate entspricht MCP-Tool devd_issue_update.
 func (c *Client) IssueUpdate(args generated.IssueUpdateArgs) (json.RawMessage, error) {
+	var err error
 	idOrKeyIssueID, err := c.ResolveIssueID(args.IdOrKey)
 	if err != nil {
 		return nil, err
@@ -799,6 +809,7 @@ func (c *Client) ProjectShow(args generated.ProjectShowArgs) (json.RawMessage, e
 
 // ReviewCreate entspricht MCP-Tool devd_review_create.
 func (c *Client) ReviewCreate(args generated.ReviewCreateArgs) (json.RawMessage, error) {
+	var err error
 	idOrKeyIssueID, err := c.ResolveIssueID(args.IdOrKey)
 	if err != nil {
 		return nil, err
@@ -821,6 +832,7 @@ func (c *Client) ReviewCreate(args generated.ReviewCreateArgs) (json.RawMessage,
 
 // ReviewReopen entspricht MCP-Tool devd_review_reopen.
 func (c *Client) ReviewReopen(args generated.ReviewReopenArgs) (json.RawMessage, error) {
+	var err error
 	idOrKeyIssueID, err := c.ResolveIssueID(args.IdOrKey)
 	if err != nil {
 		return nil, err
@@ -836,6 +848,7 @@ func (c *Client) ReviewReopen(args generated.ReviewReopenArgs) (json.RawMessage,
 
 // SprintActivity entspricht MCP-Tool devd_sprint_activity.
 func (c *Client) SprintActivity(args generated.SprintActivityArgs) (json.RawMessage, error) {
+	var err error
 	sprintKeySprintID, err := c.ResolveSprintID(args.SprintKey)
 	if err != nil {
 		return nil, err
@@ -857,6 +870,7 @@ func (c *Client) SprintActivity(args generated.SprintActivityArgs) (json.RawMess
 
 // SprintCancel entspricht MCP-Tool devd_sprint_cancel.
 func (c *Client) SprintCancel(args generated.SprintCancelArgs) (json.RawMessage, error) {
+	var err error
 	sprintKeySprintID, err := c.ResolveSprintID(args.SprintKey)
 	if err != nil {
 		return nil, err
@@ -874,6 +888,7 @@ func (c *Client) SprintCancel(args generated.SprintCancelArgs) (json.RawMessage,
 
 // SprintContext entspricht MCP-Tool devd_sprint_context.
 func (c *Client) SprintContext(args generated.SprintContextArgs) (json.RawMessage, error) {
+	var err error
 	sprintKeySprintID, err := c.ResolveSprintID(args.SprintKey)
 	if err != nil {
 		return nil, err
@@ -921,6 +936,7 @@ func (c *Client) SprintCreate(args generated.SprintCreateArgs) (json.RawMessage,
 
 // SprintDelete entspricht MCP-Tool devd_sprint_delete.
 func (c *Client) SprintDelete(args generated.SprintDeleteArgs) (json.RawMessage, error) {
+	var err error
 	sprintKeySprintID, err := c.ResolveSprintID(args.SprintKey)
 	if err != nil {
 		return nil, err
@@ -942,6 +958,7 @@ func (c *Client) SprintDelete(args generated.SprintDeleteArgs) (json.RawMessage,
 
 // SprintDepAdd entspricht MCP-Tool devd_sprint_dep_add.
 func (c *Client) SprintDepAdd(args generated.SprintDepAddArgs) (json.RawMessage, error) {
+	var err error
 	predecessorIdSprintID, err := c.ResolveSprintID(fmt.Sprintf("%v", args.PredecessorId))
 	if err != nil {
 		return nil, err
@@ -963,6 +980,7 @@ func (c *Client) SprintDepAdd(args generated.SprintDepAddArgs) (json.RawMessage,
 
 // SprintDepList entspricht MCP-Tool devd_sprint_dep_list.
 func (c *Client) SprintDepList(args generated.SprintDepListArgs) (json.RawMessage, error) {
+	var err error
 	sprintKeySprintID, err := c.ResolveSprintID(args.SprintKey)
 	if err != nil {
 		return nil, err
@@ -987,6 +1005,7 @@ func (c *Client) SprintDepRemove(args generated.SprintDepRemoveArgs) (json.RawMe
 
 // SprintExport entspricht MCP-Tool devd_sprint_export.
 func (c *Client) SprintExport(args generated.SprintExportArgs) (json.RawMessage, error) {
+	var err error
 	sprintKeySprintID, err := c.ResolveSprintID(args.SprintKey)
 	if err != nil {
 		return nil, err
@@ -1049,6 +1068,7 @@ func (c *Client) SprintReorder(args generated.SprintReorderArgs) (json.RawMessag
 
 // SprintReview entspricht MCP-Tool devd_sprint_review.
 func (c *Client) SprintReview(args generated.SprintReviewArgs) (json.RawMessage, error) {
+	var err error
 	sprintKeySprintID, err := c.ResolveSprintID(args.SprintKey)
 	if err != nil {
 		return nil, err
@@ -1065,6 +1085,7 @@ func (c *Client) SprintReview(args generated.SprintReviewArgs) (json.RawMessage,
 
 // SprintSetMilestone entspricht MCP-Tool devd_sprint_set_milestone.
 func (c *Client) SprintSetMilestone(args generated.SprintSetMilestoneArgs) (json.RawMessage, error) {
+	var err error
 	idOrKeySprintID, err := c.ResolveSprintID(args.IdOrKey)
 	if err != nil {
 		return nil, err
@@ -1083,6 +1104,7 @@ func (c *Client) SprintSetMilestone(args generated.SprintSetMilestoneArgs) (json
 
 // SprintShow entspricht MCP-Tool devd_sprint_show.
 func (c *Client) SprintShow(args generated.SprintShowArgs) (json.RawMessage, error) {
+	var err error
 	sprintKeySprintID, err := c.ResolveSprintID(args.SprintKey)
 	if err != nil {
 		return nil, err
@@ -1097,6 +1119,7 @@ func (c *Client) SprintShow(args generated.SprintShowArgs) (json.RawMessage, err
 
 // SprintStart entspricht MCP-Tool devd_sprint_start.
 func (c *Client) SprintStart(args generated.SprintStartArgs) (json.RawMessage, error) {
+	var err error
 	sprintKeySprintID, err := c.ResolveSprintID(args.SprintKey)
 	if err != nil {
 		return nil, err
@@ -1113,6 +1136,7 @@ func (c *Client) SprintStart(args generated.SprintStartArgs) (json.RawMessage, e
 
 // SprintUpdate entspricht MCP-Tool devd_sprint_update.
 func (c *Client) SprintUpdate(args generated.SprintUpdateArgs) (json.RawMessage, error) {
+	var err error
 	idOrKeySprintID, err := c.ResolveSprintID(args.IdOrKey)
 	if err != nil {
 		return nil, err
@@ -1149,6 +1173,7 @@ func (c *Client) SprintUpdate(args generated.SprintUpdateArgs) (json.RawMessage,
 
 // SubtaskAdd entspricht MCP-Tool devd_subtask_add.
 func (c *Client) SubtaskAdd(args generated.SubtaskAddArgs) (json.RawMessage, error) {
+	var err error
 	idOrKeyIssueID, err := c.ResolveIssueID(args.IdOrKey)
 	if err != nil {
 		return nil, err
@@ -1203,6 +1228,7 @@ func (c *Client) SubtaskEdit(args generated.SubtaskEditArgs) (json.RawMessage, e
 
 // SubtaskList entspricht MCP-Tool devd_subtask_list.
 func (c *Client) SubtaskList(args generated.SubtaskListArgs) (json.RawMessage, error) {
+	var err error
 	idOrKeyIssueID, err := c.ResolveIssueID(args.IdOrKey)
 	if err != nil {
 		return nil, err
@@ -1443,6 +1469,7 @@ func (c *Client) UserNoteUpdate(args generated.UserNoteUpdateArgs) (json.RawMess
 
 // UserStoryAdd entspricht MCP-Tool devd_user_story_add.
 func (c *Client) UserStoryAdd(args generated.UserStoryAddArgs) (json.RawMessage, error) {
+	var err error
 	issueIdOrKeyIssueID, err := c.ResolveIssueID(args.IssueIdOrKey)
 	if err != nil {
 		return nil, err
@@ -1494,6 +1521,7 @@ func (c *Client) UserStoryEdit(args generated.UserStoryEditArgs) (json.RawMessag
 
 // UserStoryList entspricht MCP-Tool devd_user_story_list.
 func (c *Client) UserStoryList(args generated.UserStoryListArgs) (json.RawMessage, error) {
+	var err error
 	idOrKeyIssueID, err := c.ResolveIssueID(args.IdOrKey)
 	if err != nil {
 		return nil, err

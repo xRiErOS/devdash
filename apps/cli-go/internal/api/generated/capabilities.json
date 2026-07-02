@@ -590,7 +590,8 @@
                 }
               },
               "required": [
-                "title"
+                "title",
+                "type"
               ],
               "additionalProperties": false
             },
@@ -627,14 +628,14 @@
             "description": "Issue title (required)"
           },
           "type": {
-            "description": "Issue type",
             "type": "string",
             "enum": [
               "bug",
               "feature",
               "improvement",
               "core"
-            ]
+            ],
+            "description": "Issue type (required)"
           },
           "priority": {
             "description": "Priority 1 (highest) to 5 (lowest)",
@@ -652,7 +653,8 @@
           }
         },
         "required": [
-          "title"
+          "title",
+          "type"
         ],
         "additionalProperties": false
       }
@@ -681,14 +683,14 @@
             "description": "Issue title (required)"
           },
           "type": {
-            "description": "Issue type (default feature)",
             "type": "string",
             "enum": [
               "bug",
               "feature",
               "improvement",
               "core"
-            ]
+            ],
+            "description": "Issue type (required)"
           },
           "priority": {
             "description": "1 (highest) – 5 (lowest)",
@@ -738,7 +740,8 @@
           }
         },
         "required": [
-          "title"
+          "title",
+          "type"
         ],
         "additionalProperties": false
       }

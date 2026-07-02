@@ -98,6 +98,28 @@ describe('DD2-204 Client-Func-Emitter', () => {
     expect(r.code).toContain('c.Do("DELETE", path, nil)')
   })
 
+  it('Resolver auf optionalem Arg in Query → Nil-Guard statt unconditional Deref (Regressions-Test)', () => {
+    const tool = {
+      name: 'devd_dependencies_graph',
+      zodShape: { ...pidShape, sprint_key: z.string().optional() },
+      handlerSource: `async ({ project_id, sprint_key }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    const params = new URLSearchParams()
+    if (sprint_key) params.set('sprint_id', String(await resolveSprintId(sprint_key, pid)))
+    const qs = params.toString() ? \`?\${params.toString()}\` : ''
+    return ok(await apiRequest('GET', \`/api/dependencies/graph\${qs}\`, null, pid))
+  }`,
+    }
+    const r = emitTool(tool)
+    expect(r.ok).toBe(true)
+    // Resolver-Call muss hinter einem Nil-Check auf die optionale Quelle hängen, nicht unconditional
+    // direkt nach der Func-Signatur stehen (Regression: nil-pointer-Panic bei fehlendem sprint_key)
+    expect(r.code).not.toMatch(/\{\n\tvar err error\n\t[a-zA-Z]+, err = c\.ResolveSprintID\(\*args\.SprintKey\)/)
+    expect(r.code).toContain('var sprintKeySprintID int')
+    expect(r.code).toMatch(/if args\.SprintKey != nil \{\s*sprintKeySprintID, err = c\.ResolveSprintID\(\*args\.SprintKey\)/)
+  })
+
   it('unsupported Tool → ok:false mit Reason, kein Crash', () => {
     const tool = {
       name: 'devd_document_get',
