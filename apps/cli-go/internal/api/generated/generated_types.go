@@ -135,7 +135,7 @@ type IssueActivityArgs struct {
 	// Project id or slug for X-Project-Id header (e.g. "7", "devd"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.
 	ProjectId any `json:"project_id,omitempty"`
 	// Issue key or numeric id
-	Issue string `json:"issue"`
+	IdOrKey string `json:"id_or_key"`
 	// Max rows (default 100)
 	Limit *int `json:"limit,omitempty"`
 }
@@ -290,7 +290,7 @@ type IssueDeleteArgs struct {
 	// Project id or slug for X-Project-Id header (e.g. "7", "devd"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.
 	ProjectId any `json:"project_id,omitempty"`
 	// Issue key or numeric id
-	Issue string `json:"issue"`
+	IdOrKey string `json:"id_or_key"`
 	// Hard-delete (default false → 409 with a hint to cancel)
 	Force *bool `json:"force,omitempty"`
 }
@@ -300,9 +300,9 @@ type IssueDepAddArgs struct {
 	// Project id or slug for X-Project-Id header (e.g. "7", "devd"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.
 	ProjectId any `json:"project_id,omitempty"`
 	// The dependent issue (key or numeric id)
-	Issue string `json:"issue"`
+	IdOrKey any `json:"id_or_key"`
 	// The issue it depends on / is blocked by (key or numeric id)
-	DependsOn string `json:"depends_on"`
+	DependsOn any `json:"depends_on"`
 	// Optional note on the edge
 	Note *string `json:"note,omitempty"`
 }
@@ -312,7 +312,7 @@ type IssueDepListArgs struct {
 	// Project id or slug for X-Project-Id header (e.g. "7", "devd"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.
 	ProjectId any `json:"project_id,omitempty"`
 	// Issue key or numeric id
-	Issue string `json:"issue"`
+	IdOrKey string `json:"id_or_key"`
 }
 
 // IssueDepRemoveArgs: Argumente für MCP-Tool devd_issue_dep_remove.
@@ -320,7 +320,7 @@ type IssueDepRemoveArgs struct {
 	// Project id or slug for X-Project-Id header (e.g. "7", "devd"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.
 	ProjectId any `json:"project_id,omitempty"`
 	// The dependent issue (key or numeric id)
-	Issue string `json:"issue"`
+	IdOrKey string `json:"id_or_key"`
 	// The depended-on issue (key or numeric id)
 	DependsOn string `json:"depends_on"`
 }
@@ -372,7 +372,7 @@ type IssueMoveArgs struct {
 	// Project id or slug for X-Project-Id header (e.g. "7", "devd"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.
 	ProjectId any `json:"project_id,omitempty"`
 	// Issue key or numeric id
-	Issue string `json:"issue"`
+	IdOrKey string `json:"id_or_key"`
 	// Target project id or slug
 	TargetProject any `json:"target_project"`
 }
@@ -392,7 +392,7 @@ type IssueStatusArgs struct {
 	// Issue key (e.g. "DD-42") or numeric backlog id
 	IdOrKey string `json:"id_or_key"`
 	// Target status: new | refined | planned | in_progress | to_review | passed | rejected | completed | cancelled
-	NewStatus string `json:"new_status"`
+	Status string `json:"status"`
 	// Transition notes (required when cancelling)
 	Notes *string `json:"notes,omitempty"`
 }
@@ -402,7 +402,7 @@ type IssueTagRemoveArgs struct {
 	// Project id or slug for X-Project-Id header (e.g. "7", "devd"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.
 	ProjectId any `json:"project_id,omitempty"`
 	// Issue key or numeric id
-	Issue string `json:"issue"`
+	IdOrKey string `json:"id_or_key"`
 	// Tag names to remove (array or comma string)
 	Tags any `json:"tags"`
 }
@@ -412,7 +412,7 @@ type IssueTagSetArgs struct {
 	// Project id or slug for X-Project-Id header (e.g. "7", "devd"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.
 	ProjectId any `json:"project_id,omitempty"`
 	// Issue key or numeric id
-	Issue string `json:"issue"`
+	IdOrKey string `json:"id_or_key"`
 	// Tag names (array or comma string); [] / "" clears all
 	Tags any `json:"tags"`
 }
@@ -635,9 +635,10 @@ type MilestoneStatusArgs struct {
 	// Project id or slug for X-Project-Id header (e.g. "7", "devd"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.
 	ProjectId any `json:"project_id,omitempty"`
 	// Numeric milestone id
-	MilestoneId       int                       `json:"milestone_id"`
-	Status            MilestoneStatusArgsStatus `json:"status"`
-	CancellationNotes *string                   `json:"cancellation_notes,omitempty"`
+	MilestoneId int                       `json:"milestone_id"`
+	Status      MilestoneStatusArgsStatus `json:"status"`
+	// Cancellation reason (required by the lifecycle on →cancelled)
+	Notes *string `json:"notes,omitempty"`
 }
 
 // MilestoneTagRemoveArgs: Argumente für MCP-Tool devd_milestone_tag_remove.
@@ -953,8 +954,8 @@ type ProjectMemoryUpdateArgs struct {
 
 // ProjectShowArgs: Argumente für MCP-Tool devd_project_show.
 type ProjectShowArgs struct {
-	// Numeric project id or slug string (e.g. "devd", "2")
-	IdOrSlug string `json:"id_or_slug"`
+	// Numeric project id or slug string (e.g. "devd", "2", 2) — mirrors the project_id header's anyOf[string,int] shape (DD2-267)
+	IdOrSlug any `json:"id_or_slug"`
 }
 
 type ReviewCreateArgsVerdict string
@@ -990,8 +991,8 @@ type ReviewReopenArgs struct {
 type SprintActivityArgs struct {
 	// Project id or slug for X-Project-Id header (e.g. "7", "devd"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.
 	ProjectId any `json:"project_id,omitempty"`
-	// Numeric sprint id
-	SprintId int `json:"sprint_id"`
+	// Sprint key (e.g. "DD#20") or numeric sprint id (DD2-264: was strict-numeric sprint_id)
+	SprintKey string `json:"sprint_key"`
 	// Max rows (default 100)
 	Limit *int `json:"limit,omitempty"`
 }
@@ -1010,8 +1011,8 @@ type SprintCancelArgs struct {
 type SprintCompletenessArgs struct {
 	// Project id or slug for X-Project-Id header (e.g. "7", "devd"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.
 	ProjectId any `json:"project_id,omitempty"`
-	// Numeric sprint id
-	SprintId int `json:"sprint_id"`
+	// Sprint key (e.g. "DD#20") or numeric sprint id (DD2-264: was strict-numeric sprint_id)
+	SprintKey string `json:"sprint_key"`
 }
 
 // SprintContextArgs: Argumente für MCP-Tool devd_sprint_context.
@@ -1057,17 +1058,19 @@ type SprintDeleteArgs struct {
 // SprintDepAddArgs: Argumente für MCP-Tool devd_sprint_dep_add.
 type SprintDepAddArgs struct {
 	// Project id or slug for X-Project-Id header (e.g. "7", "devd"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.
-	ProjectId     any `json:"project_id,omitempty"`
-	PredecessorId int `json:"predecessor_id"`
-	SuccessorId   int `json:"successor_id"`
+	ProjectId any `json:"project_id,omitempty"`
+	// Predecessor sprint key or numeric id
+	PredecessorId any `json:"predecessor_id"`
+	// Successor sprint key or numeric id
+	SuccessorId any `json:"successor_id"`
 }
 
 // SprintDepListArgs: Argumente für MCP-Tool devd_sprint_dep_list.
 type SprintDepListArgs struct {
 	// Project id or slug for X-Project-Id header (e.g. "7", "devd"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.
 	ProjectId any `json:"project_id,omitempty"`
-	// Numeric sprint id
-	SprintId int `json:"sprint_id"`
+	// Sprint key (e.g. "DD#20") or numeric sprint id (DD2-264: was strict-numeric sprint_id)
+	SprintKey string `json:"sprint_key"`
 }
 
 // SprintDepRemoveArgs: Argumente für MCP-Tool devd_sprint_dep_remove.
@@ -1146,8 +1149,8 @@ type SprintReviewArgs struct {
 type SprintSetMilestoneArgs struct {
 	// Project id or slug for X-Project-Id header (e.g. "7", "devd"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.
 	ProjectId any `json:"project_id,omitempty"`
-	// Sprint key (e.g. "DD#20") or numeric sprint id
-	SprintKey   string `json:"sprint_key"`
+	// Sprint key (e.g. "DD#20") or numeric sprint id — mirrors devd_issue_update's id_or_key (DD2-260)
+	IdOrKey     string `json:"id_or_key"`
 	MilestoneId *int   `json:"milestone_id,omitempty"`
 }
 
@@ -1171,8 +1174,8 @@ type SprintStartArgs struct {
 type SprintTagRemoveArgs struct {
 	// Project id or slug for X-Project-Id header (e.g. "7", "devd"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.
 	ProjectId any `json:"project_id,omitempty"`
-	// Numeric sprint id
-	SprintId int `json:"sprint_id"`
+	// Sprint key (e.g. "DD#20") or numeric sprint id (DD2-264: was strict-numeric sprint_id)
+	SprintKey string `json:"sprint_key"`
 	// Tag names to remove (array or comma string)
 	Tags any `json:"tags"`
 }
@@ -1181,8 +1184,8 @@ type SprintTagRemoveArgs struct {
 type SprintTagSetArgs struct {
 	// Project id or slug for X-Project-Id header (e.g. "7", "devd"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.
 	ProjectId any `json:"project_id,omitempty"`
-	// Numeric sprint id
-	SprintId int `json:"sprint_id"`
+	// Sprint key (e.g. "DD#20") or numeric sprint id (DD2-264: was strict-numeric sprint_id)
+	SprintKey string `json:"sprint_key"`
 	// Tag names (array or comma string); [] / "" clears all
 	Tags any `json:"tags"`
 }
@@ -1191,11 +1194,11 @@ type SprintTagSetArgs struct {
 type SprintUpdateArgs struct {
 	// Project id or slug for X-Project-Id header (e.g. "7", "devd"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.
 	ProjectId any `json:"project_id,omitempty"`
-	// Sprint key or numeric id
-	SprintKey string  `json:"sprint_key"`
-	Name      *string `json:"name,omitempty"`
-	Goal      *string `json:"goal,omitempty"`
-	Notes     *string `json:"notes,omitempty"`
+	// Sprint key (e.g. "DD#20") or numeric sprint id — mirrors devd_issue_update's id_or_key (DD2-260)
+	IdOrKey string  `json:"id_or_key"`
+	Name    *string `json:"name,omitempty"`
+	Goal    *string `json:"goal,omitempty"`
+	Notes   *string `json:"notes,omitempty"`
 	// ISO date YYYY-MM-DD
 	StartDate *string `json:"start_date,omitempty"`
 	// ISO date YYYY-MM-DD
@@ -1343,10 +1346,11 @@ const (
 // TodoLinkArgs: Argumente für MCP-Tool devd_todo_link.
 type TodoLinkArgs struct {
 	// Project id or slug for X-Project-Id header (e.g. "7", "devd"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.
-	ProjectId any              `json:"project_id,omitempty"`
-	TodoId    int              `json:"todo_id"`
-	Type      TodoLinkArgsType `json:"type"`
-	Target    string           `json:"target"`
+	ProjectId any `json:"project_id,omitempty"`
+	// Numeric todo id (matches devd_todo_delete/show/update, DD2-266)
+	Id     int              `json:"id"`
+	Type   TodoLinkArgsType `json:"type"`
+	Target string           `json:"target"`
 }
 
 type TodoListArgsStatus string
@@ -1446,8 +1450,8 @@ type UserNoteUpdateArgs struct {
 type UserStoryAddArgs struct {
 	// Project id or slug for X-Project-Id header (e.g. "7", "devd"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.
 	ProjectId any `json:"project_id,omitempty"`
-	// Issue key (e.g. "DD-42") or numeric backlog id
-	IdOrKey string `json:"id_or_key"`
+	// Parent issue key (e.g. "DD-42") or numeric backlog id (DD2-262: was id_or_key, ambiguous — this tool addresses the PARENT issue, not the story itself)
+	IssueIdOrKey string `json:"issue_id_or_key"`
 	// User story title (required)
 	Title string `json:"title"`
 	// Optional detail / narrative of the story

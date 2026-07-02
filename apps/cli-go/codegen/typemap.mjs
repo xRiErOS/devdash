@@ -112,3 +112,12 @@ export function pascalCase(str) {
     .join('')
   return /^[0-9]/.test(out) ? `_${out}` : out
 }
+
+/**
+ * D06 (DD2-205): zentrale MCP-Tool-Name → Go-Name-Regel, von types- (Arg-Struct)
+ * UND func-Emitter (DD2-204) gemeinsam genutzt — garantiert 1:1-Übereinstimmung
+ * (kein show↔Get-Drift). devd_issue_create → IssueCreate.
+ */
+export function goToolName(mcpName) {
+  return pascalCase(String(mcpName).replace(/^devd_/, ''))
+}

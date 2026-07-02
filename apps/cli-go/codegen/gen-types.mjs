@@ -19,7 +19,7 @@ import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
 import { introspect } from './introspect.mjs'
 import { shapeToJsonSchema } from './capabilities.mjs'
-import { mapSchema, needsPointer, jsonTag, pascalCase } from './typemap.mjs'
+import { mapSchema, needsPointer, jsonTag, pascalCase, goToolName } from './typemap.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const OUT_FILE = join(__dirname, '..', 'internal', 'api', 'generated', 'generated_types.go')
@@ -108,7 +108,7 @@ function generate(tools) {
   for (const t of sorted) {
     const schema = shapeToJsonSchema(t.zodShape)
     const objDesc = mapSchema(schema, true) // Top-Level inputSchema = object
-    const structName = `${pascalCase(t.name.replace(/^devd_/, ''))}Args`
+    const structName = `${goToolName(t.name)}Args` // D06 (DD2-205): Single Source mit dem Func-Emitter (DD2-204)
     const { text, decls } = renderStruct(structName, objDesc)
     structCount++
     const head = docComment(`${structName}: Argumente für MCP-Tool ${t.name}.`)

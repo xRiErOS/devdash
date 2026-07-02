@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { mapSchema, needsPointer, jsonTag, pascalCase, SCALAR_MAP } from '../../apps/cli-go/codegen/typemap.mjs'
+import { mapSchema, needsPointer, jsonTag, pascalCase, goToolName, SCALAR_MAP } from '../../apps/cli-go/codegen/typemap.mjs'
 
 describe('DD2-201 Zod→Go-Typmapping', () => {
   it('mappt Skalare', () => {
@@ -86,5 +86,22 @@ describe('DD2-201 Zod→Go-Typmapping', () => {
 
   it('SCALAR_MAP deckt die vier Basistypen ab', () => {
     expect(Object.keys(SCALAR_MAP).sort()).toEqual(['boolean', 'integer', 'number', 'string'])
+  })
+})
+
+describe('DD2-205 D06 Namensregel (goToolName)', () => {
+  it('strippt devd_-Präfix und PascalCased den Rest', () => {
+    expect(goToolName('devd_issue_create')).toBe('IssueCreate')
+    expect(goToolName('devd_sprint_rev_results')).toBe('SprintRevResults')
+  })
+
+  it('deckungsgleich mit pascalCase(name ohne Präfix) — Single Source für types+func-Emitter', () => {
+    expect(goToolName('devd_milestone_dod_set')).toBe(pascalCase('milestone_dod_set'))
+  })
+
+  it('keine Kollisionen über alle Tool-Namen mit devd_-Präfix', () => {
+    const names = ['devd_issue_show', 'devd_issue_status', 'devd_sprint_show', 'devd_sprint_start']
+    const goNames = names.map(goToolName)
+    expect(new Set(goNames).size).toBe(names.length)
   })
 })
