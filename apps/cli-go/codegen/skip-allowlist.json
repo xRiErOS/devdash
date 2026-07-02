@@ -1,0 +1,107 @@
+[
+  {
+    "tool": "devd_backlog_list",
+    "category": "already-implemented",
+    "reason": "Go-Name BacklogList bereits hand-implementiert (Konsolidierung DD2#36)"
+  },
+  {
+    "tool": "devd_document_create",
+    "category": "already-implemented",
+    "reason": "Go-Name DocumentCreate bereits hand-implementiert (Konsolidierung DD2#36)"
+  },
+  {
+    "tool": "devd_document_delete",
+    "category": "already-implemented",
+    "reason": "Go-Name DocumentDelete bereits hand-implementiert (Konsolidierung DD2#36)"
+  },
+  {
+    "tool": "devd_document_get",
+    "category": "already-implemented",
+    "reason": "Go-Name DocumentGet bereits hand-implementiert (Konsolidierung DD2#36)"
+  },
+  {
+    "tool": "devd_document_list",
+    "category": "already-implemented",
+    "reason": "Go-Name DocumentList bereits hand-implementiert (Konsolidierung DD2#36)"
+  },
+  {
+    "tool": "devd_document_update",
+    "category": "already-implemented",
+    "reason": "Go-Name DocumentUpdate bereits hand-implementiert (Konsolidierung DD2#36)"
+  },
+  {
+    "tool": "devd_issue_bulk",
+    "category": "already-implemented",
+    "reason": "Go-Name IssueBulk bereits hand-implementiert (Konsolidierung DD2#36)"
+  },
+  {
+    "tool": "devd_issue_bulk_create",
+    "category": "already-implemented",
+    "reason": "Go-Name IssueBulkCreate bereits hand-implementiert (Konsolidierung DD2#36)"
+  },
+  {
+    "tool": "devd_issue_create_full",
+    "category": "already-implemented",
+    "reason": "Go-Name IssueCreateFull bereits hand-implementiert (Konsolidierung DD2#36)"
+  },
+  {
+    "tool": "devd_issue_dep_remove",
+    "category": "already-implemented",
+    "reason": "Go-Name IssueDepRemove bereits hand-implementiert (Konsolidierung DD2#36)"
+  },
+  {
+    "tool": "devd_issue_list",
+    "category": "already-implemented",
+    "reason": "Go-Name IssueList bereits hand-implementiert (Konsolidierung DD2#36)"
+  },
+  {
+    "tool": "devd_issue_move",
+    "category": "already-implemented",
+    "reason": "Go-Name IssueMove bereits hand-implementiert (Konsolidierung DD2#36)"
+  },
+  {
+    "tool": "devd_issue_tag_remove",
+    "category": "already-implemented",
+    "reason": "Go-Name IssueTagRemove bereits hand-implementiert (Konsolidierung DD2#36)"
+  },
+  {
+    "tool": "devd_issue_tag_set",
+    "category": "already-implemented",
+    "reason": "Go-Name IssueTagSet bereits hand-implementiert (Konsolidierung DD2#36)"
+  },
+  {
+    "tool": "devd_milestone_tag_remove",
+    "category": "already-implemented",
+    "reason": "Go-Name MilestoneTagRemove bereits hand-implementiert (Konsolidierung DD2#36)"
+  },
+  {
+    "tool": "devd_milestone_tag_set",
+    "category": "already-implemented",
+    "reason": "Go-Name MilestoneTagSet bereits hand-implementiert (Konsolidierung DD2#36)"
+  },
+  {
+    "tool": "devd_project_memory_anchor_patch",
+    "category": "already-implemented",
+    "reason": "Go-Name ProjectMemoryAnchorPatch bereits hand-implementiert (Konsolidierung DD2#36)"
+  },
+  {
+    "tool": "devd_sprint_completeness",
+    "category": "already-implemented",
+    "reason": "Go-Name SprintCompleteness bereits hand-implementiert (Konsolidierung DD2#36)"
+  },
+  {
+    "tool": "devd_sprint_rev_results",
+    "category": "already-implemented",
+    "reason": "Go-Name SprintRevResults bereits hand-implementiert (Konsolidierung DD2#36)"
+  },
+  {
+    "tool": "devd_sprint_tag_remove",
+    "category": "already-implemented",
+    "reason": "Go-Name SprintTagRemove bereits hand-implementiert (Konsolidierung DD2#36)"
+  },
+  {
+    "tool": "devd_sprint_tag_set",
+    "category": "already-implemented",
+    "reason": "Go-Name SprintTagSet bereits hand-implementiert (Konsolidierung DD2#36)"
+  }
+]
