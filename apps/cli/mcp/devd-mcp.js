@@ -2137,13 +2137,13 @@ server.tool(
   'WRITE: Replace ALL tags on an issue with the given tag names (full set; empty array clears). Names are resolved to ids against the project tags; unknown names are reported, not auto-created. PUT /api/backlog/:id/tags.',
   {
     project_id: PROJECT_ID_PARAM,
-    issue: z.string().describe('Issue key or numeric id'),
+    id_or_key: z.string().describe('Issue key or numeric id'),
     tags: z.union([z.string(), z.array(z.string())]).describe('Tag names (array or comma string); [] / "" clears all'),
   },
-  async ({ project_id, issue, tags }) => {
+  async ({ project_id, id_or_key, tags }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    const issueId = await resolveIssueId(issue, pid)
+    const issueId = await resolveIssueId(id_or_key, pid)
     const empty = (Array.isArray(tags) ? tags.length === 0 : String(tags).trim() === '')
     let tagIds = []
     if (!empty) {
@@ -2161,13 +2161,13 @@ server.tool(
   'WRITE: Remove the given tag names from an issue (keeps the rest). Fetches the current tags, subtracts, and writes the remaining set. PUT /api/backlog/:id/tags.',
   {
     project_id: PROJECT_ID_PARAM,
-    issue: z.string().describe('Issue key or numeric id'),
+    id_or_key: z.string().describe('Issue key or numeric id'),
     tags: z.union([z.string(), z.array(z.string())]).describe('Tag names to remove (array or comma string)'),
   },
-  async ({ project_id, issue, tags }) => {
+  async ({ project_id, id_or_key, tags }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    const issueId = await resolveIssueId(issue, pid)
+    const issueId = await resolveIssueId(id_or_key, pid)
     const list = Array.isArray(tags) ? tags : String(tags).split(',')
     const remove = new Set(list.map(s => String(s).trim().toLowerCase()).filter(Boolean))
     const item = await apiRequest('GET', `/api/backlog/${issueId}`, null, pid)
@@ -2399,16 +2399,16 @@ server.tool(
   'WRITE: Delete an issue. Without force the backend returns 409 (use status=cancelled instead). force=true hard-deletes (cascades dependencies + reviews). DELETE /api/backlog/:id.',
   {
     project_id: PROJECT_ID_PARAM,
-    issue: z.string().describe('Issue key or numeric id'),
+    id_or_key: z.string().describe('Issue key or numeric id'),
     force: z.boolean().optional().describe('Hard-delete (default false → 409 with a hint to cancel)'),
   },
-  async ({ project_id, issue, force }) => {
+  async ({ project_id, id_or_key, force }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    const issueId = await resolveIssueId(issue, pid)
+    const issueId = await resolveIssueId(id_or_key, pid)
     const data = await apiRequest('DELETE', `/api/backlog/${issueId}${force ? '?force=1' : ''}`, null, pid)
     if (data && data.error) return ok(data)
-    return ok({ deleted: true, issue, forced: !!force })
+    return ok({ deleted: true, id_or_key, forced: !!force })
   },
 )
 
@@ -2417,17 +2417,17 @@ server.tool(
   'WRITE: Move an issue to another project (gets a new project_number/key there). Blocked while in_progress/to_review. POST /api/backlog/:id/move.',
   {
     project_id: PROJECT_ID_PARAM,
-    issue: z.string().describe('Issue key or numeric id'),
+    id_or_key: z.string().describe('Issue key or numeric id'),
     target_project: z.union([z.string(), z.number()]).describe('Target project id or slug'),
   },
-  async ({ project_id, issue, target_project }) => {
+  async ({ project_id, id_or_key, target_project }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
     // Ziel-Projekt auf numerische id auflösen — der move-Endpoint will target_project_id
     // numerisch. GET /api/projects/:id resolved id ODER slug (DD-390).
     const target = await apiRequest('GET', `/api/projects/${encodeURIComponent(String(target_project))}`)
     if (target && target.error) return ok(target)
-    const issueId = await resolveIssueId(issue, pid)
+    const issueId = await resolveIssueId(id_or_key, pid)
     return ok(await apiRequest('POST', `/api/backlog/${issueId}/move`, { target_project_id: target.id }, pid))
   },
 )
@@ -2437,13 +2437,13 @@ server.tool(
   'Audit-log activity for an issue (newest first): timestamp, agent_id, action, old/new value. GET /api/backlog/:id/activity. Read-only.',
   {
     project_id: PROJECT_ID_PARAM,
-    issue: z.string().describe('Issue key or numeric id'),
+    id_or_key: z.string().describe('Issue key or numeric id'),
     limit: z.number().int().min(1).max(200).optional().describe('Max rows (default 100)'),
   },
-  async ({ project_id, issue, limit }) => {
+  async ({ project_id, id_or_key, limit }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    const issueId = await resolveIssueId(issue, pid)
+    const issueId = await resolveIssueId(id_or_key, pid)
     const qs = limit !== undefined ? `?limit=${limit}` : ''
     return ok(await apiRequest('GET', `/api/backlog/${issueId}/activity${qs}`, null, pid))
   },
@@ -2458,14 +2458,14 @@ server.tool(
   'WRITE: Add a dependency edge — issue depends_on another issue (depends_on must finish first → it blocks issue). Self-reference, duplicate and cycles are rejected by the backend. Same-project only (keys resolve within the project). Accepts issue keys (e.g. "MEM-9") or numeric ids — same "either representation" pattern as sprint/milestone deps (predecessor_id/successor_id), just resolved client-side (DD2-259).',
   {
     project_id: PROJECT_ID_PARAM,
-    issue: z.union([z.string(), z.number()]).describe('The dependent issue (key or numeric id)'),
+    id_or_key: z.union([z.string(), z.number()]).describe('The dependent issue (key or numeric id)'),
     depends_on: z.union([z.string(), z.number()]).describe('The issue it depends on / is blocked by (key or numeric id)'),
     note: z.string().optional().describe('Optional note on the edge'),
   },
-  async ({ project_id, issue, depends_on, note }) => {
+  async ({ project_id, id_or_key, depends_on, note }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    const issueId = await resolveIssueId(String(issue), pid)
+    const issueId = await resolveIssueId(String(id_or_key), pid)
     const onId = await resolveIssueId(String(depends_on), pid)
     const body = { depends_on_id: Number(onId) }
     if (note !== undefined) body.note = note
@@ -2479,12 +2479,12 @@ server.tool(
   'List dependencies of an issue: blockers (issues it depends on) + blocked_by (issues that depend on it). Read-only.',
   {
     project_id: PROJECT_ID_PARAM,
-    issue: z.string().describe('Issue key or numeric id'),
+    id_or_key: z.string().describe('Issue key or numeric id'),
   },
-  async ({ project_id, issue }) => {
+  async ({ project_id, id_or_key }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    const issueId = await resolveIssueId(issue, pid)
+    const issueId = await resolveIssueId(id_or_key, pid)
     const data = await apiRequest('GET', `/api/backlog/${issueId}/dependencies`, null, pid)
     return ok(data)
   },
@@ -2495,20 +2495,20 @@ server.tool(
   'WRITE: Remove the dependency edge issue→depends_on. Resolves the edge id internally. Same-project only. Accepts keys or numeric ids.',
   {
     project_id: PROJECT_ID_PARAM,
-    issue: z.string().describe('The dependent issue (key or numeric id)'),
+    id_or_key: z.string().describe('The dependent issue (key or numeric id)'),
     depends_on: z.string().describe('The depended-on issue (key or numeric id)'),
   },
-  async ({ project_id, issue, depends_on }) => {
+  async ({ project_id, id_or_key, depends_on }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    const issueId = await resolveIssueId(issue, pid)
+    const issueId = await resolveIssueId(id_or_key, pid)
     const onId = await resolveIssueId(depends_on, pid)
     const deps = await apiRequest('GET', `/api/backlog/${issueId}/dependencies`, null, pid)
     if (deps && deps.error) return ok(deps)
     const edge = (deps.blockers || []).find((b) => b.id === Number(onId))
-    if (!edge) return ok({ error: true, message: `Keine Dependency ${issue} → ${depends_on}` })
+    if (!edge) return ok({ error: true, message: `Keine Dependency ${id_or_key} → ${depends_on}` })
     const data = await apiRequest('DELETE', `/api/dependencies/${edge.dep_id}`, null, pid)
-    return ok({ removed: true, issue, depends_on, dep_id: edge.dep_id, response: data })
+    return ok({ removed: true, id_or_key, depends_on, dep_id: edge.dep_id, response: data })
   },
 )
 
