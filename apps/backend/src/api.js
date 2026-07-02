@@ -1064,14 +1064,16 @@ app.get('/api/projects/:projectId/documents', (req, res) => {
 // GET /api/projects/:id/delete-preview — Counts für den TUI-/CLI-Confirm (Muster
 // milestone/sprint delete-preview). Spiegelt projectDeletePreview.
 app.get('/api/projects/:id/delete-preview', (req, res) => {
-  const id = Number(req.params.id)
+  const id = resolveProjectId(req.params.id) // :id darf id ODER slug sein (wie GET /api/projects/:id)
+  if (id === null) return res.status(404).json({ error: 'Projekt nicht gefunden' })
   const project = db.prepare('SELECT id, name FROM projects WHERE id = ?').get(id)
   if (!project) return res.status(404).json({ error: 'Projekt nicht gefunden' })
   res.json({ ...projectDeletePreview(db, id), project_name: project.name })
 })
 
 app.delete('/api/projects/:id', (req, res) => {
-  const id = Number(req.params.id)
+  const id = resolveProjectId(req.params.id) // :id darf id ODER slug sein (wie GET /api/projects/:id)
+  if (id === null) return res.status(404).json({ error: 'Projekt nicht gefunden' })
   // Initial-Projekt ist nie löschbar (auch nicht mit cascade) — Default-Scope-Anker.
   if (id === 1) return res.status(400).json({ error: 'Initial-Projekt kann nicht gelöscht werden' })
   const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(id)
@@ -1080,7 +1082,7 @@ app.delete('/api/projects/:id', (req, res) => {
   const preview = projectDeletePreview(db, id)
 
   if (cascade) {
-    // Transaktional: Sprints (inkl. Issues+Kinder) → sprintlose Issues → archon_runs → projects-Zeile.
+    // Transaktional: Sprints (inkl. Issues+Kinder) → sprintlose Issues → projects-Zeile.
     db.transaction(() => cascadeDeleteProject(db, id))()
     auditLog('projects', id, 'delete_cascade', project, null, 'devd-ui')
     return res.json({ ok: true, deleted: preview })
