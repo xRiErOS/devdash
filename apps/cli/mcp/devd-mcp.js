@@ -1187,18 +1187,18 @@ server.tool(
   {
     project_id: PROJECT_ID_PARAM,
     id_or_key: z.string().describe('Issue key (e.g. "DD-42") or numeric backlog id'),
-    new_status: z
+    status: z
       .string()
       .describe(
         'Target status: new | refined | planned | in_progress | to_review | passed | rejected | completed | cancelled',
       ),
     notes: z.string().optional().describe('Transition notes (required when cancelling)'),
   },
-  async ({ project_id, id_or_key, new_status, notes }) => {
+  async ({ project_id, id_or_key, status, notes }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
     const id = await resolveIssueId(id_or_key, pid)
-    const body = { status: new_status }
+    const body = { status }
     if (notes) body.notes = notes
     const data = await apiRequest('PATCH', `/api/backlog/${id}/status`, body, pid)
     return ok(data)

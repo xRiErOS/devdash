@@ -40,11 +40,11 @@ describe('devd_issue_status — lifecycle description (ADR lifecycle)', () => {
     expect(block).toMatch(/new.*refined.*planned.*in_progress/s)
   })
 
-  test('new_status describe() enumerates planned and passed', () => {
-    // The z.string().describe() for new_status must list planned and passed
+  test('status describe() enumerates planned and passed', () => {
+    // DD2-263: new_status renamed to status (drop the sole new_-prefixed outlier)
     const idx = src.indexOf("'devd_issue_status'")
     const block = src.slice(idx, idx + 800)
-    const describeMatch = block.match(/new_status[\s\S]*?describe\([^)]+\)/)
+    const describeMatch = block.match(/status: z[\s\S]*?describe\([^)]+\)/)
     expect(describeMatch).not.toBeNull()
     expect(describeMatch[0]).toMatch(/planned/)
     expect(describeMatch[0]).toMatch(/passed/)
