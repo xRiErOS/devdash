@@ -51,18 +51,6 @@ type tagsEnvelope struct {
 	Tags []Tag `json:"tags"`
 }
 
-func (c *Client) replaceEntityTags(path string, tagIDs []int) ([]Tag, error) {
-	if tagIDs == nil {
-		tagIDs = []int{} // nil → leeres Array (clear), nicht null
-	}
-	data, err := c.Do("PUT", path, map[string]any{"tag_ids": tagIDs})
-	if err != nil {
-		return nil, err
-	}
-	var env tagsEnvelope
-	return env.Tags, json.Unmarshal(data, &env)
-}
-
 func (c *Client) getEntityTags(path string) ([]Tag, error) {
 	data, err := c.Do("GET", path, nil)
 	if err != nil {
@@ -70,21 +58,6 @@ func (c *Client) getEntityTags(path string) ([]Tag, error) {
 	}
 	var env tagsEnvelope
 	return env.Tags, json.Unmarshal(data, &env)
-}
-
-// SetIssueTags setzt die Tags eines Issues vollständig neu (PUT /api/backlog/:id/tags).
-func (c *Client) SetIssueTags(id int, tagIDs []int) ([]Tag, error) {
-	return c.replaceEntityTags(fmt.Sprintf("/api/backlog/%d/tags", id), tagIDs)
-}
-
-// SetSprintTags setzt die Tags eines Sprints vollständig neu (PUT /api/sprints/:id/tags).
-func (c *Client) SetSprintTags(id int, tagIDs []int) ([]Tag, error) {
-	return c.replaceEntityTags(fmt.Sprintf("/api/sprints/%d/tags", id), tagIDs)
-}
-
-// SetMilestoneTags setzt die Tags eines Meilensteins vollständig neu (PUT /api/milestones/:id/tags).
-func (c *Client) SetMilestoneTags(id int, tagIDs []int) ([]Tag, error) {
-	return c.replaceEntityTags(fmt.Sprintf("/api/milestones/%d/tags", id), tagIDs)
 }
 
 // GetSprintTags liest die aktuellen Tags eines Sprints (GET /api/sprints/:id/tags) —

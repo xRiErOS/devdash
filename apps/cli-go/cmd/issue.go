@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"devd-cli/internal/api"
+	"devd-cli/internal/api/generated"
 	"devd-cli/internal/output"
 	"devd-cli/internal/tui"
 	"github.com/spf13/cobra"
@@ -19,19 +21,26 @@ var issueListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		opts := api.IssueListOpts{}
-		opts.Status, _ = cmd.Flags().GetString("status")
-		opts.Search, _ = cmd.Flags().GetString("search")
-		opts.Type, _ = cmd.Flags().GetString("type")
-		if sprint, _ := cmd.Flags().GetString("sprint"); sprint != "" {
-			sid, err := c.ResolveSprintID(sprint)
-			if err != nil {
-				return err
-			}
-			opts.SprintID = fmt.Sprintf("%d", sid)
+		opts := generated.IssueListArgs{}
+		if v, _ := cmd.Flags().GetString("status"); v != "" {
+			opts.Status = &v
 		}
-		issues, err := c.ListIssues(opts)
+		if v, _ := cmd.Flags().GetString("search"); v != "" {
+			opts.Search = &v
+		}
+		if v, _ := cmd.Flags().GetString("type"); v != "" {
+			t := generated.IssueListArgsType(v)
+			opts.Type = &t
+		}
+		if v, _ := cmd.Flags().GetString("sprint"); v != "" {
+			opts.SprintKey = &v // IssueList löst Key/id/"null"/"none" selbst auf
+		}
+		data, err := c.IssueList(opts)
 		if err != nil {
+			return err
+		}
+		var issues []api.Issue
+		if err := json.Unmarshal(data, &issues); err != nil {
 			return err
 		}
 		output.Print(cmd, issues, func() {
@@ -166,7 +175,17 @@ var issueCreateCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		it, err := c.CreateIssue(body)
+		data, err := c.IssueCreateFull(generated.IssueCreateFullArgs{
+			Title:    body.Title,
+			Type:     generated.IssueCreateFullArgsType(body.Type),
+			Priority: &body.Priority,
+			PoNotes:  body.PoNotes,
+			TagIds:   body.TagIDs,
+		})
+		if err != nil {
+			return err
+		}
+		it, err := api.IssueFromCreateFullResult(data)
 		if err != nil {
 			return err
 		}

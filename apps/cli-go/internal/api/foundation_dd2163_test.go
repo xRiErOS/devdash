@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"devd-cli/internal/api/generated"
 )
 
 // DD2-163: Foundation-Client-Tests (documents/user_notes/todos) gegen einen
@@ -43,25 +45,38 @@ func TestDocumentsClient(t *testing.T) {
 		}
 	})
 
-	docs, err := c.ListDocuments("milestone", 45)
-	if err != nil || len(docs) != 1 || docs[0].MilestoneID == nil || *docs[0].MilestoneID != 45 {
-		t.Fatalf("ListDocuments: %v %+v", err, docs)
+	milestoneID := 45
+	listData, err := c.DocumentList(generated.DocumentListArgs{MilestoneId: &milestoneID})
+	if err != nil {
+		t.Fatalf("DocumentList: %v", err)
+	}
+	var docs []Document
+	if err := json.Unmarshal(listData, &docs); err != nil {
+		t.Fatalf("DocumentList unmarshal: %v", err)
+	}
+	if len(docs) != 1 || docs[0].MilestoneID == nil || *docs[0].MilestoneID != 45 {
+		t.Fatalf("DocumentList: %+v", docs)
 	}
 	if gotPath != "/api/milestones/45/documents" {
 		t.Fatalf("path = %s", gotPath)
 	}
 
+	sprintKey := "293"
 	body := "b"
-	created, err := c.CreateDocument("sprint", 293, DocumentBody{Title: "New", Body: &body})
-	if err != nil || created.ID != 2 {
-		t.Fatalf("CreateDocument: %v %+v", err, created)
+	createData, err := c.DocumentCreate(generated.DocumentCreateArgs{SprintKey: &sprintKey, Title: "New", Body: &body})
+	if err != nil {
+		t.Fatalf("DocumentCreate: %v", err)
+	}
+	var created Document
+	if err := json.Unmarshal(createData, &created); err != nil || created.ID != 2 {
+		t.Fatalf("DocumentCreate unmarshal: %v %+v", err, created)
 	}
 	if gotMethod != "POST" || gotBody["title"] != "New" || gotBody["body"] != "b" {
 		t.Fatalf("create body wrong: %v %v", gotMethod, gotBody)
 	}
 
-	if err := c.DeleteDocument("sprint", 293, 2); err != nil {
-		t.Fatalf("DeleteDocument: %v", err)
+	if _, err := c.DocumentDelete(generated.DocumentDeleteArgs{SprintKey: &sprintKey, DocId: 2}); err != nil {
+		t.Fatalf("DocumentDelete: %v", err)
 	}
 }
 

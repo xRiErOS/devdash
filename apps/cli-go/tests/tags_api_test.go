@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"devd-cli/internal/api"
+	"devd-cli/internal/api/generated"
 )
 
 func TestListTagsParses(t *testing.T) {
@@ -86,39 +87,64 @@ func TestUpdateAndDeleteTagPaths(t *testing.T) {
 	}
 }
 
-func TestSetIssueTagsContract(t *testing.T) {
-	var body struct {
+// TestIssueTagSetResolvesNamesContract deckt die MCP-exakte IssueTagSet (manual.go,
+// DD2-210-Nachfolger von SetIssueTags) ab: Namen → GET /api/tags-Resolution → PUT
+// tag_ids, Response-Envelope {tags:[]} bleibt gleich.
+func TestIssueTagSetResolvesNamesContract(t *testing.T) {
+	var putBody struct {
 		TagIDs []int `json:"tag_ids"`
 	}
+	var putHit string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "PUT" || r.URL.Path != "/api/backlog/42/tags" {
-			t.Errorf("SetIssueTags: %s %s, want PUT /api/backlog/42/tags", r.Method, r.URL.Path)
+		switch {
+		case r.Method == "GET" && r.URL.Path == "/api/tags":
+			json.NewEncoder(w).Encode([]map[string]any{
+				{"id": 3, "name": "a", "color": "teal"},
+				{"id": 5, "name": "b", "color": "blue"},
+			})
+		case r.Method == "PUT" && r.URL.Path == "/api/backlog/42/tags":
+			putHit = r.URL.Path
+			raw, _ := io.ReadAll(r.Body)
+			json.Unmarshal(raw, &putBody)
+			json.NewEncoder(w).Encode(map[string]any{"tags": []map[string]any{{"id": 3, "name": "a", "color": "teal"}}})
+		default:
+			t.Errorf("unerwarteter Call: %s %s", r.Method, r.URL.Path)
 		}
-		raw, _ := io.ReadAll(r.Body)
-		json.Unmarshal(raw, &body)
-		json.NewEncoder(w).Encode(map[string]any{"tags": []map[string]any{{"id": 3, "name": "a", "color": "teal"}}})
 	}))
 	defer srv.Close()
 	t.Setenv("DEVD_API_URL", srv.URL)
 	c := api.NewClient("10")
 
-	tags, err := c.SetIssueTags(42, []int{3, 5})
+	data, err := c.IssueTagSet(generated.IssueTagSetArgs{IdOrKey: "42", Tags: []string{"a", "b"}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(body.TagIDs) != 2 || body.TagIDs[0] != 3 {
-		t.Errorf("Body tag_ids = %v, want [3 5]", body.TagIDs)
+	if putHit != "/api/backlog/42/tags" {
+		t.Errorf("PUT-Pfad = %q, want /api/backlog/42/tags", putHit)
 	}
-	if len(tags) != 1 || tags[0].ID != 3 {
-		t.Errorf("Response-Tags geparst: %+v", tags)
+	if len(putBody.TagIDs) != 2 || putBody.TagIDs[0] != 3 || putBody.TagIDs[1] != 5 {
+		t.Errorf("resolved tag_ids = %v, want [3 5]", putBody.TagIDs)
+	}
+	var env struct {
+		Tags []api.Tag `json:"tags"`
+	}
+	if err := json.Unmarshal(data, &env); err != nil {
+		t.Fatal(err)
+	}
+	if len(env.Tags) != 1 || env.Tags[0].ID != 3 {
+		t.Errorf("Response-Tags geparst: %+v", env.Tags)
 	}
 }
 
 // Leere Auswahl muss als [] (clear) gehen, nicht als null — sonst ignoriert das
 // Backend den Replace (tag_ids fällt auf []).
-func TestSetIssueTagsEmptyIsArray(t *testing.T) {
+func TestIssueTagSetEmptyIsArray(t *testing.T) {
 	var raw string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" && r.URL.Path == "/api/tags" {
+			json.NewEncoder(w).Encode([]map[string]any{})
+			return
+		}
 		b, _ := io.ReadAll(r.Body)
 		raw = string(b)
 		json.NewEncoder(w).Encode(map[string]any{"tags": []any{}})
@@ -127,7 +153,7 @@ func TestSetIssueTagsEmptyIsArray(t *testing.T) {
 	t.Setenv("DEVD_API_URL", srv.URL)
 	c := api.NewClient("10")
 
-	if _, err := c.SetIssueTags(42, nil); err != nil {
+	if _, err := c.IssueTagSet(generated.IssueTagSetArgs{IdOrKey: "42", Tags: nil}); err != nil {
 		t.Fatal(err)
 	}
 	if raw != `{"tag_ids":[]}` {
@@ -135,25 +161,27 @@ func TestSetIssueTagsEmptyIsArray(t *testing.T) {
 	}
 }
 
-// DD2-33 Part B: Issue-Create trägt tag_ids nativ (POST /api/backlog).
-func TestCreateIssueSendsTagIDs(t *testing.T) {
+// DD2-33 Part B: Issue-Create trägt tag_ids nativ (POST /api/backlog). DD2-210:
+// IssueCreateFull (nicht das schlankere IssueCreate) — nur dieses kennt tag_ids.
+func TestIssueCreateFullSendsTagIDs(t *testing.T) {
 	var body struct {
 		Title  string `json:"title"`
 		TagIDs []int  `json:"tag_ids"`
 	}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" || r.URL.Path != "/api/backlog" {
-			t.Errorf("CreateIssue: %s %s, want POST /api/backlog", r.Method, r.URL.Path)
+			t.Errorf("IssueCreateFull: %s %s, want POST /api/backlog", r.Method, r.URL.Path)
 		}
 		raw, _ := io.ReadAll(r.Body)
 		json.Unmarshal(raw, &body)
-		json.NewEncoder(w).Encode(map[string]any{"id": 1, "key": "DD2-1", "title": body.Title})
+		json.NewEncoder(w).Encode(map[string]any{"id": 1, "project_prefix": "DD2", "project_number": 1, "status": "new", "title": body.Title})
 	}))
 	defer srv.Close()
 	t.Setenv("DEVD_API_URL", srv.URL)
 	c := api.NewClient("10")
 
-	if _, err := c.CreateIssue(api.IssueCreateBody{Title: "X", Type: "feature", Priority: 2, TagIDs: []int{3, 7}}); err != nil {
+	prio := 2
+	if _, err := c.IssueCreateFull(generated.IssueCreateFullArgs{Title: "X", Type: generated.IssueCreateFullArgsTypeFeature, Priority: &prio, TagIds: []int{3, 7}}); err != nil {
 		t.Fatal(err)
 	}
 	if len(body.TagIDs) != 2 || body.TagIDs[0] != 3 || body.TagIDs[1] != 7 {

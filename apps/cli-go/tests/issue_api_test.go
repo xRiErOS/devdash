@@ -9,9 +9,12 @@ import (
 	"testing"
 
 	"devd-cli/internal/api"
+	"devd-cli/internal/api/generated"
 )
 
-func TestListIssues(t *testing.T) {
+// TestIssueList deckt die MCP-exakte IssueList (manual.go, DD2-210-Nachfolger
+// von ListIssues) ab.
+func TestIssueList(t *testing.T) {
 	want := []api.Issue{{ID: 1, Key: "DD2-1", Title: "Bug", Status: "new", Type: "bug", Priority: 1}}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/backlog" {
@@ -23,8 +26,12 @@ func TestListIssues(t *testing.T) {
 	t.Setenv("DEVD_API_URL", srv.URL)
 	c := api.NewClient("10")
 
-	got, err := c.ListIssues(api.IssueListOpts{})
+	data, err := c.IssueList(generated.IssueListArgs{})
 	if err != nil {
+		t.Fatal(err)
+	}
+	var got []api.Issue
+	if err := json.Unmarshal(data, &got); err != nil {
 		t.Fatal(err)
 	}
 	if len(got) != 1 || got[0].Key != "DD2-1" {
@@ -32,7 +39,7 @@ func TestListIssues(t *testing.T) {
 	}
 }
 
-func TestListIssuesQueryParams(t *testing.T) {
+func TestIssueListQueryParams(t *testing.T) {
 	var q map[string]string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		q = map[string]string{
@@ -45,7 +52,8 @@ func TestListIssuesQueryParams(t *testing.T) {
 	defer srv.Close()
 	t.Setenv("DEVD_API_URL", srv.URL)
 	c := api.NewClient("10")
-	c.ListIssues(api.IssueListOpts{Status: "new", SprintID: "7", Type: "bug"})
+	status, sprintKey, typ := "new", "7", generated.IssueListArgsTypeBug
+	c.IssueList(generated.IssueListArgs{Status: &status, SprintKey: &sprintKey, Type: &typ})
 	if q["status"] != "new" || q["sprint_id"] != "7" || q["type"] != "bug" {
 		t.Errorf("Query falsch: %+v", q)
 	}
@@ -97,18 +105,25 @@ func TestAssignSprint(t *testing.T) {
 	}
 }
 
-func TestCreateIssue(t *testing.T) {
+// TestIssueCreateFull deckt die MCP-exakte IssueCreateFull (manual.go, DD2-210-
+// Nachfolger von CreateIssue) inkl. Envelope-Unwrap ({id,key,status,item}) ab.
+func TestIssueCreateFull(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("erwartete POST, bekam %s", r.Method)
 		}
-		json.NewEncoder(w).Encode(api.Issue{ID: 42, Key: "DD2-42", Title: "Neu", Type: "feature"})
+		json.NewEncoder(w).Encode(map[string]any{"id": 42, "key": "DD2-42", "project_prefix": "DD2", "project_number": 42, "status": "new", "title": "Neu", "type": "feature"})
 	}))
 	defer srv.Close()
 	t.Setenv("DEVD_API_URL", srv.URL)
 	c := api.NewClient("10")
 
-	it, err := c.CreateIssue(api.IssueCreateBody{Title: "Neu", Type: "feature", Priority: 2})
+	prio := 2
+	data, err := c.IssueCreateFull(generated.IssueCreateFullArgs{Title: "Neu", Type: generated.IssueCreateFullArgsTypeFeature, Priority: &prio})
+	if err != nil {
+		t.Fatal(err)
+	}
+	it, err := api.IssueFromCreateFullResult(data)
 	if err != nil {
 		t.Fatal(err)
 	}

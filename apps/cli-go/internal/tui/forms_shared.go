@@ -383,6 +383,27 @@ func (m *model) selectedTagIDs() []int {
 	return ids
 }
 
+// selectedTagNames löst die im Multiselect gewählten Tag-ids gegen m.tags auf
+// Namen auf — die MCP-exakten Tag-Set-Tools (IssueTagSet/SprintTagSet/
+// MilestoneTagSet, DD2-210) nehmen Namen (tags any), nicht ids.
+func (m *model) selectedTagNames() []string {
+	ids := m.selectedTagIDs()
+	if len(ids) == 0 {
+		return nil
+	}
+	byID := make(map[int]string, len(m.tags))
+	for _, t := range m.tags {
+		byID[t.ID] = t.Name
+	}
+	names := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if n, ok := byID[id]; ok {
+			names = append(names, n)
+		}
+	}
+	return names
+}
+
 // formTagStrings liest die gewählten Tag-Option-Werte (Tag-IDs als String) keyed
 // aus dem Formular — für den issueDraft (Tag-Auswahl über Form-Neuaufbauten halten).
 func (m *model) formTagStrings() []string {
@@ -461,7 +482,7 @@ func (m *model) formCreateCmd() tea.Cmd {
 		if td := get("target_date"); td != "" {
 			body.TargetDate = &td
 		}
-		return doCreateMilestone(m.client, body, m.selectedTagIDs())
+		return doCreateMilestone(m.client, body, m.selectedTagNames())
 	case "sprint":
 		body := api.SprintCreateBody{Name: get("name")}
 		if g := get("goal"); g != "" {
@@ -472,7 +493,7 @@ func (m *model) formCreateCmd() tea.Cmd {
 				body.MilestoneID = &id
 			}
 		}
-		return doCreateSprint(m.client, body, m.selectedTagIDs())
+		return doCreateSprint(m.client, body, m.selectedTagNames())
 	case "memory":
 		body := api.ProjectMemoryCreateBody{Category: m.form.GetString("category"), Summary: get("summary")}
 		if c := get("content"); c != "" {

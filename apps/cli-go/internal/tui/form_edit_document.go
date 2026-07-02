@@ -9,6 +9,7 @@ package tui
 
 import (
 	"devd-cli/internal/api"
+	"devd-cli/internal/api/generated"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 )
@@ -32,7 +33,9 @@ type docRenamedMsg struct {
 // — nur file_path gesetzt, Title/Body/Status bleiben unangetastet).
 func doRenameDocument(c *api.Client, ownerType string, ownerID, docID int, newPath string) tea.Cmd {
 	return func() tea.Msg {
-		if _, err := c.UpdateDocument(ownerType, ownerID, docID, api.DocumentBody{FilePath: &newPath}); err != nil {
+		milestoneID, sprintKey := docOwnerArgs(ownerType, ownerID)
+		args := generated.DocumentUpdateArgs{MilestoneId: milestoneID, SprintKey: sprintKey, DocId: docID, FilePath: &newPath}
+		if _, err := c.DocumentUpdate(args); err != nil {
 			return docRenamedMsg{docID: docID, err: cleanAPIErr(err)}
 		}
 		return docRenamedMsg{docID: docID}

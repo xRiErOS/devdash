@@ -1,11 +1,14 @@
 package tui
 
 import (
+	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
 	"devd-cli/internal/api"
+	"devd-cli/internal/api/generated"
 	"devd-cli/internal/clip"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -67,8 +70,13 @@ func loadMilestones(c *api.Client) tea.Cmd {
 // /api/backlog ohne Filter liefert sämtliche Issues inkl. sprint-zugewiesener.
 func loadAllIssues(c *api.Client) tea.Cmd {
 	return func() tea.Msg {
-		items, err := c.ListIssues(api.IssueListOpts{Fields: "full"}) // DD2-147: po_notes/goal nur mit fields=full (compact lässt sie weg)
+		full := generated.IssueListArgsFieldsFull
+		data, err := c.IssueList(generated.IssueListArgs{Fields: &full}) // DD2-147: po_notes/goal nur mit fields=full (compact lässt sie weg)
 		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		var items []api.Issue
+		if err := json.Unmarshal(data, &items); err != nil {
 			return noticeMsg{cleanAPIErr(err)}
 		}
 		return allIssuesMsg{items}
@@ -179,7 +187,7 @@ func doSprintYank(c *api.Client, sprintID int, key string) tea.Cmd {
 		if err != nil {
 			return noticeMsg{cleanAPIErr(err)}
 		}
-		docs, err := c.ListDocuments("sprint", sprintID)
+		docs, err := listDocuments(c, "sprint", sprintID)
 		if err != nil {
 			docs = nil // Docs optional — Yank trotzdem mit Issues/ID
 		}
@@ -309,7 +317,8 @@ func doCascadeDelete(c *api.Client, kind string, id int, name string) tea.Cmd {
 // doDeleteIssue löscht ein einzelnes Issue (DD2-65, kein Cascade).
 func doDeleteIssue(c *api.Client, id int, name string) tea.Cmd {
 	return func() tea.Msg {
-		if err := c.DeleteIssue(id); err != nil {
+		force := true // DD-524: Backend lehnt DELETE ohne force ab (Default-Lifecycle=cancelled)
+		if _, err := c.IssueDelete(generated.IssueDeleteArgs{IdOrKey: fmt.Sprintf("%d", id), Force: &force}); err != nil {
 			return noticeMsg{cleanAPIErr(err)}
 		}
 		return deleteDoneMsg{"issue", id, name}
@@ -541,7 +550,17 @@ type createdMsg struct {
 // die Detail-Ansicht zu wechseln. Fehler → Sapphire-Hinweis.
 func doCreateIssue(c *api.Client, body api.IssueCreateBody, stories []string) tea.Cmd {
 	return func() tea.Msg {
-		it, err := c.CreateIssue(body)
+		data, err := c.IssueCreateFull(generated.IssueCreateFullArgs{
+			Title:    body.Title,
+			Type:     generated.IssueCreateFullArgsType(body.Type),
+			Priority: &body.Priority,
+			PoNotes:  body.PoNotes,
+			TagIds:   body.TagIDs,
+		})
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		it, err := api.IssueFromCreateFullResult(data)
 		if err != nil {
 			return noticeMsg{cleanAPIErr(err)}
 		}
@@ -554,17 +573,18 @@ func doCreateIssue(c *api.Client, body api.IssueCreateBody, stories []string) te
 	}
 }
 
-// doCreateMilestone legt einen Meilenstein an (Command-Center). tagIDs (optional):
-// Meilenstein-Create kennt kein tag_ids → nach dem Anlegen per SetMilestoneTags
-// zuweisen (DD2-33, kein Create-dann-manuell-Zuweisen).
-func doCreateMilestone(c *api.Client, body api.MilestoneCreateBody, tagIDs []int) tea.Cmd {
+// doCreateMilestone legt einen Meilenstein an (Command-Center). tagNames (optional):
+// Meilenstein-Create kennt kein tag_ids → nach dem Anlegen per MilestoneTagSet
+// zuweisen (DD2-33, kein Create-dann-manuell-Zuweisen; DD2-210: MCP-exakter Tool-Call
+// nimmt Tag-Namen statt ids).
+func doCreateMilestone(c *api.Client, body api.MilestoneCreateBody, tagNames []string) tea.Cmd {
 	return func() tea.Msg {
 		ms, err := c.CreateMilestone(body)
 		if err != nil {
 			return noticeMsg{cleanAPIErr(err)}
 		}
-		if len(tagIDs) > 0 {
-			if _, err := c.SetMilestoneTags(ms.ID, tagIDs); err != nil {
+		if len(tagNames) > 0 {
+			if _, err := c.MilestoneTagSet(generated.MilestoneTagSetArgs{MilestoneId: ms.ID, Tags: tagNames}); err != nil {
 				return noticeMsg{"Milestone created, tags failed: " + cleanAPIErr(err)}
 			}
 		}
@@ -572,16 +592,17 @@ func doCreateMilestone(c *api.Client, body api.MilestoneCreateBody, tagIDs []int
 	}
 }
 
-// doCreateSprint legt einen Sprint an (Command-Center). tagIDs analog Meilenstein:
-// Sprint-Create kennt kein tag_ids → nach dem Anlegen per SetSprintTags (DD2-33).
-func doCreateSprint(c *api.Client, body api.SprintCreateBody, tagIDs []int) tea.Cmd {
+// doCreateSprint legt einen Sprint an (Command-Center). tagNames analog Meilenstein:
+// Sprint-Create kennt kein tag_ids → nach dem Anlegen per SprintTagSet (DD2-33,
+// DD2-210: MCP-exakter Tool-Call nimmt Tag-Namen statt ids).
+func doCreateSprint(c *api.Client, body api.SprintCreateBody, tagNames []string) tea.Cmd {
 	return func() tea.Msg {
 		s, err := c.CreateSprint(body)
 		if err != nil {
 			return noticeMsg{cleanAPIErr(err)}
 		}
-		if len(tagIDs) > 0 {
-			if _, err := c.SetSprintTags(s.ID, tagIDs); err != nil {
+		if len(tagNames) > 0 {
+			if _, err := c.SprintTagSet(generated.SprintTagSetArgs{SprintKey: fmt.Sprintf("%d", s.ID), Tags: tagNames}); err != nil {
 				return noticeMsg{"Sprint created, tags failed: " + cleanAPIErr(err)}
 			}
 		}
@@ -767,10 +788,33 @@ type docsMsg struct {
 	notice string
 }
 
+// docOwnerArgs baut milestone_id/sprint_key aus dem lokalen (ownerType,ownerID)-
+// Paar — die MCP-exakten Document-Tools (DD2-210) kennen den Owner nur als
+// milestone_id ODER sprint_key, nicht generisch ownerType/ownerID.
+func docOwnerArgs(ownerType string, ownerID int) (milestoneID *int, sprintKey *string) {
+	if ownerType == "milestone" {
+		return &ownerID, nil
+	}
+	sk := fmt.Sprintf("%d", ownerID)
+	return nil, &sk
+}
+
+// listDocuments ruft die MCP-exakte DocumentList (manual.go) auf und typt die
+// Antwort am Ort des Bedarfs (json.RawMessage → []api.Document).
+func listDocuments(c *api.Client, ownerType string, ownerID int) ([]api.Document, error) {
+	milestoneID, sprintKey := docOwnerArgs(ownerType, ownerID)
+	data, err := c.DocumentList(generated.DocumentListArgs{MilestoneId: milestoneID, SprintKey: sprintKey})
+	if err != nil {
+		return nil, err
+	}
+	var docs []api.Document
+	return docs, json.Unmarshal(data, &docs)
+}
+
 // loadDocs lädt die Dokumente eines Owners (Meilenstein|Sprint) (DD2-167).
 func loadDocs(c *api.Client, ownerType string, ownerID int) tea.Cmd {
 	return func() tea.Msg {
-		docs, err := c.ListDocuments(ownerType, ownerID)
+		docs, err := listDocuments(c, ownerType, ownerID)
 		if err != nil {
 			return errMsg{err}
 		}
@@ -801,7 +845,7 @@ type ownerDocsMsg struct {
 // füllt den ownerDocs-Cache (lazy beim Fokussieren, analog loadMilestoneDeps).
 func loadOwnerDocs(c *api.Client, ownerType string, ownerID int) tea.Cmd {
 	return func() tea.Msg {
-		docs, err := c.ListDocuments(ownerType, ownerID)
+		docs, err := listDocuments(c, ownerType, ownerID)
 		if err != nil {
 			return noticeMsg{cleanAPIErr(err)}
 		}
@@ -837,16 +881,17 @@ func loadSubtasks(c *api.Client, issueID int) tea.Cmd {
 // neu (All-Docs-Browser), sonst owner-gescopt (DD2-163 Rework).
 func saveDocCmd(c *api.Client, ownerType string, ownerID, editID int, title, body string, reloadAll bool) tea.Cmd {
 	return func() tea.Msg {
+		milestoneID, sprintKey := docOwnerArgs(ownerType, ownerID)
 		var notice string
 		if editID > 0 {
 			b := body
-			if _, err := c.UpdateDocument(ownerType, ownerID, editID, api.DocumentBody{Body: &b}); err != nil {
+			if _, err := c.DocumentUpdate(generated.DocumentUpdateArgs{MilestoneId: milestoneID, SprintKey: sprintKey, DocId: editID, Body: &b}); err != nil {
 				return noticeMsg{cleanAPIErr(err)}
 			}
 			notice = "Document updated"
 		} else {
 			b := body
-			if _, err := c.CreateDocument(ownerType, ownerID, api.DocumentBody{Title: title, Body: &b}); err != nil {
+			if _, err := c.DocumentCreate(generated.DocumentCreateArgs{MilestoneId: milestoneID, SprintKey: sprintKey, Title: title, Body: &b}); err != nil {
 				return noticeMsg{cleanAPIErr(err)}
 			}
 			notice = "Document created"
@@ -863,7 +908,8 @@ func saveDocCmd(c *api.Client, ownerType string, ownerID, editID int, title, bod
 // steuert owner-gescopt vs. projektweit (DD2-163 Rework).
 func doDeleteDocument(c *api.Client, ownerType string, ownerID, id int, name string, reloadAll bool) tea.Cmd {
 	return func() tea.Msg {
-		if err := c.DeleteDocument(ownerType, ownerID, id); err != nil {
+		milestoneID, sprintKey := docOwnerArgs(ownerType, ownerID)
+		if _, err := c.DocumentDelete(generated.DocumentDeleteArgs{MilestoneId: milestoneID, SprintKey: sprintKey, DocId: id}); err != nil {
 			return noticeMsg{cleanAPIErr(err)}
 		}
 		docs, err := reloadDocs(c, ownerType, ownerID, reloadAll)
@@ -877,9 +923,9 @@ func doDeleteDocument(c *api.Client, ownerType string, ownerID, id int, name str
 // reloadDocs liefert die Doc-Liste passend zum Browser-Modus (projektweit vs owner).
 func reloadDocs(c *api.Client, ownerType string, ownerID int, all bool) ([]api.Document, error) {
 	if all {
-		return c.ListAllDocuments()
+		return c.ListAllDocuments() // kein MCP-Pendant (DD2-210) — projektweite Liste bleibt Convenience-Read
 	}
-	return c.ListDocuments(ownerType, ownerID)
+	return listDocuments(c, ownerType, ownerID)
 }
 
 // depsMsg trägt die geladenen Abhängigkeiten (DD2-89). key = "m:<id>"/"s:<id>"
@@ -991,20 +1037,23 @@ func loadReviewDetail(c *api.Client, id int) tea.Cmd {
 }
 
 // loadBacklog liefert das echte Backlog: status=new ODER (status=planned UND
-// kein Sprint). Zwei Queries, gemerged + nach id dedupliziert.
+// kein Sprint). DD2-210: BacklogList (manual.go, devd_backlog_list) macht genau
+// diesen Zwei-Query-Merge+Dedup schon serverseitig-clientseitig — kein lokaler
+// Doppel-Call mehr nötig.
 func loadBacklog(c *api.Client) tea.Cmd {
 	return func() tea.Msg {
-		neu, err := c.ListIssues(api.IssueListOpts{Status: "new", Fields: "full"}) // DD2-147: po_notes/goal im Detail
+		full := generated.BacklogListArgsFieldsFull
+		data, err := c.BacklogList(generated.BacklogListArgs{Fields: &full}) // DD2-147: po_notes/goal im Detail
 		if err != nil {
 			return errMsg{err}
 		}
-		planned, err := c.ListIssues(api.IssueListOpts{Status: "planned", SprintID: "null", Fields: "full"}) // DD2-147: po_notes/goal im Detail
-		if err != nil {
+		var merged []api.Issue
+		if err := json.Unmarshal(data, &merged); err != nil {
 			return errMsg{err}
 		}
 		seen := map[int]bool{}
 		var out []api.Issue
-		for _, it := range append(neu, planned...) {
+		for _, it := range merged {
 			if seen[it.ID] {
 				continue
 			}

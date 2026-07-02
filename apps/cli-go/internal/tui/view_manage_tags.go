@@ -7,11 +7,13 @@ package tui
 //           Issue/Sprint/Meilenstein; enter ruft den vollständigen Replace.
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"devd-cli/internal/api"
+	"devd-cli/internal/api/generated"
 	"devd-cli/internal/theme"
 	keybind "github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -239,15 +241,15 @@ func (m model) keyTagPicker(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	case keybind.Matches(msg, keys.Enter):
-		var ids []int
+		var names []string
 		for _, t := range m.tagPickAll {
 			if m.tagPickChecked[t.ID] {
-				ids = append(ids, t.ID)
+				names = append(names, t.Name)
 			}
 		}
 		m.tagPick = false
 		m.status = "Tags werden gesetzt …"
-		return m, doAssignTags(m.client, m.tagPickKind, m.tagPickID, ids, m.tagPickLabel)
+		return m, doAssignTags(m.client, m.tagPickKind, m.tagPickID, names, m.tagPickLabel)
 	}
 	return m, nil
 }
@@ -382,21 +384,31 @@ func loadTagPick(c *api.Client, kind string, id int) tea.Cmd {
 	}
 }
 
-func doAssignTags(c *api.Client, kind string, id int, ids []int, label string) tea.Cmd {
+// doAssignTags ersetzt die Tags einer Entität vollständig (DD2-33). DD2-210:
+// migriert auf die MCP-exakten Tag-Set-Tools — die nehmen Namen (tags any), nicht
+// ids; Response-Typing (Envelope {tags:[]}) passiert hier am Ort des Bedarfs, da
+// die generierten/manuellen Funcs durchgängig json.RawMessage liefern.
+func doAssignTags(c *api.Client, kind string, id int, names []string, label string) tea.Cmd {
 	return func() tea.Msg {
-		var tags []api.Tag
+		var data json.RawMessage
 		var err error
 		switch kind {
 		case "issue":
-			tags, err = c.SetIssueTags(id, ids)
+			data, err = c.IssueTagSet(generated.IssueTagSetArgs{IdOrKey: fmt.Sprintf("%d", id), Tags: names})
 		case "sprint":
-			tags, err = c.SetSprintTags(id, ids)
+			data, err = c.SprintTagSet(generated.SprintTagSetArgs{SprintKey: fmt.Sprintf("%d", id), Tags: names})
 		case "milestone":
-			tags, err = c.SetMilestoneTags(id, ids)
+			data, err = c.MilestoneTagSet(generated.MilestoneTagSetArgs{MilestoneId: id, Tags: names})
 		}
 		if err != nil {
 			return noticeMsg{cleanAPIErr(err)}
 		}
-		return tagAssignedMsg{kind, id, tags, label}
+		var env struct {
+			Tags []api.Tag `json:"tags"`
+		}
+		if err := json.Unmarshal(data, &env); err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return tagAssignedMsg{kind, id, env.Tags, label}
 	}
 }

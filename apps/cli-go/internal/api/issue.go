@@ -3,61 +3,29 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"net/url"
 )
 
-// IssueListOpts sind die Query-Filter für ListIssues.
-type IssueListOpts struct {
-	Status   string
-	SprintID string
-	Search   string
-	Type     string
-	Fields   string
-}
-
-// ListIssues liefert das Backlog des aktiven Projekts (gefiltert).
-func (c *Client) ListIssues(opts IssueListOpts) ([]Issue, error) {
-	params := url.Values{}
-	if opts.Status != "" {
-		params.Set("status", opts.Status)
+// IssueFromCreateFullResult entpackt das {id,key,status,assigned_sprint,item}-
+// Envelope von IssueCreateFull zu einem *Issue (Response-Typing am Ort des
+// Bedarfs, DD2-210 — die MCP-exakten Client-Funcs liefern durchgängig
+// json.RawMessage, da Zod nur Input-Schemas hat).
+func IssueFromCreateFullResult(data json.RawMessage) (*Issue, error) {
+	var wrap struct {
+		Item json.RawMessage `json:"item"`
 	}
-	if opts.SprintID != "" {
-		params.Set("sprint_id", opts.SprintID)
-	}
-	if opts.Search != "" {
-		params.Set("search", opts.Search)
-	}
-	if opts.Type != "" {
-		params.Set("type", opts.Type)
-	}
-	if opts.Fields != "" {
-		params.Set("fields", opts.Fields)
-	}
-	path := "/api/backlog"
-	if len(params) > 0 {
-		path += "?" + params.Encode()
-	}
-	data, err := c.Do("GET", path, nil)
-	if err != nil {
+	if err := json.Unmarshal(data, &wrap); err != nil {
 		return nil, err
 	}
-	var list []Issue
-	return list, json.Unmarshal(data, &list)
+	var it Issue
+	if err := json.Unmarshal(wrap.Item, &it); err != nil {
+		return nil, err
+	}
+	return &it, nil
 }
 
 // GetIssue liefert ein Issue-Detail (reich: result, deps, … via ignorierter Felder).
 func (c *Client) GetIssue(id int) (*Issue, error) {
 	data, err := c.Do("GET", fmt.Sprintf("/api/backlog/%d", id), nil)
-	if err != nil {
-		return nil, err
-	}
-	var it Issue
-	return &it, json.Unmarshal(data, &it)
-}
-
-// CreateIssue legt ein neues Issue an.
-func (c *Client) CreateIssue(body IssueCreateBody) (*Issue, error) {
-	data, err := c.Do("POST", "/api/backlog", body)
 	if err != nil {
 		return nil, err
 	}
@@ -86,15 +54,6 @@ func (c *Client) AssignSprint(id int, sprintID *int) (*Issue, error) {
 	}
 	var it Issue
 	return &it, json.Unmarshal(data, &it)
-}
-
-// DeleteIssue löscht ein Issue dauerhaft (DD2-65/DD2-139). force=1 ist Pflicht:
-// das Backend lehnt DELETE /api/backlog/:id ohne force mit USE_CANCEL_STATUS ab
-// (DD-524 — status=cancelled ist der Default-Lifecycle). Der PO will explizit hart
-// löschen → force=1 (transaktionaler Hard-Delete inkl. deps/feedback + FK-Cascade).
-func (c *Client) DeleteIssue(id int) error {
-	_, err := c.Do("DELETE", fmt.Sprintf("/api/backlog/%d?force=1", id), nil)
-	return err
 }
 
 // UpdateIssue editiert Felder (goal/background/type/priority/result/...).
