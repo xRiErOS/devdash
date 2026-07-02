@@ -224,7 +224,14 @@ function buildBodyStatements(bodyFields, fields, resolverVarNames) {
       }
     }
     if (f.guardArg) {
-      const gfi = fields.get(f.guardArg)
+      let gfi = fields.get(f.guardArg)
+      if (!gfi && (base.kind === 'resolvedIssue' || base.kind === 'resolvedSprint')) {
+        // Guard referenziert keine Top-Level-Zod-Feld, sondern eine lokale Var, die den optionalen
+        // Resolver-Aufruf spiegelt (`let sprintId = null; if (sprint_key) sprintId = ...; if (sprintId
+        // !== null) body.sprint_id = sprintId`). Die eigentliche Gating-Bedingung ist "wurde der Resolver
+        // aufgerufen" — identisch zur Optionalität des Resolver-Quell-Args selbst (DD2-207-Regression).
+        gfi = fields.get(base.argName)
+      }
       if (!gfi) return { error: `body field ${f.key} references unknown guard ${f.guardArg}` }
       lines.push(`if ${guardCondExpr(gfi)} {`, `\t${assign}`, `}`)
       continue

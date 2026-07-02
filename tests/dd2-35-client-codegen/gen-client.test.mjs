@@ -137,6 +137,30 @@ describe('DD2-204 Client-Func-Emitter', () => {
     expect(r.reason).toBeTruthy()
   })
 
+  it('optionaler Resolver über lokale let-Variable (issue_create_full-Muster) → Nil-Guard auf Quell-Arg, kein "unknown guard"-Fehler (DD2-207-Regression)', () => {
+    const tool = {
+      name: 'devd_issue_create_full',
+      zodShape: { ...pidShape, title: z.string(), sprint_key: z.string().optional() },
+      handlerSource: `async ({ project_id, title, sprint_key }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    let sprintId = null
+    if (sprint_key) {
+      sprintId = Number(await resolveSprintId(sprint_key, pid))
+    }
+    const createBody = { title }
+    if (sprintId !== null) createBody.sprint_id = sprintId
+    const data = await apiRequest('POST', '/api/backlog', createBody, pid)
+    return ok(data)
+  }`,
+    }
+    const r = emitTool(tool)
+    expect(r.ok).toBe(true)
+    expect(r.code).toContain('var sprintKeySprintID int')
+    expect(r.code).toMatch(/if args\.SprintKey != nil \{\s*sprintKeySprintID, err = c\.ResolveSprintID\(\*args\.SprintKey\)/)
+    expect(r.code).toMatch(/if args\.SprintKey != nil \{\s*body\["sprint_id"\] = sprintKeySprintID\s*\}/)
+  })
+
   it('generate() über mehrere Tools trennt ok/skip und baut ein kompilierbares Datei-Grundgerüst', () => {
     const tools = [
       {

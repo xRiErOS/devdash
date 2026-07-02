@@ -103,8 +103,15 @@ func (c *Client) IssueAssignSprint(args generated.IssueAssignSprintArgs) (json.R
 	if err != nil {
 		return nil, err
 	}
+	var sprintKeySprintID int
+	if args.SprintKey != nil {
+		sprintKeySprintID, err = c.ResolveSprintID(*args.SprintKey)
+		if err != nil {
+			return nil, err
+		}
+	}
 	body := map[string]any{}
-	body["sprint_id"] = "null"
+	body["sprint_id"] = sprintKeySprintID
 	path := "/api/backlog/" + fmt.Sprintf("%d", idOrKeyIssueID) + "/sprint"
 	data, err := c.Do("PATCH", path, body)
 	if err != nil {

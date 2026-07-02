@@ -225,4 +225,27 @@ describe('DD2-203 apiRequest-Handler-Extraktion', () => {
     expect(r.method).toBe('GET')
     expect(r.pathParts).toEqual([{ kind: 'lit', text: '/api/dashboard/home' }])
   })
+
+  it('optionaler Resolver über lokale let-Variable + späteren Re-Guard (issue_create_full-Muster, DD2-207-Regression)', () => {
+    const src = `async ({ project_id, title, sprint_key }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    let sprintId = null
+    if (sprint_key) {
+      sprintId = Number(await resolveSprintId(sprint_key, pid))
+    }
+    const createBody = { title }
+    if (sprintId !== null) createBody.sprint_id = sprintId
+    const data = await apiRequest('POST', '/api/backlog', createBody, pid)
+    return ok(data)
+  }`
+    const r = analyzeHandler({ name: 'devd_issue_create_full', handlerSource: src })
+    expect(r.ok).toBe(true)
+    expect(r.body.kind).toBe('fields')
+    const sprintField = r.body.fields.find((f) => f.key === 'sprint_id')
+    expect(sprintField).toMatchObject({
+      guardArg: 'sprintId',
+      source: { kind: 'cast', cast: 'Number', inner: { kind: 'resolvedSprint', argName: 'sprint_key' } },
+    })
+  })
 })

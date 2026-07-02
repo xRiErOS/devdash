@@ -272,6 +272,12 @@ function walkStatement(stmt, env) {
       const e = stmt.expression
       if (e.type === 'CallExpression' && e.callee.type === 'MemberExpression' && e.callee.property.name === 'set') {
         processUrlParamsSet(e, env)
+      } else if (e.type === 'AssignmentExpression' && e.left.type === 'Identifier') {
+        // Reassignment einer plain let-Variable (z.B. `let sprintId = null; ...; sprintId = Number(await
+        // resolveSprintId(...))`) — env-Update in place, damit ein späterer Re-Guard auf denselben Namen
+        // (`if (sprintId !== null) body.sprint_id = sprintId`) den echten Wert sieht statt des initialen
+        // `null`-Literals (DD2-207-Regression, issue_create_full-Muster).
+        env.set(e.left.name, evalExpr(e.right, env))
       } else if (e.type === 'AssignmentExpression') {
         processObjectAssign(e, env)
       }
