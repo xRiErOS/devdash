@@ -701,7 +701,7 @@ server.tool(
 
 server.tool(
   'devd_document_update',
-  'WRITE: Partial update of a document (at least one of title/body/file_path). PUT /api/{milestones|sprints}/:id/documents/:docId.',
+  'WRITE: Partial update of a document (at least one of title/body/file_path). PUT /api/{milestones|sprints}/:id/documents/:docId. milestone_id/sprint_key are OPTIONAL here (DD2-261) — doc_id already identifies the document uniquely; when omitted the owner is derived via the project-wide document list. Still required for devd_document_create (new document has no id yet).',
   {
     ...DOC_OWNER_PARAMS,
     doc_id: z.number().int().positive(),
@@ -712,8 +712,15 @@ server.tool(
   async ({ project_id, milestone_id, sprint_key, doc_id, ...patch }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    const base = await docOwnerBase(milestone_id, sprint_key, pid)
-    if (!base) return ok(DOC_OWNER_ERR)
+    let base = await docOwnerBase(milestone_id, sprint_key, pid)
+    if (!base) {
+      // DD2-261: no owner given — derive it from doc_id via the project-wide doc list.
+      const all = await apiRequest('GET', `/api/projects/${encodeURIComponent(pid)}/documents`, null, pid)
+      if (all && all.error) return ok(all)
+      const found = Array.isArray(all) ? all.find((d) => d.id === doc_id) : null
+      if (!found) return ok({ error: true, message: `Dokument ${doc_id} nicht gefunden — Owner weder angegeben noch auflösbar` })
+      base = found.milestone_id != null ? `/api/milestones/${found.milestone_id}` : `/api/sprints/${found.sprint_id}`
+    }
     return ok(await apiRequest('PUT', `${base}/documents/${doc_id}`, patch, pid))
   },
 )
