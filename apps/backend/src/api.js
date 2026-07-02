@@ -46,7 +46,7 @@ import {
 import { validateSpecPath, MilestoneSpecPathError } from './lib/milestoneSpecPath.js'
 import { listMemories as listProjectMemories, getMemory as getProjectMemory, createMemory as createProjectMemory, updateMemory as updateProjectMemory, deleteMemory as deleteProjectMemory, supersedeMemory as supersedeProjectMemory, searchMemories as searchProjectMemories, getMemoryByAnchor as getProjectMemoryByAnchor, patchByAnchor as patchProjectMemoryByAnchor, ProjectMemoryError } from './lib/projectMemories.js'
 import { renderSnapshot as renderProjectMemorySnapshot, renderSplitSnapshot as renderProjectMemorySplitSnapshot } from './lib/projectMemorySnapshot.js'
-import { cascadeDeleteSprints, milestoneDeletePreview, sprintDocumentCount } from './lib/cascadeDelete.js'
+import { cascadeDeleteSprints, milestoneDeletePreview, sprintDocumentCount, projectDeletePreview, cascadeDeleteProject } from './lib/cascadeDelete.js'
 import {
   DocumentError,
   createDocument, listDocuments, listAllDocuments, getDocument, updateDocument, moveDocument, deleteDocument,
@@ -64,6 +64,7 @@ import { applyBacklogUpdate, BacklogUpdateError } from './lib/backlogUpdate.js'
 import { issueCreateContract } from '@devd/api-types/backlog.contracts.js'
 // DD-561: sprint-Payloads via geteiltem Zod-Contract (Single Source mit CLI + MCP).
 import { sprintCreateContract } from '@devd/api-types/milestone-sprint.contracts.js'
+import { projectCreateContract } from '@devd/api-types/project.contracts.js'
 import { coerceSprintPosition } from './lib/sprintFieldGuards.js'
 import { submitSprintReview, assertReviewEditable, maybeAutoOpenReworkRound, reopenReviewRound, ReviewEditLockedError, autoSetPassedOnReviewPass, autoSetRejectedOnReviewFail, canReopenReview, REOPENABLE_STATUSES } from './lib/reviewMarker.js'
 import {
@@ -885,13 +886,15 @@ const RESERVED_PROJECT_SLUGS = new Set([
 ])
 
 app.post('/api/projects', (req, res) => {
-  const { slug, name, description, color, prefix, repo_path } = req.body
-  if (!slug || !name || !prefix) return res.status(400).json({ error: 'slug, name, prefix sind Pflicht' })
-  if (!/^[a-z0-9-]+$/.test(slug)) return res.status(400).json({ error: 'slug nur a-z 0-9 - erlaubt' })
+  // Struktur-Validierung (slug/name/prefix Pflicht + Format) via Zod-Contract
+  // (Single Source, mit MCP/CLI geteilt). Business-Regeln (Reserved-Slug, UNIQUE)
+  // bleiben hier.
+  const parsed = projectCreateContract.safeParse(req.body || {})
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message })
+  const { slug, name, description, color, prefix, repo_path } = parsed.data
   // DD-368 (D05): Reserved-Words-Guard — Projekt-Slugs belegen das erste Pfad-
   // Segment und dürfen nicht mit globalen Top-Level-Routen kollidieren.
   if (RESERVED_PROJECT_SLUGS.has(slug)) return res.status(400).json({ error: `slug "${slug}" ist reserviert` })
-  if (!/^[A-Z0-9]{2,6}$/.test(prefix)) return res.status(400).json({ error: 'prefix 2-6 Großbuchstaben/Ziffern' })
   try {
     const result = db.prepare(`
       INSERT INTO projects (slug, name, description, color, prefix, repo_path)
@@ -1058,16 +1061,35 @@ app.get('/api/projects/:projectId/documents', (req, res) => {
   catch (e) { return _sendDocumentError(res, e) }
 })
 
+// GET /api/projects/:id/delete-preview — Counts für den TUI-/CLI-Confirm (Muster
+// milestone/sprint delete-preview). Spiegelt projectDeletePreview.
+app.get('/api/projects/:id/delete-preview', (req, res) => {
+  const id = Number(req.params.id)
+  const project = db.prepare('SELECT id, name FROM projects WHERE id = ?').get(id)
+  if (!project) return res.status(404).json({ error: 'Projekt nicht gefunden' })
+  res.json({ ...projectDeletePreview(db, id), project_name: project.name })
+})
+
 app.delete('/api/projects/:id', (req, res) => {
   const id = Number(req.params.id)
+  // Initial-Projekt ist nie löschbar (auch nicht mit cascade) — Default-Scope-Anker.
   if (id === 1) return res.status(400).json({ error: 'Initial-Projekt kann nicht gelöscht werden' })
-  const counts = db.prepare(`
-    SELECT
-      (SELECT COUNT(*) FROM sprints WHERE project_id = ?) as sprints,
-      (SELECT COUNT(*) FROM backlog WHERE project_id = ?) as backlog
-  `).get(id, id)
-  if (counts.sprints > 0 || counts.backlog > 0) {
-    return res.status(409).json({ error: `Projekt enthält ${counts.sprints} Sprints und ${counts.backlog} Backlog-Items — vorher leeren oder archivieren` })
+  const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(id)
+  if (!project) return res.status(404).json({ error: 'Projekt nicht gefunden' })
+  const cascade = req.query.cascade === '1' || req.query.cascade === 'true'
+  const preview = projectDeletePreview(db, id)
+
+  if (cascade) {
+    // Transaktional: Sprints (inkl. Issues+Kinder) → sprintlose Issues → archon_runs → projects-Zeile.
+    db.transaction(() => cascadeDeleteProject(db, id))()
+    auditLog('projects', id, 'delete_cascade', project, null, 'devd-ui')
+    return res.json({ ok: true, deleted: preview })
+  }
+
+  // Ohne ?cascade=1: „empty-only"-Gate (sprints + backlog sind die einzigen
+  // NO-ACTION-FKs zu projects; alles andere cascadet/SET-NULL't automatisch).
+  if (preview.sprints > 0 || preview.backlog > 0) {
+    return res.status(409).json({ error: `Projekt enthält ${preview.sprints} Sprints und ${preview.backlog} Backlog-Items — vorher leeren, archivieren oder ?cascade=1` })
   }
   db.prepare('DELETE FROM projects WHERE id = ?').run(id)
   res.status(204).end()

@@ -150,6 +150,8 @@ func (m model) openForm(kind string) (tea.Model, tea.Cmd) {
 		f = buildSettingsForm(m.cfg)
 	case "project_settings": // DD2-221: aktives Projekt bearbeiten (name; slug/prefix read-only)
 		f = buildProjectSettingsForm(m.project)
+	case "project_create": // neues Projekt anlegen (global)
+		f = buildProjectCreateForm()
 	case "docRename": // DD2-252: Dokument-Dateiname umbenennen
 		f = buildDocRenameForm(m.docRenameCur)
 	}
@@ -242,6 +244,8 @@ func (m model) formTitle() string {
 		return "Settings"
 	case "project_settings": // DD2-221
 		return "Project settings"
+	case "project_create":
+		return "New project"
 	case "docRename": // DD2-252
 		return "Rename file"
 	case "editField":
@@ -527,6 +531,8 @@ func (m *model) formCreateCmd() tea.Cmd {
 			return func() tea.Msg { return noticeMsg{"no active project"} }
 		}
 		return doUpdateProjectName(m.client, m.project.ID, get("name"))
+	case "project_create": // neues Projekt anlegen (global, kein Projekt-Scope)
+		return doCreateProject(m.global, get("slug"), get("name"), get("prefix"), get("description"))
 	case "docRename": // DD2-252: neuen file_path speichern
 		return doRenameDocument(m.client, m.docRenameOwnerType, m.docRenameOwnerID, m.docRenameID, get("file_path"))
 	}

@@ -31,6 +31,7 @@ import {
   milestoneDependencyContract,
   sprintSetMilestoneContract,
 } from '@devd/api-types/milestone-sprint.contracts.js'
+import { projectCreateContract } from '@devd/api-types/project.contracts.js'
 // DD-611: toleranter Key-Parser (dd-77 ≡ DD#77 ≡ dd77 ≡ 77) — geteilt mit der CLI.
 import { parseRef } from '@devd/api-types/keys.js'
 // DD-560: Single Source der issue-type-Enum (war 5× inline in diesem File abgetippt).
@@ -251,6 +252,41 @@ server.tool(
   },
   async ({ id_or_slug }) => {
     const data = await apiRequest('GET', `/api/projects/${encodeURIComponent(String(id_or_slug))}`)
+    return ok(data)
+  },
+)
+
+server.tool(
+  'devd_project_create',
+  'WRITE: Create a new project. Global — no project_id required. slug (a-z0-9-, immutable, drives routing), name, prefix (2-6 A-Z0-9, immutable, drives issue keys like "DD2-7") are required; description/color/repo_path optional. 409 if slug or prefix already taken; slug must not be a reserved word (projects/settings/api/…).',
+  {
+    ...projectCreateContract.shape,
+  },
+  async ({ slug, name, prefix, description, color, repo_path }) => {
+    const body = { slug, name, prefix }
+    if (description != null) body.description = description
+    if (color != null) body.color = color
+    if (repo_path != null) body.repo_path = repo_path
+    const data = await apiRequest('POST', '/api/projects', body)
+    return ok(data)
+  },
+)
+
+server.tool(
+  'devd_project_delete',
+  'WRITE: Delete a project by numeric id or slug. Global — no project_id required. cascade=false (default) is a safe "empty-only" gate: 409 if the project still has sprints or backlog items (empty/archive first). cascade=true tears down the FULL child graph — sprints, all issues incl. children, milestones, tags, memories, todos, notes. The initial project (id=1) can NEVER be deleted. DELETE /api/projects/:id[?cascade=1].',
+  {
+    id_or_slug: z
+      .union([z.string(), z.number().int()])
+      .describe('Numeric project id or slug string (e.g. "devd", "2", 2)'),
+    cascade: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('false (default) → 409 when non-empty. true → hard cascade delete of the whole project (sprints/issues/milestones/tags/memories/todos/notes). id=1 always refused.'),
+  },
+  async ({ id_or_slug, cascade = false }) => {
+    const data = await apiRequest('DELETE', `/api/projects/${encodeURIComponent(String(id_or_slug))}${cascade ? '?cascade=1' : ''}`)
     return ok(data)
   },
 )

@@ -89,6 +89,8 @@ func (m model) deleteBox() string {
 	switch m.delKind {
 	case "sprint":
 		head = "Delete sprint"
+	case "project":
+		head = "Delete project"
 	case "issue":
 		head = "Delete issue"
 	case "usernote":
@@ -105,6 +107,13 @@ func (m model) deleteBox() string {
 		b.WriteString("\n" + lipgloss.NewStyle().Foreground(theme.Red).Render("Irreversible.") + "\n")
 	} else if m.delLoading {
 		b.WriteString(theme.Dim.Render("(loading scope …)") + "\n")
+	} else if m.delKind == "project" { // Projekt-Teardown: sprints/backlog/milestones (auf die 3 Felder gemappt)
+		b.WriteString("Also deleted:\n")
+		b.WriteString(fmt.Sprintf("  %d Sprint(s)\n", m.delSprints))
+		b.WriteString(fmt.Sprintf("  %d Backlog item(s)\n", m.delIssues))
+		b.WriteString(fmt.Sprintf("  %d Milestone(s)\n", m.delDocs))
+		b.WriteString(theme.Dim.Render("  + tags, memories, notes, todos") + "\n")
+		b.WriteString("\n" + lipgloss.NewStyle().Foreground(theme.Red).Render("Irreversible.") + "\n")
 	} else {
 		b.WriteString("Also deleted:\n")
 		if m.delKind == "milestone" {

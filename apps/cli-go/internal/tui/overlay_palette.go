@@ -27,6 +27,7 @@ func paletteActions(m *model) []paletteAction {
 		{"create_milestone", "create: milestone"},
 		{"create_sprint", "create: sprint"},
 		{"create_memory", "create: memory"},
+		{"create_project", "create: project"},
 		{"go_reviews", "go to: open reviews"},
 		{"go_memory", "go to: memory browser"},
 		{"go_notes", "go to: user notes"},         // DD2-168
@@ -43,6 +44,10 @@ func paletteActions(m *model) []paletteAction {
 	}
 	if m.global != nil {
 		acts = append(acts, paletteAction{"go_project", "go to: switch project"})
+	}
+	// Löschen nur bei aktivem Projekt — operiert auf dem gerade offenen Projekt.
+	if m.project != nil {
+		acts = append(acts, paletteAction{"delete_project", "delete: project (cascade)"})
 	}
 	return acts
 }
@@ -161,6 +166,12 @@ func (m model) dispatchPalette(id string) (tea.Model, tea.Cmd) {
 		return m.openForm("settings")
 	case "go_project_settings": // DD2-221: Projekt-Settings-Form öffnen
 		return m.openForm("project_settings")
+	case "create_project": // neues Projekt anlegen (global)
+		return m.openForm("project_create")
+	case "delete_project": // aktives Projekt kaskadierend löschen
+		if m.project != nil {
+			return m.openDelete("project", m.project.ID, m.project.Name)
+		}
 	case "test_form":
 		return m.openForm("testform")
 	}

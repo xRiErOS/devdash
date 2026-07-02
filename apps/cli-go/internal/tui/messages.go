@@ -277,9 +277,18 @@ type deleteDoneMsg struct {
 	name string
 }
 
-// loadDeletePreview holt die Cascade-Counts (T02b).
+// loadDeletePreview holt die Cascade-Counts (T02b). Für kind=project mappt es die
+// Projekt-Counts auf die drei generischen Felder (sprints/issues/docs → Sprints/
+// Backlog/Milestones); deleteBox rendert sie kind-abhängig mit korrekten Labels.
 func loadDeletePreview(c *api.Client, kind string, id int) tea.Cmd {
 	return func() tea.Msg {
+		if kind == "project" {
+			pp, err := c.ProjectDeletePreview(id)
+			if err != nil {
+				return noticeMsg{cleanAPIErr(err)}
+			}
+			return deletePreviewMsg{"project", id, pp.ProjectName, pp.Sprints, pp.Backlog, pp.Milestones}
+		}
 		var p *api.DeletePreview
 		var err error
 		if kind == "milestone" {
@@ -302,15 +311,45 @@ func loadDeletePreview(c *api.Client, kind string, id int) tea.Cmd {
 func doCascadeDelete(c *api.Client, kind string, id int, name string) tea.Cmd {
 	return func() tea.Msg {
 		var err error
-		if kind == "milestone" {
+		switch kind {
+		case "milestone":
 			err = c.DeleteMilestoneCascade(id)
-		} else {
+		case "project":
+			err = c.DeleteProjectCascade(id)
+		default:
 			err = c.DeleteSprintCascade(id)
 		}
 		if err != nil {
 			return noticeMsg{cleanAPIErr(err)}
 		}
 		return deleteDoneMsg{kind, id, name}
+	}
+}
+
+// projectCreatedMsg trägt die Antwort einer Projekt-Anlage (Lobby / Palette).
+type projectCreatedMsg struct {
+	project *api.Project
+	err     string
+}
+
+// doCreateProject legt ein neues Projekt an (globaler Endpoint, kein Projekt-Scope).
+// Nutzt den globalen Client (m.global), damit die Anlage auch aus der Lobby läuft,
+// wo kein projekt-gescopter m.client existiert.
+func doCreateProject(c *api.Client, slug, name, prefix, description string) tea.Cmd {
+	return func() tea.Msg {
+		args := generated.ProjectCreateArgs{Slug: slug, Name: name, Prefix: prefix}
+		if description != "" {
+			args.Description = &description
+		}
+		raw, err := c.ProjectCreate(args)
+		if err != nil {
+			return projectCreatedMsg{err: cleanAPIErr(err)}
+		}
+		var p api.Project
+		if err := json.Unmarshal(raw, &p); err != nil {
+			return projectCreatedMsg{err: cleanAPIErr(err)}
+		}
+		return projectCreatedMsg{project: &p}
 	}
 }
 

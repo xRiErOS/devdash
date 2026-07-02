@@ -594,6 +594,46 @@ func (c *Client) MilestoneUpdate(args generated.MilestoneUpdateArgs) (json.RawMe
 	return json.RawMessage(data), nil
 }
 
+// ProjectCreate entspricht MCP-Tool devd_project_create.
+func (c *Client) ProjectCreate(args generated.ProjectCreateArgs) (json.RawMessage, error) {
+	body := map[string]any{}
+	body["slug"] = args.Slug
+	body["name"] = args.Name
+	body["prefix"] = args.Prefix
+	if args.Description != nil {
+		body["description"] = *args.Description
+	}
+	if args.Color != nil {
+		body["color"] = *args.Color
+	}
+	if args.RepoPath != nil {
+		body["repo_path"] = *args.RepoPath
+	}
+	path := "/api/projects"
+	data, err := c.Do("POST", path, body)
+	if err != nil {
+		return nil, err
+	}
+	return json.RawMessage(data), nil
+}
+
+// ProjectDelete entspricht MCP-Tool devd_project_delete.
+func (c *Client) ProjectDelete(args generated.ProjectDeleteArgs) (json.RawMessage, error) {
+	q := url.Values{}
+	if args.Cascade {
+		q.Set("cascade", "1")
+	}
+	path := "/api/projects/" + url.PathEscape(fmt.Sprintf("%v", args.IdOrSlug))
+	if len(q) > 0 {
+		path += "?" + q.Encode()
+	}
+	data, err := c.Do("DELETE", path, nil)
+	if err != nil {
+		return nil, err
+	}
+	return json.RawMessage(data), nil
+}
+
 // ProjectList entspricht MCP-Tool devd_project_list.
 func (c *Client) ProjectList(args generated.ProjectListArgs) (json.RawMessage, error) {
 	q := url.Values{}

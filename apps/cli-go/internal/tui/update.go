@@ -182,6 +182,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.status = noticeText("Gespeichert: " + msg.sp.Name)
 		}
 		return m, nil
+	case projectCreatedMsg: // neues Projekt angelegt → Projektliste neu laden + Toast
+		if msg.err != "" {
+			m.errNote = msg.err
+			return m, nil
+		}
+		m.errNote = ""
+		name := ""
+		if msg.project != nil {
+			name = msg.project.Name
+		}
+		m.status = noticeText("Project created: " + name)
+		m.statusSticky = false
+		m.statusSeq++
+		return m, tea.Batch(loadProjects(m.global), statusTimeout(m.statusSeq))
 	case projectUpdatedMsg: // DD2-221: Projekt-Settings gespeichert → m.project spiegeln + Toast
 		if msg.err != "" {
 			m.errNote = msg.err
@@ -310,6 +324,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case deleteDoneMsg:
 		m.status = noticeText("Deleted: " + msg.name)
+		if msg.kind == "project" { // Projekt weg → aktives Projekt verwerfen, zurück in die Lobby
+			m.project = nil
+			m.client = nil
+			m.curSprint = nil
+			m.milestones = nil
+			m.view = viewHome
+			return m, loadProjects(m.global)
+		}
 		if msg.kind == "issue" { // DD2-65: in-place aus den Caches, kein View-Wechsel
 			m.removeIssueFromCaches(msg.id)
 			m.detailFocus = false // Detail-Fokus zeigte auf das gelöschte Issue

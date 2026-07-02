@@ -672,6 +672,24 @@ type MilestoneUpdateArgs struct {
 	TargetDate  *string `json:"target_date,omitempty"`
 }
 
+// ProjectCreateArgs: Argumente für MCP-Tool devd_project_create.
+type ProjectCreateArgs struct {
+	Slug        string  `json:"slug"`
+	Name        string  `json:"name"`
+	Prefix      string  `json:"prefix"`
+	Description *string `json:"description,omitempty"`
+	Color       *string `json:"color,omitempty"`
+	RepoPath    *string `json:"repo_path,omitempty"`
+}
+
+// ProjectDeleteArgs: Argumente für MCP-Tool devd_project_delete.
+type ProjectDeleteArgs struct {
+	// Numeric project id or slug string (e.g. "devd", "2", 2)
+	IdOrSlug any `json:"id_or_slug"`
+	// false (default) → 409 when non-empty. true → hard cascade delete of the whole project (sprints/issues/milestones/tags/memories/todos/notes). id=1 always refused.
+	Cascade bool `json:"cascade"`
+}
+
 type ProjectListArgsFields string
 
 const (
