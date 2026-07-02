@@ -804,7 +804,7 @@ server.tool(
   'WRITE: Update sprint fields (name/goal/notes/dates/capacity/wip_limit). Only provided fields change. PUT /api/sprints/:id. Use devd_sprint_set_milestone for milestone, the status verbs for lifecycle.',
   {
     project_id: PROJECT_ID_PARAM,
-    sprint_key: z.string().describe('Sprint key or numeric id'),
+    id_or_key: z.string().describe('Sprint key (e.g. "DD#20") or numeric sprint id — mirrors devd_issue_update\'s id_or_key (DD2-260)'),
     name: z.string().optional(),
     goal: z.string().optional(),
     notes: z.string().optional(),
@@ -813,10 +813,10 @@ server.tool(
     capacity: z.number().int().optional(),
     wip_limit: z.number().int().optional(),
   },
-  async ({ project_id, sprint_key, ...fields }) => {
+  async ({ project_id, id_or_key, ...fields }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    const id = await resolveSprintId(sprint_key, pid)
+    const id = await resolveSprintId(id_or_key, pid)
     return ok(await apiRequest('PUT', `/api/sprints/${id}`, fields, pid))
   },
 )
@@ -871,13 +871,13 @@ server.tool(
   'WRITE: Assign a sprint to a milestone, or unassign (milestone_id=null). Routes PUT /api/sprints/:id {milestone_id}. DD-173: assigning to a completed milestone → 422 (passed through). milestone_id from a different project → 400.',
   {
     project_id: PROJECT_ID_PARAM,
-    sprint_key: z.string().describe('Sprint key (e.g. "DD#20") or numeric sprint id'),
+    id_or_key: z.string().describe('Sprint key (e.g. "DD#20") or numeric sprint id — mirrors devd_issue_update\'s id_or_key (DD2-260)'),
     ...sprintSetMilestoneContract.shape,
   },
-  async ({ project_id, sprint_key, milestone_id }) => {
+  async ({ project_id, id_or_key, milestone_id }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    const id = await resolveSprintId(sprint_key, pid)
+    const id = await resolveSprintId(id_or_key, pid)
     const data = await apiRequest('PUT', `/api/sprints/${id}`, { milestone_id }, pid)
     return ok(data)
   },
