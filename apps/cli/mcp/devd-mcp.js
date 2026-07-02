@@ -1773,14 +1773,14 @@ server.tool(
   'WRITE: Attach a link to a todo. type must be spec|issue|vault|url. target is validated per type (URL pattern, issue key DD-123, path-traversal reject for spec, [[/]]-reject for vault).',
   {
     project_id: PROJECT_ID_PARAM,
-    todo_id: z.number().int(),
+    id: z.number().int().describe('Numeric todo id (matches devd_todo_delete/show/update, DD2-266)'),
     type: z.enum(['spec', 'issue', 'vault', 'url']),
     target: z.string().min(1).max(2000),
   },
-  async ({ project_id, todo_id, type, target }) => {
+  async ({ project_id, id, type, target }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    const data = await apiRequest('POST', `/api/projects/${encodeURIComponent(pid)}/todos/${todo_id}/links`, { type, target }, pid)
+    const data = await apiRequest('POST', `/api/projects/${encodeURIComponent(pid)}/todos/${id}/links`, { type, target }, pid)
     return ok(data)
   },
 )
