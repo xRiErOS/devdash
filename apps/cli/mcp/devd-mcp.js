@@ -29,7 +29,6 @@ import {
   milestoneStatusContract,
   milestoneUpdateContract,
   milestoneDependencyContract,
-  sprintDependencyContract,
   sprintSetMilestoneContract,
 } from '@devd/api-types/milestone-sprint.contracts.js'
 // DD-611: toleranter Key-Parser (dd-77 ≡ DD#77 ≡ dd77 ≡ 77) — geteilt mit der CLI.
@@ -2207,13 +2206,14 @@ server.tool(
   'WRITE: Replace ALL tags on a sprint with the given tag names (full set; empty clears). Unknown names reported, not auto-created. PUT /api/sprints/:id/tags.',
   {
     project_id: PROJECT_ID_PARAM,
-    sprint_id: z.coerce.number().int().positive().describe('Numeric sprint id'),
+    sprint_key: z.string().describe('Sprint key (e.g. "DD#20") or numeric sprint id (DD2-264: was strict-numeric sprint_id)'),
     tags: z.union([z.string(), z.array(z.string())]).describe('Tag names (array or comma string); [] / "" clears all'),
   },
-  async ({ project_id, sprint_id, tags }) => {
+  async ({ project_id, sprint_key, tags }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    return ok(await setEntityTags(pid, '/api/sprints', sprint_id, tags))
+    const id = await resolveSprintId(sprint_key, pid)
+    return ok(await setEntityTags(pid, '/api/sprints', id, tags))
   },
 )
 server.tool(
@@ -2221,13 +2221,14 @@ server.tool(
   'WRITE: Remove the given tag names from a sprint (keeps the rest). PUT /api/sprints/:id/tags.',
   {
     project_id: PROJECT_ID_PARAM,
-    sprint_id: z.coerce.number().int().positive().describe('Numeric sprint id'),
+    sprint_key: z.string().describe('Sprint key (e.g. "DD#20") or numeric sprint id (DD2-264: was strict-numeric sprint_id)'),
     tags: z.union([z.string(), z.array(z.string())]).describe('Tag names to remove (array or comma string)'),
   },
-  async ({ project_id, sprint_id, tags }) => {
+  async ({ project_id, sprint_key, tags }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    return ok(await removeEntityTags(pid, '/api/sprints', sprint_id, tags))
+    const id = await resolveSprintId(sprint_key, pid)
+    return ok(await removeEntityTags(pid, '/api/sprints', id, tags))
   },
 )
 server.tool(
@@ -2263,15 +2264,18 @@ server.tool(
 // GF-2 Wave D / D2 (T01): Sprint-Dependencies (mirror devd_milestone_dep_*).
 server.tool(
   'devd_sprint_dep_add',
-  'WRITE: Add a sprint dependency (predecessor must finish before successor). Routes POST /api/sprint-dependencies. DFS cycle-detection — a cycle is rejected 409 and passed through 1:1.',
+  'WRITE: Add a sprint dependency (predecessor must finish before successor). Routes POST /api/sprint-dependencies. DFS cycle-detection — a cycle is rejected 409 and passed through 1:1. Accepts sprint keys (e.g. "DD2#34") or numeric ids (DD2-264: was strict-numeric only).',
   {
     project_id: PROJECT_ID_PARAM,
-    ...sprintDependencyContract.shape,
+    predecessor_id: z.union([z.string(), z.number()]).describe('Predecessor sprint key or numeric id'),
+    successor_id: z.union([z.string(), z.number()]).describe('Successor sprint key or numeric id'),
   },
   async ({ project_id, predecessor_id, successor_id }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    return ok(await apiRequest('POST', '/api/sprint-dependencies', { predecessor_id, successor_id }, pid))
+    const predId = Number(await resolveSprintId(String(predecessor_id), pid))
+    const succId = Number(await resolveSprintId(String(successor_id), pid))
+    return ok(await apiRequest('POST', '/api/sprint-dependencies', { predecessor_id: predId, successor_id: succId }, pid))
   },
 )
 server.tool(
@@ -2279,12 +2283,13 @@ server.tool(
   'List a sprint dependencies: { predecessors, successors } with dependency edge id. Read-only.',
   {
     project_id: PROJECT_ID_PARAM,
-    sprint_id: z.coerce.number().int().positive().describe('Numeric sprint id'),
+    sprint_key: z.string().describe('Sprint key (e.g. "DD#20") or numeric sprint id (DD2-264: was strict-numeric sprint_id)'),
   },
-  async ({ project_id, sprint_id }) => {
+  async ({ project_id, sprint_key }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    return ok(await apiRequest('GET', `/api/sprints/${sprint_id}/dependencies`, null, pid))
+    const id = await resolveSprintId(sprint_key, pid)
+    return ok(await apiRequest('GET', `/api/sprints/${id}/dependencies`, null, pid))
   },
 )
 server.tool(
@@ -2309,12 +2314,13 @@ server.tool(
   'READ: Sprint completion — issues passed/total + percent (issues-only; no story-points in the data model). GET /api/sprints/:id/completeness.',
   {
     project_id: PROJECT_ID_PARAM,
-    sprint_id: z.coerce.number().int().positive().describe('Numeric sprint id'),
+    sprint_key: z.string().describe('Sprint key (e.g. "DD#20") or numeric sprint id (DD2-264: was strict-numeric sprint_id)'),
   },
-  async ({ project_id, sprint_id }) => {
+  async ({ project_id, sprint_key }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    return ok(await apiRequest('GET', `/api/sprints/${sprint_id}/completeness`, null, pid))
+    const id = await resolveSprintId(sprint_key, pid)
+    return ok(await apiRequest('GET', `/api/sprints/${id}/completeness`, null, pid))
   },
 )
 
@@ -2324,14 +2330,15 @@ server.tool(
   'READ: Sprint audit-log activity (newest first). Reconciles table_name drift (sprint/sprints). GET /api/sprints/:id/activity.',
   {
     project_id: PROJECT_ID_PARAM,
-    sprint_id: z.coerce.number().int().positive().describe('Numeric sprint id'),
+    sprint_key: z.string().describe('Sprint key (e.g. "DD#20") or numeric sprint id (DD2-264: was strict-numeric sprint_id)'),
     limit: z.coerce.number().int().min(1).max(200).optional().describe('Max rows (default 100)'),
   },
-  async ({ project_id, sprint_id, limit }) => {
+  async ({ project_id, sprint_key, limit }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
+    const id = await resolveSprintId(sprint_key, pid)
     const qs = limit ? `?limit=${limit}` : ''
-    return ok(await apiRequest('GET', `/api/sprints/${sprint_id}/activity${qs}`, null, pid))
+    return ok(await apiRequest('GET', `/api/sprints/${id}/activity${qs}`, null, pid))
   },
 )
 server.tool(
