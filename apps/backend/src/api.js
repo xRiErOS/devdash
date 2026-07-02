@@ -615,13 +615,14 @@ app.put('/api/settings/:key', (req, res) => {
   })
 })
 
-// Aktives Projekt: Header X-Project-Id > Query ?project_id= > Body.project_id > Default 1
+// Aktives Projekt: Header X-Project-Id > Query ?project_id= > Body.project_id >
+// konfigurierbarer Default-Anker (settings.default_project_id, sonst 1).
 function currentProjectId(req) {
   const raw =
     req.headers['x-project-id'] ||
     req.query?.project_id ||
     req.body?.project_id ||
-    1
+    defaultProjectId()
   const id = Number(raw)
   if (Number.isFinite(id) && id > 0) return id
   // Slug-Resolve: "devd" → project.id
@@ -629,7 +630,7 @@ function currentProjectId(req) {
     const project = db.prepare('SELECT id FROM projects WHERE slug = ?').get(raw)
     if (project) return project.id
   }
-  return 1
+  return defaultProjectId()
 }
 
 // DD-390 (B02): :id-Pfad-Param kann numerische id ODER slug sein. Agenten/CLI rufen
@@ -644,6 +645,20 @@ function resolveProjectId(raw) {
     if (project) return project.id
   }
   return null
+}
+
+// DD2: Konfigurierbarer Default-Projekt-Anker (Migration 075). Liefert die in
+// settings.default_project_id hinterlegte numerische id, sofern sie auf ein
+// existierendes Projekt zeigt; sonst Fallback 1 (Initial-Projekt). Steuert den
+// currentProjectId-Fallback (Ziel unscopeter Writes) UND die Projekt-Löschsperre
+// (genau dieser Anker ist nie löschbar) — beide aus einer Quelle.
+function defaultProjectId() {
+  const row = db.prepare("SELECT value FROM settings WHERE key = 'default_project_id'").get()
+  const id = Number(row?.value)
+  if (Number.isFinite(id) && id > 0 && db.prepare('SELECT 1 FROM projects WHERE id = ?').get(id)) {
+    return id
+  }
+  return 1
 }
 
 // DD-620/DD-622: Compact-Default + limit/offset für List-Endpoints. Token-Schutz für
@@ -1074,8 +1089,9 @@ app.get('/api/projects/:id/delete-preview', (req, res) => {
 app.delete('/api/projects/:id', (req, res) => {
   const id = resolveProjectId(req.params.id) // :id darf id ODER slug sein (wie GET /api/projects/:id)
   if (id === null) return res.status(404).json({ error: 'Projekt nicht gefunden' })
-  // Initial-Projekt ist nie löschbar (auch nicht mit cascade) — Default-Scope-Anker.
-  if (id === 1) return res.status(400).json({ error: 'Initial-Projekt kann nicht gelöscht werden' })
+  // Der konfigurierte Default-Anker (settings.default_project_id, sonst 1) ist nie
+  // löschbar — er ist Ziel unscopeter Writes. Zum Löschen erst den Default umsetzen.
+  if (id === defaultProjectId()) return res.status(400).json({ error: 'Default-Projekt (Anker) kann nicht gelöscht werden — erst den Default umsetzen' })
   const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(id)
   if (!project) return res.status(404).json({ error: 'Projekt nicht gefunden' })
   const cascade = req.query.cascade === '1' || req.query.cascade === 'true'

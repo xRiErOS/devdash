@@ -63,6 +63,11 @@ func buildSettingsForm(cfg config.Settings) *huh.Form {
 		// Args tragen ("code -w"). Greift sofort (configuredEditor live-apply).
 		huh.NewInput().Key("editor").Title("editor").
 			Description("Editor for text fields — empty = nvim; may carry args (code -w)").Value(&editor),
+		// Backend-Anker (settings.default_project_id), KEIN lokaler Config-Wert:
+		// Ziel unscopeter Writes + löschgeschützt. Bewusst als letztes Feld (hält
+		// die bestehende Feld-Reihenfolge/Golden stabil). Leer = aktueller Wert bleibt.
+		huh.NewInput().Key("default_project").Title("default_project").
+			Description("Backend anchor (slug/prefix/id): unscoped-write target + delete-protected. Empty = keep current.").Value(new(string)),
 	))
 }
 

@@ -525,7 +525,13 @@ func (m *model) formCreateCmd() tea.Cmd {
 			msg := "Save failed: " + err.Error()
 			return func() tea.Msg { return noticeMsg{msg} }
 		}
-		return func() tea.Msg { return noticeMsg{"Settings saved"} }
+		saved := func() tea.Msg { return noticeMsg{"Settings saved"} }
+		// default_project ist ein BACKEND-Setting (Anker), kein lokaler Config-Wert:
+		// bei nicht-leerer Eingabe zusätzlich async ins Backend schreiben.
+		if dp := strings.TrimSpace(get("default_project")); dp != "" {
+			return tea.Batch(saved, doSetDefaultProject(m.global, dp))
+		}
+		return saved
 	case "project_settings": // DD2-221: Projekt-Name speichern (async, slug/prefix immutable)
 		if m.project == nil {
 			return func() tea.Msg { return noticeMsg{"no active project"} }

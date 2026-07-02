@@ -326,6 +326,27 @@ func doCascadeDelete(c *api.Client, kind string, id int, name string) tea.Cmd {
 	}
 }
 
+// defaultProjectSetMsg trägt die Antwort eines Default-Anker-Wechsels (TUI-Settings).
+type defaultProjectSetMsg struct {
+	label string
+	err   string
+}
+
+// doSetDefaultProject setzt den Backend-Default-Projekt-Anker (settings.default_project_id).
+// Global (kein Projekt-Scope) → nutzt den globalen Client.
+func doSetDefaultProject(c *api.Client, token string) tea.Cmd {
+	return func() tea.Msg {
+		id, err := c.SetDefaultProject(token)
+		if err != nil {
+			return defaultProjectSetMsg{err: cleanAPIErr(err)}
+		}
+		if id > 0 {
+			return defaultProjectSetMsg{label: fmt.Sprintf("Default project set → id %d", id)}
+		}
+		return defaultProjectSetMsg{label: "Default project cleared → id 1"}
+	}
+}
+
 // projectCreatedMsg trägt die Antwort einer Projekt-Anlage (Lobby / Palette).
 type projectCreatedMsg struct {
 	project *api.Project

@@ -182,6 +182,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.status = noticeText("Gespeichert: " + msg.sp.Name)
 		}
 		return m, nil
+	case defaultProjectSetMsg: // Default-Anker im Backend gesetzt (TUI-Settings)
+		if msg.err != "" {
+			m.errNote = msg.err
+			return m, nil
+		}
+		m.errNote = ""
+		m.status = noticeText(msg.label)
+		m.statusSticky = false
+		m.statusSeq++
+		return m, statusTimeout(m.statusSeq)
 	case projectCreatedMsg: // neues Projekt angelegt → Projektliste neu laden + Toast
 		if msg.err != "" {
 			m.errNote = msg.err

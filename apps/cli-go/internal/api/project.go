@@ -34,6 +34,23 @@ func (c *Client) UpdateProject(id int, fields map[string]any) (*Project, error) 
 	return &p, nil
 }
 
+// SetDefaultProject setzt den Backend-Default-Projekt-Anker (settings.default_project_id)
+// auf das aufgelöste Projekt (slug/prefix/id → numerische id). Leerer Token löscht den
+// Key (Backend fällt auf 1 zurück). Liefert die gesetzte id (0 bei Leerung).
+func (c *Client) SetDefaultProject(idOrSlug string) (int, error) {
+	tok := strings.TrimSpace(idOrSlug)
+	if tok == "" {
+		_, err := c.Do("PUT", "/api/settings/default_project_id", map[string]any{"value": nil})
+		return 0, err
+	}
+	p, err := c.ResolveProject(tok)
+	if err != nil {
+		return 0, err
+	}
+	_, err = c.Do("PUT", "/api/settings/default_project_id", map[string]any{"value": strconv.Itoa(p.ID)})
+	return p.ID, err
+}
+
 // ResolveProject matcht ein Token gegen slug, prefix (case-insensitiv) oder
 // numerische id. Ermöglicht `dd spf` (Prefix) wie `dd devd2` (Slug).
 func (c *Client) ResolveProject(token string) (*Project, error) {
