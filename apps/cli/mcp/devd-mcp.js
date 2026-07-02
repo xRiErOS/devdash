@@ -925,17 +925,18 @@ server.tool(
 
 server.tool(
   'devd_milestone_status',
-  'WRITE: Transition a milestone status (new|planned|in_progress|completed|cancelled, incl. sanctioned reopen paths completed→in_progress / cancelled→new). Routes PUT /api/milestones/:id {status}. Lifecycle errors (e.g. 422 SPRINTS_NOT_DONE) are passed through. cancellation_notes required by the lifecycle on →cancelled.',
+  'WRITE: Transition a milestone status (new|planned|in_progress|completed|cancelled, incl. sanctioned reopen paths completed→in_progress / cancelled→new). Routes PUT /api/milestones/:id {status}. Lifecycle errors (e.g. 422 SPRINTS_NOT_DONE) are passed through. notes required by the lifecycle on →cancelled (mirrors devd_issue_status/devd_sprint_cancel, DD2-268 — mapped to the API\'s cancellation_notes field internally).',
   {
     project_id: PROJECT_ID_PARAM,
     milestone_id: z.coerce.number().int().positive().describe('Numeric milestone id'),
-    ...milestoneStatusContract.shape,
+    status: milestoneStatusContract.shape.status,
+    notes: z.string().optional().describe('Cancellation reason (required by the lifecycle on →cancelled)'),
   },
-  async ({ project_id, milestone_id, status, cancellation_notes }) => {
+  async ({ project_id, milestone_id, status, notes }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
     const body = { status }
-    if (cancellation_notes) body.cancellation_notes = cancellation_notes
+    if (notes) body.cancellation_notes = notes
     const data = await apiRequest('PUT', `/api/milestones/${milestone_id}`, body, pid)
     return ok(data)
   },
