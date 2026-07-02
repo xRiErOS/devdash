@@ -160,7 +160,7 @@ function evalObjectExpression(node, env) {
     const key = prop.key.type === 'Identifier' ? prop.key.name : prop.key.value
     const source = prop.shorthand ? evalExpr(prop.key, env) : evalExpr(prop.value, env)
     if (isUnsupported(source)) return source
-    fields.push({ key, source })
+    fields.push({ key, source, guardArg: null }) // Objekt-Literal selbst hat keinen umschließenden if-Guard
   }
   return { kind: 'object', fields }
 }
@@ -208,7 +208,7 @@ function processUrlParamsSet(callExpr, env) {
     return true
   }
   const value = evalExpr(callExpr.arguments[1], env)
-  urlParams.sets.push({ key: keyNode.value, value })
+  urlParams.sets.push({ key: keyNode.value, value, guardArg: currentGuard() })
   return true
 }
 
@@ -220,11 +220,41 @@ function processObjectAssign(assignExpr, env) {
   if (!obj || obj.kind !== 'object') return null
   const key = assignExpr.left.property.name
   const value = evalExpr(assignExpr.right, env)
-  obj.fields.push({ key, source: value })
+  obj.fields.push({ key, source: value, guardArg: currentGuard() })
   return true
 }
 
 let sawElseBranch = false
+let guardStack = []
+function currentGuard() {
+  return guardStack.length ? guardStack[guardStack.length - 1] : null
+}
+
+/** Sammelt alle Identifier-Namen in einem Ausdruck (rekursiv, ohne AST-Typ-Kenntnis vorauszusetzen). */
+function collectIdentifiers(node, out) {
+  if (!node || typeof node !== 'object') return
+  if (node.type === 'Identifier' && node.name !== 'undefined' && node.name !== 'null') out.add(node.name)
+  for (const key of Object.keys(node)) {
+    if (key === 'type') continue
+    const v = node[key]
+    if (Array.isArray(v)) v.forEach((x) => collectIdentifiers(x, out))
+    else if (v && typeof v.type === 'string') collectIdentifiers(v, out)
+  }
+}
+
+/**
+ * Guard-Identifier einer if-Bedingung, wenn GENAU EIN Bezeichner referenziert wird
+ * (`if (x)`, `if (x !== undefined)`, `if (x !== undefined && x !== null)`, ...).
+ * Mehrdeutige/mehr-Bezeichner-Bedingungen → null (kein Guard erfasst, bewusst konservativ:
+ * betrifft dann nur literal-wertige Felder, die OHNE erfassten Guard unconditional emittiert
+ * würden — solche Sonderfälle sollen aus dem Coverage-Report auffallen, nicht dieses ganze
+ * Tool blockieren).
+ */
+function singleGuardIdentifier(test) {
+  const ids = new Set()
+  collectIdentifiers(test, ids)
+  return ids.size === 1 ? [...ids][0] : null
+}
 
 function walkStatements(stmts, env) {
   for (const stmt of stmts) walkStatement(stmt, env)
@@ -247,11 +277,15 @@ function walkStatement(stmt, env) {
       }
       return
     }
-    case 'IfStatement':
+    case 'IfStatement': {
       if (stmt.alternate) sawElseBranch = true
+      const g = singleGuardIdentifier(stmt.test)
+      if (g) guardStack.push(g)
       walkInner(stmt.consequent, env)
+      if (g) guardStack.pop()
       if (stmt.alternate) walkInner(stmt.alternate, env)
       return
+    }
     case 'BlockStatement':
       walkStatements(stmt.body, env)
       return
@@ -376,6 +410,7 @@ function evalBody(node, env, restName) {
  */
 export function analyzeHandler({ name, handlerSource }) {
   sawElseBranch = false
+  guardStack = []
   let fn
   try {
     fn = parseExpressionAt(handlerSource, 0, { ecmaVersion: 2022 })

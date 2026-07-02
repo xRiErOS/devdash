@@ -87,8 +87,21 @@ describe('DD2-203 apiRequest-Handler-Extraktion', () => {
     const r = analyzeHandler({ name: 'devd_issue_status', handlerSource: src })
     expect(r.ok).toBe(true)
     expect(r.body.kind).toBe('fields')
-    expect(r.body.fields).toContainEqual({ key: 'status', source: { kind: 'arg', name: 'status' } })
-    expect(r.body.fields).toContainEqual({ key: 'notes', source: { kind: 'arg', name: 'notes' } })
+    expect(r.body.fields).toContainEqual({ key: 'status', source: { kind: 'arg', name: 'status' }, guardArg: null })
+    expect(r.body.fields).toContainEqual({ key: 'notes', source: { kind: 'arg', name: 'notes' }, guardArg: 'notes' })
+  })
+
+  it('Literal-Wert hinter if-Guard in params.set — Guard MUSS erfasst werden (sonst immer gesetzt)', () => {
+    const src = `async ({ include_archived, fields }) => {
+    const params = new URLSearchParams()
+    if (include_archived) params.set('include_archived', '1')
+    const qs = params.toString() ? \`?\${params.toString()}\` : ''
+    const data = await apiRequest('GET', \`/api/projects\${qs}\`)
+    return ok(data)
+  }`
+    const r = analyzeHandler({ name: 'devd_project_list', handlerSource: src })
+    expect(r.ok).toBe(true)
+    expect(r.query).toContainEqual({ key: 'include_archived', source: { kind: 'literal', value: '1' }, guardArg: 'include_archived' })
   })
 
   it('URLSearchParams-Query mit mehreren optionalen Feldern', () => {
@@ -103,8 +116,8 @@ describe('DD2-203 apiRequest-Handler-Extraktion', () => {
     const r = analyzeHandler({ name: 'devd_project_list', handlerSource: src })
     expect(r.ok).toBe(true)
     expect(r.query).toEqual([
-      { key: 'include_archived', source: { kind: 'literal', value: '1' }, guardArg: null },
-      { key: 'fields', source: { kind: 'arg', name: 'fields' }, guardArg: null },
+      { key: 'include_archived', source: { kind: 'literal', value: '1' }, guardArg: 'include_archived' },
+      { key: 'fields', source: { kind: 'arg', name: 'fields' }, guardArg: 'fields' },
     ])
   })
 
@@ -185,8 +198,8 @@ describe('DD2-203 apiRequest-Handler-Extraktion', () => {
   }`
     const r = analyzeHandler({ name: 'devd_memory_tag_rename', handlerSource: src })
     expect(r.ok).toBe(true)
-    expect(r.body.fields).toContainEqual({ key: 'old', source: { kind: 'arg', name: 'old' } })
-    expect(r.body.fields).toContainEqual({ key: 'new', source: { kind: 'arg', name: 'new' } })
+    expect(r.body.fields).toContainEqual({ key: 'old', source: { kind: 'arg', name: 'old' }, guardArg: null })
+    expect(r.body.fields).toContainEqual({ key: 'new', source: { kind: 'arg', name: 'new' }, guardArg: null })
   })
 
   it('URLSearchParams mit initialem Objekt-Arg ({ q })', () => {
@@ -202,7 +215,7 @@ describe('DD2-203 apiRequest-Handler-Extraktion', () => {
     const r = analyzeHandler({ name: 'devd_project_memory_query', handlerSource: src })
     expect(r.ok).toBe(true)
     expect(r.query).toContainEqual({ key: 'q', source: { kind: 'arg', name: 'q' }, guardArg: null })
-    expect(r.query).toContainEqual({ key: 'category', source: { kind: 'arg', name: 'category' }, guardArg: null })
+    expect(r.query).toContainEqual({ key: 'category', source: { kind: 'arg', name: 'category' }, guardArg: 'category' })
   })
 
   it('Body ohne Argumente (dashboard_home)', () => {
