@@ -1373,16 +1373,16 @@ server.tool(
   'WRITE: Add a user story (Pruefgrundlage) to an issue. title is required. qa is the per-story acceptance/QA criteria (replaces the old issue-level acceptance_criteria/test_instruction, D09). us_verdict starts at open.',
   {
     project_id: PROJECT_ID_PARAM,
-    id_or_key: z.string().describe('Issue key (e.g. "DD-42") or numeric backlog id'),
+    issue_id_or_key: z.string().describe('Parent issue key (e.g. "DD-42") or numeric backlog id (DD2-262: was id_or_key, ambiguous — this tool addresses the PARENT issue, not the story itself)'),
     title: z.string().describe('User story title (required)'),
     details: z.string().optional().describe('Optional detail / narrative of the story'),
     qa: z.string().optional().describe('Per-story acceptance / QA criteria (D09 Pruefgrundlage)'),
     position: z.number().int().optional().describe('Sort position (default appended at end)'),
   },
-  async ({ project_id, id_or_key, title, details, qa, position }) => {
+  async ({ project_id, issue_id_or_key, title, details, qa, position }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    const issueId = await resolveIssueId(id_or_key, pid)
+    const issueId = await resolveIssueId(issue_id_or_key, pid)
     const body = { title }
     if (details !== undefined) body.details = details
     if (qa !== undefined) body.qa = qa
