@@ -245,9 +245,13 @@ server.tool(
 server.tool(
   'devd_project_show',
   'Get a single project by numeric id or slug. Read-only.',
-  { id_or_slug: z.string().describe('Numeric project id or slug string (e.g. "devd", "2")') },
+  {
+    id_or_slug: z
+      .union([z.string(), z.number().int()])
+      .describe('Numeric project id or slug string (e.g. "devd", "2", 2) — mirrors the project_id header\'s anyOf[string,int] shape (DD2-267)'),
+  },
   async ({ id_or_slug }) => {
-    const data = await apiRequest('GET', `/api/projects/${encodeURIComponent(id_or_slug)}`)
+    const data = await apiRequest('GET', `/api/projects/${encodeURIComponent(String(id_or_slug))}`)
     return ok(data)
   },
 )
