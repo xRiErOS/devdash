@@ -300,7 +300,7 @@
       }
     },
     "devd_document_update": {
-      "description": "WRITE: Partial update of a document (at least one of title/body/file_path). PUT /api/{milestones|sprints}/:id/documents/:docId.",
+      "description": "WRITE: Partial update of a document (at least one of title/body/file_path). PUT /api/{milestones|sprints}/:id/documents/:docId. milestone_id/sprint_key are OPTIONAL here (DD2-261) — doc_id already identifies the document uniquely; when omitted the owner is derived via the project-wide document list. Still required for devd_document_create (new document has no id yet).",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -375,7 +375,7 @@
               }
             ]
           },
-          "issue": {
+          "id_or_key": {
             "type": "string",
             "description": "Issue key or numeric id"
           },
@@ -387,7 +387,7 @@
           }
         },
         "required": [
-          "issue"
+          "id_or_key"
         ],
         "additionalProperties": false
       }
@@ -762,7 +762,7 @@
               }
             ]
           },
-          "issue": {
+          "id_or_key": {
             "type": "string",
             "description": "Issue key or numeric id"
           },
@@ -772,13 +772,13 @@
           }
         },
         "required": [
-          "issue"
+          "id_or_key"
         ],
         "additionalProperties": false
       }
     },
     "devd_issue_dep_add": {
-      "description": "WRITE: Add a dependency edge — issue depends_on another issue (depends_on must finish first → it blocks issue). Self-reference, duplicate and cycles are rejected by the backend. Same-project only (keys resolve within the project). Accepts issue keys (e.g. \"MEM-9\") or numeric ids.",
+      "description": "WRITE: Add a dependency edge — issue depends_on another issue (depends_on must finish first → it blocks issue). Self-reference, duplicate and cycles are rejected by the backend. Same-project only (keys resolve within the project). Accepts issue keys (e.g. \"MEM-9\") or numeric ids — same \"either representation\" pattern as sprint/milestone deps (predecessor_id/successor_id), just resolved client-side (DD2-259).",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -796,12 +796,26 @@
               }
             ]
           },
-          "issue": {
-            "type": "string",
+          "id_or_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ],
             "description": "The dependent issue (key or numeric id)"
           },
           "depends_on": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ],
             "description": "The issue it depends on / is blocked by (key or numeric id)"
           },
           "note": {
@@ -810,7 +824,7 @@
           }
         },
         "required": [
-          "issue",
+          "id_or_key",
           "depends_on"
         ],
         "additionalProperties": false
@@ -835,13 +849,13 @@
               }
             ]
           },
-          "issue": {
+          "id_or_key": {
             "type": "string",
             "description": "Issue key or numeric id"
           }
         },
         "required": [
-          "issue"
+          "id_or_key"
         ],
         "additionalProperties": false
       }
@@ -865,7 +879,7 @@
               }
             ]
           },
-          "issue": {
+          "id_or_key": {
             "type": "string",
             "description": "The dependent issue (key or numeric id)"
           },
@@ -875,7 +889,7 @@
           }
         },
         "required": [
-          "issue",
+          "id_or_key",
           "depends_on"
         ],
         "additionalProperties": false
@@ -988,7 +1002,7 @@
               }
             ]
           },
-          "issue": {
+          "id_or_key": {
             "type": "string",
             "description": "Issue key or numeric id"
           },
@@ -1005,7 +1019,7 @@
           }
         },
         "required": [
-          "issue",
+          "id_or_key",
           "target_project"
         ],
         "additionalProperties": false
@@ -1064,7 +1078,7 @@
             "type": "string",
             "description": "Issue key (e.g. \"DD-42\") or numeric backlog id"
           },
-          "new_status": {
+          "status": {
             "type": "string",
             "description": "Target status: new | refined | planned | in_progress | to_review | passed | rejected | completed | cancelled"
           },
@@ -1075,7 +1089,7 @@
         },
         "required": [
           "id_or_key",
-          "new_status"
+          "status"
         ],
         "additionalProperties": false
       }
@@ -1099,7 +1113,7 @@
               }
             ]
           },
-          "issue": {
+          "id_or_key": {
             "type": "string",
             "description": "Issue key or numeric id"
           },
@@ -1119,7 +1133,7 @@
           }
         },
         "required": [
-          "issue",
+          "id_or_key",
           "tags"
         ],
         "additionalProperties": false
@@ -1144,7 +1158,7 @@
               }
             ]
           },
-          "issue": {
+          "id_or_key": {
             "type": "string",
             "description": "Issue key or numeric id"
           },
@@ -1164,7 +1178,7 @@
           }
         },
         "required": [
-          "issue",
+          "id_or_key",
           "tags"
         ],
         "additionalProperties": false
@@ -1933,7 +1947,7 @@
       }
     },
     "devd_milestone_status": {
-      "description": "WRITE: Transition a milestone status (new|planned|in_progress|completed|cancelled, incl. sanctioned reopen paths completed→in_progress / cancelled→new). Routes PUT /api/milestones/:id {status}. Lifecycle errors (e.g. 422 SPRINTS_NOT_DONE) are passed through. cancellation_notes required by the lifecycle on →cancelled.",
+      "description": "WRITE: Transition a milestone status (new|planned|in_progress|completed|cancelled, incl. sanctioned reopen paths completed→in_progress / cancelled→new). Routes PUT /api/milestones/:id {status}. Lifecycle errors (e.g. 422 SPRINTS_NOT_DONE) are passed through. notes required by the lifecycle on →cancelled (mirrors devd_issue_status/devd_sprint_cancel, DD2-268 — mapped to the API's cancellation_notes field internally).",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -1967,15 +1981,9 @@
               "cancelled"
             ]
           },
-          "cancellation_notes": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "notes": {
+            "description": "Cancellation reason (required by the lifecycle on →cancelled)",
+            "type": "string"
           }
         },
         "required": [
@@ -2737,8 +2745,17 @@
         "type": "object",
         "properties": {
           "id_or_slug": {
-            "type": "string",
-            "description": "Numeric project id or slug string (e.g. \"devd\", \"2\")"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ],
+            "description": "Numeric project id or slug string (e.g. \"devd\", \"2\", 2) — mirrors the project_id header's anyOf[string,int] shape (DD2-267)"
           }
         },
         "required": [
@@ -2843,11 +2860,9 @@
               }
             ]
           },
-          "sprint_id": {
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 9007199254740991,
-            "description": "Numeric sprint id"
+          "sprint_key": {
+            "type": "string",
+            "description": "Sprint key (e.g. \"DD#20\") or numeric sprint id (DD2-264: was strict-numeric sprint_id)"
           },
           "limit": {
             "description": "Max rows (default 100)",
@@ -2857,7 +2872,7 @@
           }
         },
         "required": [
-          "sprint_id"
+          "sprint_key"
         ],
         "additionalProperties": false
       }
@@ -2916,15 +2931,13 @@
               }
             ]
           },
-          "sprint_id": {
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 9007199254740991,
-            "description": "Numeric sprint id"
+          "sprint_key": {
+            "type": "string",
+            "description": "Sprint key (e.g. \"DD#20\") or numeric sprint id (DD2-264: was strict-numeric sprint_id)"
           }
         },
         "required": [
-          "sprint_id"
+          "sprint_key"
         ],
         "additionalProperties": false
       }
@@ -3060,7 +3073,7 @@
       }
     },
     "devd_sprint_dep_add": {
-      "description": "WRITE: Add a sprint dependency (predecessor must finish before successor). Routes POST /api/sprint-dependencies. DFS cycle-detection — a cycle is rejected 409 and passed through 1:1.",
+      "description": "WRITE: Add a sprint dependency (predecessor must finish before successor). Routes POST /api/sprint-dependencies. DFS cycle-detection — a cycle is rejected 409 and passed through 1:1. Accepts sprint keys (e.g. \"DD2#34\") or numeric ids (DD2-264: was strict-numeric only).",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -3079,14 +3092,26 @@
             ]
           },
           "predecessor_id": {
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 9007199254740991
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "description": "Predecessor sprint key or numeric id"
           },
           "successor_id": {
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 9007199254740991
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "description": "Successor sprint key or numeric id"
           }
         },
         "required": [
@@ -3115,15 +3140,13 @@
               }
             ]
           },
-          "sprint_id": {
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 9007199254740991,
-            "description": "Numeric sprint id"
+          "sprint_key": {
+            "type": "string",
+            "description": "Sprint key (e.g. \"DD#20\") or numeric sprint id (DD2-264: was strict-numeric sprint_id)"
           }
         },
         "required": [
-          "sprint_id"
+          "sprint_key"
         ],
         "additionalProperties": false
       }
@@ -3377,9 +3400,9 @@
               }
             ]
           },
-          "sprint_key": {
+          "id_or_key": {
             "type": "string",
-            "description": "Sprint key (e.g. \"DD#20\") or numeric sprint id"
+            "description": "Sprint key (e.g. \"DD#20\") or numeric sprint id — mirrors devd_issue_update's id_or_key (DD2-260)"
           },
           "milestone_id": {
             "anyOf": [
@@ -3395,7 +3418,7 @@
           }
         },
         "required": [
-          "sprint_key",
+          "id_or_key",
           "milestone_id"
         ],
         "additionalProperties": false
@@ -3480,11 +3503,9 @@
               }
             ]
           },
-          "sprint_id": {
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 9007199254740991,
-            "description": "Numeric sprint id"
+          "sprint_key": {
+            "type": "string",
+            "description": "Sprint key (e.g. \"DD#20\") or numeric sprint id (DD2-264: was strict-numeric sprint_id)"
           },
           "tags": {
             "anyOf": [
@@ -3502,7 +3523,7 @@
           }
         },
         "required": [
-          "sprint_id",
+          "sprint_key",
           "tags"
         ],
         "additionalProperties": false
@@ -3527,11 +3548,9 @@
               }
             ]
           },
-          "sprint_id": {
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 9007199254740991,
-            "description": "Numeric sprint id"
+          "sprint_key": {
+            "type": "string",
+            "description": "Sprint key (e.g. \"DD#20\") or numeric sprint id (DD2-264: was strict-numeric sprint_id)"
           },
           "tags": {
             "anyOf": [
@@ -3549,7 +3568,7 @@
           }
         },
         "required": [
-          "sprint_id",
+          "sprint_key",
           "tags"
         ],
         "additionalProperties": false
@@ -3574,9 +3593,9 @@
               }
             ]
           },
-          "sprint_key": {
+          "id_or_key": {
             "type": "string",
-            "description": "Sprint key or numeric id"
+            "description": "Sprint key (e.g. \"DD#20\") or numeric sprint id — mirrors devd_issue_update's id_or_key (DD2-260)"
           },
           "name": {
             "type": "string"
@@ -3607,7 +3626,7 @@
           }
         },
         "required": [
-          "sprint_key"
+          "id_or_key"
         ],
         "additionalProperties": false
       }
@@ -4033,10 +4052,11 @@
               }
             ]
           },
-          "todo_id": {
+          "id": {
             "type": "integer",
             "minimum": -9007199254740991,
-            "maximum": 9007199254740991
+            "maximum": 9007199254740991,
+            "description": "Numeric todo id (matches devd_todo_delete/show/update, DD2-266)"
           },
           "type": {
             "type": "string",
@@ -4054,7 +4074,7 @@
           }
         },
         "required": [
-          "todo_id",
+          "id",
           "type",
           "target"
         ],
@@ -4400,9 +4420,9 @@
               }
             ]
           },
-          "id_or_key": {
+          "issue_id_or_key": {
             "type": "string",
-            "description": "Issue key (e.g. \"DD-42\") or numeric backlog id"
+            "description": "Parent issue key (e.g. \"DD-42\") or numeric backlog id (DD2-262: was id_or_key, ambiguous — this tool addresses the PARENT issue, not the story itself)"
           },
           "title": {
             "type": "string",
@@ -4424,7 +4444,7 @@
           }
         },
         "required": [
-          "id_or_key",
+          "issue_id_or_key",
           "title"
         ],
         "additionalProperties": false
