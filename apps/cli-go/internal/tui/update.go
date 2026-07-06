@@ -149,6 +149,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.subtasks[msg.issueID] = msg.subtasks
 		return m, nil
+	case dodItemsMsg: // DD2-270: DoD-Items eines Meilensteins in den Lazy-Cache
+		if m.dodCache == nil {
+			m.dodCache = map[int][]api.DodItem{}
+		}
+		m.dodCache[msg.milestoneID] = msg.items
+		return m, nil
+	case dodMutatedMsg: // DD2-270: DoD-Item angelegt/bearbeitet → Cache spiegeln + Toast
+		if m.dodCache == nil {
+			m.dodCache = map[int][]api.DodItem{}
+		}
+		m.dodCache[msg.milestoneID] = msg.items
+		m.status = noticeText(msg.status)
+		m.statusSticky = false
+		m.statusSeq++
+		return m, statusTimeout(m.statusSeq)
 	case issueUpdatedMsg: // DD2-77: Feld-Edit-Response → Cache in-place mergen (D05)
 		if msg.err != "" {
 			m.errNote = msg.err // Aktions-Fehler rot (D05)

@@ -80,6 +80,26 @@ func userStoryFields(stories []api.UserStory) []detailField {
 	return append(fields, detailField{"us:new", "+ Add", "userstory"})
 }
 
+// dodFields baut die navigierbaren Felder der DoD-Section eines Meilensteins
+// (DD2-270): ein Feld je Item (key "dod:<id>", Label = gekürztes Label) + eine
+// Add-Zeile (key "dod:new"). editor "dod" routet enter in die DoD-Form statt
+// scalar-Edit (mirror userStoryFields).
+func dodFields(items []api.DodItem) []detailField {
+	fields := make([]detailField, 0, len(items)+1)
+	for _, it := range items {
+		fields = append(fields, detailField{"dod:" + strconv.Itoa(it.ID), truncate(it.Label, 22), "dod"})
+	}
+	return append(fields, detailField{"dod:new", "+ Add", "dod"})
+}
+
+// dodGlyph rendert den Status-Marker eines DoD-Items (DD2-270) — analog subtaskGlyph.
+func dodGlyph(done bool) string {
+	if done {
+		return lipgloss.NewStyle().Foreground(theme.Green).Render("✓")
+	}
+	return theme.Muted.Render("○")
+}
+
 // issueSections baut die Detail-Sektionen eines Issues in fester Reihenfolge
 // (Vorschlag DD2-50): 1=Goal/Beschreibung|PO-Notes, 2=Background/Context,
 // 3=Relevant Files, 4=User-Stories, 5=Review. bodyW = Innenbreite der

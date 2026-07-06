@@ -360,6 +360,15 @@ type model struct {
 	// Accordion-Section im Issue-Detail angezeigt. Lazy bei Issue-Fokus geladen.
 	subtasks map[int][]api.Subtask
 
+	// DD2-270: Lazy-Cache der Definition-of-Done-Items je Meilenstein (Schlüssel =
+	// Meilenstein-ID als String), als eigene Accordion-Section im Meilenstein-Detail
+	// angezeigt. Lazy bei Meilenstein-Fokus geladen (analog subtasks/ownerDocs).
+	dodCache map[int][]api.DodItem
+	// dodFormMilestoneID = Eltern-Meilenstein (für POST + Cache-Merge), dodFormID =
+	// Ziel-Item beim Edit (0 = Neuanlage) — analog usFormIssueID/usFormID.
+	dodFormMilestoneID int
+	dodFormID          int
+
 	// DD2-91: projektweite Such-Ansicht (viewCommandCenter). Quelle = treeFilterIssues.
 	searchQuery string
 	searchList  listState

@@ -254,6 +254,10 @@ func (m model) formTitle() string {
 		return "Add user story"
 	case "userStoryEdit":
 		return "Edit user story"
+	case "dodAdd":
+		return "Add DoD item"
+	case "dodEdit":
+		return "Edit DoD item"
 	case "tagCreate":
 		return "New tag"
 	case "tagEdit":
@@ -459,6 +463,10 @@ func (m *model) formCreateCmd() tea.Cmd {
 		return doAddUserStory(m.client, m.usFormIssueID, get("us_title"), get("us_qa"))
 	case "userStoryEdit": // DD2-144: bestehende User-Story (Titel/QA) bearbeiten
 		return doEditUserStory(m.client, m.usFormID, m.usFormIssueID, get("us_title"), get("us_qa"))
+	case "dodAdd": // DD2-270: neues DoD-Item am Meilenstein anlegen
+		return doAddDodItem(m.client, m.dodFormMilestoneID, get("dod_label"))
+	case "dodEdit": // DD2-270: bestehendes DoD-Item (Label/Done) bearbeiten
+		return doEditDodItem(m.client, m.dodFormID, m.dodFormMilestoneID, get("dod_label"), m.form.GetBool("dod_done"))
 	case "tagCreate": // DD2-75: neuen Tag anlegen
 		return doCreateTag(m.client, get("name"), m.form.GetString("color"))
 	case "tagEdit": // DD2-75: Tag umbenennen/umfärben

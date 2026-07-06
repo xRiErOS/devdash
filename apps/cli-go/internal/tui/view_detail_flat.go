@@ -102,8 +102,14 @@ func (m model) milestoneAccordionSections(ms api.Milestone, bodyW int) []accordi
 	for _, f := range det {
 		parts = append(parts, subhead(f.label, placeholderOr(milestoneFieldValue(ms, f.key))))
 	}
+	dod, dodLoaded := m.dodCache[ms.ID]
+	dodTitle := "Definition of Done"
+	if dodLoaded {
+		dodTitle = fmt.Sprintf("Definition of Done (%d)", len(dod))
+	}
 	return []accordionSection{
 		{title: "Details", body: wrapText(strings.Join(parts, "\n\n"), bodyW), fields: det},
+		{title: dodTitle, body: dodSectionBody(dod, dodLoaded, bodyW), fields: dodFields(dod)},
 		{title: "Documents", body: m.docsSectionBody(depCacheKey("m", ms.ID), bodyW),
 			fields: []detailField{{"documents", "Documents", "docs"}}},
 		{title: "Dependencies", body: m.depsSectionBody(depCacheKey("m", ms.ID), bodyW)},
@@ -137,6 +143,24 @@ func (m model) docsSectionBody(key string, w int) string {
 	lines := make([]string, len(docs))
 	for i, d := range docs {
 		lines[i] = truncate("• "+d.Title, w)
+	}
+	return strings.Join(lines, "\n")
+}
+
+// dodSectionBody rendert die DoD-Items eines Meilensteins als Section-Body (DD2-270)
+// — Status-Glyph + Label, analog subtaskGlyph-Rendering. loaded=false (noch nicht
+// lazy nachgeladen) → Hinweis, leer → Add-Hinweis (die "+ Add"-Zeile steckt im
+// Feld-Strip, nicht im Body).
+func dodSectionBody(items []api.DodItem, loaded bool, w int) string {
+	if !loaded {
+		return theme.Dim.Render("(loading …)")
+	}
+	if len(items) == 0 {
+		return theme.Muted.Render("(none yet — enter on + Add)")
+	}
+	lines := make([]string, len(items))
+	for i, it := range items {
+		lines[i] = truncate(dodGlyph(it.Done)+" "+it.Label, w)
 	}
 	return strings.Join(lines, "\n")
 }
@@ -233,6 +257,10 @@ func (m model) editFlatField(f detailField) (tea.Model, tea.Cmd) {
 	// owner-gebundenen Docs-Browser (read via glow, edit via neovim, create/delete).
 	if f.editor == "docs" {
 		return m.openDocsFromContext()
+	}
+	// DD2-270: DoD-Felder routen in die DoD-Form statt scalar-Edit (mirror "userstory").
+	if f.editor == "dod" && n.kind == tkMile {
+		return m.openDodForm(m.milestones[n.mileIdx], f)
 	}
 	switch n.kind {
 	case tkMile:

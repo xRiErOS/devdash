@@ -17,7 +17,7 @@ import (
 // isCreateKind meldet, ob ein Formular-Kind eine NEUE Entität anlegt (→ Confirm).
 func isCreateKind(kind string) bool {
 	switch kind {
-	case "issue", "milestone", "sprint", "memory", "tagCreate", "userStoryAdd", "project_create":
+	case "issue", "milestone", "sprint", "memory", "tagCreate", "userStoryAdd", "dodAdd", "project_create":
 		return true
 	}
 	return false
@@ -72,6 +72,8 @@ func (m *model) createConfirmLabel() string {
 		return "Tag: " + get("name")
 	case "userStoryAdd":
 		return "User story: " + get("us_title")
+	case "dodAdd":
+		return "DoD item: " + get("dod_label")
 	case "project_create":
 		return "Project: " + get("name") + " (" + get("prefix") + ")"
 	}

@@ -597,6 +597,60 @@ func doEditUserStory(c *api.Client, usID, issueID int, title, qa string) tea.Cmd
 	}
 }
 
+// dodItemsMsg trägt die geladenen DoD-Items eines Meilensteins in den Lazy-Cache
+// (DD2-270). key = Meilenstein-ID.
+type dodItemsMsg struct {
+	milestoneID int
+	items       []api.DodItem
+}
+
+// loadDodItems lädt die DoD-Items eines Meilensteins lazy (analog loadOwnerDocs).
+func loadDodItems(c *api.Client, milestoneID int) tea.Cmd {
+	return func() tea.Msg {
+		items, err := c.ListDodItems(milestoneID)
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return dodItemsMsg{milestoneID: milestoneID, items: items}
+	}
+}
+
+// dodMutatedMsg signalisiert eine erfolgreiche DoD-Item-Anlage/-Änderung (DD2-270,
+// analog usMutatedMsg): die frische Item-Liste wird in den Cache gespiegelt + Toast.
+type dodMutatedMsg struct {
+	milestoneID int
+	items       []api.DodItem
+	status      string
+}
+
+// doAddDodItem legt ein DoD-Item am Meilenstein an und lädt die Liste neu (DD2-270).
+func doAddDodItem(c *api.Client, milestoneID int, label string) tea.Cmd {
+	return func() tea.Msg {
+		if _, err := c.AddDodItem(milestoneID, label); err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		items, err := c.ListDodItems(milestoneID)
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return dodMutatedMsg{milestoneID, items, "DoD item added"}
+	}
+}
+
+// doEditDodItem ändert label/done eines DoD-Items und lädt die Liste neu (DD2-270).
+func doEditDodItem(c *api.Client, itemID, milestoneID int, label string, done bool) tea.Cmd {
+	return func() tea.Msg {
+		if _, err := c.EditDodItem(itemID, label, done); err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		items, err := c.ListDodItems(milestoneID)
+		if err != nil {
+			return noticeMsg{cleanAPIErr(err)}
+		}
+		return dodMutatedMsg{milestoneID, items, "DoD item updated"}
+	}
+}
+
 // createdMsg signalisiert eine erfolgreiche Anlage (Command-Center, T16).
 // kind ∈ {issue, milestone, sprint} steuert den Folge-Reload.
 type createdMsg struct {

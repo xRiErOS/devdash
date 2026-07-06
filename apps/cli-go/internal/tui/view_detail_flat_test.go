@@ -47,13 +47,14 @@ func TestMilestoneAccordionSectionNav(t *testing.T) {
 	if m.secCursor != 1 || m.accOpen != 1 {
 		t.Errorf("k → secCursor=%d accOpen=%d, want 1/1 (Details offen)", m.secCursor, m.accOpen)
 	}
-	// Bis zur letzten Section (Sprints-Tabelle) klemmen — focusSections = 5 (Overview+4).
+	// Bis zur letzten Section (Sprints-Tabelle) klemmen — focusSections = 6 (Overview+5,
+	// DD2-270 fügt die DoD-Section ein).
 	for i := 0; i < 6; i++ {
 		mi, _ = m.keyTree(key("k"))
 		m = mi.(model)
 	}
-	if m.secCursor != 4 {
-		t.Errorf("k geklemmt → secCursor=%d, want 4 (Sprints-Tabelle)", m.secCursor)
+	if m.secCursor != 5 {
+		t.Errorf("k geklemmt → secCursor=%d, want 5 (Sprints-Tabelle)", m.secCursor)
 	}
 }
 
