@@ -1,9 +1,11 @@
-# DD2-211 (D07): Codegen-Freshness-Gate für den Go-TUI-Client.
+# DD2-211/212 (D07): Codegen-Freshness-Gate + L1-Coverage-Beweis für den Go-TUI-Client.
 #
 # Läuft der Generator gegen den aktuellen MCP-Stand (apps/cli/mcp/devd-mcp.js) und
 # ergibt sich ein nicht-leerer Diff auf generated.go/generated_types.go/capabilities.json,
 # hat jemand das Backend/MCP geändert ohne den Client neu zu generieren — CI wird rot.
-# Erzwingt Drift-Freiheit dauerhaft, statt sie nur zu dokumentieren.
+# Erzwingt Drift-Freiheit dauerhaft, statt sie nur zu dokumentieren. Der Coverage-Check
+# beweist zusätzlich, dass jedes MCP-Tool entweder generiert oder (skip-/agent-only-)
+# allowlisted ist — keine stille Lücke zwischen Soll-Dump und Client-Oberfläche.
 
 name: codegen-freshness
 
@@ -43,3 +45,6 @@ jobs:
             apps/cli-go/internal/api/generated/generated_types.go \
             apps/cli-go/internal/api/generated/capabilities.json \
             apps/cli-go/codegen/skip-allowlist.json
+
+      - name: Assert L1 coverage (DD2-212)
+        run: npm run gen:cli-coverage-check

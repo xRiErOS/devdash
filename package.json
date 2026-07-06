@@ -36,6 +36,7 @@
     "gen:cli-skip-allowlist": "node apps/cli-go/codegen/gen-skip-allowlist.mjs",
     "gen:cli-skip-allowlist:check": "node apps/cli-go/codegen/gen-skip-allowlist.mjs --check",
     "gen:cli-client": "node apps/cli-go/codegen/capabilities.mjs && node apps/cli-go/codegen/gen-types.mjs && node apps/cli-go/codegen/gen-client.mjs && node apps/cli-go/codegen/gen-skip-allowlist.mjs",
+    "gen:cli-coverage-check": "node apps/cli-go/codegen/coverage-check.mjs",
     "prepare": "husky || true"
   },
   "lint-staged": {
