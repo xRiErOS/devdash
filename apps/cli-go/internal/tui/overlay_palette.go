@@ -43,8 +43,7 @@ func paletteActions(m *model) []paletteAction {
 		{"go_tags", "go to: tag manager"},
 		{"go_settings", "go to: settings"},                 // DD2-125: edit user config
 		{"go_project_settings", "go to: project settings"}, // DD2-221: edit active project name
-		{"go_tutorial", "go to: tutorial"},                 // DD2-122
-		{"test_form", "test: form sandbox"},                // Styling-Sandbox (kein Persist)
+		{"go_tutorial", "go to: tutorial"}, // DD2-122
 	}
 	if m.global != nil {
 		acts = append(acts, paletteAction{"go_project", "go to: switch project"})
@@ -186,8 +185,6 @@ func (m model) dispatchPalette(id string) (tea.Model, tea.Cmd) {
 		if m.project != nil {
 			return m.openDelete("project", m.project.ID, m.project.Name)
 		}
-	case "test_form":
-		return m.openForm("testform")
 	}
 	return m, nil
 }
