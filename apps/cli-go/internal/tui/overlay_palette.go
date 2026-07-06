@@ -28,6 +28,10 @@ func paletteActions(m *model) []paletteAction {
 		{"create_sprint", "create: sprint"},
 		{"create_memory", "create: memory"},
 		{"create_project", "create: project"},
+		{"create_note", "create: user note"},    // DD2-237
+		{"create_document", "create: document"}, // DD2-237 (owner = focused tree node)
+		{"create_tag", "create: tag"},           // DD2-237
+		{"create_todo", "create: todo"},         // DD2-237
 		{"go_reviews", "go to: open reviews"},
 		{"go_memory", "go to: memory browser"},
 		{"go_notes", "go to: user notes"},         // DD2-168
@@ -168,6 +172,16 @@ func (m model) dispatchPalette(id string) (tea.Model, tea.Cmd) {
 		return m.openForm("project_settings")
 	case "create_project": // neues Projekt anlegen (global)
 		return m.openForm("project_create")
+	case "create_note": // DD2-237: User-Note direkt anlegen (Browser + Editor-Launch)
+		mi, cmd := m.openUserNotes()
+		return mi, tea.Batch(cmd, editInEditor("# Title\n\n", ".md"))
+	case "create_todo": // DD2-237: ToDo direkt anlegen (Browser + Editor-Launch)
+		mi, cmd := m.openToDos()
+		return mi, tea.Batch(cmd, editInEditor("New todo\n\n", ".md"))
+	case "create_document": // DD2-237: Dokument direkt anlegen (Owner = fokussierter Tree-Knoten)
+		return m.openDocsFromContextEx(true)
+	case "create_tag": // DD2-237: Tag-Form direkt öffnen (kein Owner-Kontext nötig)
+		return m.openTagForm(0, "", "")
 	case "delete_project": // aktives Projekt kaskadierend löschen
 		if m.project != nil {
 			return m.openDelete("project", m.project.ID, m.project.Name)

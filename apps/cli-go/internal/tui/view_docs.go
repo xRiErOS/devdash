@@ -77,15 +77,30 @@ func (m *model) selDoc() *api.Document {
 // openDocsFromContext leitet den Owner aus dem fokussierten Tree-Knoten ab und
 // öffnet den Docs-Browser. Ohne Meilenstein-/Sprint-Fokus → Hinweis.
 func (m model) openDocsFromContext() (tea.Model, tea.Cmd) {
+	return m.openDocsFromContextEx(false)
+}
+
+// openDocsFromContextEx wie openDocsFromContext; create=true hängt direkt den
+// "n"-Editor-Launch an (DD2-237: create: document aus der Command-Palette, ohne
+// den Browser separat zu betreten).
+func (m model) openDocsFromContextEx(create bool) (tea.Model, tea.Cmd) {
 	n := m.focusedNode()
 	if n != nil {
+		var mi tea.Model
+		var cmd tea.Cmd
 		switch n.kind {
 		case tkMile:
 			ms := m.milestones[n.mileIdx]
-			return m.openDocs("milestone", ms.ID, ms.Name)
+			mi, cmd = m.openDocs("milestone", ms.ID, ms.Name)
 		case tkSprint:
 			sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
-			return m.openDocs("sprint", sp.ID, sp.Name)
+			mi, cmd = m.openDocs("sprint", sp.ID, sp.Name)
+		}
+		if mi != nil {
+			if create {
+				return mi, tea.Batch(cmd, editInEditor("# Title\n\n", ".md"))
+			}
+			return mi, cmd
 		}
 	}
 	return m, func() tea.Msg {
