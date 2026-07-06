@@ -486,12 +486,14 @@ type projectUpdatedMsg struct {
 	err     string
 }
 
-// doUpdateProjectName schreibt den Projekt-Namen via UpdateProject (DD2-221). Nur
-// name ist backend-writable (slug/prefix immutable, Key-Integrität). Die Response
-// trägt das frische Projekt zurück; der Update-Handler übernimmt es in m.project.
-func doUpdateProjectName(c *api.Client, id int, name string) tea.Cmd {
+// doUpdateProjectSettings schreibt name/slug/prefix via UpdateProject (DD2-221,
+// DD2-232: slug/prefix seit dem Backend-Contract-Update ebenfalls writable — Keys
+// werden live aus prefix+project_number berechnet, kein Rewrite nötig). Die
+// Response trägt das frische Projekt zurück; der Update-Handler übernimmt es in
+// m.project. Fehler (Format/409 Uniqueness/reserved slug) kommen als errNote zurück.
+func doUpdateProjectSettings(c *api.Client, id int, name, slug, prefix string) tea.Cmd {
 	return func() tea.Msg {
-		p, err := c.UpdateProject(id, map[string]any{"name": name})
+		p, err := c.UpdateProject(id, map[string]any{"name": name, "slug": slug, "prefix": prefix})
 		if err != nil {
 			return projectUpdatedMsg{err: cleanAPIErr(err)}
 		}

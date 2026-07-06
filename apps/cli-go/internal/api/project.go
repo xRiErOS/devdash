@@ -18,10 +18,11 @@ func (c *Client) ListProjects() ([]Project, error) {
 }
 
 // UpdateProject schreibt editierbare Projekt-Felder via PUT /api/projects/{id}
-// und liefert das frische Projekt zurück (DD2-221). Das Backend akzeptiert nur
-// eine Allowlist writable Felder (u.a. name) — slug/prefix sind NICHT writable
-// (Identitäts-/Key-Integrität: prefix treibt die Issue-Keys). fields enthält die
-// zu setzenden Spalten (z.B. {"name": "..."}); unbekannte Keys ignoriert das Backend.
+// und liefert das frische Projekt zurück (DD2-221). Seit DD2-232 sind auch slug/
+// prefix writable (Format/Uniqueness/Reserved-Slug validiert das Backend, 400/409
+// bei Verstoß) — Issue-Keys werden live aus prefix+project_number berechnet, ein
+// Rewrite bestehender Zeilen ist nicht nötig. fields enthält die zu setzenden
+// Spalten (z.B. {"name": "..."}); unbekannte Keys ignoriert das Backend.
 func (c *Client) UpdateProject(id int, fields map[string]any) (*Project, error) {
 	data, err := c.Do("PUT", fmt.Sprintf("/api/projects/%d", id), fields)
 	if err != nil {

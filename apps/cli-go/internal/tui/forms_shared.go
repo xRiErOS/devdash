@@ -540,11 +540,11 @@ func (m *model) formCreateCmd() tea.Cmd {
 			return tea.Batch(saved, doSetDefaultProject(m.global, dp))
 		}
 		return saved
-	case "project_settings": // DD2-221: Projekt-Name speichern (async, slug/prefix immutable)
+	case "project_settings": // DD2-221/DD2-232: Projekt-Settings speichern (name+slug+prefix)
 		if m.project == nil {
 			return func() tea.Msg { return noticeMsg{"no active project"} }
 		}
-		return doUpdateProjectName(m.client, m.project.ID, get("name"))
+		return doUpdateProjectSettings(m.client, m.project.ID, get("name"), get("slug"), get("prefix"))
 	case "project_create": // neues Projekt anlegen (global, kein Projekt-Scope)
 		return doCreateProject(m.global, get("slug"), get("name"), get("prefix"), get("description"))
 	case "docRename": // DD2-252: neuen file_path speichern

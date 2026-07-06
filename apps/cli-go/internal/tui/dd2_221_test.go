@@ -1,8 +1,8 @@
 package tui
 
-// DD2-221: Projekt-Settings-Form über die Command Palette. Editierbar = name;
-// slug/prefix read-only (backend-immutable). Plus: globaler Editor (D04) ist jetzt
-// in der App-Settings-Form sichtbar/konfigurierbar.
+// DD2-221: Projekt-Settings-Form über die Command Palette. name/slug/prefix
+// editierbar (DD2-232 macht slug/prefix nicht mehr read-only). Plus: globaler
+// Editor (D04) ist jetzt in der App-Settings-Form sichtbar/konfigurierbar.
 
 import (
 	"strings"
@@ -84,6 +84,27 @@ func TestProjectUpdatedMsgReflectsName(t *testing.T) {
 	}
 	if m2.errNote != "" {
 		t.Errorf("Erfolg sollte errNote leeren, got %q", m2.errNote)
+	}
+}
+
+// DD2-232: slug/prefix sind editierbare Input-Felder (nicht mehr read-only Note) —
+// die Form baut per huh.NewInput().Validate(...) statt huh.NewNote(...), und der
+// Save-Cmd ist confirm-gated (Impact-Vorschau vor riskanter Änderung).
+func TestProjectSettingsSlugPrefixEditable(t *testing.T) {
+	m := model{project: &api.Project{ID: 10, Name: "DevD 2.0", Slug: "devd2", Prefix: "DD2"}, client: &api.Client{}}
+	mi, _ := m.openForm("project_settings")
+	v := mi.(model).form.View()
+	if strings.Contains(v, "read-only") {
+		t.Errorf("slug/prefix sollten seit DD2-232 editierbar sein, Form zeigt aber noch 'read-only':\n%s", v)
+	}
+	if err := validateProjectSlug("bad slug!"); err == nil {
+		t.Error("validateProjectSlug sollte ungültige Slugs ablehnen")
+	}
+	if err := validateProjectPrefix("toolongprefix"); err == nil {
+		t.Error("validateProjectPrefix sollte ungültige Prefixe ablehnen")
+	}
+	if !isCreateKind("project_settings") {
+		t.Error("project_settings sollte confirm-gated sein (DD2-232: Impact-Vorschau vor riskanter Änderung)")
 	}
 }
 

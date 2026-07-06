@@ -10,14 +10,18 @@
 
 import { z } from 'zod'
 
-// slug: erstes Pfad-Segment → nur Kleinbuchstaben/Ziffern/Bindestrich, in
-// Issue-Keys/Routing eingebrannt (immutable nach Anlage).
+// slug: erstes Pfad-Segment → nur Kleinbuchstaben/Ziffern/Bindestrich, treibt
+// Routing/MCP-Slug-Lookup. Änderbar seit DD2-232 (vormals immutable) — Issue-
+// Keys hängen NICHT am slug (nur am prefix), Routing-Bookmarks können brechen.
 const projectSlug = z
   .string({ error: 'slug ist Pflichtfeld' })
   .trim()
   .regex(/^[a-z0-9-]+$/, { error: 'slug nur a-z 0-9 - erlaubt' })
 
-// prefix: 2-6 Großbuchstaben/Ziffern, treibt die Issue-Keys (z.B. DD2-7).
+// prefix: 2-6 Großbuchstaben/Ziffern, treibt die Issue-Keys (z.B. DD2-7). Keys
+// werden live aus project.prefix + project_number berechnet (nie in der DB
+// dupliziert, s. api.js `key = \`${project_prefix}-${project_number}\``) — eine
+// Prefix-Änderung (DD2-232) braucht daher KEINEN Rewrite bestehender Zeilen.
 const projectPrefix = z
   .string({ error: 'prefix ist Pflichtfeld' })
   .trim()
@@ -40,3 +44,13 @@ export const projectCreateContract = z.object({
 })
 
 /** @typedef {z.infer<typeof projectCreateContract>} ProjectCreateInput */
+
+// project update — slug/prefix optional (DD2-232, PO-Freigabe aus DD2-221-Review
+// I02): nur validiert, wenn im Body vorhanden. Übrige Update-Felder (name, color,
+// …) bleiben in src/api.js lose typisiert (Bestand, keine Vollumstellung hier).
+export const projectUpdateContract = z.object({
+  slug: projectSlug.optional(),
+  prefix: projectPrefix.optional(),
+})
+
+/** @typedef {z.infer<typeof projectUpdateContract>} ProjectUpdateInput */

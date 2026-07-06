@@ -64,7 +64,7 @@ import { applyBacklogUpdate, BacklogUpdateError } from './lib/backlogUpdate.js'
 import { issueCreateContract } from '@devd/api-types/backlog.contracts.js'
 // DD-561: sprint-Payloads via geteiltem Zod-Contract (Single Source mit CLI + MCP).
 import { sprintCreateContract } from '@devd/api-types/milestone-sprint.contracts.js'
-import { projectCreateContract } from '@devd/api-types/project.contracts.js'
+import { projectCreateContract, projectUpdateContract } from '@devd/api-types/project.contracts.js'
 import { coerceSprintPosition } from './lib/sprintFieldGuards.js'
 import { submitSprintReview, assertReviewEditable, maybeAutoOpenReworkRound, reopenReviewRound, ReviewEditLockedError, autoSetPassedOnReviewPass, autoSetRejectedOnReviewFail, canReopenReview, REOPENABLE_STATUSES } from './lib/reviewMarker.js'
 import {
@@ -929,16 +929,32 @@ app.post('/api/projects', (req, res) => {
 // PUT /api/projects/:id — Projekt-Felder editieren (DD-5)
 //
 // Editierbar: name (Pflicht, nicht leer), description, color, archived,
-// storybook_url (DD-520, ehem. Preview-URL umgewidmet). slug und prefix sind read-only
-// (UNIQUE-Constraints, in Issue-Keys eingebrannt).
+// storybook_url (DD-520, ehem. Preview-URL umgewidmet), seit DD2-232 auch
+// slug/prefix (vormals read-only). Format-Validierung für slug/prefix via
+// projectUpdateContract (Single Source mit Create); Business-Regeln (Reserved-
+// Slug, UNIQUE-409) hier, gespiegelt von POST /api/projects. Keys werden live
+// aus prefix + project_number berechnet (nie in der DB dupliziert) — eine
+// Prefix-/Slug-Änderung braucht daher KEINEN Rewrite bestehender Issue-/Sprint-
+// Zeilen, nur dieses eine UPDATE. Externe Text-Referenzen (Commit-Messages,
+// Markdown-Docs, Notes, Memory, SSTD) werden NICHT nachgezogen (out of scope,
+// s. DD2-232 lessons_learned) — slug/prefix-Änderung ist damit für die DB
+// konsistent, für Prosa-Referenzen bewusst nicht.
 app.put('/api/projects/:id', (req, res) => {
   const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(req.params.id)
   if (!project) return res.status(404).json({ error: 'Projekt nicht gefunden' })
 
+  if (Object.prototype.hasOwnProperty.call(req.body, 'slug') || Object.prototype.hasOwnProperty.call(req.body, 'prefix')) {
+    const parsed = projectUpdateContract.safeParse(req.body)
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message })
+    if (parsed.data.slug !== undefined && RESERVED_PROJECT_SLUGS.has(parsed.data.slug)) {
+      return res.status(400).json({ error: `slug "${parsed.data.slug}" ist reserviert` })
+    }
+  }
+
   // DD-392: public_capture (per-project public-exposure flag) is editable here.
   // DD-490: summary_achieved/summary_next/vision/goals — user-editable Project-Home
   // Overview prose (persisted, NOT AI-generated; goals is newline-delimited).
-  const writable = ['name', 'description', 'color', 'archived', 'storybook_url', 'repo_path', 'docs_path', 'context_file_path', 'public_capture', 'summary_achieved', 'summary_next', 'vision', 'goals']
+  const writable = ['name', 'description', 'color', 'archived', 'storybook_url', 'repo_path', 'docs_path', 'context_file_path', 'public_capture', 'summary_achieved', 'summary_next', 'vision', 'goals', 'slug', 'prefix']
   const sets = []
   const vals = []
   for (const key of writable) {
@@ -961,7 +977,15 @@ app.put('/api/projects/:id', (req, res) => {
 
   sets.push('updated_at = CURRENT_TIMESTAMP')
   vals.push(req.params.id)
-  db.prepare(`UPDATE projects SET ${sets.join(', ')} WHERE id = ?`).run(...vals)
+  try {
+    db.prepare(`UPDATE projects SET ${sets.join(', ')} WHERE id = ?`).run(...vals)
+  } catch (e) {
+    const msg = String(e.message)
+    if (msg.includes('projects.slug')) return res.status(409).json({ error: 'slug bereits vergeben' })
+    if (msg.includes('projects.prefix') || msg.includes('idx_projects_prefix')) return res.status(409).json({ error: 'prefix bereits vergeben' })
+    if (msg.includes('UNIQUE')) return res.status(409).json({ error: 'slug oder prefix bereits vergeben' })
+    return res.status(500).json({ error: msg })
+  }
   res.json(db.prepare('SELECT * FROM projects WHERE id = ?').get(req.params.id))
 })
 

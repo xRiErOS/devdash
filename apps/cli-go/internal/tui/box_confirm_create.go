@@ -1,12 +1,15 @@
 package tui
 
-// box_confirm_create.go — DD2-93: y/n-Bestätigung VOR der Anlage neuer Entitäten.
-// Nach dem Ausfüllen eines Create-Formulars (Issue/Sprint/Meilenstein/Memory/Tag)
-// öffnet sich ein Confirm-Modal statt sofort anzulegen; erst y feuert den bereits
-// aus den Formularwerten gebauten Cmd. Edit-/Update-Formulare (editField/tagEdit/
-// result) laufen ohne Prompt durch (keine neue Entität).
+// box_confirm_create.go — DD2-93: y/n-Bestätigung VOR der Anlage neuer Entitäten
+// bzw. vor riskanten Settings-Änderungen. Nach dem Ausfüllen eines Create-Formulars
+// (Issue/Sprint/Meilenstein/Memory/Tag) öffnet sich ein Confirm-Modal statt sofort
+// anzulegen; erst y feuert den bereits aus den Formularwerten gebauten Cmd. Edit-/
+// Update-Formulare (editField/tagEdit) laufen ohne Prompt durch — Ausnahme
+// project_settings (DD2-232): slug/prefix-Änderung ist konsequenzreich genug
+// (Routing/Bookmarks bzw. Issue-Key-Darstellung), daher immer confirm-gated.
 
 import (
+	"strconv"
 	"strings"
 
 	"devd-cli/internal/theme"
@@ -14,10 +17,11 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// isCreateKind meldet, ob ein Formular-Kind eine NEUE Entität anlegt (→ Confirm).
+// isCreateKind meldet, ob ein Formular-Kind vor dem Ausführen einen y/n-Confirm
+// braucht — neue Entität ODER (DD2-232) die riskante Projekt-Settings-Änderung.
 func isCreateKind(kind string) bool {
 	switch kind {
-	case "issue", "milestone", "sprint", "memory", "tagCreate", "userStoryAdd", "dodAdd", "project_create":
+	case "issue", "milestone", "sprint", "memory", "tagCreate", "userStoryAdd", "dodAdd", "project_create", "project_settings":
 		return true
 	}
 	return false
@@ -76,6 +80,14 @@ func (m *model) createConfirmLabel() string {
 		return "DoD item: " + get("dod_label")
 	case "project_create":
 		return "Project: " + get("name") + " (" + get("prefix") + ")"
+	case "project_settings": // DD2-232: Impact-Vorschau bei slug/prefix-Änderung
+		name, slug, prefix := get("name"), get("slug"), get("prefix")
+		label := "Project: " + name + " (" + slug + " / " + prefix + ")"
+		if m.project != nil && (slug != m.project.Slug || prefix != m.project.Prefix) {
+			label += " — affects " + strconv.Itoa(m.project.BacklogCount) + " issues, " +
+				strconv.Itoa(m.project.SprintCount) + " sprints (keys update instantly, no rewrite)"
+		}
+		return label
 	}
 	return "new entity"
 }
