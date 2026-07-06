@@ -1,5 +1,7 @@
 // Package api ist der geteilte API-Kern für beide Layer (One-Shot-CLI + TUI).
 // HTTP-Client gegen die DevDash-Express-API.
+//
+//go:generate npm --prefix ../../../.. run gen:cli-client
 package api
 
 import (

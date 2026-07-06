@@ -31,8 +31,11 @@
     "gen:mcp-notes": "node scripts/gen-mcp-notes.mjs",
     "gen:index": "node scripts/gen-index.mjs",
     "gen:index:check": "node scripts/gen-index.mjs scripts --check",
+    "gen:index:docs": "node scripts/gen-index.mjs docs",
+    "gen:index:docs:check": "node scripts/gen-index.mjs docs --check",
     "gen:cli-skip-allowlist": "node apps/cli-go/codegen/gen-skip-allowlist.mjs",
     "gen:cli-skip-allowlist:check": "node apps/cli-go/codegen/gen-skip-allowlist.mjs --check",
+    "gen:cli-client": "node apps/cli-go/codegen/capabilities.mjs && node apps/cli-go/codegen/gen-types.mjs && node apps/cli-go/codegen/gen-client.mjs && node apps/cli-go/codegen/gen-skip-allowlist.mjs",
     "prepare": "husky || true"
   },
   "lint-staged": {

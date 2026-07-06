@@ -1,6 +1,6 @@
 {
   "generatedFrom": "apps/cli/mcp/devd-mcp.js",
-  "toolCount": 109,
+  "toolCount": 111,
   "tools": {
     "devd_backlog_export": {
       "description": "READ: Export the project backlog in an LLM-friendly format — md (default) | json | yaml. Default status filter is new,refined (sprint-bound status excluded); narrow further via status (single or comma-list). Full triage context in one call. GET /api/backlog-export. Read-only.",
@@ -2142,6 +2142,95 @@
         },
         "required": [
           "milestone_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_project_create": {
+      "description": "WRITE: Create a new project. Global — no project_id required. slug (a-z0-9-, immutable, drives routing), name, prefix (2-6 A-Z0-9, immutable, drives issue keys like \"DD2-7\") are required; description/color/repo_path optional. 409 if slug or prefix already taken; slug must not be a reserved word (projects/settings/api/…).",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "prefix": {
+            "type": "string",
+            "pattern": "^[A-Z0-9]{2,6}$"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "repo_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "prefix"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devd_project_delete": {
+      "description": "WRITE: Delete a project by numeric id or slug. Global — no project_id required. cascade=false (default) is a safe \"empty-only\" gate: 409 if the project still has sprints or backlog items (empty/archive first). cascade=true tears down the FULL child graph — sprints, all issues incl. children, milestones, tags, memories, todos, notes. The initial project (id=1) can NEVER be deleted. DELETE /api/projects/:id[?cascade=1].",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id_or_slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ],
+            "description": "Numeric project id or slug string (e.g. \"devd\", \"2\", 2)"
+          },
+          "cascade": {
+            "default": false,
+            "description": "false (default) → 409 when non-empty. true → hard cascade delete of the whole project (sprints/issues/milestones/tags/memories/todos/notes). id=1 always refused.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id_or_slug",
+          "cascade"
         ],
         "additionalProperties": false
       }

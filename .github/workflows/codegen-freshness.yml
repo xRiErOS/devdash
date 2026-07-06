@@ -1,0 +1,45 @@
+# DD2-211 (D07): Codegen-Freshness-Gate für den Go-TUI-Client.
+#
+# Läuft der Generator gegen den aktuellen MCP-Stand (apps/cli/mcp/devd-mcp.js) und
+# ergibt sich ein nicht-leerer Diff auf generated.go/generated_types.go/capabilities.json,
+# hat jemand das Backend/MCP geändert ohne den Client neu zu generieren — CI wird rot.
+# Erzwingt Drift-Freiheit dauerhaft, statt sie nur zu dokumentieren.
+
+name: codegen-freshness
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  freshness-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/cli-go/go.mod
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run codegen
+        run: npm run gen:cli-client
+
+      - name: Assert clean diff (D07)
+        run: |
+          git diff --exit-code -- \
+            apps/cli-go/internal/api/generated.go \
+            apps/cli-go/internal/api/generated/generated_types.go \
+            apps/cli-go/internal/api/generated/capabilities.json \
+            apps/cli-go/codegen/skip-allowlist.json
