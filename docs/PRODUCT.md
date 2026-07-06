@@ -1,3 +1,13 @@
+---
+type:
+description: "Strategische Produkt-Referenz: Value Proposition, Kernfunktionen, Stack, Datenmodell, Architektur-Prinzipien"
+tags: []
+aliases: []
+relates_to:
+uid: 00f26419-cb5f-41d9-b016-c279c8bf3b55
+title: Produkt-Referenz
+---
+
 # PRODUCT.md — Developer Dashboard (DevD)
 
 ## 1. Metadata & Status

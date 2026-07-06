@@ -1,3 +1,13 @@
+---
+type:
+description: "Storybook vom Mac ueber Tailscale am ThinkPad: npm run storybook:remote (-h 0.0.0.0), allowedHosts, Troubleshooting"
+tags: []
+aliases: []
+relates_to:
+uid: 1cfe64a6-bc18-4e67-9a86-375f0854b50a
+title: Storybook ueber Tailscale
+---
+
 # Storybook über Tailscale (Mac → ThinkPad-Remote-Review)
 
 Storybook vom Mac hosten, vom ThinkPad im Browser ansehen — über das Tailscale-Netz.
@@ -5,8 +15,11 @@ Storybook vom Mac hosten, vom ThinkPad im Browser ansehen — über das Tailscal
 ## Voraussetzung — Playwright-Chromium (einmalig)
 
 `@storybook/addon-vitest` bootet beim Dev-Start einen Vitest-Browser-Runner
+
 (`@vitest/browser-playwright`). Ohne installiertes Playwright-Chromium hängt der
+
 Boot → 30s-Timeout → `storybook dev` bricht mit **exit 1** ab (`Failed to start
+
 test runner process`). Einmalig im Repo-Root installieren:
 
 ```bash
@@ -14,7 +27,9 @@ npx playwright install chromium
 ```
 
 Danach bootet Storybook sauber. (Alternative wäre, `@storybook/addon-vitest` aus
+
 `addons` in `.storybook/main.js` zu nehmen — verworfen, würde den CT-Runner
+
 wegwerfen.)
 
 ## Start (Mac)
@@ -31,6 +46,7 @@ storybook dev -c .storybook -p 6006 -h 0.0.0.0 --no-open
 ```
 
 `-h 0.0.0.0` ist der einzige Unterschied zu `npm run storybook` — ohne das lauscht
+
 Storybook nur auf `127.0.0.1` und ist über die Tailscale-IP nicht erreichbar.
 
 ## Zugriff (ThinkPad)
@@ -57,7 +73,9 @@ http://<mac-tailscale-ip>:6006
   darunterliegenden Vite-Dev-Server.
 
 `true` ist offener als eine Wildcard-IP-Liste (`100.*.*.*`) — für ein reines
+
 LAN/Tailscale-Review-Setup gewollt. **Nicht** auf einem öffentlich erreichbaren Host
+
 verwenden.
 
 ## Troubleshooting

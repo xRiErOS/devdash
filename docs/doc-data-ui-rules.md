@@ -1,6 +1,16 @@
+---
+type:
+description: "data-ui Storybook->Code-Traceability: Punkt-Schema, PO-Ansprechkanal (Konvention, kein Gate)"
+tags: []
+aliases: []
+relates_to:
+uid: fefca567-04cb-4fa8-81bd-b04de252372e
+title: data-ui-Konvention
+---
+
 # `data-ui` — Storybook → Code Traceability
 
-Generische, wiederverwendbare Regeln für das `data-ui`-Attribut-System.  
+Generische, wiederverwendbare Regeln für das `data-ui`-Attribut-System.
 Stack: React + Storybook + CI-Gate-Skript (Python/Node).
 
 ---
@@ -28,6 +38,7 @@ Stack: React + Storybook + CI-Gate-Skript (Python/Node).
 ```
 
 **Regeln:**
+
 - Nur Kleinbuchstaben und Bindestrich (`kebab-case`), keine Unterstriche
 - `<tier>` = Storybook-Tier (z. B. `atom`, `molecule`, `organism`)
 - `<komponente>` = kanonischer Name der Komponente (stabiler Bezeichner)
@@ -64,6 +75,7 @@ Wiederverwendbare Bausteine (Moleküle, Atome) erhalten `data-ui` nicht fest ver
 ```
 
 **Regeln:**
+
 - `scope` = kebab-case-String, identisch mit dem Organismus-Anker des übergebenden Kontexts
 - Baustein erzeugt NIEMALS eigene feste `data-ui`-Werte — immer aus `scope` abgeleitet
 - Alle Sub-Anker im Format `${scope}.<element>`
@@ -109,7 +121,7 @@ prod_literal  — ID erscheint irgendwo im Quellbaum als String-Literal (exakter
 prod_attr     — ID erscheint als data-ui-Attribut: "area.x" oder const SCOPE='area'; data-ui={`${SCOPE}.x`}
 ```
 
-**Regel:** Wenn `prod_literal` gefunden aber NICHT `prod_attr` → **ERROR** (Hardening v1.4+).  
+**Regel:** Wenn `prod_literal` gefunden aber NICHT `prod_attr` → **ERROR** (Hardening v1.4+).
 Ausnahme: Eintrag in der Allowlist → downgrades zu WARNING.
 
 ### 6.2 Scope-Const Cross-File Resolution
@@ -117,6 +129,7 @@ Ausnahme: Eintrag in der Allowlist → downgrades zu WARNING.
 Der Gate-Skript sammelt ALLE Identifier-Bindings global über Prod-Dateien (`collect_scope_bindings`). Ein `${SCOPE}.x` ist valide, auch wenn `SCOPE` in einer anderen Datei definiert ist — solange der Binding-Wert aufgelöst werden kann.
 
 **Nicht auflösbar (legitime Ausnahmen):**
+
 - Prop-getragene Scopes: `dataUiScope={dynamicValue}` an der Call-Site
 - Dynamisch-mittige Keys: `x.${key}.save` (Segment in der Mitte ist dynamisch)
 
@@ -131,6 +144,7 @@ Tritt auf, wenn eine aktive ID nur über `${SCOPE}` aus einer Datei auflösbar i
 Die Allowlist enthält IDs, die als Literal vorhanden sind, aber (noch) nicht als sauberes Attribut verdrahtet wurden.
 
 **Regeln:**
+
 - Allowlist darf **nur schrumpfen**, nie wachsen (Ratchet)
 - Jeder Eintrag = technische Schuld; Eintrag fällt raus, sobald ID als Attribut verdrahtet ist
 - Ziel: leere Allowlist = vollständige Compliance

@@ -1,3 +1,13 @@
+---
+type:
+description: "Promote-Loop-Prozess: Mockup -> Storybook -> Stable"
+tags: []
+aliases: []
+relates_to:
+uid: 9ca9afa6-8c07-4cc8-a7f0-3c9923748fda
+title: Promote-Loop (Mockup->Stable)
+---
+
 # Promote-Loop: Mockup → Storybook → Stable
 
 Dreiphasiger Zyklus für jeden Screen/Organismus. Jede Phase hat ein klares Exit-Kriterium — kein Weiter ohne Haken.

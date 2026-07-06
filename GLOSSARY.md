@@ -1,6 +1,6 @@
-# CONTEXT — DD2 (übergreifend)
+# GLOSSARY — DD2 (übergreifend)
 
-Surface-übergreifende Domänen-Begriffe. Surface-spezifische Glossare → `CONTEXT-MAP.md`.
+Surface-übergreifende Domänen-Begriffe. Surface-spezifische Glossare → `GLOSSARY-MAP.md`.
 
 - **Issue** — kleinste Arbeitseinheit, Key `<prefix>-<n>` (z.B. `DD2-7`). Durchläuft einen Lifecycle bis zur PO-Abnahme.
 - **Sprint** — Bündel von Issues mit gemeinsamem Ziel; wird als Ganzes geplant, bearbeitet und vom PO abgenommen.

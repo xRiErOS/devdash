@@ -1,3 +1,12 @@
+---
+type:
+description:
+tags: []
+aliases: []
+relates_to:
+uid:
+---
+
 # DD2 Projekt-Layer-Werte (Quelle: docs/sprint-project-layer.md)
 
 - Vite-Dev-Port: 6106 (vite.config.js)

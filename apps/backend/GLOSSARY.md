@@ -1,6 +1,6 @@
-# CONTEXT — backend (DD2)
+# GLOSSARY — backend (DD2)
 
-Backend-Surface: Datenmodell, Status-Maschine, Persistenz, Zugriffs-Guards. Übergreifende Begriffe → Wurzel-`CONTEXT.md`.
+Backend-Surface: Datenmodell, Status-Maschine, Persistenz, Zugriffs-Guards. Übergreifende Begriffe → Wurzel-`GLOSSARY.md`.
 
 - **Lifecycle** — die Status-Maschine je Entität. Issue: `new → refined → in_progress → to_review → passed`; Sprint/Meilenstein analog. Transitions sind validiert, nie roh in SQL.
 - **Contract** — die Datenmodell-Wahrheit einer Entität als Schema (Shape + Validierung). Quelle, gegen die Ein- und Ausgaben geprüft werden.

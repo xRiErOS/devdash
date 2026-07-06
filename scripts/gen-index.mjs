@@ -52,7 +52,7 @@ if (!existsSync(DIR) || !statSync(DIR).isDirectory()) {
 const CODE_EXT = new Set(['.mjs', '.js', '.cjs', '.py', '.sh', '.bash', '.zsh'])
 // Struktur-/Daten-Dateien nie als Katalog-Eintrag:
 const EXCLUDE_NAMES = new Set([
-  'INDEX.md', 'CLAUDE.md', 'CONTEXT.md', 'CONTEXT-MAP.md', 'README.md', '.DS_Store',
+  'INDEX.md', 'CLAUDE.md', 'GLOSSARY.md', 'GLOSSARY-MAP.md', 'README.md', '.DS_Store',
 ])
 const EXCLUDE_EXT = new Set(['.json', '.lock', '.map'])
 

@@ -1,3 +1,13 @@
+---
+type:
+description: "Visuelles Design-System: Catppuccin (Latte/Macchiato), Token-Hierarchie, Layer, Spacing, Typografie, UX-Guidelines"
+tags: []
+aliases: []
+relates_to:
+uid: 80924e16-5e85-464e-8fc4-996c8c08cbd7
+title: Design-System
+---
+
 # DESIGN.md — Developer Dashboard (DevD)
 
 > Kein Layout, keine Komponenten. Dieses Dokument beschreibt die Haltung, an der jede spätere Entscheidung gemessen wird.
@@ -61,6 +71,7 @@ Bei jeder Detailentscheidung: Macht das die Arbeit eines Entwicklers, der das To
 **Zielnutzer:** PO/Developer am Desktop — oft abends, in konzentrierter Arbeitsphase. Latte-Theme am Tag, Macchiato bei wenig Umgebungslicht. Kein Theme aus Coolness.
 
 **Barrierefreiheit (WCAG):**
+
 - `prefers-reduced-motion` zentral in `index.css` abgedeckt: Durations → 1ms, Keyframes neutralisiert (WCAG 2.3.3)
 - Keyboard-Focus: uniformer `--focus-ring` (lavender) auf allen interaktiven Atomen (`focus-visible:ring-2 ring-offset-2`)
 - Touch-Targets: min 44×44px
@@ -68,6 +79,7 @@ Bei jeder Detailentscheidung: Macht das die Arbeit eines Entwicklers, der das To
 - Kontrast: `--heading-accent` = `var(--red)` in Latte (peach 1.93 auf surface0 → WCAG AA fail; red 3.52 = AA-large bestanden)
 
 **Negative Constraints (nie brechen):**
+
 - Kein Purple-Pink-Gradient, kein `background-clip:text`-Gradient-Text
 - Keine identischen Card-Grids / Hero-Metric-Kacheln mit großer Zahl + Gradient-Akzent
 - Keine verschachtelten Cards
@@ -82,6 +94,7 @@ Bei jeder Detailentscheidung: Macht das die Arbeit eines Entwicklers, der das To
 #### Farbsystem: Catppuccin
 
 Zwei gleichwertige Themes via `html[data-theme]`:
+
 - **Light = Latte** (Default, wenn kein `data-theme` → `prefers-color-scheme` greift)
 - **Dark = Macchiato**
 
@@ -90,6 +103,7 @@ Umschaltung: `AppShell.jsx` setzt `data-theme` auf `<html>`-Element.
 **Grundregel:** Komponenten nutzen **semantische Accent-Tokens** (`--accent-*`), nie Catppuccin-Rohfarben direkt. Rohfarben nur für Tags, Priority und Status-Stripes.
 
 **Semantic Accent Tokens:**
+
 | Token | Latte (Light) | Macchiato (Dark) | Rolle |
 |---|---|---|---|
 | `--accent-primary` | `#fe640b` (peach) | `#f5a97f` | Primäre Aktion (eine pro View) |
@@ -101,6 +115,7 @@ Umschaltung: `AppShell.jsx` setzt `data-theme` auf `<html>`-Element.
 | `--heading-accent` | `var(--red)` | `var(--peach)` | Slot-Heading-Akzent (Layer-5, sanktioniert) |
 
 **Neutral / Surface (Latte → Macchiato):**
+
 | Token | Light | Dark | Schicht |
 |---|---|---|---|
 | `--crust` | `#dce0e8` | `#181926` | Tiefste Ebene, Off-Canvas-BG |
@@ -111,6 +126,7 @@ Umschaltung: `AppShell.jsx` setzt `data-theme` auf `<html>`-Element.
 | `--subtext1/0` | `#5c5f77/#6c6f85` | `#b8c0e0/#a5adcb` | Sekundärtexte |
 
 **Semantische 6-Ebenen-Leiter (Layer-Tokens):**
+
 | Ebene | Token | Dark | Light | Schicht |
 |---|---|---|---|---|
 | Background | `--layer-bg` | `crust` | `base` | App-Fläche + content-outlet |
@@ -121,18 +137,22 @@ Umschaltung: `AppShell.jsx` setzt `data-theme` auf `<html>`-Element.
 | Layer-5 | `--heading-accent` | `peach` | `red` | Vordergrund (kein Fill) |
 
 **Elevation / Schatten:**
+
 - `--shadow-card`: Light `0 1px 2px rgba(76,79,105,.06), 0 2px 6px rgba(76,79,105,.04)` · Dark `0 1px 2px rgba(0,0,0,.4), 0 2px 8px rgba(0,0,0,.25)`
 - `--shadow-pop`: Light `0 8px 24px rgba(76,79,105,.15)` · Dark `0 8px 24px rgba(0,0,0,.5)`
 - Elevation primär über Surface-Stufe + Border, Schatten sparsam
 
 **Borders:**
+
 - `--border`: `color-mix(in srgb, var(--text) 14%, transparent)` — sichtbar auf jeder Surface (behebt Surface0-auf-Surface0-Kollaps)
 - `--focus-ring`: `var(--lavender)` — uniforme Keyboard-Affordance (theme-folgt)
 
 **Priority-Skala (eigene Skala, kein `--accent-*`):**
+
 `--priority-1: red` · `-2: peach` · `-3: blue` · `-4: teal` · `-5: overlay0`
 
 **Status-Farben:**
+
 `peach`=pending/in_progress · `green`=passed/done · `red`=rejected · `blue`=info/refined · `mauve`=to_review
 
 ---
@@ -160,15 +180,18 @@ Umschaltung: `AppShell.jsx` setzt `data-theme` auf `<html>`-Element.
 #### Motion-Tokens
 
 **Durations (`:root`, via `duration-[var(--duration-*)]`):**
+
 - `--duration-fast: 120ms` — Hover/Press
 - `--duration-base: 180ms` — Standard
 - `--duration-slow: 280ms` — Drawer/Overlay
 
 **Easings (`@theme`):**
+
 - `ease-standard: cubic-bezier(.2,0,0,1)` — dezeleriert (Standard)
 - `ease-emphasized: cubic-bezier(.05,.7,.1,1)` — Enter/Exit betont
 
 **Regeln:**
+
 - Button-Press: `active:scale-[0.97]` via `--duration-fast / ease-standard`
 - Drawer-Entry: `.devd-anim-slide-right` (200ms ease-out), Backdrop `.devd-anim-fade` (150ms)
 - `prefers-reduced-motion: reduce` → alle Durations → 1ms, Keyframes und Press-Transform neutralisiert
@@ -180,6 +203,7 @@ Umschaltung: `AppShell.jsx` setzt `data-theme` auf `<html>`-Element.
 **Storybook 10.4.6** (GF-2 = Greenfield-2, zweite Component-Library-Generation)
 
 **Atomares Design:**
+
 ```
 src/components/ui/
   atoms/        → Basisbausteine (Button, Input, Badge, Icon)
@@ -189,6 +213,7 @@ src/components/ui/
 ```
 
 **Storybook-Compliance-Gates:**
+
 - `data-ui`-Attribute-Allowlist: `specs-DD/01-PRD-SAD-FSD/architecture/data_ui_attr_allowlist.txt`
 - `view-must-use-archetype` ESLint-Regel (scripts/eslint-rules/)
 - MSW 2.14.6 als Storybook-Addon (gemockte API in Stories)
@@ -197,6 +222,7 @@ src/components/ui/
 ### 1.4 Layout-Raster und Responsivität
 
 **Spacing-Tokens (4px-Grid):**
+
 | Token | Wert |
 |---|---|
 | `--space-1` | 4px |
@@ -209,6 +235,7 @@ src/components/ui/
 Rhythmus variieren — nicht überall identisches Padding.
 
 **Breakpoints:**
+
 | Breakpoint | Bereich | Verhalten |
 |---|---|---|
 | Mobile | < 640px | Einspaltig, einhändig, kurze Eingaben, Bottom-Nav, Drawer full-width |
@@ -239,10 +266,12 @@ Rhythmus variieren — nicht überall identisches Padding.
 **React Router** (inferred aus View-Struktur und `main.jsx`-Entry).
 
 **Zwei Entry-Points:**
+
 1. **Haupt-App** (admin, auth-geschützt via Authelia): vollständige AppShell
 2. **Capture-PWA** (`issues.familie-riedel.org`, öffentlich): `CaptureView.jsx` — eigene Shell, nur `GET /api/projects/list-minimal` + `POST /api/issues`
 
 **Erwartete Route-Struktur:**
+
 | Route | View | Archetyp |
 |---|---|---|
 | `/` | `HomeDashboard.jsx` | `DashboardPage` |
@@ -259,6 +288,7 @@ Rhythmus variieren — nicht überall identisches Padding.
 | `/capture` | `CaptureView.jsx` | eigenständig (sanktioniert) |
 
 **Navigation:**
+
 - Desktop: AppRail (Rail-Navigation links) + Topbar
 - Mobile: Bottom-Nav (`mobileTabBar`-Slot in ProjectHomeLayout)
 - Theme-Schalter: in AppShell, setzt `html[data-theme]`
@@ -272,6 +302,7 @@ Rhythmus variieren — nicht überall identisches Padding.
 **REST-Client:** Native `fetch()` via Custom Hooks in `src/hooks/`.
 
 **Dev-Proxy (Vite):**
+
 ```
 /api      → DEVD_PROXY_TARGET || http://localhost:5556
 /uploads  → DEVD_PROXY_TARGET || http://localhost:5556
@@ -279,6 +310,7 @@ Rhythmus variieren — nicht überall identisches Padding.
 ```
 
 **Umgebungen:**
+
 | Script | Proxy-Ziel |
 |---|---|
 | `dev` | `localhost:5556` (lokaler Express-Server) |
@@ -316,10 +348,12 @@ Rhythmus variieren — nicht überall identisches Padding.
 | Authelia-Redirects (`/auth`) | navigateFallbackDenylist | blockiert |
 
 **Update-Verhalten:**
+
 - `registerType: 'autoUpdate'` — kein Update-Prompt (Single-User-Heimnetz)
 - `skipWaiting: true` + `clientsClaim: true` + `cleanupOutdatedCaches: true` — löst "Reload Page = Empty Page"-Bug nach Deploy (DD-327)
 
 **Lokale Datenspeicherung:**
+
 - Kein IndexedDB / LocalStorage für Applikationsdaten
 - Master-DB: SQLite auf NAS (`/volume2/docker/devd/data/devd.db`)
 - Offline-Schreiboperationen: nicht unterstützt (Network-First-only für API-Mutations)
@@ -331,10 +365,12 @@ Rhythmus variieren — nicht überall identisches Padding.
 ### 4.1 Rendering-Strategien
 
 **Client-Side Rendering (CSR):**
+
 - Vite + React 19 SPA
 - Kein SSR / SSG
 
 **Code-Splitting:**
+
 - Vite-Standard-Chunking (vendor-separiert)
 - React 19 `use()` / Concurrent Features für asynchrone State-Übergänge
 - Storybook-Build: eigener statischer Build (`storybook-static/`)
@@ -373,6 +409,7 @@ Rhythmus variieren — nicht überall identisches Padding.
 | FCP / LCP | Workbox Precache Shell; kein Waterfall für kritische Ressourcen |
 
 **Empfehlung für künftige Budget-Definition:**
+
 - LCP < 2.5s (Workbox precache sichert Shell → First-Paint schnell)
 - CLS = 0 (keine ungekennzeichneten Layout-Shifts; Skeleton-States fehlen noch)
 - INP < 200ms (React 19 Concurrent + `active:scale-[0.97]` als Press-Feedback)

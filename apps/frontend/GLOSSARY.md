@@ -1,6 +1,6 @@
-# CONTEXT — frontend (DD2)
+# GLOSSARY — frontend (DD2)
 
-Frontend-Surface: Storybook-Insel, Screens, Design-System. Frontend-Regeln (Token/Icons/Test) → `apps/frontend/CLAUDE.md`. Übergreifende Begriffe → Wurzel-`CONTEXT.md`.
+Frontend-Surface: Storybook-Insel, Screens, Design-System. Frontend-Regeln (Token/Icons/Test) → `apps/frontend/CLAUDE.md`. Übergreifende Begriffe → Wurzel-`GLOSSARY.md`.
 
 - **Storybook als Samen** — Storybook ist zugleich Design-Wahrheit und Bauquelle; Produktions-Screens werden aus den Stories zusammengesetzt.
 - **Promote-Loop** — der Weg eines Screens von der presentational Story zum Connected-Wrapper mit Route (Strangler: ein Screen nach dem anderen).

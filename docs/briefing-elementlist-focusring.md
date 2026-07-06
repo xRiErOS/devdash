@@ -1,7 +1,19 @@
+---
+type:
+description: Container-Focus-Ring der Element-List (Loesungsskizze/Briefing)
+tags: []
+aliases: []
+relates_to:
+uid: 8a4b3b51-18e4-4c3e-a74c-aee9f3587042
+title: Briefing ElementList Focus-Ring
+---
+
 # Briefing — ElementList Container-Focus-Ring (Lösungsexperte)
 
 **Datum:** 2026-06-26 · **Projekt:** DD2 (`apps/frontend`) · **Severity:** B (medium, UX)
+
 **Auftrag:** Den doppelten/falschen Focus-Ring am ElementBrowser endgültig beseitigen —
+
 sauber, tokentreu, ohne neue Regressionskette. Bisherige Versuche unten, NICHT wiederholen.
 
 ## 1. Sollzustand (was korrekt ist)
@@ -19,13 +31,17 @@ ElementBrowser-Liste = APG-Tree mit Keyboard-Steuerung:
 ## 2. Symptom (Ist)
 
 Der Container `organism.elementList` bekommt einen **peach-farbenen Outline-Rahmen um die
+
 ganze Liste**, sobald er den Tastaturfokus hat (Pfeilnavigation oder programmatischer
+
 `.focus()` nach Maus-Klick + danach Pfeildruck). Damit sind zwei Rahmen sichtbar:
+
 Container-Rahmen + Zeilen-Roving-Ring.
 
 ## 3. Reproduktion
 
 Storybook `05 SCREENS/ElementBrowser` → Story `Interactive` oder `NestedMixed`:
+
 1. In die Liste tabben oder eine Zeile klicken.
 2. Pfeil ↓/↑ drücken.
 3. → Peach-Outline umrahmt den gesamten `organism.elementList`-Container.
@@ -43,19 +59,29 @@ Storybook `05 SCREENS/ElementBrowser` → Story `Interactive` oder `NestedMixed`
 ```
 
 Diese Regel steht NACH `@import "tailwindcss";` (Zeile 5) und liegt damit **außerhalb
+
 aller `@layer`**. In Tailwind v4 hängen alle Utilities in `@layer utilities`. Nach den
+
 CSS-Cascade-Layer-Regeln schlägt **unlayered immer layered** — unabhängig von Spezifität.
+
 Eine Tailwind-Utility (`focus-visible:outline-none`, in `@layer utilities`) kann die Regel
+
 also nicht per Spezifität überstimmen.
 
 `!important` würde sie schlagen (important > normal, layerübergreifend) — aber der aktuell
+
 gesetzte Versuch `focus-visible:[outline:none!important]` erzeugt in Tailwind v4
+
 vermutlich keine valide/wirksame Deklaration (Important-in-Arbitrary-Value-Syntax). Das ist
+
 zu verifizieren (kompiliertes CSS inspizieren), gilt aber als wahrscheinlichste Erklärung,
+
 warum der Ring trotz der Klasse zurück ist.
 
 Der Container ist das einzige Element, das diesen Treffer zeigt, weil er das einzige
+
 keyboard-fokussierte Element der Liste ist (Zeilen-Controls sind `tabIndex=-1`,
+
 Roving läuft über `aria-activedescendant`, nicht über echten Zeilenfokus).
 
 ## 5. Architektur (relevante Dateien)
@@ -92,7 +118,9 @@ Roving läuft über `aria-activedescendant`, nicht über echten Zeilenfokus).
 ## 8. Lösungsrichtungen für den Experten (Empfehlung zuerst)
 
 ### Option A (empfohlen) — Roving-Tabindex statt aria-activedescendant
+
 Echten Fokus auf die aktive Zeile legen statt auf den Container:
+
 - Container bekommt KEIN `tabIndex` (nicht mehr fokussierbar) → kein Container-Ring möglich.
 - Aktive Zeile: `tabIndex = focused ? 0 : -1`; `onKeyDown` bleibt am Container (bubbelt).
   `useListNavigation` hält `rowRefs[]` und ruft `rowRefs[focusIndex].focus()`.
@@ -105,19 +133,29 @@ Echten Fokus auf die aktive Zeile legen statt auf den Container:
   `accent-primary`-Ring? (Konsistenz vs. bestehende Optik.)
 
 ### Option B (schnell) — scoped unlayered Override in index.css
+
 Direkt nach Zeile 358 eine ebenfalls unlayerte, spezifischere Regel ergänzen:
+
 ```css
 [role="tree"]:focus-visible { outline: none; }
 ```
+
 Gleiche (unlayered) Ebene, höhere Spezifität + spätere Quellreihenfolge → gewinnt sauber
+
 ohne `!important`. Tokentreu (keine Farbe/Hex). Container-spezifisch, kein Kollateral.
+
 Nachteil: leichter Selektor-Smell (Komponentenwissen im globalen Token-File); a11y prüfen
+
 (Container hat dann gar keine sichtbare Fokus-Affordanz — akzeptabel, weil der Roving-Ring
+
 auf der Zeile die Affordanz trägt).
 
 ### Option C — korrekte v4-Important-Syntax verifizieren
+
 Falls man bei der Utility bleiben will: kompiliertes CSS prüfen und die wirksame v4-Form
+
 finden (z.B. `focus-visible:outline-hidden` bzw. korrektes Important-Modifier-Suffix). Nur
+
 als Fallback — adressiert das Layer-Grundproblem nicht konzeptionell.
 
 ## 9. Verifikation (Definition of Done)

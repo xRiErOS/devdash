@@ -1,6 +1,6 @@
-# CONTEXT — cli / MCP (DD2)
+# GLOSSARY — cli / MCP (DD2)
 
-Node-Welt: der MCP-Server und die scriptbare Node-CLI (getrennt von der Go-TUI in `apps/cli-go`). Übergreifende Begriffe → Wurzel-`CONTEXT.md`.
+Node-Welt: der MCP-Server und die scriptbare Node-CLI (getrennt von der Go-TUI in `apps/cli-go`). Übergreifende Begriffe → Wurzel-`GLOSSARY.md`.
 
 - **MCP `devd_*`** — die primäre Agenten-Schnittstelle (Model Context Protocol): jede Backend-Fähigkeit als `devd_<entität>_<verb>`-Tool. Bevorzugter Zugang für KI-Agenten.
 - **Node-CLI** — der scriptbare Node-Einstieg, der dieselben Backend-Fähigkeiten über einen REST-Client anspricht.

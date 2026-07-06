@@ -1,6 +1,6 @@
-# CONTEXT — cli-go / TUI (DD2)
+# GLOSSARY — cli-go / TUI (DD2)
 
-TUI-Welt: das interaktive Cockpit (Bubble Tea). Datei-/Layout-Regeln → `apps/cli-go/CLAUDE.md`. Übergreifende Begriffe → Wurzel-`CONTEXT.md`.
+TUI-Welt: das interaktive Cockpit (Bubble Tea). Datei-/Layout-Regeln → `apps/cli-go/CLAUDE.md`. Übergreifende Begriffe → Wurzel-`GLOSSARY.md`.
 
 - **Command View / Command Center** — die projektweite Issue-Sicht, das zentrale Kommando-Panel der TUI.
 - **Browse-Tree** — die Primat-Sicht als Baum: Meilenstein → Sprint → Issue.

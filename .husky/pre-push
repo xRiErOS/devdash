@@ -1,0 +1,5 @@
+# husky setzt core.hooksPath=.husky/_ -> .git/hooks/pre-push feuert nicht mehr.
+# Zentraler main-Push-Schutz muss hier gespiegelt werden (siehe sproutling/.husky/pre-push).
+GATE="$HOME/Obsidian/tools/git-hooks/pre-push-gate.sh"
+if [ -x "$GATE" ]; then exec "$GATE" "$@"; fi
+echo "pre-push: shared gate nicht gefunden — uebersprungen."; exit 0

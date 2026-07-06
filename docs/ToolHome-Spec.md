@@ -1,7 +1,19 @@
+---
+type:
+description: "Screen-Spec globaler Einstieg/Projektauswahl-Grid: Komponentenbaum, Stories, Entscheidungen D01-D08"
+tags: []
+aliases: []
+relates_to:
+uid: 27782165-3a61-42dc-aca0-d6e5d9e320d7
+title: ToolHome-Spec
+---
+
 ## Spezifikation — ToolHome
 
 **Scope:** ToolHome — globaler Einstiegspunkt, Projektauswahl-Screen
+
 **Basis für:** Promote-Loop Phase: ToolHome Screen (`/projects`-Stub ablösen)
+
 **Stand:** 2026-06-26
 
 ## 1. Zweck & Verwendung
@@ -9,6 +21,7 @@
 ToolHome ist der globale Einstiegspunkt des Developer Dashboards. Ohne aktiven Projektkontext landet der Nutzer hier — direkt nach Aufruf der App (`/` → redirect → `/home`) oder über explizite Navigation. Die Seite zeigt alle verfügbaren Projekte als Cards und ermöglicht den Einstieg in ein Projekt per Klick.
 
 **Typischer Flow:**
+
 1. Nutzer öffnet DevDash → `/` redirect → `/home` (D05)
 2. Sieht Projektliste als Grid mit Cards
 3. Klickt auf Projekt → `projectStore` gesetzt + Navigate `/:slug/home`
@@ -56,6 +69,7 @@ ToolHome                         (src/screens/ToolHome/ToolHome.jsx — connecte
 ## 4. Komponentenlogik
 
 **ToolHomeScreen (presentational):**
+
 - Props: `projects: Project[]`, `isLoading: boolean`, `error: string|null`, `onProjectSelect: (slug: string) => void`, `onCreateProject?: () => void`
 - `isLoading=true` → Skeleton-Cards (3× Placeholder mit gleicher Dimension wie echte Card)
 - `projects.length === 0` → EmptyState + CTA
@@ -63,6 +77,7 @@ ToolHome                         (src/screens/ToolHome/ToolHome.jsx — connecte
 - Archivierte Projekte: client-seitig per `project.archived === 0` filtern (D01)
 
 **ProjectCard (presentational):**
+
 - Props: `project: Project`, `onSelect: (slug: string) => void`
 - Farbzuordnung: `project.color` → `var(--ctp-<color>)` (z.B. "mauve" → `var(--ctp-mauve)`)
 - `project.description` → 1–2 Zeilen unter Name, `line-clamp-2`, nur wenn nicht leer (D08)
@@ -70,6 +85,7 @@ ToolHome                         (src/screens/ToolHome/ToolHome.jsx — connecte
 - Feste min-height, kein Overflow-Scroll — lange Namen mit `text-overflow: ellipsis`
 
 **ToolHome (connected):**
+
 - `useEffect` bei Mount → `fetch('/api/projects')` (apiClient appended `?fields=full` auto)
 - Setzt `projectStore.setActiveProjectId(id)` + `setActiveSlug(slug)` bei Selektion
 - Navigiert via `useNavigate()` zu `/${slug}/home`
@@ -89,6 +105,7 @@ ToolHome                         (src/screens/ToolHome/ToolHome.jsx — connecte
 ## 6. Aktionen und Interaktionen
 
 **Backend-Capabilities (vorhanden, kein Gap):**
+
 - `GET /api/projects` → Projektliste (durch apiClient auto `?fields=full`: enthält `sprint_count`, `backlog_count`, `active_sprint`, `archived`)
 - `POST /api/projects` → Erstellen (slug, name, prefix Pflicht; color, description optional)
 
@@ -119,6 +136,7 @@ ToolHome                         (src/screens/ToolHome/ToolHome.jsx — connecte
 ## 8. Storybook-Story-Plan
 
 **Tier:** Screen-Level → `src/storybook/screens/ToolHome/`
+
 **Komponenten-Stories:** `src/storybook/organisms/ProjectCard/`
 
 | Datei | Story-Name | Beschreibung | Mock-Args |

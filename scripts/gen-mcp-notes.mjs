@@ -1,31 +1,45 @@
 #!/usr/bin/env node
 // @index
 // title: gen-mcp-notes
-// desc: Generiert pro devd-MCP-Tool eine Obsidian-Note + Index via Zod-Introspektion
+// desc: Generiert gebündelte Domänen-Concepts im OKF Knowledge Catalogue via Zod-Introspektion
 // @end
 /**
- * gen-mcp-notes.mjs — generiert pro devd-MCP-Tool eine Obsidian-Note
- * (Bases-taugliches Frontmatter + Flags-Tabelle aus dem Zod-Input-Schema)
- * plus eine Index-Note mit Counts je Domäne und einer Lücken-Sektion.
+ * gen-mcp-notes.mjs — generiert devd-MCP-Tool-Dokumentation aus Zod-Introspektion.
+ *
+ * Ziel: 1 Concept pro Domäne (gebündelt, ~19 Files) im OKF-Bundle
+ * dev-wiki/cli-devdash-mcp/mcp-tool-reference. OKF-konformes Frontmatter
+ * (type/title/description/tags/timestamp), danach Inline-Conformance-Scan
+ * + okf-cli.py reindex. Einziges Ziel — kein Vault-Output (keine Dopplung).
  *
  * Quelle der Wahrheit: apps/cli/mcp/devd-mcp.js (server.tool(name, desc, shape, handler)).
- * Re-runnbar — bei MCP-Änderungen einfach erneut ausführen.
+ * Re-runnbar (idempotent) — bei MCP-Änderungen einfach erneut ausführen.
  *
- *   node scripts/gen-mcp-notes.mjs [zielordner]
+ *   node scripts/gen-mcp-notes.mjs [--okf-out=<pfad>]
  *
- * Default-Ziel: der Vault-Ordner devd-MCP (s. OUT_DEFAULT).
+ * Exit-Code 1 bei Conformance-Violations — kein Commit, bis "OK — 0 violations".
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
-import { mkdirSync, writeFileSync, readdirSync, rmSync } from 'fs'
+import { mkdirSync, writeFileSync, readdirSync, rmSync, existsSync, readFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { execFileSync } from 'child_process'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const REPO = join(__dirname, '..')
-const OUT_DEFAULT =
-  '/Users/erik/Obsidian/Vault/300 PROJECTS/DD_DevDashboard/DD-PO-Lokal/devd-MCP'
-const OUT = process.argv[2] || OUT_DEFAULT
+const OKF_ROOT = '/Users/erik/Obsidian/Knowledge-Catalogue'
+const OKF_CLI = join(OKF_ROOT, 'okf-cli.py')
+const OKF_TARGET_REL = 'dev-wiki/cli-devdash-mcp/mcp-tool-reference'
+const OKF_OUT_DEFAULT = join(OKF_ROOT, OKF_TARGET_REL)
+
+// --- 0) CLI-Args ---------------------------------------------------------------
+const argv = process.argv.slice(2)
+function flag(name, def) {
+  const pre = `--${name}=`
+  const hit = argv.find((a) => a.startsWith(pre))
+  return hit ? hit.slice(pre.length) : def
+}
+const OKF_OUT = flag('okf-out', OKF_OUT_DEFAULT)
 
 // --- 1) Interception: server.tool aufzeichnen, connect neutralisieren ---------
 const tools = []
@@ -212,113 +226,180 @@ function flagsTable(shape) {
   )
 }
 
-// --- 6) Note rendern ----------------------------------------------------------
 function zweck(desc) {
   const flat = desc.replace(/\s+/g, ' ').replace(/^(WRITE|Read-only)\s*:?\s*/i, '').trim()
   const m = flat.match(/^(.*?[.!?])(\s|$)/)
   let s = (m ? m[1] : flat).slice(0, 180).trim()
   return s.replace(/"/g, "'")
 }
-function yamlList(arr) {
-  return '[' + arr.join(', ') + ']'
+
+// ============================================================================
+// OKF: 1 Concept pro Domäne, gebündelt (~19 Files statt ~116)
+// ============================================================================
+const DOMAIN_SLUGS = {
+  'Project Memory': 'project-memory',
+  SSTD: 'sstd',
+  'Projekte & Dashboard': 'projects-dashboard',
+  Milestones: 'milestones',
+  Sprints: 'sprints',
+  Issues: 'issues',
+  'User Stories & Subtasks': 'user-stories-subtasks',
+  'Sub-Tasks': 'subtasks',
+  Todos: 'todos',
+  Tags: 'tags',
+  Dokumente: 'documents',
+  'User Notes': 'user-notes',
+  'Session Notes': 'session-notes',
+  Reviews: 'reviews',
+  Planning: 'planning',
+  UNZUGEORDNET: 'unassigned',
 }
-function renderNote(t) {
-  const dom = domainOf(t.name)
-  const rw = rwOf(t.name)
-  const inter = interactionsOf(t.name)
-  const acts = activitiesOf(t.name)
-  const readHint =
-    rw === 'R' && /_list$/.test(t.name)
-      ? '\n## Hinweise\n\n- List-Tool: kann bei großen Mengen viel Kontext erzeugen — Filter (status/type/sprint/search) gezielt setzen.\n'
-      : ''
+function domainSlug(d) {
+  return DOMAIN_SLUGS[d] || d.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+}
+
+function renderOkfDomainNote(domain, toolsInDomain, nowIso) {
+  const slug = domainSlug(domain)
+  const sorted = [...toolsInDomain].sort((a, b) => a.name.localeCompare(b.name))
+  const rCount = sorted.filter((t) => rwOf(t.name) === 'R').length
+  const wCount = sorted.length - rCount
+  const title = `MCP Tool Reference — ${domain}`
+  const description = `Auto-generierte Referenz aller devd-MCP-Tools der Domäne ${domain} (${sorted.length} Tools, ${rCount} R / ${wCount} W) — Parameter, Typen, Pflichtfelder aus Zod-Introspektion.`
   const fm = [
     '---',
-    `Tool: ${t.name}`,
-    `RW: ${rw}`,
-    `Zweck: ${JSON.stringify(zweck(t.desc))}`,
-    `Domäne: ${dom}`,
-    `Interaktion: ${yamlList(inter)}`,
-    `Aktivität: ${yamlList(acts)}`,
+    'type: Reference',
+    `title: ${JSON.stringify(title)}`,
+    `description: ${JSON.stringify(description)}`,
     'tags:',
-    '  - t/Note',
+    '  - cli',
+    '  - devdashboard',
+    '  - mcp',
+    `  - ${slug}`,
+    `timestamp: ${nowIso}`,
     '---',
   ].join('\n')
+  const overviewRows = sorted.map((t) => {
+    const rw = rwOf(t.name)
+    const inter = interactionsOf(t.name).join(', ')
+    const acts = activitiesOf(t.name).join(', ') || '—'
+    return `| \`${t.name}\` | ${rw} | ${inter} | ${acts} | ${zweck(t.desc)} |`
+  })
+  const overview = [
+    '| Tool | RW | Interaktion | Aktivität | Zweck |',
+    '| ---- | -- | ----------- | --------- | ----- |',
+    ...overviewRows,
+  ].join('\n')
+  const sections = sorted
+    .map((t) =>
+      [
+        `### \`${t.name}\``,
+        '',
+        t.desc.trim() || '_(keine Beschreibung im Server hinterlegt)_',
+        '',
+        '#### Flags/Settings',
+        '',
+        flagsTable(t.shape),
+      ].join('\n'),
+    )
+    .join('\n')
   const body = [
     '',
-    t.desc.trim() || '_(keine Beschreibung im Server hinterlegt)_',
+    'Auto-generiert via `scripts/gen-mcp-notes.mjs` aus `apps/cli/mcp/devd-mcp.js` (Zod-Introspektion). **Nicht von Hand editieren** — Änderungen werden beim nächsten Lauf überschrieben.',
     '',
-    '## Flags/Settings',
+    '## Übersicht',
     '',
-    flagsTable(t.shape),
-    readHint,
+    overview,
+    '',
+    '## Tools',
+    '',
+    sections,
   ].join('\n')
-  return { dom, rw, acts, fm: fm + '\n' + body }
+  return { slug, content: fm + '\n' + body + '\n' }
 }
 
-// --- 7) Schreiben -------------------------------------------------------------
-mkdirSync(OUT, { recursive: true })
-// alte generierte Notes entfernen (idempotent), Index + manuelle Dateien schonen wir explizit
-for (const f of readdirSync(OUT)) {
-  if (f.startsWith('devd_') && f.endsWith('.md')) rmSync(join(OUT, f))
+// --- Inline OKF §9-Conformance-Scan (SPEC.md-Minimalcheck) --------------------
+const RESERVED = new Set(['index.md', 'log.md'])
+const FORBIDDEN_CHARS = /[#^[\]|\\/:?*"<>%]/
+function splitFrontmatter(text) {
+  const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/)
+  if (!m) return null
+  return m[1]
+}
+function scanOkfConformance(dir) {
+  const violations = []
+  for (const fn of readdirSync(dir)) {
+    if (!fn.endsWith('.md') || RESERVED.has(fn.toLowerCase())) continue
+    const slug = fn.slice(0, -3)
+    if (FORBIDDEN_CHARS.test(slug)) {
+      violations.push(`${fn}: filename contains forbidden char`)
+      continue
+    }
+    const text = readFileSync(join(dir, fn), 'utf8')
+    const fmBlock = splitFrontmatter(text)
+    if (fmBlock === null) {
+      violations.push(`${fn}: no parseable YAML frontmatter block`)
+      continue
+    }
+    const hasType = /^type:\s*\S+/m.test(fmBlock)
+    const hasTitle = /^title:\s*\S+/m.test(fmBlock)
+    const hasDescription = /^description:\s*\S+/m.test(fmBlock)
+    const hasTags = /^tags:\s*$/m.test(fmBlock) || /^tags:\s*\[/m.test(fmBlock)
+    const hasTimestamp = /^timestamp:\s*\S+/m.test(fmBlock)
+    if (!hasType) violations.push(`${fn}: missing/empty type`)
+    if (!hasTitle) violations.push(`${fn}: missing title`)
+    if (!hasDescription) violations.push(`${fn}: missing description`)
+    if (!hasTags) violations.push(`${fn}: missing tags`)
+    if (!hasTimestamp) violations.push(`${fn}: missing timestamp`)
+  }
+  return violations
 }
 
-const ACTIVITIES = ['Backlog', 'Refinement', 'Sprintplanung', 'Roadmapplanung', 'Sprintdurchführung', 'Sprint-Review']
-const byDomain = new Map()
-const byActivity = new Map(ACTIVITIES.map((a) => [a, 0]))
-let unassigned = 0
-let noActivity = 0
-for (const t of tools) {
-  const { dom, rw, acts, fm } = renderNote(t)
-  if (dom === 'UNZUGEORDNET') unassigned++
-  writeFileSync(join(OUT, `${t.name}.md`), fm)
-  if (!byDomain.has(dom)) byDomain.set(dom, [])
-  byDomain.get(dom).push({ name: t.name, rw })
-  if (acts.length === 0) noActivity++
-  for (const a of acts) byActivity.set(a, (byActivity.get(a) || 0) + 1)
+function runOkf() {
+  const nowIso = new Date().toISOString()
+  mkdirSync(OKF_OUT, { recursive: true })
+  // alte generierte Domänen-Concepts entfernen (idempotent), index.md/log.md schonen
+  for (const f of readdirSync(OKF_OUT)) {
+    if (f.endsWith('.md') && !RESERVED.has(f.toLowerCase())) rmSync(join(OKF_OUT, f))
+  }
+
+  const byDomain = new Map()
+  for (const t of tools) {
+    const dom = domainOf(t.name)
+    if (!byDomain.has(dom)) byDomain.set(dom, [])
+    byDomain.get(dom).push(t)
+  }
+
+  for (const [dom, list] of byDomain) {
+    const { slug, content } = renderOkfDomainNote(dom, list, nowIso)
+    writeFileSync(join(OKF_OUT, `${slug}.md`), content)
+  }
+
+  if (!existsSync(join(OKF_OUT, 'index.md'))) {
+    writeFileSync(
+      join(OKF_OUT, 'index.md'),
+      '# MCP Tool Reference\n\nAuto-generierte, nach Domäne gebündelte Referenz aller devd-MCP-Tools (Parameter, Typen, Pflichtfelder). Quelle: `scripts/gen-mcp-notes.mjs` im DeveloperDashboard-Projekt.\n',
+    )
+  }
+
+  // reindex (marker-bounded Contents-Liste aktuell halten)
+  try {
+    execFileSync('python3', [OKF_CLI, 'reindex', OKF_TARGET_REL, '--init'], { cwd: OKF_ROOT, stdio: 'inherit' })
+  } catch (e) {
+    console.error('FAIL: okf-cli.py reindex fehlgeschlagen:', e.message)
+    process.exit(1)
+  }
+
+  // Conformance-Scan-Gate — kein Commit vor "OK — 0 violations"
+  const violations = scanOkfConformance(OKF_OUT)
+  if (violations.length > 0) {
+    console.error(`FAIL — ${violations.length} violations:`)
+    for (const v of violations) console.error(`  - ${v}`)
+    console.error('Kein Commit, bis "OK — 0 violations".')
+    process.exit(1)
+  }
+  console.log(`OK — 0 violations`)
+  console.log(`OK: ${byDomain.size} Domänen-Concepts (${tools.length} Tools) → ${OKF_OUT}`)
+  console.log('Domänen:', [...byDomain.keys()].sort().map((d) => `${d}=${byDomain.get(d).length}`).join('  '))
 }
 
-// --- 8) Index-Note ------------------------------------------------------------
-const domains = [...byDomain.keys()].sort()
-const indexLines = [
-  '---',
-  'Beschreibung: Index der devd-MCP Tool-Notes — Counts je Domäne + identifizierte Lücken',
-  'tags:',
-  '  - t/Note',
-  '---',
-  '',
-  `Generiert via \`scripts/gen-mcp-notes.mjs\` aus \`apps/cli/mcp/devd-mcp.js\`. **${tools.length} Tools**.`,
-  '',
-  '## Counts je Domäne',
-  '',
-  '| Domäne | Tools | R | W |',
-  '| ------ | ----- | - | - |',
-]
-for (const d of domains) {
-  const list = byDomain.get(d)
-  const r = list.filter((x) => x.rw === 'R').length
-  const w = list.filter((x) => x.rw === 'W').length
-  indexLines.push(`| ${d} | ${list.length} | ${r} | ${w} |`)
-}
-indexLines.push(`| **Summe** | **${tools.length}** | | |`)
-indexLines.push('')
-indexLines.push('## Abdeckung je Aktivität (PO-Workflow)')
-indexLines.push('')
-indexLines.push('Multi-Value — ein Tool kann mehrere Phasen bedienen, Summe > 128 möglich.')
-indexLines.push('')
-indexLines.push('| Aktivität | Tools |')
-indexLines.push('| --------- | ----- |')
-for (const a of ACTIVITIES) indexLines.push(`| ${a} | ${byActivity.get(a)} |`)
-indexLines.push(`| _(ohne — Meta-Tooling)_ | ${noActivity} |`)
-indexLines.push('')
-indexLines.push('## Lücken (→ DD2-Backlog)')
-indexLines.push('')
-indexLines.push('Gefundene MCP-Schwächen werden als DD2-Issues (`type=improvement`) erfasst — nicht hier dupliziert (diese Datei wird regeneriert). Bekannt:')
-indexLines.push('')
-indexLines.push('- `devd_backlog_export`: erzwingt manuelles Filtern, liefert `planned` mit (= sprintgebunden), Format `csv` LLM-unfreundlich → Default `new,refined` + `md/json/yaml`. **DD2-123**')
-indexLines.push('- _(weitere via Gap-Analyse beim Durchgehen der Notes erfassen)_')
-indexLines.push('')
-writeFileSync(join(OUT, '_devd-MCP-Index.md'), indexLines.join('\n') + '\n')
-
-console.log(`OK: ${tools.length} Tool-Notes + Index → ${OUT}`)
-console.log('Domänen:', domains.map((d) => `${d}=${byDomain.get(d).length}`).join('  '))
-if (unassigned) console.error(`WARN: ${unassigned} Tools UNZUGEORDNET — Domain-Regeln prüfen.`)
+runOkf()

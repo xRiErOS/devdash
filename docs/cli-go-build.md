@@ -1,11 +1,23 @@
+---
+type:
+description: "Build/Install-Anleitung Go-TUI: command go build/install, go-Shadow-Falle, Verifikation, Worktree-Hinweis"
+tags: []
+aliases: []
+relates_to:
+uid: c041230e-b13f-4963-8c4a-619ec4986cbb
+title: cli-go Build/Install
+---
+
 # cli-go (TUI) — Build & Install
 
 Verlässliche Build-Anleitung für die Go-CLI/TUI (`apps/cli-go`, Modul `devd-cli`).
+
 Gilt 1:1 im Haupt-Repo **und** in jedem Worktree — nur das Arbeitsverzeichnis wechselt.
 
 ## Kernfalle: `go` ist geshadowed
 
 `go` ist in der interaktiven Shell als Funktion auf einen **Fake** umgebogen
+
 (siehe `apps/cli-go/CLAUDE.md`). Darum:
 
 - **IMMER `command go …`** (oder absolut `/opt/homebrew/bin/go …`), nie bare `go`.
@@ -26,6 +38,7 @@ command go install .
 ```
 
 Nach JEDER Code-Änderung neu `command go install .` — sonst startet das Cockpit
+
 ein **stale Binary** (war B01-Fehldiagnose-Quelle).
 
 ## Verifizieren (nicht-interaktiv)
@@ -37,6 +50,7 @@ command go test ./...     # Hybrid-Tests (State + Golden + TrueColor-Guard)
 ```
 
 Golden aktualisieren (nach bewusster Render-Änderung):
+
 ```sh
 command go test ./internal/tui/ -run TestGolden -update-golden
 ```
@@ -53,7 +67,9 @@ devd-cli              # bzw. Alias dd-tui (ohne Subcommand → TUI)
 ````
 
 Die TUI spricht das DD2-Backend über `DEVD_API_URL` (Default `http://localhost:5556`,
+
 Prod NAS `http://100.71.39.53:3001` via Tailscale). Dunkles Theme ist hart erzwungen
+
 (`lipgloss.SetHasDarkBackground(true)`) — über ssh+tmux sonst heller BG (OSC-11-Fehldetektion).
 
 ## Codegen-Workflow (DD2-211/212/213, D07)
@@ -115,6 +131,9 @@ Tool soll nur vom AI-Agenten via MCP genutzt werden, nie über TUI/CLI? Eintrag 
 ## Worktree-Hinweis
 
 Bei paralleler Arbeit im Worktree wird der main-HEAD nicht angefasst. Der Build läuft
+
 aus dem Worktree-Verzeichnis; `command go install .` installiert global aus dem aktuell
+
 ausgecheckten Stand. Vor dem Install also sicherstellen, im richtigen Worktree/Branch
+
 zu sein (`git branch --show-current`).

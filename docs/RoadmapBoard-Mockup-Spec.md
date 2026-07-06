@@ -1,9 +1,21 @@
+---
+type:
+description: Mockup-Spezifikation der Roadmap-Board-UI
+tags: []
+aliases: []
+relates_to:
+uid: 3dca6941-8fc1-44ae-9e4e-3dad5775523b
+title: RoadmapBoard-Mockup-Spec
+---
+
 # RoadmapBoard — Mockup-Spezifikation
 
 ## Spezifikation
 
 **Scope:** `RoadmapBoardScreen` + `RoadmapBoard` (Container) + alle untergeordneten Bausteine
+
 **Basis für:** Storybook-Promote-Loop durch realisierenden Agent
+
 **Stand:** 2026-06-26
 
 ---
@@ -13,6 +25,7 @@
 RoadmapBoard ist der primäre Einstiegspunkt in die aktuelle Roadmap eines Projekts. Es visualisiert die Roadmap als Spalten-Board: jeder Meilenstein erscheint als Spalte, Sprints erscheinen als Cards innerhalb der Spalte.
 
 **Kern-Use-Cases:**
+
 - Überblick: Welche Sprints gehören zu welchem Meilenstein?
 - Planung: Nicht zugewiesene Sprints per Drag & Drop einem Meilenstein zuordnen.
 - Priorisierung: Meilenstein-Reihenfolge per Drag & Drop anpassen (abhängigkeitsbewusst).
@@ -97,6 +110,7 @@ Beim Ziehen einer MilestoneColumn erscheint zwischen den Nachbar-Spalten eine `2
 ### 3.4 Completed-Sektion
 
 Am Fuß jeder MilestoneColumn, getrennt durch `border-t border-[--surface1]` + `pt-2`:
+
 - Sektionsüberschrift: `text-xs text-[--subtext0] uppercase tracking-wide` — "Abgeschlossen"
 - Collapsed by default, toggle via IconButton (Chevron) — (Q06 PO-Entscheidung, vorerst ungefält)
 
@@ -117,6 +131,7 @@ Am Fuß jeder MilestoneColumn, getrennt durch `border-t border-[--surface1]` + `
 ### 4.2 MilestoneColumn
 
 Rein präsentational. Props:
+
 ```
 milestone: { id, name, goal, position }
 sprints: Sprint[]          ← aktive (non-completed) Sprints
@@ -133,6 +148,7 @@ Analog MilestoneColumn, aber kein DragHandle (nicht verschiebbar), kein Complete
 ### 4.4 SprintCard (aktive Variante)
 
 Props:
+
 ```
 sprint: {
   id, name, status,
@@ -156,6 +172,7 @@ onOpen: () => void       ← Navigation zu Sprint-Detail
 ### 4.6 roadmapBoardDnd.js (reine Mathe)
 
 Exportiert (stateless pure functions):
+
 ```js
 colDragId(milestoneId)        → "col:<id>"
 cardDragId(sprintId)          → "card:<id>"
@@ -185,6 +202,7 @@ computeCardMove(cards, activeId, overId, targetColId) → { milestone_id, positi
 | `overId` | `string \| null` | Aktuelles Drop-Ziel (Drop-Indikator-Linie) |
 
 **Abgeleitet (kein State, `useMemo`):**
+
 - `orderedMilestones` — `milestones` nach `position` sortiert
 - `sprintsByMilestone` — Map `milestone_id → Sprint[]` (nur aktive)
 - `completedByMilestone` — Map `milestone_id → Sprint[]` (status `done`/`cancelled`)
@@ -204,6 +222,7 @@ computeCardMove(cards, activeId, overId, targetColId) → { milestone_id, positi
 | A6 | Re-Fetch | `devd-backlog-changed`-Event | A1 wiederholen | vollständiger Re-Load |
 
 **MSW-Handler (für Storybook):**
+
 ```
 GET  /api/milestones           → fixtures/milestone-list.json
 GET  /api/milestones/:id/dependencies → fixtures/milestone-deps.json
@@ -230,6 +249,7 @@ PUT  /api/sprints/:id          → 200 OK (Echo)
 | EmptyState | `role="status"` `aria-live="polite"` |
 
 **Keyboard-Navigation:**
+
 - `Tab` fokussiert DragHandles in DOM-Reihenfolge
 - `Space` / `Enter` auf DragHandle: startet Keyboard-Drag (@dnd-kit KeyboardSensor)
 - Pfeiltasten: bewegen das Drag-Element (nächste/vorherige Spalte / Card-Position)
@@ -255,6 +275,7 @@ Stories werden präsentational realisiert (kein Live-Fetch, Daten via `args` / M
 | `screens/RoadmapBoardScreen.stories.jsx` | screens | `Screens/RoadmapBoardScreen` | `Default` (MSW) · `Empty` | open |
 
 **MSW-Fixtures benötigt:**
+
 - `src/ui/foundations/fixtures/milestone-list.json` — Array mit 3 Meilensteinen
 - `src/ui/foundations/fixtures/milestone-deps.json` — 1 Abhängigkeit (M1 → M2)
 - `src/ui/foundations/fixtures/sprint-list.json` — bereits vorhanden, ggf. um `milestone_id` + `issue_done/total` erweitern

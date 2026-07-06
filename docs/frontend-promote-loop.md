@@ -1,3 +1,13 @@
+---
+type:
+description: "Promote-Loop pro Screen (Tier 4): presentational Story -> Connected-Wrapper + Route -> TDD -> fertig, kein Gate"
+tags: []
+aliases: []
+relates_to:
+uid: b6f466bc-6df6-4e05-a2dc-c85f1e8f5aea
+title: Frontend Promote-Loop
+---
+
 # Frontend Promote-Loop — Screen aus Storybook in die App ziehen (DD2)
 
 Projekt-spezifische Frontend-Prozedur (Tier 4). Repo-weite Invarianten + Router → Root `CLAUDE.md`. Frontend-Invarianten (Token/Icons/Test-Netz) → `apps/frontend/CLAUDE.md`.

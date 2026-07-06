@@ -66,3 +66,15 @@ issueFields/borderedPane), `forms_shared.go` (huh-Theme/Reset/Chrome), `modal.go
 Neuer Screen/Form/Box/Picker/Overlay → Datei nach Schema benennen, Konstante +
 `viewXxx()`-Methode konsistent. Keine fremde Verantwortung in eine art-Datei
 quetschen; geteilte Primitive in die `*_shared.go`-Komponentenschicht.
+
+## Architektur-Doku im Knowledge-Catalogue (Pflicht)
+
+Diese TUI-Architektur (Datei-Schema, Layout-Primitive, Fokus-Maschine, Keymap,
+Message/Command-Trennung, Overlay-/Formular-System, Test-Strategie …) ist als
+generische Best-Practice-Spec gespiegelt: `~/Obsidian/Knowledge-Catalogue/dev-wiki/tui-architecture-design/`
+(Einstieg `tui-specification.md`). Bei Änderungen an diesen Architektur-Mustern
+(neues Layout-Primitiv, geänderte Fokus-/Routing-Logik, neuer Overlay-/Formular-
+Mechanismus, neue Test-Ebene o.ä.) die passende Note dort NACHZIEHEN — Schreiben
+nur über Skill `/okf` (nie von Hand), s. `~/.claude/CLAUDE.md`. Rein DD2-fachliche
+Änderungen (Contracts, Backend-Endpunkte, Issue-Felder) betreffen die Spec NICHT,
+da sie bewusst projekt-agnostisch gehalten ist.

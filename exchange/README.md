@@ -1,3 +1,12 @@
+---
+type:
+description:
+tags: []
+aliases: []
+relates_to:
+uid:
+---
+
 # exchange/ — Datei-Austausch Mac ↔ Thinkpad
 
 **Git-ignored Scratch-Ordner.** Nur diese README ist getrackt — alles andere hier bleibt aus dem Repo draußen (siehe `.gitignore`: `/exchange/*` + `!/exchange/README.md`).
