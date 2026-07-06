@@ -15,5 +15,6 @@
 | Produkt-Referenz | Strategische Produkt-Referenz: Value Proposition, Kernfunktionen, Stack, Datenmodell, Architektur-Prinzipien | `docs/PRODUCT.md` |
 | RoadmapBoard-Mockup-Spec | Mockup-Spezifikation der Roadmap-Board-UI | `docs/RoadmapBoard-Mockup-Spec.md` |
 | Sprint Project Layer (DD2) | Projekt-Layer fuer /run-sprint: Identitaet DD2/devd2/10, Git-Policy, Ports/Build, Promote/Build-Zeiger, Abschluss-Grenze | `docs/sprint-project-layer.md` |
+| SSTD | Session State Transfer Document (CODE) — DD2#37 Freshness-/Coverage-Gate, laufender GLOSSARY.md-Reshape | `docs/SSTD.md` |
 | Storybook ueber Tailscale | Storybook vom Mac ueber Tailscale am ThinkPad: npm run storybook:remote (-h 0.0.0.0), allowedHosts, Troubleshooting | `docs/storybook-tailscale.md` |
 | ToolHome-Spec | Screen-Spec globaler Einstieg/Projektauswahl-Grid: Komponentenbaum, Stories, Entscheidungen D01-D08 | `docs/ToolHome-Spec.md` |
