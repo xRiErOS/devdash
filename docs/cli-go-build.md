@@ -56,6 +56,62 @@ Die TUI spricht das DD2-Backend über `DEVD_API_URL` (Default `http://localhost:
 Prod NAS `http://100.71.39.53:3001` via Tailscale). Dunkles Theme ist hart erzwungen
 (`lipgloss.SetHasDarkBackground(true)`) — über ssh+tmux sonst heller BG (OSC-11-Fehldetektion).
 
+## Codegen-Workflow (DD2-211/212/213, D07)
+
+Der Go-Client (`internal/api/generated.go` + `internal/api/generated/generated_types.go`
++ `internal/api/generated/capabilities.json`) ist **generiert**, nicht handgeschrieben —
+Quelle ist `apps/cli/mcp/devd-mcp.js` (MCP-Tool-Definitionen). Nicht von Hand editieren,
+Diff wird beim nächsten Regen überschrieben.
+
+### Neu generieren
+
+```sh
+npm run gen:cli-client
+```
+
+Führt in fixer Reihenfolge aus: `capabilities.mjs` (Soll-Dump) → `gen-types.mjs`
+(Arg-Structs) → `gen-client.mjs` (Client-Funcs) → `gen-skip-allowlist.mjs`
+(Skip-/Allowlist-Persistenz). Alternativ direkt aus `internal/api`:
+
+```sh
+cd apps/cli-go/internal/api && command go generate ./...
+```
+
+(`//go:generate`-Direktive in `client.go` ruft denselben npm-Script.)
+
+### Freshness-Gate (D07)
+
+CI (`.github/workflows/codegen-freshness.yml`) regeneriert bei jedem Push/PR und
+prüft `git diff --exit-code` über `generated.go`, `generated_types.go`,
+`capabilities.json`, `skip-allowlist.json`. Nicht-leerer Diff → CI rot. Das bedeutet:
+**wer ein MCP-Tool ändert (devd-mcp.js), muss `npm run gen:cli-client` laufen lassen
+und die geänderten Generated-Dateien mitcommitten** — sonst bricht der nächste
+CI-Lauf. Lokal vor Commit denselben Befehl laufen lassen und `git status` auf die vier
+Dateien prüfen.
+
+### Coverage-Check (L1 = 100%)
+
+```sh
+npm run gen:cli-coverage-check
+```
+
+Beweist unabhängig (parst `generated.go` direkt, ruft die Codegen-Skip-Logik nicht
+erneut auf): jedes Tool aus `capabilities.json` ist entweder generiert, im
+Skip-Allowlist (`apps/cli-go/codegen/skip-allowlist.json` — bereits hand-implementiert,
+Konsolidierung DD2#36) oder explizit `agent-only` (`apps/cli-go/codegen/agent-only-allowlist.json`
+— bewusst nicht im Go-Client, z.B. reine AI-Memory-/Session-Tools ohne TUI-Bezug).
+Meldet `GAP`/`OVERLAP`/`STALE` getrennt und schlägt fehl, sobald ein Tool durchs Raster
+fällt. `skip-allowlist.json` und `agent-only-allowlist.json` sind beide **generiert bzw.
+kuratiert, nicht frei editierbar** — Skip-Allowlist über `gen-skip-allowlist.mjs`
+(Teil von `gen:cli-client`), Agent-Only-Liste von Hand pflegen, wenn ein Tool bewusst
+nie einen Go-Client-Func bekommen soll.
+
+### Neues Tool bewusst nicht im Client (agent-only)
+
+Tool soll nur vom AI-Agenten via MCP genutzt werden, nie über TUI/CLI? Eintrag in
+`apps/cli-go/codegen/agent-only-allowlist.json` ergänzen (`{"tool": "devd_...",
+"reason": "..."}`), sonst meldet der Coverage-Check eine Lücke.
+
 ## Worktree-Hinweis
 
 Bei paralleler Arbeit im Worktree wird der main-HEAD nicht angefasst. Der Build läuft
