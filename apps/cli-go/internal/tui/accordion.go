@@ -214,6 +214,98 @@ func (m model) issueSections(it api.Issue, bodyW int, full bool) []accordionSect
 	return secs
 }
 
+// hasFieldKey / fieldByKey: kleine Helfer über die Feld-Liste einer Sektion.
+func hasFieldKey(fs []detailField, key string) bool {
+	for _, f := range fs {
+		if f.key == key {
+			return true
+		}
+	}
+	return false
+}
+
+func fieldByKey(fs []detailField, key string) detailField {
+	for _, f := range fs {
+		if f.key == key {
+			return f
+		}
+	}
+	return fs[0]
+}
+
+// labelLineIndex liefert den (0-basierten) Body-Zeilenindex, in dem das Feld-Label
+// als subhead-Kopfzeile steht (Accent, eigene Zeile), sonst -1.
+func labelLineIndex(bodyLines []string, label string) int {
+	for i, l := range bodyLines {
+		if strings.TrimSpace(ansi.Strip(l)) == label {
+			return i
+		}
+	}
+	return -1
+}
+
+// itemFieldAtLine ordnet einen Body-Klick in einer Item-Sektion (User-Stories/DoD)
+// der getroffenen Item-Zeile zu (DD2-274 #3). Zählt echte Item-Zeilen (leere und
+// eingerückte "QA:"-Detailzeilen überspringend) bis bodyLine; jenseits aller Items
+// fällt es auf die letzte Feld-Zeile (die "+ Add"-Zeile).
+func itemFieldAtLine(sec accordionSection, bodyLine int) detailField {
+	lines := strings.Split(sec.body, "\n")
+	itemIdx := -1
+	for i := 0; i <= bodyLine && i < len(lines); i++ {
+		s := strings.TrimSpace(ansi.Strip(lines[i]))
+		if s == "" || strings.HasPrefix(s, "QA:") {
+			continue
+		}
+		itemIdx++
+	}
+	if itemIdx < 0 {
+		itemIdx = 0
+	}
+	if itemIdx >= len(sec.fields) {
+		itemIdx = len(sec.fields) - 1 // "+ Add"
+	}
+	return sec.fields[itemIdx]
+}
+
+// issueBodyField resolvet einen Klick in den Body einer offenen Accordion-Sektion
+// auf das zu editierende Feld (DD2-274 #3, „Felder generell anklickbar"). bodyLine
+// = 0-basierte Body-Zeile (nach Header/Feld-Streifen), relX = content-Spalte im
+// Body (nach dem renderAccordion-PaddingLeft). ok=false für read-only Sektionen
+// (keine Felder). bodyW = Innenbreite (= issueSections-bodyW), für den Grid-Split.
+func issueBodyField(sec accordionSection, bodyLine, relX, bodyW int) (detailField, bool) {
+	fs := sec.fields
+	if len(fs) == 0 {
+		return detailField{}, false // read-only (Subtasks/Review)
+	}
+	if len(fs) == 1 {
+		return fs[0], true
+	}
+	if strings.HasPrefix(fs[0].key, "us:") || strings.HasPrefix(fs[0].key, "dod:") {
+		return itemFieldAtLine(sec, bodyLine), true
+	}
+	// Grid-Sektion (Goal[/Description] links | PO-Notes rechts): Spalten-Split.
+	if hasFieldKey(fs, "goal") && hasFieldKey(fs, "po_notes") {
+		leftW := gridColWidths(bodyW, 2, []int{3, 2})[0]
+		if relX >= leftW {
+			return fieldByKey(fs, "po_notes"), true
+		}
+		if hasFieldKey(fs, "description") && bodyLine >= 2 { // Description unter dem Goal
+			return fieldByKey(fs, "description"), true
+		}
+		return fieldByKey(fs, "goal"), true
+	}
+	// Gestapelte Sektion (z.B. Background/Context): dem Feld zuordnen, dessen
+	// Label-Kopfzeile am nächsten oberhalb der geklickten Zeile steht.
+	lines := strings.Split(sec.body, "\n")
+	best := fs[0]
+	for _, f := range fs {
+		if li := labelLineIndex(lines, f.label); li >= 0 && li <= bodyLine {
+			best = f
+		}
+	}
+	return best, true
+}
+
 // renderAccordion rendert die Sektions-Header (`> [n] Title`) und klappt die
 // offene Sektion (1-basiert, exklusiv) als eingerückten Body darunter auf. Ruhige
 // Ein-Ebenen-Darstellung (keine Mantle-Leiste, kein Body-Kasten) — Heading vs.

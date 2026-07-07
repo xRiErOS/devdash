@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"devd-cli/internal/api"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
 )
@@ -234,6 +235,79 @@ func TestMouseClickMetaStripStatusOpensStatusPick(t *testing.T) {
 	}
 	if got.stSprintID != 10 {
 		t.Errorf("stSprintID=%d, want 10 (Sprint-Kontext des Tree-Knotens)", got.stSprintID)
+	}
+}
+
+// DD2-274 #3: Klick auf den Body einer offenen Ein-Feld-Sektion (Relevant Files)
+// öffnet deren editField-Form.
+func TestMouseClickBodyFieldRelevantFiles(t *testing.T) {
+	m := treeMouseModel()
+	m.treeCursor = 2 // DD2-101
+	m.accOpen = 3    // Sektion 3 = Relevant Files (Body = "(empty)")
+	m.width, m.height = 100, 30
+
+	mi, _ := m.handleMouse(clickAt(t, m, "(empty)", true))
+	got := mi.(model)
+	if got.form == nil || got.editField != "relevant_files" {
+		t.Fatalf("Klick auf Relevant-Files-Body → editField relevant_files, field=%q form=%v", got.editField, got.form != nil)
+	}
+}
+
+// DD2-274 #3: Grid-Sektion (Goal links | PO-Notes rechts) — Spalten-Split ordnet
+// den Klick dem richtigen Feld zu.
+func TestMouseClickBodyFieldGoalVsPoNotes(t *testing.T) {
+	m := treeMouseModel()
+	m.treeCursor = 2
+	m.accOpen = 1 // Sektion 1 = Goal / … | PO-Notes
+	m.width, m.height = 100, 30
+	g, p := "GoalText", "NotesText"
+	m.treeIssues[10][0].Goal = &g
+	m.treeIssues[10][0].PoNotes = &p
+
+	mi, _ := m.handleMouse(clickAt(t, m, "GoalText", true))
+	if got := mi.(model); got.form == nil || got.editField != "goal" {
+		t.Fatalf("Klick auf Goal-Spalte → editField goal, field=%q", got.editField)
+	}
+	mi2, _ := m.handleMouse(clickAt(t, m, "NotesText", true))
+	if got := mi2.(model); got.form == nil || got.editField != "po_notes" {
+		t.Fatalf("Klick auf PO-Notes-Spalte → editField po_notes, field=%q", got.editField)
+	}
+}
+
+// DD2-274 #3: gestapelte Sektion (Background/Context) — Zuordnung über die Feld-
+// Label-Kopfzeile oberhalb der geklickten Zeile.
+func TestMouseClickBodyFieldBackgroundVsContext(t *testing.T) {
+	m := treeMouseModel()
+	m.treeCursor = 2
+	m.accOpen = 2 // Sektion 2 = Background / Context
+	m.width, m.height = 100, 30
+	bg, cn := "BgText", "CtxText"
+	m.treeIssues[10][0].Background = &bg
+	m.treeIssues[10][0].ContextNotes = &cn
+
+	mi, _ := m.handleMouse(clickAt(t, m, "BgText", true))
+	if got := mi.(model); got.form == nil || got.editField != "background" {
+		t.Fatalf("Klick auf Background-Wert → editField background, field=%q", got.editField)
+	}
+	mi2, _ := m.handleMouse(clickAt(t, m, "CtxText", true))
+	if got := mi2.(model); got.form == nil || got.editField != "context_notes" {
+		t.Fatalf("Klick auf Context-Wert → editField context_notes, field=%q", got.editField)
+	}
+}
+
+// DD2-274 #3: Klick auf eine User-Story-Zeile öffnet deren US-Form (openUserStoryForm),
+// nicht den scalar-editField-Pfad.
+func TestMouseClickBodyFieldUserStoryRow(t *testing.T) {
+	m := treeMouseModel()
+	m.treeCursor = 2
+	m.accOpen = 4 // Sektion 4 = User-Stories
+	m.width, m.height = 100, 30
+	m.treeIssues[10][0].UserStories = []api.UserStory{{ID: 777, Title: "MyStory", Verdict: "open"}}
+
+	mi, _ := m.handleMouse(clickAt(t, m, "MyStory", true))
+	got := mi.(model)
+	if got.form == nil || got.usFormID != 777 {
+		t.Fatalf("Klick auf US-Zeile → US-Form (usFormID=777), got form=%v usFormID=%d", got.form != nil, got.usFormID)
 	}
 }
 

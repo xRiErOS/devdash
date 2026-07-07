@@ -510,6 +510,9 @@ func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			if mi, cmd, ok := m.mouseAccordionClick(msg); ok {
 				return mi, cmd
 			}
+			if mi, cmd, ok := m.mouseBodyFieldClick(msg); ok { // #3: Body-Feld → editField-Form
+				return mi, cmd
+			}
 			return m.mouseTreeClick(msg)
 		case viewBrowseBacklog: // DD2-274: Klick auf Priority-/Status-Zelle → Picker/Editor
 			return m.mouseBacklogClick(msg)
@@ -696,6 +699,77 @@ func (m model) mouseMetaStripClick(msg tea.MouseMsg) (tea.Model, tea.Cmd, bool) 
 		return m, nil, false // milestone/tags: kein Editor (D01)
 	}
 	return m, nil, false
+}
+
+// mouseBodyFieldClick öffnet den Feld-Editor, wenn der Klick in den Body einer
+// offenen Accordion-Sektion der rechten Detail-Pane fällt (DD2-274 #3, „Felder
+// generell anklickbar+editierbar"). Die getroffene Sektion + Body-Zeile werden
+// render-getreu aus treeDetail ermittelt (nächster Header oberhalb), das Feld über
+// issueBodyField zugeordnet; geöffnet wird über DIESELBEN Funktionen wie der
+// Tasten-Pfad (openEditField / openUserStoryForm). Nur Issue-Knoten (Meilenstein/
+// Sprint-Felder folgen separat). ok=false außerhalb eines Body-Feldes.
+func (m model) mouseBodyFieldClick(msg tea.MouseMsg) (tea.Model, tea.Cmd, bool) {
+	head, _, lw, rw, _ := m.treeLayout()
+	relX := msg.X - m.rightContentX(lw)
+	if relX < 0 || relX >= rw { // nicht in der rechten Detail-Pane
+		return m, nil, false
+	}
+	nodes := m.treeNodes()
+	if m.treeCursor < 0 || m.treeCursor >= len(nodes) {
+		return m, nil, false
+	}
+	n := nodes[m.treeCursor]
+	if n.kind != tkIssue || n.issue == nil { // Scope: Issue-Detail
+		return m, nil, false
+	}
+	it := n.issue
+	lineIdx := msg.Y - m.paneOriginY(head)
+	if lineIdx < 0 {
+		return m, nil, false
+	}
+	lines := strings.Split(m.treeDetail(n, rw-2), "\n")
+	if lineIdx >= len(lines) {
+		return m, nil, false
+	}
+	// Nächsten Section-Header AUF/OBERHALB der geklickten Zeile finden.
+	hdr, secN := -1, 0
+	for i := lineIdx; i >= 0; i-- {
+		if d, ok := accordionHeaderDigit(ansi.Strip(lines[i])); ok {
+			hdr, secN = i, d
+			break
+		}
+	}
+	if hdr < 0 || secN < 1 {
+		return m, nil, false
+	}
+	bodyLine := lineIdx - hdr - 1
+	// Feld-Streifen-Zeile ("Fields: …") direkt nach dem Header (nur im Detail-Fokus)
+	// zählt nicht zum Body.
+	if hdr+1 < len(lines) && strings.HasPrefix(strings.TrimSpace(ansi.Strip(lines[hdr+1])), "Fields:") {
+		bodyLine--
+	}
+	if bodyLine < 0 { // Header-/Streifen-Zeile selbst (Header-Toggle lief bereits)
+		return m, nil, false
+	}
+	secs := m.issueSections(*it, rw-2, true)
+	if secN-1 < 0 || secN-1 >= len(secs) {
+		return m, nil, false
+	}
+	const bodyIndent = 2 // renderAccordion boxStyle PaddingLeft(2)
+	f, ok := issueBodyField(secs[secN-1], bodyLine, relX-bodyIndent, rw-2)
+	if !ok {
+		return m, nil, false
+	}
+	switch f.editor {
+	case "userstory":
+		mi, cmd := m.openUserStoryForm(*it, f)
+		return mi, cmd, true
+	case "dod":
+		return m, nil, false // Issues haben keine DoD (nur Meilenstein) — kein Ziel
+	default:
+		mi, cmd := m.openEditField(*it, f)
+		return mi, cmd, true
+	}
 }
 
 // fieldKind identifiziert, welches mausklickbare Feld einer gerenderten Backlog-
