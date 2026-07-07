@@ -211,6 +211,13 @@ func TestToastClickOutsideHitAreaLeavesToastUntouched(t *testing.T) {
 	}
 }
 
+// B01-Fix: toastGeometry() muss gegen m.width (die tatsächlich kompositierte
+// Frame-Breite, inkl. bereits appliziertem äußerem Rahmen) rechnen, NICHT gegen
+// m.termWidth() (Innenbreite, -2 für den Rahmen) — sonst sitzt der Toast 2
+// Spalten zu weit links und deckt die rechte Rahmenkante nicht ab. m.view bleibt
+// hier bewusst der Default (viewHome, bordered) — termWidth() wäre 98, m.width
+// ist 100; der alte (falsche) Test prüfte exakt diesen jetzt-korrigierten Wert
+// und hätte den Bug NICHT gefangen.
 func TestToastHitGeometryTopRightCorner(t *testing.T) {
 	m := model{width: 100, height: 22}
 	m, _ = m.showToast(toastInfo, "x", "", nil, false)
@@ -218,11 +225,43 @@ func TestToastHitGeometryTopRightCorner(t *testing.T) {
 	if y != 0 {
 		t.Errorf("Toast sollte oben sitzen (y=0), got %d", y)
 	}
-	if x+w != m.termWidth() {
-		t.Errorf("Toast sollte an der rechten Kante anliegen: x=%d w=%d termWidth=%d", x, w, m.termWidth())
+	if x+w != m.width {
+		t.Errorf("Toast sollte an der ECHTEN Frame-Kante (m.width) anliegen: x=%d w=%d m.width=%d", x, w, m.width)
 	}
 	if w < 32 || w > 40 {
 		t.Errorf("Toast-Breite %d außerhalb der Zielspanne 32-40", w)
+	}
+}
+
+// TestToastFlushAgainstCompositedFrameRightEdge ist die vom Review geforderte
+// Regression (B01): sie rendert eine GEBORDERTE View (viewDetailSprint, äußerer
+// RoundedBorder bereits appliziert, s. outerBorder()/view.go) MIT aktivem Toast
+// über die volle View()-Pipeline und prüft für jede vom Toast betroffene Zeile,
+// dass deren rechte w Spalten EXAKT dem Toast-Box-Inhalt entsprechen — kein
+// Rest-Zeichen der darunterliegenden Basis-View (z.B. ein durchscheinendes
+// Rahmen-Eck oder ein Buchstabenfragment) bleibt sichtbar. Eine Regression auf
+// m.termWidth() (2 Spalten zu schmal) hätte hier einen Mismatch in der letzten
+// Spalte jeder Zeile erzeugt — anders als eine reine Breiten-Prüfung (die auch
+// bei falscher x-Position unverändert bei m.width bleibt, weil spliceLine() die
+// Zeilenlänge insgesamt erhält).
+func TestToastFlushAgainstCompositedFrameRightEdge(t *testing.T) {
+	m := goldenModel(viewDetailSprint, 1) // bordered View (viewBordered() == true)
+	m, _ = m.showToast(toastInfo, "Sprint saved", "DD2#9", nil, false)
+
+	_, _, w, h := m.toastGeometry()
+	toastLines := strings.Split(m.toastBox(), "\n")
+	viewLines := strings.Split(m.View(), "\n")
+
+	for i := 0; i < h; i++ {
+		if i >= len(viewLines) {
+			t.Fatalf("View() hat weniger Zeilen (%d) als der Toast hoch ist (%d)", len(viewLines), h)
+		}
+		wantRow := ansi.Strip(toastLines[i])
+		gotTail := ansi.Strip(ansi.TruncateLeft(viewLines[i], m.width-w, ""))
+		if gotTail != wantRow {
+			t.Errorf("Zeile %d: rechte %d Spalten = %q, want exakt die Toast-Box-Zeile %q (Rahmen/Chrome-Rest sichtbar → B01-Regression)",
+				i, w, gotTail, wantRow)
+		}
 	}
 }
 

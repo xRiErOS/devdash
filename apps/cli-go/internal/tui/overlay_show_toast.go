@@ -145,8 +145,20 @@ func (m model) toastBox() string {
 }
 
 // toastGeometry liefert die Platzierung der Toast-Box (obere rechte Ecke) auf
-// der tw×th-Leinwand — geteilte Geometrie zwischen Rendering (renderToast) und
+// der Leinwand — geteilte Geometrie zwischen Rendering (renderToast) und
 // Klick-Hit-Test (handleMouse), damit sie nie auseinanderdriften.
+//
+// B01-Fix (Code-Review nach Commit 20e029a): NICHT m.termWidth() (Innenbreite,
+// zieht 2 Spalten für den App-Außenrahmen ab) — renderToast() bekommt bereits
+// den FERTIG kompositierten Frame als base (View() ruft outerBorder() via
+// viewComposite() VOR renderToast() auf, s. view.go). Der äußere RoundedBorder
+// ist also schon Teil von base und hat dessen Gesamtbreite auf m.width gebracht
+// (outerBorder() rendert mit Width(termWidth()), + Border legt nochmal 2 drauf →
+// termWidth()+2 == m.width). Der Toast ist ein Full-Screen-Overlay ÜBER dem
+// fertigen Frame, kein Inner-Content-Element — er muss also gegen m.width
+// kompositieren, sonst sitzt er 2 Spalten zu weit links und die rechte
+// Toast-Kante deckt den echten äußeren Rahmen nicht ab (Rahmen-Eck/Chrome-Text
+// scheint durch, s. testdata/toast_*.golden vor dem Fix).
 func (m model) toastGeometry() (x, y, w, h int) {
 	box := m.toastBox()
 	lines := strings.Split(box, "\n")
@@ -157,7 +169,7 @@ func (m model) toastGeometry() (x, y, w, h int) {
 		}
 	}
 	h = len(lines)
-	tw := m.termWidth()
+	tw := m.width
 	x = tw - w
 	if x < 0 {
 		x = 0
@@ -169,13 +181,15 @@ func (m model) toastGeometry() (x, y, w, h int) {
 // renderToast legt die Toast-Box über die fertige Basis-View (oben rechts).
 // Wiederverwendet canvasLines()/spliceLine() (dieselben Primitive, die
 // placeOverlay() intern nutzt) statt placeOverlay()s Zentrierung — kein neues
-// Compositing-Primitiv, nur andere Koordinaten.
+// Compositing-Primitiv, nur andere Koordinaten. base ist bereits der volle,
+// fertig kompositierte Frame (inkl. äußerem Rahmen) → gegen m.width/m.height
+// kompositieren (s. toastGeometry()-Kommentar, B01-Fix).
 func (m model) renderToast(base string) string {
 	if m.toast == nil {
 		return base
 	}
 	x, y, w, _ := m.toastGeometry()
-	tw, th := m.termWidth(), m.height
+	tw, th := m.width, m.height
 	bgLines := canvasLines(base, tw, th)
 	fgLines := strings.Split(m.toastBox(), "\n")
 	for i, fl := range fgLines {

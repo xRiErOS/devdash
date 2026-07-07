@@ -58,8 +58,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case errMsg:
 		m.err = msg.err
 		return m, nil
-	case statusMsg:
-		return m.showToast(toastInfo, msg.text, "", nil, false)
 	case noticeMsg:
 		return m.showToast(msg.kind, msg.text, "", msg.target, false)
 	case userStoriesMsg:

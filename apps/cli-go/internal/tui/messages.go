@@ -49,7 +49,6 @@ type reviewDetailMsg struct {                      // DD2-230: Sprint-Detail (It
 }
 type memoriesMsg struct{ items []api.ProjectMemory } // T18: Memory-Liste
 type memDetailMsg struct{ mem *api.ProjectMemory }   // T18: Memory-Detail (content)
-type statusMsg struct{ text string }
 type userStoriesMsg struct {
 	issueID int
 	items   []api.UserStory
