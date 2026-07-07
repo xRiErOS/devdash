@@ -441,12 +441,88 @@ func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		}
 		switch m.view {
 		case viewBrowseProject:
+			// DD2-274: Feld-Klick (Priority/Status) hat Vorrang vor dem bestehenden
+			// Zeilen-Cursor-Klick — kein Treffer fällt unverändert auf mouseTreeClick
+			// zurück (AC3).
+			if mi, cmd, ok := m.mouseTreeFieldClick(msg); ok {
+				return mi, cmd
+			}
 			return m.mouseTreeClick(msg)
 		case viewBrowseBacklog: // DD2-274: Klick auf Priority-/Status-Zelle → Picker/Editor
 			return m.mouseBacklogClick(msg)
 		}
 	}
 	return m, nil
+}
+
+// treeFieldHit bildet einen Mausklick auf ein Feld (Priority/Status) EINES
+// bestimmten Issue-Knotens im Tree ab (DD2-274) — dieselbe Geometrie wie
+// treeLeftBlocks/blockWindow (drift-frei, analog mouseTreeClick/backlogFieldHit).
+// Nur die Kopfzeile eines tkIssue-Blocks trägt die Icons; umgebrochene Titelzeilen
+// darunter UND Meilenstein-/Sprint-/Info-Zeilen sind kein Feld-Ziel. hit=false,
+// wenn X/Y keine Ikonen-Spalte trifft — der Aufrufer fällt dann auf den
+// bestehenden Zeilen-Cursor-Klick (mouseTreeClick) zurück.
+func (m model) treeFieldHit(msg tea.MouseMsg) (it *api.Issue, sprintID int, field fieldKind, hit bool) {
+	head, _, lw, _, innerH := m.treeLayout()
+	if msg.X >= lw {
+		return nil, 0, 0, false // rechte Detail-Spalte — kein Feld-Ziel
+	}
+	nodes := m.treeNodes()
+	if len(nodes) == 0 {
+		return nil, 0, 0, false
+	}
+	blocks := m.treeLeftBlocks(nodes, lw-2, !m.detailFocus)
+	firstRowY := lipgloss.Height(head) + 1 + 1 // obere Border + Suchkopfzeile (analog mouseTreeClick)
+	rel := msg.Y - firstRowY
+	if rel < 0 {
+		return nil, 0, 0, false
+	}
+	lo, hi := blockWindow(blocks, innerH-1, m.treeCursor)
+	acc := 0
+	for i := lo; i <= hi; i++ {
+		h := len(blocks[i])
+		if rel < acc+h {
+			if rel != acc {
+				return nil, 0, 0, false // nicht die Kopfzeile des Blocks
+			}
+			n := nodes[i]
+			if n.kind != tkIssue || n.issue == nil {
+				return nil, 0, 0, false // Meilenstein/Sprint/Info tragen keine Icons
+			}
+			statusStart, statusEnd, prioStart, prioEnd := treeIssueRowCols(n)
+			switch {
+			case msg.X >= statusStart && msg.X < statusEnd:
+				return n.issue, n.sprintID, fieldStatus, true
+			case msg.X >= prioStart && msg.X < prioEnd:
+				return n.issue, n.sprintID, fieldPriority, true
+			}
+			return nil, 0, 0, false
+		}
+		acc += h
+	}
+	return nil, 0, 0, false
+}
+
+// mouseTreeFieldClick dispatcht einen Tree-Klick auf die Priority-/Status-Zelle
+// eines Issue-Knotens (DD2-274) — DIESELBE Öffnen-Funktion wie Backlog UND der
+// Tasten-Pfad (openPriorityEdit/openIssueStatus), kein Logik-Duplikat (AC4).
+// ok=false, wenn kein Feld getroffen wurde — handleMouse fällt dann auf den
+// bestehenden mouseTreeClick-Zeilen-Cursor zurück (AC3: unverändertes Verhalten
+// außerhalb der neuen Hit-Areas).
+func (m model) mouseTreeFieldClick(msg tea.MouseMsg) (tea.Model, tea.Cmd, bool) {
+	it, sprintID, field, hit := m.treeFieldHit(msg)
+	if !hit {
+		return m, nil, false
+	}
+	switch field {
+	case fieldPriority:
+		mi, cmd := m.openPriorityEdit(it)
+		return mi, cmd, true
+	case fieldStatus:
+		mi, cmd := m.openIssueStatus(it, sprintID)
+		return mi, cmd, true
+	}
+	return m, nil, false
 }
 
 // fieldKind identifiziert, welches mausklickbare Feld einer gerenderten Backlog-

@@ -348,14 +348,7 @@ func (m model) treeLeftLines(nodes []treeNode, w int, active bool) []string {
 func (m model) treeLeftBlocks(nodes []treeNode, w int, active bool) [][]string {
 	blocks := make([][]string, 0, len(nodes))
 	for i, n := range nodes {
-		marker := "  "
-		if n.expand {
-			if n.open {
-				marker = "▾ "
-			} else {
-				marker = "▸ "
-			}
-		}
+		marker := treeNodeMarker(n)
 		indent := strings.Repeat("  ", n.depth)
 		var lines []string
 		switch n.kind {
@@ -408,13 +401,34 @@ func (m model) treeLeftBlocks(nodes []treeNode, w int, active bool) [][]string {
 	return blocks
 }
 
+// treeNodeMarker liefert den Expand-Marker (▾ auf/▸ zu/Leerzeichen) eines
+// Tree-Knotens — Single Source für Render (treeLeftBlocks) UND Feld-Hit-Test
+// (treeIssueRowCols, DD2-274), damit beide nie auseinanderdriften.
+func treeNodeMarker(n treeNode) string {
+	if !n.expand {
+		return "  "
+	}
+	if n.open {
+		return "▾ "
+	}
+	return "▸ "
+}
+
+// treeNodeLead liefert Einzug+Marker eines Tree-Knotens (Displaybreite VOR dem
+// eigentlichen Zellen-Inhalt) — Single Source für Render UND Hit-Test (DD2-274).
+func treeNodeLead(n treeNode) string {
+	return strings.Repeat("  ", n.depth) + treeNodeMarker(n)
+}
+
 // issueTreeBlock baut den mehrzeiligen Issue-Block für den Tree (DD2-193): Kopf
-// (Prefix = Einzug + icon + prio) + Key, darunter der auf Pane-Breite umgebrochene
-// Titel als Hängeeinzug unter dem Key (Einzug = Displaybreite des Prefix VOR dem
-// Key, lipgloss.Width — nie len, B06). w-1 reserviert die Cursor-Spalte (Rightalign-
-// Reserve, [[dd2-tui-rightalign-reserve-width]]).
+// (Prefix = Einzug + icon + status + prio) + Key, darunter der auf Pane-Breite
+// umgebrochene Titel als Hängeeinzug unter dem Key (Einzug = Displaybreite des
+// Prefix VOR dem Key, lipgloss.Width — nie len, B06). w-1 reserviert die Cursor-
+// Spalte (Rightalign-Reserve, [[dd2-tui-rightalign-reserve-width]]). DD2-274:
+// Status-Icon ergänzt (zwischen Type und Priorität) — macht die Zeile
+// mausklickbar (treeIssueRowCols spiegelt exakt diesen Aufbau).
 func issueTreeBlock(it api.Issue, lead string, w int) []string {
-	prefix := lead + theme.TypeIcon(it.Type) + " " + theme.Priority(it.Priority) + " "
+	prefix := lead + theme.TypeIcon(it.Type) + " " + theme.StatusIcon(it.Status) + " " + theme.Priority(it.Priority) + " "
 	indent := lipgloss.Width(prefix)
 	lines := []string{prefix + theme.Key.Render(it.Key)}
 	if title := strings.TrimSpace(it.Title); title != "" {
@@ -428,6 +442,25 @@ func issueTreeBlock(it api.Issue, lead string, w int) []string {
 		}
 	}
 	return lines
+}
+
+// treeIssueRowCols liefert die Spalten-Trefferzonen (Status-Icon, Priorität) der
+// Kopfzeile eines tkIssue-Tree-Blocks (DD2-274). Baut auf denselben Primitiven wie
+// issueTreeBlock (treeNodeLead + TypeIcon/StatusIcon/Priority), kann darum nie vom
+// tatsächlichen Render abdriften. markerW=1 ist der Cursor-/Rand-Marker ("▌"/" "),
+// den treeLeftBlocks JEDER Zeile voranstellt, BEVOR lead+prefix folgen. n.issue
+// muss gesetzt sein (Aufrufer garantiert n.kind == tkIssue && n.issue != nil).
+func treeIssueRowCols(n treeNode) (statusStart, statusEnd, prioStart, prioEnd int) {
+	const markerW = 1
+	leadW := lipgloss.Width(treeNodeLead(n))
+	typeW := lipgloss.Width(theme.TypeIcon(n.issue.Type))
+	statusStart = markerW + leadW + typeW + 1 // +1 Trennleerzeichen nach dem Type-Icon
+	statusW := lipgloss.Width(theme.StatusIcon(n.issue.Status))
+	statusEnd = statusStart + statusW
+	prioStart = statusEnd + 1 // +1 Trennleerzeichen nach dem Status-Icon
+	prioW := lipgloss.Width(theme.Priority(n.issue.Priority))
+	prioEnd = prioStart + prioW
+	return
 }
 
 // syncDeps lädt die Abhängigkeiten des fokussierten Milestone-/Sprint-Knotens
