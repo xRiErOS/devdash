@@ -30,7 +30,6 @@ func (m model) openUserNotes() (tea.Model, tea.Cmd) {
 	m.unSearching = false
 	m.unQuery = ""
 	m.unEditID = 0
-	m.status = ""
 	return m, loadUserNotes(m.client, "")
 }
 
@@ -50,12 +49,10 @@ func (m model) keyUserNotes(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc", "q":
 		m.view = m.topReturn
-		m.status = ""
 		return m, nil
 	case "/":
 		m.unSearching = true
 		m.unQuery = ""
-		m.status = ""
 		return m, nil
 	case "n": // create: ganze Datei in neovim, erste Zeile = Titel
 		m.unEditID = 0
@@ -136,8 +133,6 @@ func (m model) viewUserNotes() string {
 	footer := theme.Dim.Render("i/k:↑↓  /:search  enter:edit  n:new  d:delete  esc/q:back")
 	if m.unSearching {
 		footer = theme.Key.Render("Search: ") + m.unQuery + "▏"
-	} else if m.status != "" {
-		footer = m.status
 	}
 	return head + "\n" + body + "\n" + footer
 }

@@ -104,7 +104,7 @@ func (m model) openDocsFromContextEx(create bool) (tea.Model, tea.Cmd) {
 		}
 	}
 	return m, func() tea.Msg {
-		return noticeMsg{"select a milestone or sprint in the tree first"}
+		return noticeMsg{text: "select a milestone or sprint in the tree first", kind: toastWarn}
 	}
 }
 
@@ -121,7 +121,6 @@ func (m model) openDocs(ownerType string, ownerID int, ownerName string) (tea.Mo
 	m.docEditID = 0
 	m.docAllMode = false
 	m.docStatusFilter = "open" // DD2-254: Default blendet archivierte Dokumente aus
-	m.status = ""
 	return m, loadDocs(m.client, ownerType, ownerID)
 }
 
@@ -140,7 +139,6 @@ func (m model) openAllDocs() (tea.Model, tea.Cmd) {
 	m.docEditID = 0
 	m.docAllMode = true
 	m.docStatusFilter = "open" // DD2-254: Default blendet archivierte Dokumente aus
-	m.status = ""
 	return m, loadAllDocs(m.client)
 }
 
@@ -188,18 +186,15 @@ func (m model) keyDocs(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.docStatusFilter = nextDocStatus(m.docStatusFilter)
 		m.doclist = listState{}
 		m.doclist.setLen(len(m.filteredDocs()))
-		m.status = ""
 		return m, nil
 	}
 	switch msg.String() {
 	case "esc", "q":
 		m.view = m.topReturn
-		m.status = ""
 		return m, nil
 	case "/":
 		m.docSearching = true
 		m.docQuery = ""
-		m.status = ""
 		return m, nil
 	case "enter": // edit body in neovim
 		cur := m.selDoc()
@@ -214,7 +209,7 @@ func (m model) keyDocs(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "n": // create: erste Buffer-Zeile = title
 		if m.docAllMode { // ohne Owner kein Create — aus Meilenstein/Sprint-Kontext anlegen
 			return m, func() tea.Msg {
-				return noticeMsg{"create from a milestone/sprint (tree) context"}
+				return noticeMsg{text: "create from a milestone/sprint (tree) context", kind: toastWarn}
 			}
 		}
 		m.docEditID = 0
@@ -280,9 +275,9 @@ func (m model) viewDocs() string {
 	footer := theme.Dim.Render("i/k:↑↓  /:search  enter:edit  n:new  d:delete  a:assign  r:rename  y:yank  f:filter  esc/q:back")
 	if m.docSearching {
 		footer = theme.Dim.Render("type: filter   enter: apply   esc: cancel")
-	} else if m.status != "" {
-		footer = m.status
 	}
+	// DD2-272: transiente Meldungen laufen über den Eck-Toast, nicht mehr über
+	// diese Footer-Zeile.
 	return head + "\n" + body + "\n" + footer
 }
 
@@ -423,9 +418,7 @@ func (m model) docYank() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	if err := clip.Copy(docClip(cur)); err != nil {
-		m.status = noticeText("Clipboard error: " + err.Error())
-		return m, nil
+		return m.showToast(toastError, "Clipboard error: "+err.Error(), "", nil, false)
 	}
-	m.status = noticeText("Document copied (" + cur.Title + ")")
-	return m, nil
+	return m.showToast(toastInfo, "Document copied ("+cur.Title+")", "", nil, false)
 }

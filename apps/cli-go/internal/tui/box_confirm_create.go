@@ -101,8 +101,8 @@ func (m model) keyCreateConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.pendingCreate = nil
 		m.createLabel = ""
 		m.createDraft = nil // DD2-190: Draft verbraucht — kein Reopen nach Anlage
-		m.status = noticeText("Creating …")
-		return m, cmd
+		m, toastCmd := m.showToast(toastInfo, "Creating …", "", nil, false)
+		return m, tea.Batch(cmd, toastCmd)
 	case keybind.Matches(msg, keys.Back), msg.String() == "n":
 		m.createConfirm = false
 		m.pendingCreate = nil
@@ -114,8 +114,7 @@ func (m model) keyCreateConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.createDraft = nil
 			return m.openIssueFormWithDraft(d)
 		}
-		m.status = noticeText("Create cancelled")
-		return m, nil
+		return m.showToast(toastWarn, "Create cancelled", "", nil, false)
 	}
 	return m, nil
 }

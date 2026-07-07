@@ -130,7 +130,6 @@ func (m model) openForm(kind string) (tea.Model, tea.Cmd) {
 	m.formGroupIdx = 0
 	m.formGroupTitles = nil
 	m.formPartials = nil
-	m.status = ""
 
 	var f *huh.Form
 	switch kind {
@@ -373,7 +372,6 @@ func (m model) openEditFieldGeneric(entity string, id int, f detailField, value 
 	m.editValue = value
 	m.formKind = "editField"
 	m.form = m.styleForm(buildEditFieldForm(f, value))
-	m.status = ""
 	return m, m.form.Init()
 }
 
@@ -442,7 +440,6 @@ func (m model) openIssueFormWithDraft(d issueDraft) (tea.Model, tea.Cmd) {
 	m.formGroupIdx = 0
 	m.formGroupTitles = nil
 	m.formPartials = nil
-	m.status = ""
 	m.form = m.styleForm(buildIssueForm(m.tags, d))
 	return m, m.form.Init()
 }
@@ -531,9 +528,9 @@ func (m *model) formCreateCmd() tea.Cmd {
 		*m = nm
 		if err != nil {
 			msg := "Save failed: " + err.Error()
-			return func() tea.Msg { return noticeMsg{msg} }
+			return func() tea.Msg { return noticeMsg{text: msg, kind: toastError} }
 		}
-		saved := func() tea.Msg { return noticeMsg{"Settings saved"} }
+		saved := func() tea.Msg { return noticeMsg{text: "Settings saved", kind: toastInfo} }
 		// default_project ist ein BACKEND-Setting (Anker), kein lokaler Config-Wert:
 		// bei nicht-leerer Eingabe zusätzlich async ins Backend schreiben.
 		if dp := strings.TrimSpace(get("default_project")); dp != "" {
@@ -542,7 +539,7 @@ func (m *model) formCreateCmd() tea.Cmd {
 		return saved
 	case "project_settings": // DD2-221/DD2-232: Projekt-Settings speichern (name+slug+prefix)
 		if m.project == nil {
-			return func() tea.Msg { return noticeMsg{"no active project"} }
+			return func() tea.Msg { return noticeMsg{text: "no active project", kind: toastWarn} }
 		}
 		return doUpdateProjectSettings(m.client, m.project.ID, get("name"), get("slug"), get("prefix"))
 	case "project_create": // neues Projekt anlegen (global, kein Projekt-Scope)

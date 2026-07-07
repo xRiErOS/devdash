@@ -40,7 +40,6 @@ func (m model) openSprintMilestone(sprintID int) (tea.Model, tea.Cmd) {
 	m.smMenu = listState{}
 	m.smOpts = m.milestonePickOpts()
 	m.smMenu.setLen(len(m.smOpts))
-	m.status = ""
 	return m, nil
 }
 
@@ -56,7 +55,6 @@ func (m model) keySprintMilestone(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch { // DD2-174: a (Assign) öffnet/schließt diesen Picker, m entfällt
 	case keybind.Matches(msg, keys.Back), keybind.Matches(msg, keys.Assign), msg.String() == "q":
 		m.smPick = false
-		m.status = ""
 		return m, nil
 	case keybind.Matches(msg, keys.Enter):
 		m.smPick = false
@@ -64,8 +62,8 @@ func (m model) keySprintMilestone(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		opt := m.smOpts[m.smMenu.cursor]
-		m.status = "Sprint → milestone …"
-		return m, doSetSprintMilestone(m.client, m.smSprintID, opt.id)
+		m, toastCmd := m.showToast(toastInfo, "Sprint → milestone …", "", nil, false)
+		return m, tea.Batch(doSetSprintMilestone(m.client, m.smSprintID, opt.id), toastCmd)
 	}
 	return m, nil
 }
@@ -97,7 +95,6 @@ func (m model) openMilestoneAssign() (tea.Model, tea.Cmd) {
 	m.maSprints = nil
 	m.maChecked = map[int]bool{}
 	m.maMenu = listState{}
-	m.status = ""
 	return m, loadUnassignedSprints(m.client)
 }
 
@@ -113,7 +110,6 @@ func (m model) keyMilestoneAssign(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case keybind.Matches(msg, keys.Back), keybind.Matches(msg, keys.Assign), msg.String() == "q":
 		m.maPick = false
-		m.status = ""
 		return m, nil
 	case keybind.Matches(msg, keys.Toggle):
 		if m.maMenu.cursor >= 0 && m.maMenu.cursor < len(m.maSprints) {
@@ -130,11 +126,10 @@ func (m model) keyMilestoneAssign(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.maPick = false
 		if len(ids) == 0 {
-			m.status = noticeText("No sprints checked")
-			return m, nil
+			return m.showToast(toastWarn, "No sprints checked", "", nil, false)
 		}
-		m.status = fmt.Sprintf("%d sprint(s) → milestone …", len(ids))
-		return m, doAssignSprintsToMilestone(m.client, ids, m.maMilestoneID)
+		m, toastCmd := m.showToast(toastInfo, fmt.Sprintf("%d sprint(s) → milestone …", len(ids)), "", nil, false)
+		return m, tea.Batch(doAssignSprintsToMilestone(m.client, ids, m.maMilestoneID), toastCmd)
 	}
 	return m, nil
 }

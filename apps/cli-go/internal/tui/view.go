@@ -15,6 +15,15 @@ func (m model) View() string {
 	if m.err != nil {
 		return fmt.Sprintf("\n  %s\n\n  q: quit\n", lipgloss.NewStyle().Foreground(theme.Red).Render("Fehler: "+m.err.Error()))
 	}
+	// DD2-272: der Eck-Toast schwebt über ALLEM (auch Modals) — nicht modal, blockiert
+	// keine Tastatur. renderToast() ist ein No-Op, wenn kein Toast aktiv ist.
+	return m.renderToast(m.viewComposite())
+}
+
+// viewComposite komponiert die Basis-View + alle modalen Overlays (Confirms/
+// Picker/Formulare) — ausgelagert aus View(), damit der Toast-Layer (DD2-272)
+// zentral über das fertige Ergebnis gelegt werden kann, egal welcher Zweig griff.
+func (m model) viewComposite() string {
 	base := m.viewBase()
 	if m.confirmQuit { // DD2-49: Beenden-Confirm liegt top-most über allem
 		return placeOverlay(base, m.quitBox(), m.termWidth(), m.height)
@@ -192,13 +201,11 @@ func (m model) header() string {
 	return m.breadcrumb("")
 }
 
-// statusBar = Footer-Zone 4 (Wireframe): links Meldungen/Hinweise (Blue), rechts
-// Scroll-Indikator (Accent) + kritische Fehler (Red). Leer → leere Zeile.
+// statusBar = Footer-Zone 4 (Wireframe): Scroll-Indikator (Accent) + kritische
+// Fehler (Red), rechtsbündig. Leer → leere Zeile. DD2-272: transiente Meldungen
+// (vormals links, Blue) laufen jetzt über den Eck-Toast (overlay_show_toast.go)
+// statt über diese Zeile — Footer zeigt keine Statuszeile mehr.
 func (m model) statusBar(ind string) string {
-	left := m.status
-	if left != "" && ansi.Strip(left) == left { // nur ungefärbte Meldungen einfärben
-		left = lipgloss.NewStyle().Foreground(theme.Blue).Render(left)
-	}
 	var rparts []string
 	if ind != "" {
 		rparts = append(rparts, theme.Accent.Render(ind))
@@ -207,37 +214,23 @@ func (m model) statusBar(ind string) string {
 		rparts = append(rparts, lipgloss.NewStyle().Foreground(theme.Red).Render(m.errNote))
 	}
 	right := strings.Join(rparts, "  ")
-	if left == "" && right == "" {
+	if right == "" {
 		return ""
 	}
 	w := m.termWidth()
-	// Schmal: Fehler/Indikator (rechts) haben Vorrang, Meldung (links) wird gekürzt —
-	// Footer bleibt 1 Zeile (chrome rechnet mit fixer Status-Höhe).
-	if lipgloss.Width(left)+lipgloss.Width(right)+1 > w {
-		max := w - lipgloss.Width(right) - 1
-		if max < 0 {
-			return ansi.Truncate(right, w, "…")
-		}
-		left = ansi.Truncate(left, max, "…")
+	if lipgloss.Width(right)+1 > w {
+		return ansi.Truncate(right, w, "…")
 	}
-	gap := w - lipgloss.Width(left) - lipgloss.Width(right)
-	if gap < 1 {
-		gap = 1
+	gap := w - lipgloss.Width(right)
+	if gap < 0 {
+		gap = 0
 	}
-	return left + strings.Repeat(" ", gap) + right
+	return strings.Repeat(" ", gap) + right
 }
 
 func (m model) footer() string {
-	if m.status != "" {
-		// DD2-35: transienter Toast — wie statusBar() einfärben (ungefärbter Text →
-		// Blau, noticeText liefert bereits Sapphire) statt unscheinbar Dim; auf die
-		// Terminalbreite umbrechen (analog Hint, DD2-73). Auto-Clear via clearStatusMsg.
-		st := m.status
-		if ansi.Strip(st) == st {
-			st = lipgloss.NewStyle().Foreground(theme.Blue).Render(st)
-		}
-		return wrapText(st, m.termWidth())
-	}
+	// DD2-272: der transiente Toast lief früher hier ein (m.status) — läuft jetzt
+	// über den Eck-Toast (overlay_show_toast.go). Footer zeigt nur noch die Hints.
 	// DD2-175: Footer-Hint wird nicht mehr als hardcoded String gepflegt, sondern
 	// aus der Keymap (Single-Source) abgeleitet — kann damit nie mehr von den
 	// echten Bindings driften. Depth-abhängige lokale Tasten + globaler Block.
@@ -405,7 +398,7 @@ func scrollView(content string, height, offset int) (string, string) {
 
 // framed umrahmt einen Screen mit globalem Header, höhenfüllendem Scroll-Body und
 // globalem Footer (DD2-25 „100% Höhe, globaler Header/Footer"). crumb = Screen-Titel,
-// hint = Screen-Tasten (von m.status überschrieben). Lange Zeilen werden auf die
+// hint = Screen-Tasten. Lange Zeilen werden auf die
 // Terminalbreite umgebrochen (sauberes Scroll-Zeilenzählen).
 // hslot ist ein Header-Infofeld (Label/Wert) für das gemeinsame Screen-Grid.
 type hslot struct{ label, value string }

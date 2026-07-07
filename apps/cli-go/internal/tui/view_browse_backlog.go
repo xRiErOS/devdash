@@ -492,8 +492,7 @@ func (m model) keyBacklog(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case keybind.Matches(msg, keys.Yank): // DD2-217: aktuelles (gefiltertes/sortiertes) Backlog als Markdown yanken
 		vis := m.backlogVisible()
 		if len(vis) == 0 {
-			m.status = noticeText("Backlog is empty — nothing to copy")
-			return m, nil
+			return m.showToast(toastWarn, "Backlog is empty — nothing to copy", "", nil, false)
 		}
 		summary := m.backlogFilterSummary()
 		if m.blQuery != "" {
@@ -504,11 +503,10 @@ func (m model) keyBacklog(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		if err := clip.Copy(backlogClip(vis, summary)); err != nil {
 			m.errNote = "Clipboard error: " + err.Error()
-		} else {
-			m.errNote = ""
-			m.status = noticeText(fmt.Sprintf("Backlog copied (%d issues)", len(vis)))
+			return m, nil
 		}
-		return m, nil
+		m.errNote = ""
+		return m.showToast(toastInfo, fmt.Sprintf("Backlog copied (%d issues)", len(vis)), "", nil, false)
 	case keybind.Matches(msg, keys.Backlog):
 		m.view = m.topReturn // zurück zur Quell-View (Tree/Columns, DD2-61)
 	case keybind.Matches(msg, keys.Back):

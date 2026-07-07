@@ -108,7 +108,11 @@ func TestCreateConfirmGatesCreation(t *testing.T) {
 		}
 	}
 
-	// enter feuert exakt den geparkten pendingCreate-Cmd und schließt den Confirm (DD2-174).
+	// enter feuert exakt den geparkten pendingCreate-Cmd und schließt den Confirm
+	// (DD2-174). DD2-272: der Toast-Auto-Dismiss-Tick läuft seitdem GEBATCHT daneben
+	// (tea.Batch) — cmd() liefert ein tea.BatchMsg[pendingCreate, toastCmd]. Der
+	// Toast-Cmd (tea.Tick) darf NIE invoked werden (blockiert real, s.
+	// overlay_show_toast_test.go) — nur den ersten (Fach-)Cmd auslösen.
 	fired := false
 	m := model{createConfirm: true, createLabel: "Issue (bug): x",
 		pendingCreate: func() tea.Msg { fired = true; return nil }}
@@ -119,19 +123,38 @@ func TestCreateConfirmGatesCreation(t *testing.T) {
 	if cmd == nil {
 		t.Fatal("enter soll den geparkten Create-Cmd feuern")
 	}
-	cmd()
+	runFirstBatchCmd(cmd)
 	if !fired {
 		t.Error("enter soll exakt pendingCreate auslösen")
 	}
 
-	// n bricht ab, ohne anzulegen.
+	// n bricht ab, ohne anzulegen — nur der Warn-Toast liefert noch einen Cmd
+	// (nicht invoken, s.o.).
 	m2 := model{createConfirm: true, pendingCreate: func() tea.Msg { return nil }}
 	mm2, cmd2 := m2.keyCreateConfirm(runeKey("n"))
 	if mm2.(model).createConfirm {
 		t.Error("n soll den Confirm schließen")
 	}
-	if cmd2 != nil {
-		t.Error("n soll KEINEN Create-Cmd feuern")
+	if cmd2 == nil {
+		t.Error("erwartet den Toast-Auto-Dismiss-Cmd, bekam nil")
+	}
+}
+
+// runFirstBatchCmd führt einen tea.Cmd aus; ist das Ergebnis ein tea.BatchMsg
+// (DD2-272: showToast batcht seinen Auto-Dismiss-Tick neben den Fach-Cmd), wird
+// NUR der erste Sub-Cmd (der Fach-Cmd, per Konstruktion immer zuerst gebatcht)
+// ausgelöst — der zweite (Toast-Timer, tea.Tick) blockiert real und wird bewusst
+// NICHT invoked.
+func runFirstBatchCmd(cmd tea.Cmd) {
+	if cmd == nil {
+		return
+	}
+	msg := cmd()
+	if batch, ok := msg.(tea.BatchMsg); ok {
+		if len(batch) > 0 && batch[0] != nil {
+			batch[0]()
+		}
+		return
 	}
 }
 

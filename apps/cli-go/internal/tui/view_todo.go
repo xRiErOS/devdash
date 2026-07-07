@@ -69,7 +69,6 @@ func (m model) openToDos() (tea.Model, tea.Cmd) {
 	m.todoQuery = ""
 	m.todoSort = "pos"
 	m.todoEditID = 0
-	m.status = ""
 	return m, loadTodos(m.client, "open")
 }
 
@@ -94,7 +93,6 @@ func (m model) keyToDos(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case keybind.Matches(msg, keys.Search):
 		m.todoSearching = true
 		m.todoQuery = ""
-		m.status = ""
 		return m, nil
 	case keybind.Matches(msg, keys.Status): // Status-Filter zyklisch (serverseitig neu laden)
 		m.todoStatus = nextTodoStatus(m.todoStatus)
@@ -112,7 +110,6 @@ func (m model) keyToDos(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc", "q":
 		m.view = m.topReturn
-		m.status = ""
 		return m, nil
 	case "enter", " ": // toggle open<->done (DD2-171 Rework: space = quick-complete)
 		cur := m.selTodo()
@@ -183,8 +180,6 @@ func (m model) viewToDos() string {
 	footer := theme.Dim.Render("i/k:↑↓  enter/space:toggle  e:edit  n:new  d:del  /:search  s:status  S:sort  esc/q:back")
 	if m.todoSearching {
 		footer = theme.Key.Render("Search: ") + m.todoQuery + "▏"
-	} else if m.status != "" {
-		footer = m.status
 	}
 	return head + "\n" + body + "\n" + footer
 }

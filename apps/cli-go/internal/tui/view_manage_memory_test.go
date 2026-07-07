@@ -118,7 +118,7 @@ func TestMemoryYankEmpty(t *testing.T) {
 	m := memModel()
 	mi, _ := m.Update(keyMsg("y"))
 	m = mi.(model)
-	if m.status == "" {
+	if m.toast == nil {
 		t.Error("y auf leerer Liste sollte einen Hinweis setzen")
 	}
 }

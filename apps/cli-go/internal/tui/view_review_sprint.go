@@ -554,11 +554,6 @@ func (m model) statusMenu() string {
 	return modalPanel("Set status", body, "enter: set   esc: cancel", clampModalWidth(30, m.width), theme.Mauve)
 }
 
-// noticeText färbt einen transienten Hinweis in Sapphire (gültige Aktionen/Fehler).
-func noticeText(s string) string {
-	return lipgloss.NewStyle().Foreground(theme.Sapphire).Render(s)
-}
-
 // --- Filter-Modal (#4/#8) ---
 
 // filterBox rendert das schwebende Filter-Modal (kompakt, wird zentriert overlaid).

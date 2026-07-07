@@ -54,11 +54,9 @@ type model struct {
 	view          viewID
 	width, height int
 	err           error
-	status        string // Info/Meldungen (Footer-Zone 4 links, Blue)
-	statusSeq     int    // DD2-35: Generation des aktuellen Status — Auto-Clear-Tick feuert nur, wenn die Generation noch stimmt
-	statusSticky  bool   // DD2-93: Erfolgs-Toast (z.B. "created") übersteht einen Reload-Zyklus (sprintMsg/milestonesMsg clobbern ihn nicht); Auto-Clear/neuer Status setzt zurück
-	errNote       string // transienter, nicht-fataler Fehler (Footer-Zone 4 rechts, Red) — DD2-60
-	scroll        int    // Scroll-Offset für statische Detail-Views (DD2-25/30 Chrome)
+	toast         *toastState // DD2-272: farbcodiertes Eck-Toast-Overlay (löst status/statusSeq/statusSticky ab)
+	errNote       string      // transienter, nicht-fataler Fehler (Footer-Zone 4 rechts, Red) — DD2-60
+	scroll        int         // Scroll-Offset für statische Detail-Views (DD2-25/30 Chrome)
 
 	// Picker
 	projects []api.Project

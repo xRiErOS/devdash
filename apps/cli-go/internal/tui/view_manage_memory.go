@@ -89,7 +89,6 @@ func (m model) openMemory() (tea.Model, tea.Cmd) {
 	m.memSearching = false
 	m.memDetail = nil
 	m.memDetailID = 0
-	m.status = ""
 	return m, loadMemories(m.client, "")
 }
 
@@ -110,12 +109,10 @@ func (m model) keyMemory(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc", "q":
 		m.view = m.topReturn // DD2-126: zurück in die Primat-Heimat (Default viewBrowseProject), nicht Ranger
-		m.status = ""
 		return m, nil
 	case "/":
 		m.memSearching = true
 		m.memQuery = ""
-		m.status = ""
 		return m, nil
 	case "c":
 		m.memCat = nextMemCategory(m.memCat)
@@ -163,8 +160,7 @@ func (m model) keyMemSearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // CLI-Hinweis, damit Agenten das Detail per devd_project_memory_show ziehen können.
 func (m model) yankMemories() (tea.Model, tea.Cmd) {
 	if len(m.memList) == 0 {
-		m.status = noticeText("Keine Memories zum Kopieren")
-		return m, nil
+		return m.showToast(toastWarn, "Keine Memories zum Kopieren", "", nil, false)
 	}
 	var b strings.Builder
 	b.WriteString("# DevD Project-Memories\n")
@@ -174,11 +170,10 @@ func (m model) yankMemories() (tea.Model, tea.Cmd) {
 	}
 	if err := clip.Copy(b.String()); err != nil {
 		m.errNote = "Clipboard-Fehler: " + err.Error()
-	} else {
-		m.errNote = ""
-		m.status = noticeText(fmt.Sprintf("%d memories copied (with show hint for agents)", len(m.memList)))
+		return m, nil
 	}
-	return m, nil
+	m.errNote = ""
+	return m.showToast(toastInfo, fmt.Sprintf("%d memories copied (with show hint for agents)", len(m.memList)), "", nil, false)
 }
 
 // --- View ---
@@ -201,8 +196,6 @@ func (m model) viewManageMemory() string {
 	footer := theme.Dim.Render("i/k:↑↓  /:search  c:category  y:copy  esc/q:back")
 	if m.memSearching {
 		footer = theme.Key.Render("Search: ") + m.memQuery + "▏"
-	} else if m.status != "" {
-		footer = m.status
 	}
 	return head + "\n" + body + "\n" + footer
 }

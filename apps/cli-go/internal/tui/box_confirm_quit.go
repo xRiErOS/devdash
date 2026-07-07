@@ -16,7 +16,6 @@ import (
 // requestQuit öffnet den Beenden-Confirm statt direkt zu beenden (DD2-49).
 func (m model) requestQuit() (tea.Model, tea.Cmd) {
 	m.confirmQuit = true
-	m.status = ""
 	return m, nil
 }
 

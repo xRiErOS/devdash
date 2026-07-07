@@ -235,7 +235,6 @@ func (m model) openReviewsList() (tea.Model, tea.Cmd) {
 	}
 	m.view = viewNavigateReviews
 	m.rvlist = listState{}
-	m.status = ""
 	return m, loadReviewSprints(m.client)
 }
 
@@ -245,7 +244,6 @@ func (m model) openReviewsList() (tea.Model, tea.Cmd) {
 // Sind die Meilensteine noch nicht geladen, werden sie defensiv nachgeholt.
 func (m model) goBrowse() (tea.Model, tea.Cmd) {
 	m.view = viewBrowseProject
-	m.status = ""
 	if len(m.milestones) == 0 && m.client != nil {
 		return m, loadMilestones(m.client)
 	}
@@ -344,8 +342,7 @@ func (m model) filteredProjects() []api.Project {
 func (m model) openSprintStatus(id int, status string) (tea.Model, tea.Cmd) {
 	opts := sprintTransitions[status]
 	if len(opts) == 0 {
-		m.status = noticeText("No sprint transitions from '" + status + "'")
-		return m, nil
+		return m.showToast(toastWarn, "No sprint transitions from '"+status+"'", "", nil, false)
 	}
 	m.sprintPick = true
 	m.spTargetID = id
@@ -361,13 +358,11 @@ func (m model) openSprintStatus(id int, status string) (tea.Model, tea.Cmd) {
 // der Refresh-Kontext (0 wenn kein Sprint geladen).
 func (m model) openIssueStatus(it *api.Issue, sprintID int) (tea.Model, tea.Cmd) {
 	if it == nil {
-		m.status = "No issue selected"
-		return m, nil
+		return m.showToast(toastWarn, "No issue selected", "", nil, false)
 	}
 	opts := allowedManualStatuses(it.Status)
 	if len(opts) == 0 {
-		m.status = noticeText("No manual transitions from '" + it.Status + "' (passed/rejected via Review)")
-		return m, nil
+		return m.showToast(toastWarn, "No manual transitions from '"+it.Status+"' (passed/rejected via Review)", "", nil, false)
 	}
 	m.statusPick = true
 	m.stIssueID = it.ID
@@ -394,8 +389,7 @@ func (m model) openMilestoneStatusFor(ms *api.Milestone) (tea.Model, tea.Cmd) {
 	}
 	opts := milestoneTransitions[ms.Status]
 	if len(opts) == 0 {
-		m.status = noticeText("No milestone transitions from '" + ms.Status + "'")
-		return m, nil
+		return m.showToast(toastWarn, "No milestone transitions from '"+ms.Status+"'", "", nil, false)
 	}
 	m.msPick = true
 	m.msTargetID = ms.ID
@@ -421,7 +415,6 @@ func (m model) keyMilestoneStatus(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch { // DD2-174: s (war S) öffnet/schließt das Status-Menü
 	case keybind.Matches(msg, keys.Back), keybind.Matches(msg, keys.Status), msg.String() == "q":
 		m.msPick = false
-		m.status = ""
 		return m, nil
 	case keybind.Matches(msg, keys.Enter):
 		m.msPick = false
@@ -436,11 +429,10 @@ func (m model) keyMilestoneStatus(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.mcID = m.msTargetID
 			m.mcName = m.msTargetName
 			m.mcSprints = m.msTargetOpenSprint
-			m.status = ""
 			return m, nil
 		}
-		m.status = "Milestone → " + target + " …"
-		return m, doMilestoneStatus(m.client, m.msTargetID, target)
+		m, toastCmd := m.showToast(toastInfo, "Milestone → "+target+" …", "", nil, false)
+		return m, tea.Batch(doMilestoneStatus(m.client, m.msTargetID, target), toastCmd)
 	}
 	return m, nil
 }
@@ -463,12 +455,11 @@ func (m model) keyMilestoneCascade(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch { // DD2-174: enter=confirm, esc/n=cancel
 	case keybind.Matches(msg, keys.Enter):
 		m.mcConfirm = false
-		m.status = "Closing milestone cascading …"
-		return m, doMilestoneCascadeComplete(m.client, m.mcID)
+		m, toastCmd := m.showToast(toastInfo, "Closing milestone cascading …", "", nil, false)
+		return m, tea.Batch(doMilestoneCascadeComplete(m.client, m.mcID), toastCmd)
 	case keybind.Matches(msg, keys.Back), msg.String() == "n":
 		m.mcConfirm = false
-		m.status = noticeText("Abgebrochen")
-		return m, nil
+		return m.showToast(toastWarn, "Abgebrochen", "", nil, false)
 	}
 	return m, nil
 }

@@ -824,20 +824,19 @@ func (m model) treeYank(nodes []treeNode) (tea.Model, tea.Cmd) {
 		ms := m.milestones[n.mileIdx]
 		if err := clip.Copy(milestoneClip(&ms)); err != nil {
 			m.errNote = "Clipboard-Fehler: " + err.Error()
-		} else {
-			m.errNote = ""
-			m.status = "Milestone context copied (" + ms.Name + ")"
+			return m, nil
 		}
+		m.errNote = ""
+		return m.showToast(toastInfo, "Milestone context copied ("+ms.Name+")", "", nil, false)
 	case tkSprint:
 		// DD2-215: vollständigen Kontext (Issues + Docs + ID) async fetchen statt
 		// aus dem ggf. unvollständigen Embedded/Cache-Sprint zu serialisieren.
 		sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
-		m.status = "copying sprint context …"
-		return m, doSprintYank(m.client, sp.ID, sp.Key)
+		m, toastCmd := m.showToast(toastInfo, "copying sprint context …", "", nil, false)
+		return m, tea.Batch(doSprintYank(m.client, sp.ID, sp.Key), toastCmd)
 	default:
-		m.status = "Yank: on milestone or sprint"
+		return m.showToast(toastWarn, "Yank: on milestone or sprint", "", nil, false)
 	}
-	return m, nil
 }
 
 // openTreeFilter öffnet das Facetten-Menü und lädt projektweit alle Issues nach
@@ -1110,8 +1109,8 @@ func (m model) treeExpand(nodes []treeNode) (tea.Model, tea.Cmd) {
 		sp := m.milestones[n.mileIdx].Sprints[n.sprIdx]
 		m.treeExpSprint[sp.ID] = true
 		if _, ok := m.treeIssues[sp.ID]; !ok {
-			m.status = "loading issues …"
-			return m, loadSprint(m.client, sp.ID)
+			m, toastCmd := m.showToast(toastInfo, "loading issues …", "", nil, false)
+			return m, tea.Batch(loadSprint(m.client, sp.ID), toastCmd)
 		}
 	case tkIssue:
 		// DD2-76: ein Issue ist ein Blatt — „rein" verlagert den Fokus in die

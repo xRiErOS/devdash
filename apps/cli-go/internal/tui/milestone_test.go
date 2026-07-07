@@ -54,7 +54,7 @@ func TestMilestoneStatusNoTransitionNotice(t *testing.T) {
 	if m.msPick {
 		t.Error("kein Menü bei fehlenden Übergängen")
 	}
-	if m.status == "" {
+	if m.toast == nil {
 		t.Error("fehlende Übergänge sollten einen Hinweis setzen")
 	}
 }

@@ -55,7 +55,6 @@ func (m model) openTutorial() (tea.Model, tea.Cmd) {
 	}
 	m.tutorialPage = 0
 	m.view = viewTutorial
-	m.status = ""
 	return m, nil
 }
 
@@ -67,7 +66,6 @@ func (m model) keyTutorial(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc", "q":
 		m.view = m.topReturn
-		m.status = ""
 		return m, nil
 	case "g", "home":
 		m.tutorialPage = 0

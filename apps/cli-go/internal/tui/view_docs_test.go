@@ -9,6 +9,14 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+// toastTitle liefert den Titel des aktuellen Toasts (DD2-272) oder "" (kein Toast).
+func toastTitle(m model) string {
+	if m.toast == nil {
+		return ""
+	}
+	return m.toast.title
+}
+
 func docsTestModel() model {
 	m := model{view: viewDocs, width: 90, height: 22, project: &api.Project{Slug: "devd2", Prefix: "DD2"}}
 	m.topReturn = viewBrowseProject
@@ -328,12 +336,12 @@ func TestDocMovedMsgReloads(t *testing.T) {
 	if cmd == nil {
 		t.Fatal("success sollte Docs neu laden")
 	}
-	if !strings.Contains(nm.(model).status, "moved") {
-		t.Fatalf("status should note the move, got %q", nm.(model).status)
+	if !strings.Contains(toastTitle(nm.(model)), "moved") {
+		t.Fatalf("toast should note the move, got %q", toastTitle(nm.(model)))
 	}
 	nm2, _ := m.Update(docMovedMsg{docID: 1, err: "boom"})
-	if !strings.Contains(nm2.(model).status, "boom") {
-		t.Fatalf("error status should surface, got %q", nm2.(model).status)
+	if !strings.Contains(toastTitle(nm2.(model)), "boom") {
+		t.Fatalf("error toast should surface, got %q", toastTitle(nm2.(model)))
 	}
 }
 
@@ -417,11 +425,13 @@ func TestDocsYank(t *testing.T) {
 	m := docsTestModel()
 	m.doclist.cursor = 0
 	nm, cmd := m.keyDocs(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("y")})
-	if cmd != nil {
-		t.Fatal("docYank ist synchron, sollte keinen Cmd liefern")
+	// DD2-272: docYank selbst bleibt synchron (kein API-Call) — der Cmd ist jetzt
+	// nur noch der Toast-Auto-Dismiss-Tick (tea.Tick — NIE invoken, blockiert real).
+	if cmd == nil {
+		t.Error("erwartet den Toast-Auto-Dismiss-Cmd, bekam nil")
 	}
-	if !strings.Contains(nm.(model).status, "copied") {
-		t.Fatalf("status should note the copy, got %q", nm.(model).status)
+	if !strings.Contains(toastTitle(nm.(model)), "copied") {
+		t.Fatalf("toast should note the copy, got %q", toastTitle(nm.(model)))
 	}
 }
 
@@ -492,11 +502,11 @@ func TestDocRenamedMsgReloads(t *testing.T) {
 	if cmd == nil {
 		t.Fatal("success sollte Docs neu laden")
 	}
-	if !strings.Contains(nm.(model).status, "renamed") {
-		t.Fatalf("status should note the rename, got %q", nm.(model).status)
+	if !strings.Contains(toastTitle(nm.(model)), "renamed") {
+		t.Fatalf("toast should note the rename, got %q", toastTitle(nm.(model)))
 	}
 	nm2, _ := m.Update(docRenamedMsg{docID: 1, err: "boom"})
-	if !strings.Contains(nm2.(model).status, "boom") {
-		t.Fatalf("error status should surface, got %q", nm2.(model).status)
+	if !strings.Contains(toastTitle(nm2.(model)), "boom") {
+		t.Fatalf("error toast should surface, got %q", toastTitle(nm2.(model)))
 	}
 }

@@ -20,7 +20,7 @@ func TestReviewSubmitDispatch(t *testing.T) {
 	if cmd == nil {
 		t.Error("'P' (Review-Pass) sollte eine Submit-Cmd liefern")
 	}
-	if m.status == "" {
+	if m.toast == nil {
 		t.Error("'P' sollte einen Status-Hinweis setzen")
 	}
 }
@@ -48,12 +48,17 @@ func TestReopenDispatchFromPassed(t *testing.T) {
 	if cmd == nil {
 		t.Error("'o' sollte aus passed eine Reopen-Cmd liefern (DD2-7)")
 	}
-	// aus in_progress bleibt 'o' gesperrt → keine Cmd
+	// aus in_progress bleibt 'o' gesperrt → keine Reopen-Dispatch, nur der
+	// Warn-Toast (DD2-272) liefert seinen eigenen Auto-Dismiss-Tick als Cmd
+	// (tea.Tick blockiert real für die Kind-Dauer — NIE invoken, s. overlay_show_toast_test.go).
 	m2 := reviewModel()
 	m2.curSprint.Items[0].Status = "in_progress"
-	_, cmd2 := m2.Update(keyMsg("o"))
-	if cmd2 != nil {
-		t.Error("'o' darf aus in_progress nicht dispatchen")
+	mi2, cmd2 := m2.Update(keyMsg("o"))
+	if mi2.(model).toast == nil {
+		t.Error("'o' aus in_progress sollte einen Warn-Toast setzen")
+	}
+	if cmd2 == nil {
+		t.Error("erwartet den Toast-Auto-Dismiss-Cmd, bekam nil")
 	}
 }
 

@@ -59,8 +59,8 @@ func TestBacklogYankKeyWired(t *testing.T) {
 	m := backlogFilterModel()
 	out, _ := m.keyBacklog(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}})
 	mm := out.(model)
-	if mm.status == "" && mm.errNote == "" {
-		t.Error("y im Backlog erzeugte weder Status noch errNote — Taste nicht verdrahtet")
+	if mm.toast == nil && mm.errNote == "" {
+		t.Error("y im Backlog erzeugte weder Toast noch errNote — Taste nicht verdrahtet")
 	}
 }
 
@@ -71,7 +71,7 @@ func TestBacklogYankEmpty(t *testing.T) {
 	m.blQuery = "zzz-no-match-zzz"
 	out, _ := m.keyBacklog(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}})
 	mm := out.(model)
-	if !strings.Contains(strings.ToLower(mm.status), "empty") {
-		t.Errorf("leeres Backlog-Yank → Status %q, want 'empty…'", mm.status)
+	if mm.toast == nil || !strings.Contains(strings.ToLower(mm.toast.title), "empty") {
+		t.Errorf("leeres Backlog-Yank → Toast %+v, want 'empty…'", mm.toast)
 	}
 }

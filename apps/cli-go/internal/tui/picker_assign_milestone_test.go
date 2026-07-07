@@ -114,10 +114,12 @@ func TestMilestoneAssignEnterNoChecksNotice(t *testing.T) {
 	m = mi.(model)
 	mi, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = mi.(model)
-	if cmd != nil {
-		t.Error("enter ohne Auswahl sollte nichts dispatchen")
+	// DD2-272: der Warn-Toast liefert seinen eigenen Auto-Dismiss-Cmd (tea.Tick) —
+	// NIE invoken (blockiert real, s. overlay_show_toast_test.go).
+	if m.toast == nil {
+		t.Fatal("enter ohne Auswahl sollte einen Hinweis setzen")
 	}
-	if m.status == "" {
-		t.Error("enter ohne Auswahl sollte einen Hinweis setzen")
+	if cmd == nil {
+		t.Error("erwartet den Toast-Auto-Dismiss-Cmd, bekam nil")
 	}
 }

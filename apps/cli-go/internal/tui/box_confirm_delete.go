@@ -24,7 +24,6 @@ func (m model) openDelete(kind string, id int, name string) (tea.Model, tea.Cmd)
 	m.delID = id
 	m.delName = name
 	m.delSprints, m.delIssues, m.delDocs = 0, 0, 0
-	m.status = ""
 	if kind == "issue" {
 		m.delLoading = false // kein Cascade-Preview nötig
 		return m, nil
@@ -59,25 +58,24 @@ func (m model) keyDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case keybind.Matches(msg, keys.Back), msg.String() == "n":
 		m.delConfirm = false
-		m.status = ""
 		return m, nil
 	case keybind.Matches(msg, keys.Enter):
 		if m.delLoading {
 			return m, nil // erst Counts abwarten
 		}
 		m.delConfirm = false
-		m.status = "Deleting " + m.delName + " …"
+		m, toastCmd := m.showToast(toastInfo, "Deleting "+m.delName+" …", "", nil, false)
 		switch m.delKind {
 		case "issue": // DD2-65: einzelnes Issue, kein Cascade
-			return m, doDeleteIssue(m.client, m.delID, m.delName)
+			return m, tea.Batch(doDeleteIssue(m.client, m.delID, m.delName), toastCmd)
 		case "usernote": // DD2-168: User-Notiz, kein Cascade
-			return m, doDeleteUserNote(m.client, m.delID, m.delName, strings.TrimSpace(m.unQuery))
+			return m, tea.Batch(doDeleteUserNote(m.client, m.delID, m.delName, strings.TrimSpace(m.unQuery)), toastCmd)
 		case "todo": // DD2-171: ToDo, kein Cascade
-			return m, doDeleteTodo(m.client, m.delID, m.delName, m.todoStatus)
+			return m, tea.Batch(doDeleteTodo(m.client, m.delID, m.delName, m.todoStatus), toastCmd)
 		case "document": // DD2-167: Dokument, kein Cascade
-			return m, doDeleteDocument(m.client, m.docOwnerType, m.docOwnerID, m.delID, m.delName, m.docAllMode)
+			return m, tea.Batch(doDeleteDocument(m.client, m.docOwnerType, m.docOwnerID, m.delID, m.delName, m.docAllMode), toastCmd)
 		}
-		return m, doCascadeDelete(m.client, m.delKind, m.delID, m.delName)
+		return m, tea.Batch(doCascadeDelete(m.client, m.delKind, m.delID, m.delName), toastCmd)
 	}
 	return m, nil
 }

@@ -90,7 +90,6 @@ func (m model) openPalette() (tea.Model, tea.Cmd) {
 	m.palQuery = ""
 	m.palList = listState{}
 	m.palList.setLen(len(m.palFiltered()))
-	m.status = ""
 	return m, nil
 }
 

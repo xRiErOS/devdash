@@ -95,7 +95,6 @@ func (m model) openTagManager() (tea.Model, tea.Cmd) {
 	}
 	m.view = viewManageTags
 	m.taglist = listState{}
-	m.status = ""
 	return m, loadTags(m.client)
 }
 
@@ -109,7 +108,6 @@ func (m model) openTagForm(id int, name, color string) (tea.Model, tea.Cmd) {
 	}
 	form := buildTagForm(name, color)
 	m.form = m.styleForm(form)
-	m.status = ""
 	return m, m.form.Init()
 }
 
@@ -128,7 +126,6 @@ func (m model) keyTags(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case keybind.Matches(msg, keys.Back), msg.String() == "q":
 		m.view = m.tagReturn
-		m.status = ""
 		return m, nil
 	case keybind.Matches(msg, keys.Create): // c — neuer Tag (DD2-174, war n)
 		return m.openTagForm(0, "", "mauve")
@@ -143,7 +140,6 @@ func (m model) keyTags(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.tagDelID = t.ID
 			m.tagDelName = t.Name
 			m.tagDelUsage = t.UsageCount
-			m.status = ""
 		}
 		return m, nil
 	}
@@ -162,12 +158,11 @@ func (m model) keyTagDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch { // DD2-174: enter=confirm, esc/n=cancel
 	case keybind.Matches(msg, keys.Enter):
 		m.tagDelConfNo = false
-		m.status = "Deleting tag …"
-		return m, doDeleteTag(m.client, m.tagDelID, m.tagDelName)
+		m, toastCmd := m.showToast(toastInfo, "Deleting tag …", "", nil, false)
+		return m, tea.Batch(doDeleteTag(m.client, m.tagDelID, m.tagDelName), toastCmd)
 	case keybind.Matches(msg, keys.Back), msg.String() == "n":
 		m.tagDelConfNo = false
-		m.status = noticeText("Abgebrochen")
-		return m, nil
+		return m.showToast(toastWarn, "Abgebrochen", "", nil, false)
 	}
 	return m, nil
 }
@@ -216,7 +211,6 @@ func (m model) openTagPicker(kind string, id int, label string, current []api.Ta
 		m.tagPickChecked[t.ID] = true
 	}
 	m.tagPickMenu = listState{}
-	m.status = ""
 	return m, loadTagPick(m.client, kind, id)
 }
 
@@ -232,7 +226,6 @@ func (m model) keyTagPicker(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case keybind.Matches(msg, keys.Back), keybind.Matches(msg, keys.TagAssign), msg.String() == "q":
 		m.tagPick = false
-		m.status = ""
 		return m, nil
 	case keybind.Matches(msg, keys.Toggle):
 		if m.tagPickMenu.cursor >= 0 && m.tagPickMenu.cursor < len(m.tagPickAll) {
@@ -248,8 +241,8 @@ func (m model) keyTagPicker(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 		m.tagPick = false
-		m.status = "Tags werden gesetzt …"
-		return m, doAssignTags(m.client, m.tagPickKind, m.tagPickID, names, m.tagPickLabel)
+		m, toastCmd := m.showToast(toastInfo, "Tags werden gesetzt …", "", nil, false)
+		return m, tea.Batch(doAssignTags(m.client, m.tagPickKind, m.tagPickID, names, m.tagPickLabel), toastCmd)
 	}
 	return m, nil
 }
@@ -336,7 +329,7 @@ func doCreateTag(c *api.Client, name, color string) tea.Cmd {
 	return func() tea.Msg {
 		t, err := c.CreateTag(name, color)
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return tagMutatedMsg{"Tag created: " + t.Name}
 	}
@@ -346,7 +339,7 @@ func doUpdateTag(c *api.Client, id int, name, color string) tea.Cmd {
 	return func() tea.Msg {
 		t, err := c.UpdateTag(id, name, color)
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return tagMutatedMsg{"Tag gespeichert: " + t.Name}
 	}
@@ -355,7 +348,7 @@ func doUpdateTag(c *api.Client, id int, name, color string) tea.Cmd {
 func doDeleteTag(c *api.Client, id int, name string) tea.Cmd {
 	return func() tea.Msg {
 		if err := c.DeleteTag(id); err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return tagMutatedMsg{"Tag deleted: " + name}
 	}
@@ -367,7 +360,7 @@ func loadTagPick(c *api.Client, kind string, id int) tea.Cmd {
 	return func() tea.Msg {
 		all, err := c.ListTags()
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		msg := tagPickDataMsg{kind: kind, id: id, all: all}
 		switch kind {
@@ -401,13 +394,13 @@ func doAssignTags(c *api.Client, kind string, id int, names []string, label stri
 			data, err = c.MilestoneTagSet(generated.MilestoneTagSetArgs{MilestoneId: id, Tags: names})
 		}
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		var env struct {
 			Tags []api.Tag `json:"tags"`
 		}
 		if err := json.Unmarshal(data, &env); err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return tagAssignedMsg{kind, id, env.Tags, label}
 	}

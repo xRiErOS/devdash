@@ -41,7 +41,7 @@ func loadAssignableSprints(c *api.Client) tea.Cmd {
 	return func() tea.Msg {
 		all, err := c.ListSprints("")
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return assignSprintsMsg{assignableSprints(all)}
 	}
@@ -63,7 +63,6 @@ func (m model) openAssignSprint(issueID int) (tea.Model, tea.Cmd) {
 	m.asIssueID = issueID
 	m.asSprints = nil
 	m.asMenu = listState{}
-	m.status = ""
 	return m, loadAssignableSprints(m.client)
 }
 
@@ -81,7 +80,6 @@ func (m model) keyAssignSprint(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc", "q", "S":
 		m.asPick = false
-		m.status = ""
 		return m, nil
 	case "enter":
 		m.asPick = false
@@ -89,8 +87,8 @@ func (m model) keyAssignSprint(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		sp := m.asSprints[m.asMenu.cursor]
-		m.status = "Issue → " + sp.Key + " …"
-		return m, doAssignIssueSprint(m.client, m.asIssueID, sp.ID, sp.Key)
+		m, toastCmd := m.showToast(toastInfo, "Issue → "+sp.Key+" …", "", nil, false)
+		return m, tea.Batch(doAssignIssueSprint(m.client, m.asIssueID, sp.ID, sp.Key), toastCmd)
 	}
 	return m, nil
 }

@@ -13,21 +13,30 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// clearStatusMsg löscht den transienten Status (DD2-35 Auto-Clear-Toast), aber nur
-// wenn seq noch der aktuellen Status-Generation entspricht (sonst hat eine neuere
-// Meldung den Status bereits ersetzt und der alte Tick darf nichts überschreiben).
-type clearStatusMsg struct{ seq int }
+// toastExpiredMsg löscht den Eck-Toast (DD2-272, vormals clearStatusMsg) nach
+// Ablauf seiner kind-spezifischen Dauer, aber nur wenn seq noch der aktuellen
+// Toast-Generation entspricht (sonst hat ein neuerer Toast ihn schon ersetzt).
+type toastExpiredMsg struct{ seq int }
 
-// statusTimeout feuert nach 2s eine clearStatusMsg für die übergebene Generation.
-func statusTimeout(seq int) tea.Cmd {
-	return tea.Tick(2*time.Second, func(time.Time) tea.Msg {
-		return clearStatusMsg{seq}
+// toastTimeout feuert nach toastDuration(kind) eine toastExpiredMsg für die
+// übergebene Generation (analog dem abgelösten statusTimeout(seq)).
+func toastTimeout(seq int, kind toastKind) tea.Cmd {
+	return tea.Tick(toastDuration(kind), func(time.Time) tea.Msg {
+		return toastExpiredMsg{seq}
 	})
 }
 
 // tea.Msg-Typen: async geladene Daten oder Aktions-Ergebnisse.
-type errMsg struct{ err error }      // fatal (Lade-Fehler) → Fehlerschirm
-type noticeMsg struct{ text string } // transient (Aktions-Fehler/Hinweis) → Sapphire-Zeile
+type errMsg struct{ err error } // fatal (Lade-Fehler) → Fehlerschirm
+
+// noticeMsg ist transient (Aktions-Fehler/Hinweis) → Eck-Toast (DD2-272). kind
+// steuert Farbe/Auto-Dismiss-Dauer (Zero-Value toastInfo); target ist optional
+// (Klick springt zur adressierten Entität, s. overlay_show_toast.go).
+type noticeMsg struct {
+	text   string
+	kind   toastKind
+	target *toastTarget
+}
 type projectsMsg struct{ items []api.Project }
 type milestonesMsg struct{ items []api.Milestone }
 type sprintMsg struct{ sprint *api.Sprint }
@@ -73,11 +82,11 @@ func loadAllIssues(c *api.Client) tea.Cmd {
 		full := generated.IssueListArgsFieldsFull
 		data, err := c.IssueList(generated.IssueListArgs{Fields: &full}) // DD2-147: po_notes/goal nur mit fields=full (compact lässt sie weg)
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		var items []api.Issue
 		if err := json.Unmarshal(data, &items); err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return allIssuesMsg{items}
 	}
@@ -98,7 +107,7 @@ func loadSprint(c *api.Client, id int) tea.Cmd {
 func doVerdict(c *api.Client, issueID int, verdict, comment string, sprintID int) tea.Cmd {
 	return func() tea.Msg {
 		if _, err := c.SubmitReview(issueID, verdict, comment, ""); err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return refreshSprint(c, sprintID)
 	}
@@ -115,7 +124,7 @@ func doSprintTo(c *api.Client, sprintID int, to string) tea.Cmd {
 			_, err = c.SprintTo(sprintID, to)
 		}
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return refreshSprint(c, sprintID)
 	}
@@ -131,11 +140,11 @@ type reviewSubmittedMsg struct{ sprint *api.Sprint }
 func doReviewSubmit(c *api.Client, sprintID int) tea.Cmd {
 	return func() tea.Msg {
 		if _, err := c.SprintReviewSubmit(sprintID); err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		s, err := c.GetSprint(sprintID)
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return reviewSubmittedMsg{s}
 	}
@@ -155,11 +164,11 @@ type completeDoneMsg struct {
 func doSprintComplete(c *api.Client, sprintID int) tea.Cmd {
 	return func() tea.Msg {
 		if _, err := c.SprintComplete(sprintID); err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		s, err := c.GetSprint(sprintID)
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		// DD2-157: Ergebnis-Handover als Markdown yanken — exakt das, was 'y'
 		// kopiert (reviewStandMarkdown, Single Source in view_review_sprint.go).
@@ -185,16 +194,16 @@ func doSprintYank(c *api.Client, sprintID int, key string) tea.Cmd {
 	return func() tea.Msg {
 		s, err := c.GetSprint(sprintID)
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		docs, err := listDocuments(c, "sprint", sprintID)
 		if err != nil {
 			docs = nil // Docs optional — Yank trotzdem mit Issues/ID
 		}
 		if err := clip.Copy(sprintClip(s, docs)); err != nil {
-			return noticeMsg{"Clipboard error: " + err.Error()}
+			return noticeMsg{text: "Clipboard error: " + err.Error(), kind: toastError}
 		}
-		return noticeMsg{"Sprint context copied (" + key + ")"}
+		return noticeMsg{text: "Sprint context copied (" + key + ")", kind: toastInfo}
 	}
 }
 
@@ -202,7 +211,7 @@ func doSprintYank(c *api.Client, sprintID int, key string) tea.Cmd {
 func doMilestoneStatus(c *api.Client, id int, status string) tea.Cmd {
 	return func() tea.Msg {
 		if _, err := c.SetMilestoneStatus(id, status); err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		ms, err := c.ListMilestones("all")
 		if err != nil {
@@ -217,7 +226,7 @@ func doMilestoneStatus(c *api.Client, id int, status string) tea.Cmd {
 func doMilestoneCascadeComplete(c *api.Client, id int) tea.Cmd {
 	return func() tea.Msg {
 		if _, err := c.CompleteMilestoneCascade(id); err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		ms, err := c.ListMilestones("all")
 		if err != nil {
@@ -232,7 +241,7 @@ func doMilestoneCascadeComplete(c *api.Client, id int) tea.Cmd {
 func doSetSprintMilestone(c *api.Client, sprintID int, milestoneID *int) tea.Cmd {
 	return func() tea.Msg {
 		if _, err := c.SetSprintMilestone(sprintID, milestoneID); err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		ms, err := c.ListMilestones("all")
 		if err != nil {
@@ -248,7 +257,7 @@ func doAssignSprintsToMilestone(c *api.Client, sprintIDs []int, milestoneID int)
 		for _, sid := range sprintIDs {
 			mid := milestoneID
 			if _, err := c.SetSprintMilestone(sid, &mid); err != nil {
-				return noticeMsg{cleanAPIErr(err)}
+				return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 			}
 		}
 		ms, err := c.ListMilestones("all")
@@ -285,7 +294,7 @@ func loadDeletePreview(c *api.Client, kind string, id int) tea.Cmd {
 		if kind == "project" {
 			pp, err := c.ProjectDeletePreview(id)
 			if err != nil {
-				return noticeMsg{cleanAPIErr(err)}
+				return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 			}
 			return deletePreviewMsg{"project", id, pp.ProjectName, pp.Sprints, pp.Backlog, pp.Milestones}
 		}
@@ -297,7 +306,7 @@ func loadDeletePreview(c *api.Client, kind string, id int) tea.Cmd {
 			p, err = c.SprintDeletePreview(id)
 		}
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		name := p.MilestoneName
 		if kind == "sprint" {
@@ -320,7 +329,7 @@ func doCascadeDelete(c *api.Client, kind string, id int, name string) tea.Cmd {
 			err = c.DeleteSprintCascade(id)
 		}
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return deleteDoneMsg{kind, id, name}
 	}
@@ -379,7 +388,7 @@ func doDeleteIssue(c *api.Client, id int, name string) tea.Cmd {
 	return func() tea.Msg {
 		force := true // DD-524: Backend lehnt DELETE ohne force ab (Default-Lifecycle=cancelled)
 		if _, err := c.IssueDelete(generated.IssueDeleteArgs{IdOrKey: fmt.Sprintf("%d", id), Force: &force}); err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return deleteDoneMsg{"issue", id, name}
 	}
@@ -413,12 +422,12 @@ func doRework(c *api.Client, issueID int, path []string, sprintID int) tea.Cmd {
 	return func() tea.Msg {
 		for _, st := range path {
 			if _, err := c.SetIssueStatus(issueID, st); err != nil {
-				return noticeMsg{"Rework bei →" + st + ": " + cleanAPIErr(err)}
+				return noticeMsg{text: "Rework bei →" + st + ": " + cleanAPIErr(err), kind: toastError}
 			}
 		}
 		s, err := c.GetSprint(sprintID)
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return reworkDoneMsg{s}
 	}
@@ -431,7 +440,7 @@ type reworkDoneMsg struct{ sprint *api.Sprint }
 func doReopen(c *api.Client, issueID, sprintID int) tea.Cmd {
 	return func() tea.Msg {
 		if _, err := c.ReopenReview(issueID); err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return refreshSprint(c, sprintID)
 	}
@@ -441,7 +450,7 @@ func doReopen(c *api.Client, issueID, sprintID int) tea.Cmd {
 func doStatus(c *api.Client, issueID int, status string, sprintID int) tea.Cmd {
 	return func() tea.Msg {
 		if _, err := c.SetIssueStatus(issueID, status); err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return refreshSprint(c, sprintID)
 	}
@@ -542,7 +551,7 @@ func loadUserStories(c *api.Client, issueID int) tea.Cmd {
 	return func() tea.Msg {
 		us, err := c.ListUserStories(issueID)
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return userStoriesMsg{issueID, us}
 	}
@@ -552,11 +561,11 @@ func loadUserStories(c *api.Client, issueID int) tea.Cmd {
 func doUSVerdict(c *api.Client, usID int, verdict string, issueID int) tea.Cmd {
 	return func() tea.Msg {
 		if _, err := c.SetUserStoryVerdict(usID, verdict); err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		us, err := c.ListUserStories(issueID)
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return userStoriesMsg{issueID, us}
 	}
@@ -575,11 +584,11 @@ type usMutatedMsg struct {
 func doAddUserStory(c *api.Client, issueID int, title, qa string) tea.Cmd {
 	return func() tea.Msg {
 		if _, err := c.AddUserStory(issueID, title, qa); err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		us, err := c.ListUserStories(issueID)
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return usMutatedMsg{issueID, us, "User story added"}
 	}
@@ -589,11 +598,11 @@ func doAddUserStory(c *api.Client, issueID int, title, qa string) tea.Cmd {
 func doEditUserStory(c *api.Client, usID, issueID int, title, qa string) tea.Cmd {
 	return func() tea.Msg {
 		if _, err := c.EditUserStory(usID, title, qa); err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		us, err := c.ListUserStories(issueID)
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return usMutatedMsg{issueID, us, "User story updated"}
 	}
@@ -611,7 +620,7 @@ func loadDodItems(c *api.Client, milestoneID int) tea.Cmd {
 	return func() tea.Msg {
 		items, err := c.ListDodItems(milestoneID)
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return dodItemsMsg{milestoneID: milestoneID, items: items}
 	}
@@ -629,11 +638,11 @@ type dodMutatedMsg struct {
 func doAddDodItem(c *api.Client, milestoneID int, label string) tea.Cmd {
 	return func() tea.Msg {
 		if _, err := c.AddDodItem(milestoneID, label); err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		items, err := c.ListDodItems(milestoneID)
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return dodMutatedMsg{milestoneID, items, "DoD item added"}
 	}
@@ -643,11 +652,11 @@ func doAddDodItem(c *api.Client, milestoneID int, label string) tea.Cmd {
 func doEditDodItem(c *api.Client, itemID, milestoneID int, label string, done bool) tea.Cmd {
 	return func() tea.Msg {
 		if _, err := c.EditDodItem(itemID, label, done); err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		items, err := c.ListDodItems(milestoneID)
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return dodMutatedMsg{milestoneID, items, "DoD item updated"}
 	}
@@ -674,15 +683,15 @@ func doCreateIssue(c *api.Client, body api.IssueCreateBody, stories []string) te
 			TagIds:   body.TagIDs,
 		})
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		it, err := api.IssueFromCreateFullResult(data)
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		for _, s := range stories {
 			if _, err := c.AddUserStory(it.ID, s, ""); err != nil {
-				return noticeMsg{it.Key + " created, user story failed: " + cleanAPIErr(err)}
+				return noticeMsg{text: it.Key + " created, user story failed: " + cleanAPIErr(err), kind: toastError}
 			}
 		}
 		return createdMsg{"issue", it.Key + " " + it.Title}
@@ -697,11 +706,11 @@ func doCreateMilestone(c *api.Client, body api.MilestoneCreateBody, tagNames []s
 	return func() tea.Msg {
 		ms, err := c.CreateMilestone(body)
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		if len(tagNames) > 0 {
 			if _, err := c.MilestoneTagSet(generated.MilestoneTagSetArgs{MilestoneId: ms.ID, Tags: tagNames}); err != nil {
-				return noticeMsg{"Milestone created, tags failed: " + cleanAPIErr(err)}
+				return noticeMsg{text: "Milestone created, tags failed: " + cleanAPIErr(err), kind: toastError}
 			}
 		}
 		return createdMsg{"milestone", ms.Name}
@@ -715,11 +724,11 @@ func doCreateSprint(c *api.Client, body api.SprintCreateBody, tagNames []string)
 	return func() tea.Msg {
 		s, err := c.CreateSprint(body)
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		if len(tagNames) > 0 {
 			if _, err := c.SprintTagSet(generated.SprintTagSetArgs{SprintKey: fmt.Sprintf("%d", s.ID), Tags: tagNames}); err != nil {
-				return noticeMsg{"Sprint created, tags failed: " + cleanAPIErr(err)}
+				return noticeMsg{text: "Sprint created, tags failed: " + cleanAPIErr(err), kind: toastError}
 			}
 		}
 		return createdMsg{"sprint", s.Name}
@@ -731,7 +740,7 @@ func doCreateMemory(c *api.Client, body api.ProjectMemoryCreateBody) tea.Cmd {
 	return func() tea.Msg {
 		mem, err := c.CreateProjectMemory(body)
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return createdMsg{"memory", mem.Summary}
 	}
@@ -753,7 +762,7 @@ func searchMemoriesCmd(c *api.Client, q, category string) tea.Cmd {
 	return func() tea.Msg {
 		ms, err := c.SearchProjectMemories(q, category, 50)
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return memoriesMsg{ms}
 	}
@@ -764,7 +773,7 @@ func loadMemDetail(c *api.Client, id int) tea.Cmd {
 	return func() tea.Msg {
 		mem, err := c.GetProjectMemory(id)
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return memDetailMsg{mem}
 	}
@@ -795,13 +804,13 @@ func saveUserNoteCmd(c *api.Client, editID int, title, details, search string) t
 		if editID > 0 {
 			d := details
 			if _, err := c.UpdateUserNote(editID, api.UserNoteBody{Details: &d}); err != nil {
-				return noticeMsg{cleanAPIErr(err)}
+				return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 			}
 			notice = "Note updated"
 		} else {
 			d := details
 			if _, err := c.CreateUserNote(api.UserNoteBody{Title: title, Details: &d}); err != nil {
-				return noticeMsg{cleanAPIErr(err)}
+				return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 			}
 			notice = "Note created"
 		}
@@ -817,7 +826,7 @@ func saveUserNoteCmd(c *api.Client, editID int, title, details, search string) t
 func doDeleteUserNote(c *api.Client, id int, name, search string) tea.Cmd {
 	return func() tea.Msg {
 		if err := c.DeleteUserNote(id); err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		notes, err := c.ListUserNotes(search)
 		if err != nil {
@@ -848,7 +857,7 @@ func loadTodos(c *api.Client, status string) tea.Cmd {
 func toggleTodoCmd(c *api.Client, id int, done bool, status string) tea.Cmd {
 	return func() tea.Msg {
 		if _, err := c.ToggleTodo(id, done); err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		todos, err := c.ListTodos(status)
 		if err != nil {
@@ -866,13 +875,13 @@ func saveTodoCmd(c *api.Client, editID int, label, details, status string) tea.C
 		if editID > 0 {
 			d := details
 			if _, err := c.UpdateTodo(editID, api.TodoBody{Details: &d}); err != nil {
-				return noticeMsg{cleanAPIErr(err)}
+				return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 			}
 			notice = "ToDo updated"
 		} else {
 			d := details
 			if _, err := c.CreateTodo(api.TodoBody{Label: label, Details: &d}); err != nil {
-				return noticeMsg{cleanAPIErr(err)}
+				return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 			}
 			notice = "ToDo created"
 		}
@@ -888,7 +897,7 @@ func saveTodoCmd(c *api.Client, editID int, label, details, status string) tea.C
 func doDeleteTodo(c *api.Client, id int, name, status string) tea.Cmd {
 	return func() tea.Msg {
 		if err := c.DeleteTodo(id); err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		todos, err := c.ListTodos(status)
 		if err != nil {
@@ -963,7 +972,7 @@ func loadOwnerDocs(c *api.Client, ownerType string, ownerID int) tea.Cmd {
 	return func() tea.Msg {
 		docs, err := listDocuments(c, ownerType, ownerID)
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		kind := "m"
 		if ownerType == "sprint" {
@@ -985,7 +994,7 @@ func loadSubtasks(c *api.Client, issueID int) tea.Cmd {
 	return func() tea.Msg {
 		subs, err := c.ListSubtasks(issueID)
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return subtasksMsg{issueID: issueID, subtasks: subs}
 	}
@@ -1002,13 +1011,13 @@ func saveDocCmd(c *api.Client, ownerType string, ownerID, editID int, title, bod
 		if editID > 0 {
 			b := body
 			if _, err := c.DocumentUpdate(generated.DocumentUpdateArgs{MilestoneId: milestoneID, SprintKey: sprintKey, DocId: editID, Body: &b}); err != nil {
-				return noticeMsg{cleanAPIErr(err)}
+				return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 			}
 			notice = "Document updated"
 		} else {
 			b := body
 			if _, err := c.DocumentCreate(generated.DocumentCreateArgs{MilestoneId: milestoneID, SprintKey: sprintKey, Title: title, Body: &b}); err != nil {
-				return noticeMsg{cleanAPIErr(err)}
+				return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 			}
 			notice = "Document created"
 		}
@@ -1026,7 +1035,7 @@ func doDeleteDocument(c *api.Client, ownerType string, ownerID, id int, name str
 	return func() tea.Msg {
 		milestoneID, sprintKey := docOwnerArgs(ownerType, ownerID)
 		if _, err := c.DocumentDelete(generated.DocumentDeleteArgs{MilestoneId: milestoneID, SprintKey: sprintKey, DocId: id}); err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		docs, err := reloadDocs(c, ownerType, ownerID, reloadAll)
 		if err != nil {
@@ -1057,7 +1066,7 @@ func loadMilestoneDeps(c *api.Client, id int) tea.Cmd {
 	return func() tea.Msg {
 		d, err := c.GetMilestoneDependencies(id)
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return depsMsg{key: depCacheKey("m", id), deps: d}
 	}
@@ -1067,7 +1076,7 @@ func loadSprintDeps(c *api.Client, id int) tea.Cmd {
 	return func() tea.Msg {
 		d, err := c.GetSprintDependencies(id)
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return depsMsg{key: depCacheKey("s", id), deps: d}
 	}
@@ -1080,8 +1089,8 @@ func depCacheKey(kind string, id int) string {
 
 // refreshedMsg trägt das Ergebnis des manuellen Daten-Reloads (DD2-72): frische
 // Meilensteine + die neu geholten Sprints (key = sprint-ID). Eigener Pfad statt
-// loadMilestones/loadSprint zu batchen, weil der sprintMsg-Handler m.status leert
-// (DD2-57) und damit den Refresh-Toast sofort wegräumen würde.
+// loadMilestones/loadSprint zu batchen, weil der sprintMsg-Handler den Toast räumt
+// (sofern nicht sticky, DD2-57/272) und damit den Refresh-Toast sofort wegräumen würde.
 type refreshedMsg struct {
 	milestones []api.Milestone
 	sprints    map[int]*api.Sprint
@@ -1110,7 +1119,7 @@ func doRefresh(c *api.Client, sprintIDs []int) tea.Cmd {
 func refreshSprint(c *api.Client, sprintID int) tea.Msg {
 	s, err := c.GetSprint(sprintID)
 	if err != nil {
-		return noticeMsg{cleanAPIErr(err)}
+		return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 	}
 	return sprintMsg{s}
 }
@@ -1146,7 +1155,7 @@ func loadReviewDetail(c *api.Client, id int) tea.Cmd {
 	return func() tea.Msg {
 		s, err := c.GetSprint(id)
 		if err != nil {
-			return noticeMsg{cleanAPIErr(err)}
+			return noticeMsg{text: cleanAPIErr(err), kind: toastError}
 		}
 		return reviewDetailMsg{id: id, sprint: s}
 	}

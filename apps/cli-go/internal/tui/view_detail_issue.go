@@ -205,7 +205,6 @@ func (m model) enterDetailFocus() (tea.Model, tea.Cmd) {
 	m.detailFocus = true
 	m.fieldCursor = 0
 	m.secCursor = 0
-	m.status = ""
 	m.detailLevel = 0 // Übersicht (Kopf), Section-Ebene
 	m.accOpen = 0     // Accordion zu; der Fokus steht auf der Übersicht
 	return m, nil

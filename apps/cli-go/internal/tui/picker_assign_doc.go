@@ -69,7 +69,6 @@ func (m model) openDocAssign() (tea.Model, tea.Cmd) {
 	m.docAsOpts = docAssignOpts(m.milestones)
 	m.docAsMenu = listState{}
 	m.docAsMenu.setLen(len(m.docAsOpts))
-	m.status = ""
 	return m, nil
 }
 
@@ -86,7 +85,6 @@ func (m model) keyDocAssign(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case keybind.Matches(msg, keys.Back), keybind.Matches(msg, keys.Assign), msg.String() == "q":
 		m.docAsPick = false
-		m.status = ""
 		return m, nil
 	case keybind.Matches(msg, keys.Enter):
 		m.docAsPick = false
@@ -94,8 +92,8 @@ func (m model) keyDocAssign(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		opt := m.docAsOpts[m.docAsMenu.cursor]
-		m.status = "Document → " + opt.label + " …"
-		return m, doMoveDocument(m.client, m.docAsSrcType, m.docAsSrcID, m.docAsDocID, opt.ownerType, opt.ownerID)
+		m, toastCmd := m.showToast(toastInfo, "Document → "+opt.label+" …", "", nil, false)
+		return m, tea.Batch(doMoveDocument(m.client, m.docAsSrcType, m.docAsSrcID, m.docAsDocID, opt.ownerType, opt.ownerID), toastCmd)
 	}
 	return m, nil
 }

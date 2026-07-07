@@ -179,7 +179,6 @@ func (m model) projPickBox() string {
 // Projekte noch nicht geladen (Direkt-Start mit Projekt), werden sie nachgeladen.
 func (m model) goHome() (tea.Model, tea.Cmd) {
 	m.view = viewHome
-	m.status = ""
 	if len(m.projects) == 0 && m.global != nil {
 		return m, loadProjects(m.global)
 	}
@@ -193,7 +192,6 @@ func (m model) openProjPick() (tea.Model, tea.Cmd) {
 	m.projectSearch.SetValue("")
 	m.plist.cursor = 0
 	m.plist.setLen(len(m.projects))
-	m.status = ""
 	return m, loadProjects(m.global)
 }
 

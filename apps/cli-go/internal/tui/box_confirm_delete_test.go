@@ -86,7 +86,7 @@ func TestDeleteDoneReloads(t *testing.T) {
 	if cmd == nil {
 		t.Error("deleteDone sollte Columns neu laden")
 	}
-	if m.status == "" {
+	if m.toast == nil {
 		t.Error("deleteDone sollte einen Hinweis setzen")
 	}
 }

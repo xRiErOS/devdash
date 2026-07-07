@@ -241,8 +241,11 @@ func TestReviewCompleteDoubleConfirm(t *testing.T) {
 	m := reviewModel()
 	mi, cmd := m.Update(keyMsg("C"))
 	m = mi.(model)
-	if cmd != nil {
-		t.Error("erstes 'C' darf nur bestätigen, nicht dispatchen")
+	// DD2-272: der Bestätigungs-Prompt liefert jetzt seinen eigenen Warn-Toast-Cmd
+	// (Auto-Dismiss, tea.Tick — NIE invoken, blockiert real) statt nil; die
+	// Fach-Dispatch bleibt trotzdem aus (geprüft über confirmComplete unten).
+	if cmd == nil {
+		t.Error("erwartet den Toast-Auto-Dismiss-Cmd, bekam nil")
 	}
 	if !m.confirmComplete {
 		t.Error("confirmComplete nicht gesetzt")

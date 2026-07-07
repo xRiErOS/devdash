@@ -18,17 +18,17 @@ func (m model) yankContext() (tea.Model, tea.Cmd) {
 				m.errNote = "Clipboard-Fehler: " + err.Error()
 			} else {
 				m.errNote = ""
-				m.status = "Milestone context copied (" + ms.Name + ")"
+				return m.showToast(toastInfo, "Milestone context copied ("+ms.Name+")", "", nil, false)
 			}
 		}
 	case 1:
 		// DD2-215: vollständigen Sprint-Kontext (Issues + Docs + ID) async fetchen.
 		if s := m.selSprint(); s != nil {
-			m.status = "copying sprint context …"
-			return m, doSprintYank(m.client, s.ID, s.Key)
+			m, toastCmd := m.showToast(toastInfo, "copying sprint context …", "", nil, false)
+			return m, tea.Batch(doSprintYank(m.client, s.ID, s.Key), toastCmd)
 		}
 	default:
-		m.status = "Yank: on milestone (sprints) or sprint (issues) — h back"
+		return m.showToast(toastWarn, "Yank: on milestone (sprints) or sprint (issues) — h back", "", nil, false)
 	}
 	return m, nil
 }
@@ -88,7 +88,6 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	it := m.reviewItem()
 	switch { // DD2-174: key.Matches; S (Sprint-Status) bleibt literal — keine Keymap-Bindung (Q-flag PO)
 	case keybind.Matches(msg, keys.Back), msg.String() == "q":
-		m.status = ""
 		// B01: Columns nach Review immer neu laden — Verdikte/Status-Mutationen
 		// im Cockpit ändern m.curSprint, aber m.milestones (Columns) blieb stale.
 		if m.reviewReturn == viewNavigateReviews {
@@ -105,7 +104,6 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.usIssueID = it.ID
 		m.usList = nil
 		m.uslist = listState{}
-		m.status = ""
 		return m, loadUserStories(m.client, it.ID)
 	case keybind.Matches(msg, keys.Status): // Issue-Status manuell mutieren — nur lifecycle-gültige Ziele
 		sid := 0
@@ -119,8 +117,8 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if it == nil {
 			return m, nil
 		}
-		m.status = "Pass gesendet …"
-		return m, doVerdict(m.client, it.ID, "passed", "", m.curSprint.ID)
+		m, toastCmd := m.showToast(toastInfo, "Pass gesendet …", "", nil, false)
+		return m, tea.Batch(doVerdict(m.client, it.ID, "passed", "", m.curSprint.ID), toastCmd)
 	case keybind.Matches(msg, keys.ReviewReject): // Reject — DD2-119: mehrzeiliges Kommentar-Modal (US-50) statt Footer-Eingabe
 		if it == nil {
 			return m, nil
@@ -138,11 +136,10 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		if !reviewReopenable(it.Status) {
-			m.status = noticeText("Reopen only from to_review/passed/rejected — otherwise w (rework)")
-			return m, nil
+			return m.showToast(toastWarn, "Reopen only from to_review/passed/rejected — otherwise w (rework)", "", nil, false)
 		}
-		m.status = "Reopen gesendet …"
-		return m, doReopen(m.client, it.ID, m.curSprint.ID)
+		m, toastCmd := m.showToast(toastInfo, "Reopen gesendet …", "", nil, false)
+		return m, tea.Batch(doReopen(m.client, it.ID, m.curSprint.ID), toastCmd)
 	case keybind.Matches(msg, keys.ReviewRework): // Rework: Issue über die Lifecycle-Kette nach to_review (entsperrt
 		// re-Review bei Edit-Lock / status≠to_review, z.B. passed mit not_passed-Verdikt)
 		if it == nil {
@@ -150,22 +147,20 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		path := reworkPath(it.Status)
 		if len(path) == 0 {
-			m.status = noticeText("Issue ist bereits to_review")
-			return m, nil
+			return m.showToast(toastWarn, "Issue ist bereits to_review", "", nil, false)
 		}
-		m.status = "Rework: " + it.Status + " → " + strings.Join(path, " → ") + " …"
-		return m, doRework(m.client, it.ID, path, m.curSprint.ID)
+		m, toastCmd := m.showToast(toastInfo, "Rework: "+it.Status+" → "+strings.Join(path, " → ")+" …", "", nil, false)
+		return m, tea.Batch(doRework(m.client, it.ID, path, m.curSprint.ID), toastCmd)
 	case keybind.Matches(msg, keys.Yank): // DD2-121: Review-Stand als Markdown in die Zwischenablage (auch vor Abschluss)
 		if m.curSprint == nil {
 			return m, nil
 		}
 		if err := clip.Copy(m.reviewStandClip()); err != nil {
 			m.errNote = "Clipboard-Fehler: " + err.Error()
-		} else {
-			m.errNote = ""
-			m.status = noticeText(fmt.Sprintf("Review state copied (%s, %d issues)", m.curSprint.Key, len(m.curSprint.Items)))
+			return m, nil
 		}
-		return m, nil
+		m.errNote = ""
+		return m.showToast(toastInfo, fmt.Sprintf("Review state copied (%s, %d issues)", m.curSprint.Key, len(m.curSprint.Items)), "", nil, false)
 	case msg.String() == "H": // DD2-105: Sprint-Review-Handover-Artefakt (aktionsfähiges Markdown) yanken.
 		// DD2-174 Q-flag: H hat keine Keymap-Bindung — literal beibehalten (wie Cockpit-S).
 		if m.curSprint == nil {
@@ -173,18 +168,17 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		if err := clip.Copy(m.reviewHandoverClip()); err != nil {
 			m.errNote = "Clipboard-Fehler: " + err.Error()
-		} else {
-			m.errNote = ""
-			m.status = noticeText(fmt.Sprintf("Review handover copied (%s)", m.curSprint.Key))
+			return m, nil
 		}
-		return m, nil
+		m.errNote = ""
+		return m.showToast(toastInfo, fmt.Sprintf("Review handover copied (%s)", m.curSprint.Key), "", nil, false)
 	case keybind.Matches(msg, keys.ReviewPass2): // DD2-44: Review-Pass markieren (review_submitted_at) — „Review-Durchgang
 		// fertig"-Marker. Backend ist idempotent; entsperrt keinen Auto-Close.
 		if m.curSprint == nil {
 			return m, nil
 		}
-		m.status = "Marking review pass …"
-		return m, doReviewSubmit(m.client, m.curSprint.ID)
+		m, toastCmd := m.showToast(toastInfo, "Marking review pass …", "", nil, false)
+		return m, tea.Batch(doReviewSubmit(m.client, m.curSprint.ID), toastCmd)
 	case msg.String() == "S": // Sprint-Status-Menü: zeigt gültige Sprint-Transitions.
 		// DD2-174 Q-flag: S hat keine Keymap-Bindung (S=Sort global, im Cockpit ungenutzt) —
 		// literal beibehalten, bis PO eine eigene Bindung entscheidet.
@@ -197,19 +191,17 @@ func (m model) keyReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		if m.curSprint.Status != "to_review" {
-			m.status = noticeText("Completion only from to_review (sprint is: " + m.curSprint.Status + ") — first S")
-			return m, nil
+			return m.showToast(toastWarn, "Completion only from to_review (sprint is: "+m.curSprint.Status+") — first S", "", nil, false)
 		}
 		if !m.confirmComplete {
 			m.confirmComplete = true
-			m.status = noticeText("Complete sprint? Press C again to confirm (PO/DD-186)")
-			return m, nil
+			return m.showToast(toastWarn, "Complete sprint? Press C again to confirm (PO/DD-186)", "", nil, false)
 		}
 		m.confirmComplete = false
-		m.status = "Completing sprint …"
+		m, toastCmd := m.showToast(toastInfo, "Completing sprint …", "", nil, false)
 		// DD2-45: nach dem Complete automatisch den Ergebnis-Handover (rev-results)
 		// in die Zwischenablage yanken — kein manueller Wechsel zur rev-results-Seite.
-		return m, doSprintComplete(m.client, m.curSprint.ID)
+		return m, tea.Batch(doSprintComplete(m.client, m.curSprint.ID), toastCmd)
 	}
 	return m, nil
 }
@@ -226,7 +218,6 @@ func (m model) keyStatusPick(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch { // DD2-174: s (Status) öffnet/schließt das Menü
 	case keybind.Matches(msg, keys.Back), keybind.Matches(msg, keys.Status), msg.String() == "q":
 		m.statusPick = false
-		m.status = ""
 		return m, nil
 	case keybind.Matches(msg, keys.Enter):
 		m.statusPick = false
@@ -234,8 +225,8 @@ func (m model) keyStatusPick(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		target := m.sopts[m.smenu.cursor]
-		m.status = "Status → " + target + " …"
-		return m, doStatus(m.client, m.stIssueID, target, m.stSprintID)
+		m, toastCmd := m.showToast(toastInfo, "Status → "+target+" …", "", nil, false)
+		return m, tea.Batch(doStatus(m.client, m.stIssueID, target, m.stSprintID), toastCmd)
 	}
 	return m, nil
 }
@@ -288,7 +279,6 @@ func (m model) keySprintPick(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch { // DD2-174: s/S (Columns s / Cockpit S) öffnen dieses Menü → beide schließen
 	case keybind.Matches(msg, keys.Back), keybind.Matches(msg, keys.Status), msg.String() == "S", msg.String() == "q":
 		m.sprintPick = false
-		m.status = ""
 		return m, nil
 	case keybind.Matches(msg, keys.Enter):
 		m.sprintPick = false
@@ -296,12 +286,13 @@ func (m model) keySprintPick(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		target := m.spopts[m.spmenu.cursor]
-		m.status = "Sprint → " + target + " …"
+		m, toastCmd := m.showToast(toastInfo, "Sprint → "+target+" …", "", nil, false)
 		// doSprintTo aktualisiert curSprint (Cockpit); loadMilestones hält die
 		// Ranger-Columns frisch (Status im Sprint-Pane), egal von wo getriggert.
 		return m, tea.Batch(
 			doSprintTo(m.client, m.spTargetID, target), // completed → /complete (gated)
 			loadMilestones(m.client),
+			toastCmd,
 		)
 	}
 	return m, nil
@@ -326,7 +317,6 @@ func (m model) keyUserStory(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch { // DD2-174: a=accept, x=reject (D04, war r), o=reset
 	case keybind.Matches(msg, keys.Back), keybind.Matches(msg, keys.Enter), msg.String() == "q":
 		m.usOpen = false
-		m.status = ""
 		return m, nil
 	case keybind.Matches(msg, keys.StoryAccept): // accepted (a)
 		if us := cur(); us != nil {

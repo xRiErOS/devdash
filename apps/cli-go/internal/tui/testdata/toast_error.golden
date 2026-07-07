@@ -1,0 +1,22 @@
+╭───────────────────────────────────────────────────[0m[;m╭──────────────────────────────────╮[0m[0m─╮
+│> devd2: Sprint DD2#9        ctrl+k:cmd  p:project [0m[;m│[0m ● Sprint saved                   [;m│[0m[0mt│
+│Status: to_review   Milestone: Meilenstein Eins   P[0m[;m│[0m DD2#9                            [;m│[0m[0m │
+│───────────────────────────────────────────────────[0m[;m╰──────────────────────────────────╯[0m[0m─│
+│ Sprint Neun                                                                            │
+│                                                                                        │
+│ Issues (1):                                                                            │
+│   Type Key       Title                                  Status       Review verdict    │
+│   ⯁ P1 DD2-99    Beispiel-Issue für den Snapshot        to_review    ∙ no verdict      │
+│                                                                                        │
+│ Review rounds: ✓ 0 passed  ✗ 0 not_passed  ∙ 1 open                                    │
+│                                                                                        │
+│                                                                                        │
+│                                                                                        │
+│                                                                                        │
+│                                                                                        │
+│                                                                                        │
+│                                                                                        │
+│────────────────────────────────────────────────────────────────────────────────────────│
+│R: review cockpit   m: milestone   y: copy   i/k: scroll   esc/q: back                  │
+│                                                                                        │
+╰────────────────────────────────────────────────────────────────────────────────────────╯

@@ -33,7 +33,6 @@ func buildUserStoryForm(title, qa string) *huh.Form {
 // → Neuanlage; "us:<id>" → die bestehende Story (Titel/QA vorbelegt) bearbeiten.
 func (m model) openUserStoryForm(it api.Issue, f detailField) (tea.Model, tea.Cmd) {
 	m.usFormIssueID = it.ID
-	m.status = ""
 	if f.key == "us:new" {
 		m.usFormID = 0
 		m.formKind = "userStoryAdd"

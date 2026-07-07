@@ -26,7 +26,6 @@ func (m model) openSearch() (tea.Model, tea.Cmd) {
 	m.view = viewCommandCenter
 	m.searchQuery = ""
 	m.searchList = listState{}
-	m.status = ""
 	if !m.treeIssuesLoaded {
 		return m, loadAllIssues(m.client)
 	}
@@ -53,7 +52,6 @@ func (m model) keySearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.Type {
 	case tea.KeyEsc:
 		m.view = m.topReturn // DD2-91: zurück in die Heimat-View (Default viewBrowseProject)
-		m.status = ""
 		return m, nil
 	case tea.KeyUp:
 		m.searchList.move(-1)
@@ -99,9 +97,8 @@ func (m model) viewCommandCenter() string {
 	head := m.header() + "\n" + theme.Header.Render(m.screenTitle("Search")) +
 		"  " + theme.Key.Render("/ ") + m.searchQuery + "▏"
 	footer := theme.Dim.Render("type: filter all issues   i/k or ↑↓: navigate   esc: back")
-	if m.status != "" {
-		footer = m.status
-	}
+	// DD2-272: transiente Meldungen laufen über den Eck-Toast, nicht mehr über
+	// diese Footer-Zeile.
 	// Innenhöhe analog treeLayout: App-Rahmen + Kopf + Footer reserviert, -2 Pane-Border.
 	innerH := m.frameH() - lipgloss.Height(head) - lipgloss.Height(footer) - 2
 	if innerH < 4 {

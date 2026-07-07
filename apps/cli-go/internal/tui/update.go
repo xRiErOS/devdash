@@ -23,64 +23,51 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width, m.height = msg.Width, msg.Height
 		return m, nil
 	case createdMsg:
-		// DD2-93: deutlicher Erfolgs-Toast, der den nachfolgenden Reload-Zyklus
-		// (loadMilestones→sprintMsg) übersteht (statusSticky), damit die PO sicher
-		// sieht, dass gespeichert wurde. Auto-Clear (2s) räumt ihn dann auf.
-		m.status = noticeText("✓ " + msg.label + " created")
-		m.statusSticky = true
-		m.statusSeq++ // DD2-35: Auto-Clear-Toast — Tick mit dieser Generation
-		clear := statusTimeout(m.statusSeq)
+		// DD2-93/272: deutlicher Erfolgs-Toast, sticky (Klick oder Replace räumt ihn),
+		// damit die PO sicher sieht, dass gespeichert wurde. Übersteht den nach-
+		// folgenden Reload-Zyklus (loadMilestones→sprintMsg, Sticky-Schutz).
+		m, _ = m.showToast(toastInfo, "✓ "+msg.label+" created", "", nil, true)
 		switch msg.kind {
 		case "milestone", "sprint":
-			return m, tea.Batch(loadMilestones(m.client), clear) // Columns neu (neue Spalten-Items)
+			return m, loadMilestones(m.client) // Columns neu (neue Spalten-Items)
 		case "issue":
 			if m.view == viewBrowseBacklog {
-				return m, tea.Batch(loadBacklog(m.client), clear)
+				return m, loadBacklog(m.client)
 			}
 			// DD2-153: im Review die Ursprungs-Sprint-Review gezielt neu laden. Sonst
 			// reloadt loadMilestones→syncSprint() den columns-SELEKTIERTEN (default
 			// ersten) Sprint und clobbert m.curSprint → Redirect auf das erste Review
 			// der Liste statt das, von dem die PO startete.
 			if m.view == viewReviewSprint && m.curSprint != nil {
-				return m, tea.Batch(loadSprint(m.client, m.curSprint.ID), clear)
+				return m, loadSprint(m.client, m.curSprint.ID)
 			}
 			// DD2-72: im Tree/Columns nach Issue-Anlage die Spalten/Counts auffrischen,
 			// sonst hängt die Ansicht auf veralteten Fortschrittszahlen.
-			return m, tea.Batch(loadMilestones(m.client), clear)
+			return m, loadMilestones(m.client)
 		case "memory":
 			if m.view == viewManageMemory {
-				return m, tea.Batch(loadMemories(m.client, m.memCat), clear)
+				return m, loadMemories(m.client, m.memCat)
 			}
 		}
-		return m, clear
-	case clearStatusMsg: // DD2-35: transienten Status nach Timeout löschen (Toast)
-		if msg.seq == m.statusSeq && !m.inputting {
-			m.status = ""
-			m.statusSticky = false // DD2-93: Sticky-Schutz endet mit dem Auto-Clear
+		return m, nil
+	case toastExpiredMsg: // DD2-272: Eck-Toast nach Timeout löschen (vormals clearStatusMsg)
+		if m.toast != nil && msg.seq == m.toast.seq && !m.inputting {
+			m.toast = nil
 		}
 		return m, nil
 	case errMsg:
 		m.err = msg.err
 		return m, nil
 	case statusMsg:
-		m.status = msg.text
-		m.statusSticky = false // DD2-93: neuer regulärer Status hebt den Sticky-Schutz auf
-		m.statusSeq++
-		return m, statusTimeout(m.statusSeq) // DD2-35: Auto-Clear
+		return m.showToast(toastInfo, msg.text, "", nil, false)
 	case noticeMsg:
-		m.status = noticeText(msg.text) // Sapphire-Hinweis (Aktions-Fehler/Info)
-		m.statusSticky = false          // DD2-93: neuer regulärer Status hebt den Sticky-Schutz auf
-		m.statusSeq++
-		return m, statusTimeout(m.statusSeq) // DD2-35: Auto-Clear
+		return m.showToast(msg.kind, msg.text, "", msg.target, false)
 	case userStoriesMsg:
 		m.mergeUserStories(msg.issueID, msg.items)
 		return m, nil
 	case usMutatedMsg: // DD2-144: US angelegt/bearbeitet → Caches spiegeln + Toast
 		m.mergeUserStories(msg.issueID, msg.items)
-		m.status = noticeText(msg.status)
-		m.statusSticky = false
-		m.statusSeq++
-		return m, statusTimeout(m.statusSeq)
+		return m.showToast(toastInfo, msg.status, "", nil, false)
 	case projectsMsg:
 		m.projects = msg.items
 		m.plist.setLen(len(m.projects))
@@ -102,10 +89,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 		m.ilist.setLen(len(m.visIssues()))
-		m.status = noticeText("Data reloaded")
-		m.statusSticky = false
-		m.statusSeq++
-		return m, statusTimeout(m.statusSeq)
+		return m.showToast(toastInfo, "Data reloaded", "", nil, false)
 	case sprintMsg:
 		m.curSprint = msg.sprint
 		if msg.sprint != nil { // DD2-57: Tree-Lazy-Cache mitfüllen (egal von wo geladen)
@@ -113,18 +97,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.treeIssues = map[int][]api.Issue{}
 			}
 			m.treeIssues[msg.sprint.ID] = msg.sprint.Items
-			if !m.statusSticky { // DD2-93: Erfolgs-Toast nicht durch Reload clobbern
-				m.status = ""
-			}
+			m = m.clearToastUnlessSticky() // DD2-93/272: Erfolgs-Toast nicht durch Reload clobbern
 		}
 		if s := m.selSprint(); s != nil && m.curSprint != nil && s.ID == m.curSprint.ID {
 			m.ilist.setLen(len(m.visIssues()))
 		}
 		if m.view == viewReviewSprint && m.curSprint != nil {
 			m.rlist.setLen(len(m.curSprint.Items))
-			if !m.statusSticky { // DD2-93: Erfolgs-Toast nicht durch Reload clobbern
-				m.status = ""
-			}
+			m = m.clearToastUnlessSticky() // DD2-93/272: Erfolgs-Toast nicht durch Reload clobbern
 		}
 		return m, nil
 	case backlogMsg:
@@ -160,10 +140,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.dodCache = map[int][]api.DodItem{}
 		}
 		m.dodCache[msg.milestoneID] = msg.items
-		m.status = noticeText(msg.status)
-		m.statusSticky = false
-		m.statusSeq++
-		return m, statusTimeout(m.statusSeq)
+		return m.showToast(toastInfo, msg.status, "", nil, false)
 	case issueUpdatedMsg: // DD2-77: Feld-Edit-Response → Cache in-place mergen (D05)
 		if msg.err != "" {
 			m.errNote = msg.err // Aktions-Fehler rot (D05)
@@ -172,7 +149,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.issue != nil {
 			m.errNote = ""
 			m.mergeIssueIntoCache(msg.issue)
-			m.status = noticeText("Gespeichert: " + msg.issue.Key)
+			return m.showToast(toastInfo, "Gespeichert: "+msg.issue.Key, "", nil, false)
 		}
 		return m, nil
 	case milestoneUpdatedMsg: // DD2-79: Meilenstein-Feld-Edit → Cache in-place mergen (D05)
@@ -183,7 +160,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.ms != nil {
 			m.errNote = ""
 			m.mergeMilestoneIntoCache(msg.ms)
-			m.status = noticeText("Gespeichert: " + msg.ms.Name)
+			return m.showToast(toastInfo, "Gespeichert: "+msg.ms.Name, "", nil, false)
 		}
 		return m, nil
 	case sprintUpdatedMsg: // DD2-79: Sprint-Feld-Edit → Cache in-place mergen (D05)
@@ -194,7 +171,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.sp != nil {
 			m.errNote = ""
 			m.mergeSprintIntoCache(msg.sp)
-			m.status = noticeText("Gespeichert: " + msg.sp.Name)
+			return m.showToast(toastInfo, "Gespeichert: "+msg.sp.Name, "", nil, false)
 		}
 		return m, nil
 	case defaultProjectSetMsg: // Default-Anker im Backend gesetzt (TUI-Settings)
@@ -203,10 +180,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.errNote = ""
-		m.status = noticeText(msg.label)
-		m.statusSticky = false
-		m.statusSeq++
-		return m, statusTimeout(m.statusSeq)
+		return m.showToast(toastInfo, msg.label, "", nil, false)
 	case projectCreatedMsg: // neues Projekt angelegt → Projektliste neu laden + Toast
 		if msg.err != "" {
 			m.errNote = msg.err
@@ -217,10 +191,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.project != nil {
 			name = msg.project.Name
 		}
-		m.status = noticeText("Project created: " + name)
-		m.statusSticky = false
-		m.statusSeq++
-		return m, tea.Batch(loadProjects(m.global), statusTimeout(m.statusSeq))
+		m, toastCmd := m.showToast(toastInfo, "Project created: "+name, "", nil, false)
+		return m, tea.Batch(loadProjects(m.global), toastCmd)
 	case projectUpdatedMsg: // DD2-221: Projekt-Settings gespeichert → m.project spiegeln + Toast
 		if msg.err != "" {
 			m.errNote = msg.err
@@ -229,10 +201,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.project != nil {
 			m.errNote = ""
 			m.project = msg.project
-			m.status = noticeText("Project saved: " + msg.project.Name)
-			m.statusSticky = false
-			m.statusSeq++
-			return m, statusTimeout(m.statusSeq)
+			return m.showToast(toastInfo, "Project saved: "+msg.project.Name, "", nil, false)
 		}
 		return m, nil
 	case assignSprintsMsg: // DD2-136: Ziel-Sprints für den Issue→Sprint-Picker
@@ -248,8 +217,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.removeIssueFromCaches(msg.issueID)
 		m.detailFocus = false
 		m.blist.setLen(len(m.backlogVisible()))
-		m.status = noticeText("Zugewiesen → " + msg.sprintKey)
-		return m, loadMilestones(m.client) // Sprint-Counts auffrischen
+		m, toastCmd := m.showToast(toastInfo, "Zugewiesen → "+msg.sprintKey, "", nil, false)
+		return m, tea.Batch(loadMilestones(m.client), toastCmd) // Sprint-Counts auffrischen
 	case allIssuesMsg: // DD2-62: projektweite Issues für den Tree-Filter
 		m.treeFilterIssues = msg.items
 		m.treeIssuesLoaded = true
@@ -283,44 +252,29 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.unList = msg.items
 		m.unlist.setLen(len(m.unList))
 		if msg.notice != "" {
-			m.status = noticeText(msg.notice)
-			m.statusSticky = false
-			m.statusSeq++
-			return m, statusTimeout(m.statusSeq)
+			return m.showToast(toastInfo, msg.notice, "", nil, false)
 		}
 		return m, nil
 	case todosMsg: // DD2-171: ToDo-Liste geladen/neu gespeichert
 		m.todoAll = msg.items
 		m.todolist.setLen(len(m.filteredTodos()))
 		if msg.notice != "" {
-			m.status = noticeText(msg.notice)
-			m.statusSticky = false
-			m.statusSeq++
-			return m, statusTimeout(m.statusSeq)
+			return m.showToast(toastInfo, msg.notice, "", nil, false)
 		}
 		return m, nil
 	case docsMsg: // DD2-167: Dokument-Liste geladen/neu gespeichert
 		m.docList = msg.items
 		m.doclist.setLen(len(m.filteredDocs()))
 		if msg.notice != "" {
-			m.status = noticeText(msg.notice)
-			m.statusSticky = false
-			m.statusSeq++
-			return m, statusTimeout(m.statusSeq)
+			return m.showToast(toastInfo, msg.notice, "", nil, false)
 		}
 		return m, nil
 	case editorFinishedMsg: // DD2-164/166ff: neovim-Suspend zurück → view-aware speichern
 		if msg.err != nil {
-			m.status = noticeText("editor: " + msg.err.Error())
-			m.statusSticky = false
-			m.statusSeq++
-			return m, statusTimeout(m.statusSeq)
+			return m.showToast(toastError, "editor: "+msg.err.Error(), "", nil, false)
 		}
 		if !msg.changed {
-			m.status = noticeText("no changes")
-			m.statusSticky = false
-			m.statusSeq++
-			return m, statusTimeout(m.statusSeq)
+			return m.showToast(toastInfo, "no changes", "", nil, false)
 		}
 		switch m.view {
 		case viewUserNotes:
@@ -348,62 +302,58 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	case deleteDoneMsg:
-		m.status = noticeText("Deleted: " + msg.name)
+		m, toastCmd := m.showToast(toastInfo, "Deleted: "+msg.name, "", nil, false)
 		if msg.kind == "project" { // Projekt weg → aktives Projekt verwerfen, zurück in die Lobby
 			m.project = nil
 			m.client = nil
 			m.curSprint = nil
 			m.milestones = nil
 			m.view = viewHome
-			return m, loadProjects(m.global)
+			return m, tea.Batch(loadProjects(m.global), toastCmd)
 		}
 		if msg.kind == "issue" { // DD2-65: in-place aus den Caches, kein View-Wechsel
 			m.removeIssueFromCaches(msg.id)
 			m.detailFocus = false // Detail-Fokus zeigte auf das gelöschte Issue
 			m.blist.setLen(len(m.backlogVisible()))
-			return m, loadMilestones(m.client) // Fortschritts-Counts auffrischen
+			return m, tea.Batch(loadMilestones(m.client), toastCmd) // Fortschritts-Counts auffrischen
 		}
 		// Columns + ggf. Cockpit/Detail-Quelle frisch; zurück auf Columns-Sicht.
 		m.curSprint = nil
 		if m.view == viewDetailMilestone || m.view == viewDetailSprint {
 			m.view = viewBrowseProject // DD2-111: Ranger gesunset → Tree-Primat
 		}
-		return m, loadMilestones(m.client)
+		return m, tea.Batch(loadMilestones(m.client), toastCmd)
 	case reworkDoneMsg:
 		m.curSprint = msg.sprint
 		if m.curSprint != nil {
 			m.rlist.setLen(len(m.curSprint.Items))
 		}
-		m.status = noticeText("Rework done → issue is to_review, now a:pass")
-		return m, nil
+		return m.showToast(toastInfo, "Rework done → issue is to_review, now a:pass", "", nil, false)
 	case reviewSubmittedMsg: // DD2-44: Review-Pass markiert (review_submitted_at)
 		m.curSprint = msg.sprint
 		if m.curSprint != nil {
 			m.rlist.setLen(len(m.curSprint.Items))
 		}
-		m.status = noticeText("Review pass marked — sprint waiting for PO completion (C)")
-		return m, nil
+		return m.showToast(toastInfo, "Review pass marked — sprint waiting for PO completion (C)", "", nil, false)
 	case completeDoneMsg: // DD2-45: Sprint abgeschlossen + Ergebnis-Handover geyankt
 		m.curSprint = msg.sprint
 		if m.curSprint != nil {
 			m.rlist.setLen(len(m.curSprint.Items))
 		}
 		if msg.yanked {
-			m.status = noticeText("Sprint completed — handover in clipboard")
-		} else {
-			m.status = noticeText("Sprint completed (handover yank failed)")
+			return m.showToast(toastInfo, "Sprint completed — handover in clipboard", "", nil, false)
 		}
-		return m, nil
+		return m.showToast(toastWarn, "Sprint completed (handover yank failed)", "", nil, false)
 	case tagsLoadedMsg: // DD2-75: Tag-Manager-Liste
 		m.tags = msg.items
 		m.taglist.setLen(len(m.tags))
 		return m, nil
 	case tagMutatedMsg: // DD2-75: create/update/delete → Liste neu laden
-		m.status = noticeText(msg.label)
+		m, toastCmd := m.showToast(toastInfo, msg.label, "", nil, false)
 		if m.view == viewManageTags {
-			return m, loadTags(m.client)
+			return m, tea.Batch(loadTags(m.client), toastCmd)
 		}
-		return m, nil
+		return m, toastCmd
 	case tagPickDataMsg: // DD2-33: Picker-Daten (alle Tags + ggf. aktuelle)
 		if m.tagPick && msg.id == m.tagPickID && msg.kind == m.tagPickKind {
 			m.tagPickAll = msg.all
@@ -422,28 +372,25 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.kind == "issue" {
 			m.patchIssueTags(msg.id, msg.tags)
 		}
-		m.status = noticeText("Tags gesetzt — " + msg.label)
-		return m, nil
+		return m.showToast(toastInfo, "Tags gesetzt — "+msg.label, "", nil, false)
 	case docMovedMsg: // DD2-243: Dokument-Zuweisung — Liste neu laden (alter Owner verliert das Doc)
 		if msg.err != "" {
-			m.status = noticeText(msg.err)
-			return m, nil
+			return m.showToast(toastError, msg.err, "", nil, false)
 		}
-		m.status = noticeText("Document moved")
+		m, toastCmd := m.showToast(toastInfo, "Document moved", "", nil, false)
 		if m.docAllMode {
-			return m, loadAllDocs(m.client)
+			return m, tea.Batch(loadAllDocs(m.client), toastCmd)
 		}
-		return m, loadDocs(m.client, m.docOwnerType, m.docOwnerID)
+		return m, tea.Batch(loadDocs(m.client, m.docOwnerType, m.docOwnerID), toastCmd)
 	case docRenamedMsg: // DD2-252: Dateiname umbenannt — Liste neu laden (zeigt neuen file_path)
 		if msg.err != "" {
-			m.status = noticeText(msg.err)
-			return m, nil
+			return m.showToast(toastError, msg.err, "", nil, false)
 		}
-		m.status = noticeText("File renamed")
+		m, toastCmd := m.showToast(toastInfo, "File renamed", "", nil, false)
 		if m.docAllMode {
-			return m, loadAllDocs(m.client)
+			return m, tea.Batch(loadAllDocs(m.client), toastCmd)
 		}
-		return m, loadDocs(m.client, m.docOwnerType, m.docOwnerID)
+		return m, tea.Batch(loadDocs(m.client, m.docOwnerType, m.docOwnerID), toastCmd)
 	case tea.MouseMsg:
 		return m.handleMouse(msg)
 	case tea.KeyMsg:
@@ -456,6 +403,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // m.scroll der Chrome-Detail-Views), Linksklick setzt Fokus/Cursor. Golden Rule
 // #3: Tree ist vertikal → msg.Y; Ranger-Columns sind horizontal → msg.X.
 func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+	// DD2-272: der Eck-Toast ist NICHT modal (blockiert keine Tastatur), aber ein
+	// Linksklick auf seine Hit-Area wird VOR dem regulären Dispatch abgefangen —
+	// unabhängig davon, ob gerade ein Modal offen ist (der Toast schwebt darüber).
+	if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress && m.toastHit(msg.X, msg.Y) {
+		return m.dismissToast()
+	}
 	// Modale/Picks sind tastaturgesteuert — Maus ignorieren (kein Fehlklick-Fokus).
 	if m.form != nil || m.paletteOpen || m.projPick || m.filtering || m.statusPick || m.sprintPick ||
 		m.msPick || m.smPick || m.maPick || m.tagPick || m.delConfirm || m.mcConfirm || m.createConfirm || m.usOpen ||
@@ -541,8 +494,7 @@ func (m model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// weiter und speichert regulär per enter/alt+enter.
 	if ef, ok := msg.(editorFinishedMsg); ok && m.formKind == "editField" {
 		if ef.err != nil {
-			m.status = noticeText("editor: " + ef.err.Error())
-			return m, nil
+			return m.showToast(toastError, "editor: "+ef.err.Error(), "", nil, false)
 		}
 		if ef.changed {
 			f := detailField{key: m.editField, label: m.editLabel, editor: m.editEditor}
@@ -560,8 +512,7 @@ func (m model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// po_notes im Draft überschreiben, übrige Felder erhalten, Form neu bauen.
 	if ef, ok := msg.(editorFinishedMsg); ok && m.formKind == "issue" {
 		if ef.err != nil {
-			m.status = noticeText("editor: " + ef.err.Error())
-			return m, nil
+			return m.showToast(toastError, "editor: "+ef.err.Error(), "", nil, false)
 		}
 		if ef.changed {
 			d := m.currentIssueDraft()
@@ -579,7 +530,6 @@ func (m model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.formGroupIdx = 0
 			m.formGroupTitles = nil
 			m.formPartials = nil
-			m.status = ""
 			return m, nil
 		}
 		// DD2-187: alt+enter NICHT direkt submitForm() rufen. Das umging huh's
@@ -620,7 +570,6 @@ func (m model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.formGroupIdx = 0
 		m.formGroupTitles = nil
 		m.formPartials = nil
-		m.status = ""
 		return m, nil
 	}
 	return m, cmd

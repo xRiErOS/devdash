@@ -28,7 +28,6 @@ func buildDodForm(label string, done bool) *huh.Form {
 // → Neuanlage; "dod:<id>" → das bestehende Item (Label/Done vorbelegt) bearbeiten.
 func (m model) openDodForm(ms api.Milestone, f detailField) (tea.Model, tea.Cmd) {
 	m.dodFormMilestoneID = ms.ID
-	m.status = ""
 	if f.key == "dod:new" {
 		m.dodFormID = 0
 		m.formKind = "dodAdd"
