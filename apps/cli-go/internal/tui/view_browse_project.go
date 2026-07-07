@@ -624,20 +624,8 @@ func (m model) treeDetail(n treeNode, w int) string {
 		}
 		b.WriteString(title + "\n")
 		// Meta-Strip wie Wireframe: milestone/prio/type/tags + Status rechtsbündig (D01).
-		var tags string
-		if len(it.Tags) > 0 {
-			names := make([]string, len(it.Tags))
-			for i, t := range it.Tags {
-				names[i] = t.Name
-			}
-			tags = strings.Join(names, ",")
-		}
-		b.WriteString(metaStrip([]metaPair{
-			{deref(it.Milestone), "milestone"},
-			{theme.Priority(it.Priority), "prio"},
-			{theme.TypeIcon(it.Type) + " " + theme.TypeStyle(it.Type).Render(it.Type), "type"},
-			{tags, "tags"},
-		}, statusText(it.Status), w))
+		// issueMetaPairs = Single Source mit dem Maus-Hit-Test (DD2-274, mouseMetaStripClick).
+		b.WriteString(metaStrip(issueMetaPairs(it), statusText(it.Status), w))
 		if kopfActive && m.detailLevel == 1 {
 			b.WriteString("\n" + fieldStrip(kopfFields(), m.fieldCursor, w))
 		}

@@ -504,6 +504,9 @@ func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			if mi, cmd, ok := m.mouseTreeFieldClick(msg); ok {
 				return mi, cmd
 			}
+			if mi, cmd, ok := m.mouseMetaStripClick(msg); ok { // D01: Type/Prio/Status im Detail-Meta-Strip
+				return mi, cmd
+			}
 			if mi, cmd, ok := m.mouseAccordionClick(msg); ok {
 				return mi, cmd
 			}
@@ -647,6 +650,52 @@ func (m model) mouseAccordionClick(msg tea.MouseMsg) (tea.Model, tea.Cmd, bool) 
 		m.accOpen = n
 	}
 	return m, nil, true
+}
+
+// mouseMetaStripClick öffnet den Editor/Picker für die Type-/Priority-/Status-Zelle
+// des Issue-Meta-Strips in der rechten Detail-Pane (DD2-274 D01). Der Meta-Strip ist
+// Detail-Zeile 1 (Titel = Zeile 0). Zell-Geometrie via metaStripCells (Spiegel von
+// metaStrip). Nur Issue-Knoten (Type/Priority/Status haben einen Tasten-Editor);
+// milestone/tags-Zellen sind kein Ziel. ok=false außerhalb → der Aufrufer fällt auf
+// den Accordion-/Cursor-Klick zurück. Die Öffnen-Funktionen sind DIESELBEN wie
+// Tastatur + Backlog/Tree-Feld (openPriorityEdit/openTypeEdit/openIssueStatus).
+func (m model) mouseMetaStripClick(msg tea.MouseMsg) (tea.Model, tea.Cmd, bool) {
+	head, _, lw, rw, _ := m.treeLayout()
+	relX := msg.X - m.rightContentX(lw)
+	if relX < 0 || relX >= rw { // nicht in der rechten Detail-Pane
+		return m, nil, false
+	}
+	if msg.Y-m.paneOriginY(head) != 1 { // Meta-Strip = Detail-Zeile 1
+		return m, nil, false
+	}
+	nodes := m.treeNodes()
+	if m.treeCursor < 0 || m.treeCursor >= len(nodes) {
+		return m, nil, false
+	}
+	n := nodes[m.treeCursor]
+	if n.kind != tkIssue || n.issue == nil { // Meilenstein/Sprint: kein Type/Prio/Status-Strip
+		return m, nil, false
+	}
+	it := n.issue
+	// rw-2 = dieselbe Meta-Strip-Breite wie im Render (treeDetail ruft mit rw-2).
+	for _, c := range metaStripCells(issueMetaPairs(*it), statusText(it.Status), rw-2) {
+		if relX < c.start || relX >= c.end {
+			continue
+		}
+		switch c.sub {
+		case "prio":
+			mi, cmd := m.openPriorityEdit(it)
+			return mi, cmd, true
+		case "type":
+			mi, cmd := m.openTypeEdit(it)
+			return mi, cmd, true
+		case "status":
+			mi, cmd := m.openIssueStatus(it, n.sprintID)
+			return mi, cmd, true
+		}
+		return m, nil, false // milestone/tags: kein Editor (D01)
+	}
+	return m, nil, false
 }
 
 // fieldKind identifiziert, welches mausklickbare Feld einer gerenderten Backlog-

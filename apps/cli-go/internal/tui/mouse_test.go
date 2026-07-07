@@ -33,15 +33,20 @@ func screenLines(m model) []string {
 func clickAt(t *testing.T, m model, substr string, right bool) tea.MouseMsg {
 	t.Helper()
 	_, _, lw, _, _ := m.treeLayout()
+	boundary := m.rightContentX(lw) // Screen-Spalte, ab der die rechte Pane beginnt
 	for y, l := range screenLines(m) {
 		i := strings.Index(l, substr)
 		if i < 0 {
 			continue
 		}
-		if (i >= lw) != right {
+		// i ist ein BYTE-Offset; die Screen-Spalte ist die Display-Breite des
+		// Präfixes (Zeilen enthalten Multibyte-Glyphen wie │/⯁). Ohne diese
+		// Umrechnung läge der Klick spaltenweise daneben.
+		col := ansi.StringWidth(l[:i])
+		if (col >= boundary) != right {
 			continue // Treffer in der falschen Pane
 		}
-		return click(i+1, y)
+		return click(col, y)
 	}
 	t.Fatalf("substr %q nicht in gerenderter View gefunden (right=%v)", substr, right)
 	return tea.MouseMsg{}
@@ -178,6 +183,57 @@ func TestMouseClickAccordionHeaderClosesOpenSection(t *testing.T) {
 	mi, _ := m.handleMouse(clickAt(t, m, "[1]", true)) // Header der offenen Section 1
 	if got := mi.(model).accOpen; got != 0 {
 		t.Fatalf("Klick auf offenen Section-[1]-Header sollte schließen, accOpen=%d want 0", got)
+	}
+}
+
+// DD2-274 D01: Klick auf die Type-Zelle des Meta-Strips (rechte Detail-Pane)
+// öffnet denselben Type-Editor wie der Tasten-Pfad (kopfFields "type"). Render-geerdet.
+func TestMouseClickMetaStripTypeOpensEditField(t *testing.T) {
+	m := treeMouseModel()
+	m.treeCursor = 2 // Issue DD2-101 (type=bug)
+	m.width, m.height = 100, 30
+
+	mi, _ := m.handleMouse(clickAt(t, m, "type", true)) // "type"-Sub-Label im Meta-Strip
+	got := mi.(model)
+	if got.form == nil || got.editField != "type" {
+		t.Fatalf("Klick auf Type-Zelle sollte Type-editField öffnen, form=%v field=%q", got.form != nil, got.editField)
+	}
+	if got.editID != 101 {
+		t.Errorf("editID=%d, want 101", got.editID)
+	}
+}
+
+// DD2-274 D01: Klick auf die Priority-Zelle des Meta-Strips öffnet openPriorityEdit
+// (dieselbe Öffnen-Funktion wie Backlog/Tree-Feld + Tasten-Pfad).
+func TestMouseClickMetaStripPrioOpensEditField(t *testing.T) {
+	m := treeMouseModel()
+	m.treeCursor = 2
+	m.width, m.height = 100, 30
+
+	mi, _ := m.handleMouse(clickAt(t, m, "prio", true)) // "prio"-Sub-Label im Meta-Strip
+	got := mi.(model)
+	if got.form == nil || got.editField != "priority" {
+		t.Fatalf("Klick auf Prio-Zelle sollte Priority-editField öffnen, field=%q", got.editField)
+	}
+}
+
+// DD2-274 D01: Klick auf die Status-Zelle des Meta-Strips (rechtsbündig) öffnet
+// openIssueStatus MIT dem Sprint-Kontext des Knotens (identische Guard-Logik).
+func TestMouseClickMetaStripStatusOpensStatusPick(t *testing.T) {
+	m := treeMouseModel()
+	m.treeCursor = 2 // DD2-101, status=new
+	m.width, m.height = 100, 30
+
+	mi, _ := m.handleMouse(clickAt(t, m, "new", true)) // Status-Text im Meta-Strip
+	got := mi.(model)
+	if !got.statusPick {
+		t.Fatalf("Klick auf Status-Zelle sollte statusPick öffnen")
+	}
+	if got.stIssueID != 101 {
+		t.Errorf("stIssueID=%d, want 101", got.stIssueID)
+	}
+	if got.stSprintID != 10 {
+		t.Errorf("stSprintID=%d, want 10 (Sprint-Kontext des Tree-Knotens)", got.stSprintID)
 	}
 }
 

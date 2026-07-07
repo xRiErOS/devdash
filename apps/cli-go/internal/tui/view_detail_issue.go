@@ -129,6 +129,22 @@ func (m model) openPriorityEdit(it *api.Issue) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// openTypeEdit öffnet die Type-editField-Form für it (DD2-274 D01) — DIESELBE
+// Öffnen-Funktion wie der Tasten-Pfad (kopfFields "type" → openEditField, select).
+// Maus-Alias auf die Type-Zelle des Detail-Meta-Strips (mouseMetaStripClick), kein
+// Logik-Duplikat.
+func (m model) openTypeEdit(it *api.Issue) (tea.Model, tea.Cmd) {
+	if it == nil {
+		return m, nil
+	}
+	for _, f := range kopfFields() {
+		if f.key == "type" {
+			return m.openEditField(*it, f)
+		}
+	}
+	return m, nil
+}
+
 // editFocusedField öffnet die Edit-Form für das aktive Feld der fokussierten Entität
 // (DD2-196): Meilenstein/Sprint über editFlatField (docs-Browse bzw. scalar via
 // UpdateMilestone/UpdateSprint), Issue über die US-Form bzw. openEditField.

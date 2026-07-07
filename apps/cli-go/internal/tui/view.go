@@ -485,6 +485,66 @@ func metaStrip(pairs []metaPair, status string, w int) string {
 	return left + strings.Repeat(" ", gap) + status
 }
 
+// metaSep = sichtbare Breite des Meta-Strip-Trennzeichens "  ∙  " (2+1+2).
+const metaSep = 5
+
+// metaCell = content-Spalten-Bereich [start,end) EINER Meta-Strip-Zelle plus ihr
+// sub-Label (DD2-274). Die rechtsbündige Status-Zelle bekommt sub="status".
+type metaCell struct {
+	sub        string
+	start, end int
+}
+
+// metaStripCells ist der Geometrie-Spiegel von metaStrip (Single Source der Zell-/
+// Separator-Breiten): content-Spalten-Bereiche der Zellen + der rechtsbündigen
+// Status-Zelle, für den Maus-Hit-Test (DD2-274 D01). Die Zonen sind lückenlos —
+// jede Zelle frisst ihren nachfolgenden Trennraum, sonst verfehlt ein Klick auf
+// das "  ∙  " (analog D05). nil bei Overflow: dann kürzt metaStrip links → keine
+// verlässliche Zuordnung mehr (Klick degradiert zum No-op).
+func metaStripCells(pairs []metaPair, status string, w int) []metaCell {
+	var cells []metaCell
+	pos := 0
+	for _, p := range pairs {
+		if strings.TrimSpace(ansi.Strip(p.value)) == "" {
+			continue
+		}
+		cellW := lipgloss.Width(p.value)
+		if p.sub != "" {
+			cellW += 1 + lipgloss.Width(p.sub) // " " + sub
+		}
+		cells = append(cells, metaCell{p.sub, pos, pos + cellW + metaSep}) // + Trennraum (lückenlos)
+		pos += cellW + metaSep
+	}
+	if status != "" {
+		sw := lipgloss.Width(status)
+		if (pos-metaSep)+sw+1 > w { // gleiche Overflow-Bedingung wie metaStrip
+			return nil
+		}
+		cells = append(cells, metaCell{"status", w - sw, w})
+	}
+	return cells
+}
+
+// issueMetaPairs baut die Meta-Strip-Paare eines Issues (milestone/prio/type/tags)
+// — Single Source für den Render (treeDetail) UND den Maus-Hit-Test (DD2-274),
+// damit Zell-Reihenfolge/-Inhalt zwischen beiden nie driftet.
+func issueMetaPairs(it api.Issue) []metaPair {
+	var tags string
+	if len(it.Tags) > 0 {
+		names := make([]string, len(it.Tags))
+		for i, t := range it.Tags {
+			names[i] = t.Name
+		}
+		tags = strings.Join(names, ",")
+	}
+	return []metaPair{
+		{deref(it.Milestone), "milestone"},
+		{theme.Priority(it.Priority), "prio"},
+		{theme.TypeIcon(it.Type) + " " + theme.TypeStyle(it.Type).Render(it.Type), "type"},
+		{tags, "tags"},
+	}
+}
+
 // chrome ist die gemeinsame Screen-Passage (DD2-48): globaler Header (Projekt+Nav),
 // Titel mit Präfix, optionales Info-Grid, höhenfüllender Scroll-Body, Footer.
 func (m model) chrome(title string, slots []hslot, body, hint string) string {
