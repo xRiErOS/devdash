@@ -153,6 +153,34 @@ func TestMouseSingleClickOnOpenNodeStaysOpen(t *testing.T) {
 	}
 }
 
+// DD2-274 D02: Klick auf einen ZUgeklappten Accordion-Section-Header in der
+// rechten Detail-Pane klappt diese Section auf (accOpen := n). Render-geerdet.
+func TestMouseClickAccordionHeaderOpensSection(t *testing.T) {
+	m := treeMouseModel()
+	m.treeCursor = 2 // Issue DD2-101 (Sections gerendert, full=true)
+	m.accOpen = 1    // Section 1 offen, [2] zu
+	m.width, m.height = 100, 30
+
+	mi, _ := m.handleMouse(clickAt(t, m, "[2]", true)) // Header Section [2], rechte Pane
+	if got := mi.(model).accOpen; got != 2 {
+		t.Fatalf("Klick auf Section-[2]-Header sollte Section 2 öffnen, accOpen=%d want 2", got)
+	}
+}
+
+// DD2-274 D02: Klick auf den Header der bereits OFFENEN Section klappt sie zu
+// (Toggle, accOpen := 0) — analog der Zifferntaste.
+func TestMouseClickAccordionHeaderClosesOpenSection(t *testing.T) {
+	m := treeMouseModel()
+	m.treeCursor = 2
+	m.accOpen = 1 // Section 1 offen
+	m.width, m.height = 100, 30
+
+	mi, _ := m.handleMouse(clickAt(t, m, "[1]", true)) // Header der offenen Section 1
+	if got := mi.(model).accOpen; got != 0 {
+		t.Fatalf("Klick auf offenen Section-[1]-Header sollte schließen, accOpen=%d want 0", got)
+	}
+}
+
 func TestMouseIgnoredWhenSearching(t *testing.T) {
 	m := treeModel()
 	m.treeExpMile[1] = true

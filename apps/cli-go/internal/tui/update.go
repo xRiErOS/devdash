@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"strconv"
 	"strings"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // doubleClickInterval ist das Zeitfenster, in dem zwei Klicks auf denselben Tree-
@@ -496,10 +498,13 @@ func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		}
 		switch m.view {
 		case viewBrowseProject:
-			// DD2-274: Feld-Klick (Priority/Status) hat Vorrang vor dem bestehenden
-			// Zeilen-Cursor-Klick — kein Treffer fällt unverändert auf mouseTreeClick
-			// zurück (AC3).
+			// DD2-274: Feld-Klick (Priority/Status, linke Pane) hat Vorrang, dann der
+			// Accordion-Section-Header-Klick (rechte Pane, D02); kein Treffer fällt
+			// unverändert auf den Zeilen-Cursor-/Expand-Klick zurück (AC3).
 			if mi, cmd, ok := m.mouseTreeFieldClick(msg); ok {
+				return mi, cmd
+			}
+			if mi, cmd, ok := m.mouseAccordionClick(msg); ok {
 				return mi, cmd
 			}
 			return m.mouseTreeClick(msg)
@@ -582,6 +587,66 @@ func (m model) mouseTreeFieldClick(msg tea.MouseMsg) (tea.Model, tea.Cmd, bool) 
 		return mi, cmd, true
 	}
 	return m, nil, false
+}
+
+// accordionHeaderDigit liest die 1-basierte Section-Nummer aus einer gestrippten
+// Detail-Zeile, wenn es ein Accordion-Section-Header ist (`> [n] Title …`, ggf.
+// mit führendem Fokus-Balken ▌). ok=false für Nicht-Header (Titel/Meta-Strip/Body/
+// "Sections: digit [1..n] opens" → Atoi("1..n") scheitert). DD2-274 D02.
+func accordionHeaderDigit(stripped string) (int, bool) {
+	s := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(stripped), "▌"))
+	if !strings.HasPrefix(s, ">") { // Accordion-Header beginnt mit dem Chevron
+		return 0, false
+	}
+	i := strings.IndexByte(s, '[')
+	if i < 0 {
+		return 0, false
+	}
+	j := strings.IndexByte(s[i:], ']')
+	if j < 1 {
+		return 0, false
+	}
+	n, err := strconv.Atoi(s[i+1 : i+j])
+	if err != nil || n < 1 {
+		return 0, false
+	}
+	return n, true
+}
+
+// mouseAccordionClick toggelt eine Accordion-Section, wenn der Klick in der rechten
+// Detail-Pane auf eine Section-Titelzeile fällt (DD2-274 D02, Hit-Area = ganze
+// Titelzeile). Klick auf eine zugeklappte Section öffnet sie, auf die offene
+// schließt sie (Toggle, analog der Zifferntaste keys.Section). Die getroffene Zeile
+// wird render-getreu aus treeDetail (Single Source mit dem Render) ermittelt — nie
+// eine Header-Arithmetik, die abdriften könnte. ok=false außerhalb der Header-Zeilen.
+func (m model) mouseAccordionClick(msg tea.MouseMsg) (tea.Model, tea.Cmd, bool) {
+	head, _, lw, rw, innerH := m.treeLayout()
+	relX := msg.X - m.rightContentX(lw)
+	if relX < 0 || relX >= rw { // nicht in der rechten Detail-Pane
+		return m, nil, false
+	}
+	lineIdx := msg.Y - m.paneOriginY(head)
+	if lineIdx < 0 || lineIdx >= innerH {
+		return m, nil, false
+	}
+	nodes := m.treeNodes()
+	if m.treeCursor < 0 || m.treeCursor >= len(nodes) {
+		return m, nil, false
+	}
+	lines := strings.Split(m.treeDetail(nodes[m.treeCursor], rw-2), "\n")
+	if lineIdx >= len(lines) {
+		return m, nil, false
+	}
+	n, ok := accordionHeaderDigit(ansi.Strip(lines[lineIdx]))
+	if !ok {
+		return m, nil, false
+	}
+	if m.accOpen == n { // Toggle: offene Section wieder schließen
+		m.accOpen = 0
+	} else {
+		m.accOpen = n
+	}
+	return m, nil, true
 }
 
 // fieldKind identifiziert, welches mausklickbare Feld einer gerenderten Backlog-
