@@ -215,10 +215,12 @@ func (m model) backlogListBlocks(vis []api.Issue, w int, active bool) [][]string
 	}
 	blocks := make([][]string, len(vis))
 	for i, it := range vis {
-		// DD2-189 PO-Format: Header (Marker + Prio + Key) in Zeile 1, der Titel ab
-		// Zeile 2 als Hängeeinzug UNTER dem Key. Einzug = Displaybreite des Prefix
-		// VOR dem Key (lipgloss.Width, nie len — B06). w-1 reserviert die Cursor-Spalte.
-		prefix := theme.TypeIcon(it.Type) + " " + theme.Priority(it.Priority) + " "
+		// DD2-189 PO-Format: Header (Marker + Type + Status + Prio + Key) in Zeile 1,
+		// der Titel ab Zeile 2 als Hängeeinzug UNTER dem Key. Einzug = Displaybreite
+		// des Prefix VOR dem Key (lipgloss.Width, nie len — B06). w-1 reserviert die
+		// Cursor-Spalte. DD2-274: Status-Icon ergänzt (zwischen Type und Priorität) —
+		// macht die Zeile mausklickbar (backlogRowCols spiegelt exakt diesen Aufbau).
+		prefix := theme.TypeIcon(it.Type) + " " + theme.StatusIcon(it.Status) + " " + theme.Priority(it.Priority) + " "
 		indent := lipgloss.Width(prefix)
 		lines := []string{prefix + theme.Key.Render(it.Key)}
 		if strings.TrimSpace(it.Title) != "" {
@@ -248,6 +250,23 @@ func (m model) backlogListBlocks(vis []api.Issue, w int, active bool) [][]string
 		blocks[i] = lines
 	}
 	return blocks
+}
+
+// backlogRowCols liefert die Spalten-Trefferzonen (Status-Icon, Priorität) einer
+// Backlog-Zeilen-Kopfzeile — DD2-274. Baut auf denselben theme-Primitiven wie der
+// Prefix in backlogListBlocks (TypeIcon/StatusIcon/Priority), kann darum nie vom
+// tatsächlichen Render abdriften. markerW=1 ist der Cursor-/Rand-Marker ("▌"/" "),
+// den backlogListBlocks JEDER Zeile voranstellt, BEVOR der Prefix folgt.
+func backlogRowCols(it api.Issue) (statusStart, statusEnd, prioStart, prioEnd int) {
+	const markerW = 1
+	typeW := lipgloss.Width(theme.TypeIcon(it.Type))
+	statusStart = markerW + typeW + 1 // +1 Trennleerzeichen nach dem Type-Icon
+	statusW := lipgloss.Width(theme.StatusIcon(it.Status))
+	statusEnd = statusStart + statusW
+	prioStart = statusEnd + 1 // +1 Trennleerzeichen nach dem Status-Icon
+	prioW := lipgloss.Width(theme.Priority(it.Priority))
+	prioEnd = prioStart + prioW
+	return
 }
 
 // blockWindow liefert den inklusiven [lo,hi]-Blockbereich, der beim Fenstern

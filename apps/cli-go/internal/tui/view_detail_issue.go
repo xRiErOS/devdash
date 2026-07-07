@@ -113,6 +113,22 @@ func (m model) openEditField(it api.Issue, f detailField) (tea.Model, tea.Cmd) {
 	return m.openEditFieldGeneric("issue", it.ID, f, currentFieldValue(it, f.key))
 }
 
+// openPriorityEdit öffnet die Priority-editField-Form für it (DD2-274) — DIESELBE
+// Öffnen-Funktion wie der Tasten-Pfad (editFocusedField → openEditField, priority
+// aus kopfFields()). Single Source für Tastatur UND Maus-Klick auf die Priority-
+// Zelle einer Backlog-Zeile (mouseBacklogClick), kein Logik-Duplikat (AC4).
+func (m model) openPriorityEdit(it *api.Issue) (tea.Model, tea.Cmd) {
+	if it == nil {
+		return m, nil
+	}
+	for _, f := range kopfFields() {
+		if f.key == "priority" {
+			return m.openEditField(*it, f)
+		}
+	}
+	return m, nil
+}
+
 // editFocusedField öffnet die Edit-Form für das aktive Feld der fokussierten Entität
 // (DD2-196): Meilenstein/Sprint über editFlatField (docs-Browse bzw. scalar via
 // UpdateMilestone/UpdateSprint), Issue über die US-Form bzw. openEditField.

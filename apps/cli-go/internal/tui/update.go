@@ -442,7 +442,82 @@ func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		switch m.view {
 		case viewBrowseProject:
 			return m.mouseTreeClick(msg)
+		case viewBrowseBacklog: // DD2-274: Klick auf Priority-/Status-Zelle → Picker/Editor
+			return m.mouseBacklogClick(msg)
 		}
+	}
+	return m, nil
+}
+
+// fieldKind identifiziert, welches mausklickbare Feld einer gerenderten Backlog-
+// Zeile getroffen wurde (DD2-274). Bewusst NUR die Felder, die bereits einen
+// Tasten-Picker/-Editor haben — keine generische "jedes Feld ist klickbar"-
+// Infrastruktur (Out-of-Scope laut Spec).
+type fieldKind int
+
+const (
+	fieldPriority fieldKind = iota
+	fieldStatus
+)
+
+// backlogFieldHit bildet einen Mausklick auf ein Feld (Priority/Status) EINER
+// bestimmten Backlog-Zeile ab (DD2-274) — dieselbe Geometrie wie
+// backlogListBlocks/windowBlocks (drift-frei, analog mouseTreeClick, DD2-51). Nur
+// die Kopfzeile eines Zeilen-Blocks (erste Zeile) trägt die Icons; umgebrochene
+// Titelzeilen darunter sind nicht klickbar. hit=false, wenn X/Y keine Ikonen-Spalte
+// trifft (Klick ist dann ein No-op, AC3).
+func (m model) backlogFieldHit(msg tea.MouseMsg) (it *api.Issue, field fieldKind, hit bool) {
+	head, _, lw, _, innerH := m.backlogLayout()
+	if msg.X >= lw {
+		return nil, 0, false // rechte Detail-Spalte — kein Feld-Ziel
+	}
+	vis := m.backlogVisible()
+	if len(vis) == 0 {
+		return nil, 0, false
+	}
+	blocks := m.backlogListBlocks(vis, lw-2, !m.detailFocus)
+	firstRowY := lipgloss.Height(head) + 1 + 1 // obere Border + Suchkopfzeile (analog mouseTreeClick)
+	rel := msg.Y - firstRowY
+	if rel < 0 {
+		return nil, 0, false
+	}
+	lo, hi := blockWindow(blocks, innerH-1, m.blist.cursor)
+	acc := 0
+	for i := lo; i <= hi; i++ {
+		h := len(blocks[i])
+		if rel < acc+h {
+			if rel != acc {
+				return nil, 0, false // nicht die Kopfzeile des Blocks
+			}
+			statusStart, statusEnd, prioStart, prioEnd := backlogRowCols(vis[i])
+			switch {
+			case msg.X >= statusStart && msg.X < statusEnd:
+				return &vis[i], fieldStatus, true
+			case msg.X >= prioStart && msg.X < prioEnd:
+				return &vis[i], fieldPriority, true
+			}
+			return nil, 0, false
+		}
+		acc += h
+	}
+	return nil, 0, false
+}
+
+// mouseBacklogClick dispatcht einen Backlog-Klick (DD2-274): ein Treffer auf die
+// Priority-/Status-Zelle einer Zeile öffnet DIESELBE Öffnen-Funktion, die auch der
+// Tasten-Pfad ruft (openPriorityEdit/openIssueStatus) — kein Logik-Duplikat (AC4).
+// Kein Treffer → No-op (AC3: Backlog reagierte vor dieser Änderung auf keinen
+// Klick, das bleibt für alles außerhalb der neuen Hit-Areas unverändert).
+func (m model) mouseBacklogClick(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+	it, field, hit := m.backlogFieldHit(msg)
+	if !hit {
+		return m, nil
+	}
+	switch field {
+	case fieldPriority:
+		return m.openPriorityEdit(it)
+	case fieldStatus:
+		return m.openIssueStatus(it, 0) // Backlog = unsprinted Issues, kein Sprint-Refresh-Kontext
 	}
 	return m, nil
 }
