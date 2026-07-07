@@ -200,7 +200,12 @@ func (m model) openProjPick() (tea.Model, tea.Cmd) {
 func (m model) selectProject(p api.Project) (tea.Model, tea.Cmd) {
 	m.project = &p
 	m.client = api.NewClient(fmt.Sprintf("%d", p.ID))
-	_ = config.Save(config.State{LastProject: p.Slug})
+	// Read-Modify-Write (DD2-273): ein nackter Save(State{LastProject: ...}) würde
+	// LastSeenVersion beim Projekt-Wechsel auf "" zurücksetzen → Overlay-Spam beim
+	// nächsten Start trotz unverändertem appVersion.
+	st, _ := config.Load()
+	st.LastProject = p.Slug
+	_ = config.Save(st)
 	m.view = viewBrowseProject
 	m.projPick = false
 	m.treeCursor = 0

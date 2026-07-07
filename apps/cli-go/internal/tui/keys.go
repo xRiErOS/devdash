@@ -13,6 +13,11 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.confirmQuit {
 		return m.keyConfirmQuit(msg)
 	}
+	// Release-Notes-Overlay (DD2-273) fängt vor allem anderen — modal, öffnet sich
+	// automatisch nach einem Versionswechsel, noch bevor die PO irgendetwas bedient.
+	if m.releaseNotes != nil {
+		return m.keyReleaseNotes(msg)
+	}
 	// In-App-Hilfe (DD2-31): jede Taste schließt das offene Overlay wieder.
 	if m.helpOpen {
 		m.helpOpen = false

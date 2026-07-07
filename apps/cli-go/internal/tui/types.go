@@ -56,7 +56,11 @@ type model struct {
 	err           error
 	toast         *toastState // DD2-272: farbcodiertes Eck-Toast-Overlay (löst status/statusSeq/statusSticky ab)
 	errNote       string      // transienter, nicht-fataler Fehler (Footer-Zone 4 rechts, Red) — DD2-60
-	scroll        int         // Scroll-Offset für statische Detail-Views (DD2-25/30 Chrome)
+	scroll        int         // Scroll-Offset für statische Detail-Views (DD2-25/30 Chrome) UND das Release-Notes-Overlay (DD2-273, geteilte Fokus-Maschine via keyScroll)
+
+	// Release-Notes-Overlay (DD2-273): MODAL, geöffnet vom Init()-Cmd checkVersionChange
+	// bei erkanntem Versionswechsel. nil = geschlossen.
+	releaseNotes *releaseNotesState
 
 	// Picker
 	projects []api.Project

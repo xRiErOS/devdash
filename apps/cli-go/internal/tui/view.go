@@ -28,6 +28,9 @@ func (m model) viewComposite() string {
 	if m.confirmQuit { // DD2-49: Beenden-Confirm liegt top-most über allem
 		return placeOverlay(base, m.quitBox(), m.termWidth(), m.height)
 	}
+	if m.releaseNotes != nil { // DD2-273: Release-Notes-Overlay, modal, nach Versionswechsel
+		return placeOverlay(base, m.releaseNotesBox(), m.termWidth(), m.height)
+	}
 	if m.helpOpen { // DD2-31: Shortcut-Übersicht
 		return placeOverlay(base, m.helpBox(), m.termWidth(), m.height)
 	}

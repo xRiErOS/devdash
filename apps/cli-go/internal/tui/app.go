@@ -84,11 +84,13 @@ func Run(client *api.Client, project *api.Project, global *api.Client) error {
 }
 
 func (m model) Init() tea.Cmd {
+	// DD2-273: lokaler Versionswechsel-Erkenner — läuft unabhängig vom Boot-View
+	// (Home/Lobby oder direkt ins Projekt), kein Netzwerk-I/O.
 	if m.view == viewHome {
-		return loadProjects(m.global)
+		return tea.Batch(loadProjects(m.global), checkVersionChange)
 	}
 	// Tags mitladen, damit die Create-Forms (DD2-33) sofort ein Tag-Multiselect haben.
-	return tea.Batch(loadMilestones(m.client), loadTags(m.client))
+	return tea.Batch(loadMilestones(m.client), loadTags(m.client), checkVersionChange)
 }
 
 // --- Sichtbare (gefilterte) Listen ---

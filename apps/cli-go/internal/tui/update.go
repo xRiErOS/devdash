@@ -50,6 +50,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 		return m, nil
+	case versionChangedMsg: // DD2-273: Init()-Cmd erkannte Versionswechsel → Overlay öffnen
+		m.releaseNotes = &releaseNotesState{version: msg.version, body: msg.body}
+		m.scroll = 0
+		return m, nil
 	case toastExpiredMsg: // DD2-272: Eck-Toast nach Timeout löschen (vormals clearStatusMsg)
 		if m.toast != nil && msg.seq == m.toast.seq && !m.inputting {
 			m.toast = nil
@@ -410,7 +414,7 @@ func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	// Modale/Picks sind tastaturgesteuert — Maus ignorieren (kein Fehlklick-Fokus).
 	if m.form != nil || m.paletteOpen || m.projPick || m.filtering || m.statusPick || m.sprintPick ||
 		m.msPick || m.smPick || m.maPick || m.tagPick || m.delConfirm || m.mcConfirm || m.createConfirm || m.usOpen ||
-		m.treeSearching || m.inputting || m.docAsPick {
+		m.treeSearching || m.inputting || m.docAsPick || m.releaseNotes != nil {
 		return m, nil
 	}
 	switch msg.Button {
