@@ -11,6 +11,7 @@ import (
 
 	"devd-cli/internal/theme"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/muesli/termenv"
@@ -334,5 +335,110 @@ func TestToastTitleTruncatesViaAnsi(t *testing.T) {
 	}
 	if !strings.Contains(ansi.Strip(box), "…") {
 		t.Error("überlanger Titel sollte mit … gekürzt werden (ansi.Truncate)")
+	}
+}
+
+// --- Cross-Feature-Regression (Integrations-Review nach 651b9fd, B01/B02) ---
+//
+// Update()s Form-Shortcut (m.form != nil → return m.updateForm(msg)) fing VOR
+// diesem Fix jede Message ab, solange ein Formular offen war — inkl. Toast-
+// Klicks (toastHit läuft in handleMouse, das im Form-Fall nie erreicht wurde)
+// und dem einmaligen toastExpiredMsg-Auto-Dismiss-Tick. Der Toast ist laut
+// eigenem Design-Vertrag (overlay_show_toast.go) NICHT modal — er muss also
+// unabhängig vom Formular-State weiter funktionieren.
+
+// dummyForm liefert ein minimales, aber gültiges *huh.Form NUR um m.form != nil
+// zu erzwingen (Update() darf danach kein einziges Feld daraus lesen — die drei
+// Carve-out-Fälle unten kehren VOR m.form.Update() zurück).
+func dummyForm() *huh.Form {
+	return huh.NewForm(huh.NewGroup(huh.NewInput().Key("x")))
+}
+
+func TestToastClickDismissesWhileFormOpen(t *testing.T) {
+	m := model{width: 90, height: 22, view: viewBrowseBacklog, form: dummyForm(), formKind: "issue"}
+	m, _ = m.showToast(toastInfo, "Saved", "", nil, false)
+	x, y, _, _ := m.toastGeometry()
+
+	mi, _ := m.Update(tea.MouseMsg{X: x, Y: y, Button: tea.MouseButtonLeft, Action: tea.MouseActionPress})
+	got := mi.(model)
+	if got.toast != nil {
+		t.Error("Klick auf den Toast sollte ihn schließen, auch bei offenem Formular (B01)")
+	}
+	if got.form == nil {
+		t.Error("das Formular selbst darf durch den Toast-Klick nicht verschwinden")
+	}
+}
+
+func TestToastClickWithTargetSwitchesViewWhileFormOpen(t *testing.T) {
+	m := model{width: 90, height: 22, view: viewBrowseBacklog, form: dummyForm(), formKind: "issue"}
+	m, _ = m.showToast(toastInfo, "Issue moved", "", &toastTarget{view: viewDetailIssue}, false)
+	x, y, _, _ := m.toastGeometry()
+
+	mi, _ := m.Update(tea.MouseMsg{X: x, Y: y, Button: tea.MouseButtonLeft, Action: tea.MouseActionPress})
+	got := mi.(model)
+	if got.toast != nil {
+		t.Error("Klick mit target sollte den Toast schließen, auch bei offenem Formular (B01)")
+	}
+	if got.view != viewDetailIssue {
+		t.Errorf("Klick mit target sollte die View wechseln (auch bei offenem Formular): got %v want %v", got.view, viewDetailIssue)
+	}
+}
+
+func TestToastExpiredMsgClearsWhileFormOpen(t *testing.T) {
+	m := model{width: 90, height: 22, form: dummyForm(), formKind: "issue"}
+	m, _ = m.showToast(toastWarn, "heads up", "", nil, false)
+	seq := m.toast.seq
+
+	mi, _ := m.Update(toastExpiredMsg{seq: seq})
+	got := mi.(model)
+	if got.toast != nil {
+		t.Error("toastExpiredMsg (gleiche Generation) sollte den Toast auch bei offenem Formular räumen (B01)")
+	}
+	if got.form == nil {
+		t.Error("das Formular selbst darf durch den Auto-Dismiss-Tick nicht verschwinden")
+	}
+}
+
+func TestToastExpiredMsgIgnoresStaleGenerationWhileFormOpen(t *testing.T) {
+	m := model{width: 90, height: 22, form: dummyForm(), formKind: "issue"}
+	m, _ = m.showToast(toastInfo, "first", "", nil, false)
+	m.toast.setAt = m.toast.setAt.Add(-2 * toastDebounceWindow) // Debounce-Fenster verstreichen lassen
+	staleSeq := m.toast.seq
+	m, _ = m.showToast(toastWarn, "second", "", nil, false)
+
+	mi, _ := m.Update(toastExpiredMsg{seq: staleSeq})
+	got := mi.(model)
+	if got.toast == nil || got.toast.title != "second" {
+		t.Errorf("verspäteter Tick der alten Generation darf den aktuellen Toast auch bei offenem Formular nicht wegräumen: %+v", got.toast)
+	}
+}
+
+// TestVersionChangedMsgOpensReleaseNotesWhileFormOpen deckt B02 ab: checkVersion
+// Change() wird in Init() gebatcht (DD2-273); öffnet der Nutzer ein Formular,
+// bevor dieser schnelle Disk-Cmd resolved, darf versionChangedMsg nicht im
+// Formular verschwinden.
+func TestVersionChangedMsgOpensReleaseNotesWhileFormOpen(t *testing.T) {
+	m := model{width: 90, height: 22, form: dummyForm(), formKind: "issue"}
+	mi, _ := m.Update(versionChangedMsg{version: "9.9.9", body: "# New stuff"})
+	got := mi.(model)
+	if got.releaseNotes == nil {
+		t.Fatal("versionChangedMsg sollte das Release-Notes-Overlay setzen, auch bei offenem Formular (B02)")
+	}
+	if got.releaseNotes.version != "9.9.9" || got.releaseNotes.body != "# New stuff" {
+		t.Errorf("releaseNotes = %+v, want version=9.9.9 body='# New stuff'", got.releaseNotes)
+	}
+	if got.form == nil {
+		t.Error("das Formular selbst darf durch versionChangedMsg nicht verschwinden")
+	}
+}
+
+// Gegenprobe: alles andere (Tastatur) bleibt beim offenen Formular unverändert
+// blockiert — der Carve-out darf NUR die 3 genannten Message-Typen durchlassen.
+func TestOtherMessagesStillGoToFormWhenOpen(t *testing.T) {
+	m := model{width: 90, height: 22, form: dummyForm(), formKind: "issue"}
+	mi, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("a")})
+	got := mi.(model)
+	if got.form == nil {
+		t.Error("ein KeyMsg sollte weiterhin ans Formular gehen (Form-Guard unverändert für Tastatur)")
 	}
 }

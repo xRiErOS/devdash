@@ -13,6 +13,25 @@ import (
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Aktives huh-Create-Formular (T16) fängt alle Messages, bis abgeschlossen/abgebrochen.
 	if m.form != nil {
+		// DD2-272/273 Cross-Feature-Fix (Integrations-Review nach 651b9fd, B01/B02):
+		// der Eck-Toast (nicht-modal) UND das Release-Notes-Init-Signal sind
+		// orthogonal zum Formular-State — sie dürfen NICHT im Form-Shortcut
+		// verschwinden, sonst schluckt ein offenes Formular den Toast-Klick
+		// (handleMouse würde toastHit sonst nie erreichen) und den einmaligen
+		// Auto-Dismiss-Tick (toastExpiredMsg bleibt für immer unbeantwortet →
+		// Toast hängt über die dokumentierte Dauer hinaus) bzw. den
+		// Versions-Wechsel-Hinweis (versionChangedMsg, DD2-273: "What's new"
+		// würde in dieser Session gar nicht mehr aufgehen). huh/bubbles v1.0.0
+		// verarbeiten tea.MouseMsg ohnehin nicht (keine Funktionalität verloren,
+		// wenn Mausklicks bei offenem Formular hier statt in m.form.Update landen).
+		switch msg := msg.(type) {
+		case tea.MouseMsg:
+			return m.handleMouse(msg)
+		case toastExpiredMsg:
+			return m.handleToastExpired(msg)
+		case versionChangedMsg:
+			return m.handleVersionChanged(msg)
+		}
 		if sz, ok := msg.(tea.WindowSizeMsg); ok {
 			m.width, m.height = sz.Width, sz.Height
 		}
@@ -51,14 +70,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	case versionChangedMsg: // DD2-273: Init()-Cmd erkannte Versionswechsel → Overlay öffnen
-		m.releaseNotes = &releaseNotesState{version: msg.version, body: msg.body}
-		m.scroll = 0
-		return m, nil
+		return m.handleVersionChanged(msg)
 	case toastExpiredMsg: // DD2-272: Eck-Toast nach Timeout löschen (vormals clearStatusMsg)
-		if m.toast != nil && msg.seq == m.toast.seq && !m.inputting {
-			m.toast = nil
-		}
-		return m, nil
+		return m.handleToastExpired(msg)
 	case errMsg:
 		m.err = msg.err
 		return m, nil
@@ -398,6 +412,29 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		return m.handleKey(msg)
 	}
+	return m, nil
+}
+
+// handleToastExpired löscht den Eck-Toast nach Ablauf (DD2-272), aber nur wenn
+// seq noch der aktuellen Generation entspricht (sonst hat ein neuerer Toast ihn
+// bereits ersetzt). Geteilt zwischen dem regulären Dispatch UND dem
+// Form-Carve-out in Update() (DD2-272/273 Cross-Feature-Fix, B01) — der Toast
+// ist nicht modal und muss auch bei offenem Formular ablaufen können.
+func (m model) handleToastExpired(msg toastExpiredMsg) (tea.Model, tea.Cmd) {
+	if m.toast != nil && msg.seq == m.toast.seq && !m.inputting {
+		m.toast = nil
+	}
+	return m, nil
+}
+
+// handleVersionChanged öffnet das Release-Notes-Overlay ("What's new", DD2-273)
+// nach einem vom Init()-Cmd erkannten Versionswechsel. Geteilt zwischen dem
+// regulären Dispatch UND dem Form-Carve-out in Update() (B02) — sonst geht das
+// Overlay verloren, wenn der Nutzer ein Formular öffnet, bevor der (schnelle,
+// reine Disk-)Check-Cmd aufgelöst hat.
+func (m model) handleVersionChanged(msg versionChangedMsg) (tea.Model, tea.Cmd) {
+	m.releaseNotes = &releaseNotesState{version: msg.version, body: msg.body}
+	m.scroll = 0
 	return m, nil
 }
 
