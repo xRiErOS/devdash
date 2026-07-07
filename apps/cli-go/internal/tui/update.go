@@ -2,6 +2,7 @@ package tui
 
 import (
 	"strings"
+	"time"
 
 	"devd-cli/internal/api"
 	keybind "github.com/charmbracelet/bubbles/key"
@@ -9,6 +10,19 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 )
+
+// doubleClickInterval ist das Zeitfenster, in dem zwei Klicks auf denselben Tree-
+// Knoten als Doppelklick gelten (DD2-274 D03: Collapse). bubbletea v1.3.10 liefert
+// keinen Click-Count → selbst erkannt über m.now() + m.lastClickAt/lastClickIdx.
+const doubleClickInterval = 500 * time.Millisecond
+
+// now liefert die aktuelle Zeit über die (test-injizierbare) Clock; nil → time.Now.
+func (m model) now() time.Time {
+	if m.clock != nil {
+		return m.clock()
+	}
+	return time.Now()
+}
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Aktives huh-Create-Formular (T16) fängt alle Messages, bis abgeschlossen/abgebrochen.
@@ -639,19 +653,20 @@ func (m model) mouseBacklogClick(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// mouseTreeClick setzt den Tree-Cursor auf die geklickte Zeile (DD2-51, optionale
-// Stufe). Klick-Y → Zeilenindex über dieselbe Geometrie wie der Render (treeLayout
-// + windowStart), darum drift-frei. Nur Klicks in der linken Spalte zählen.
-func (m model) mouseTreeClick(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+// treeClickIdx bildet Klick-Y auf den Tree-Knoten-Index ab (DD2-51) — dieselbe
+// Geometrie wie der Render (treeLayout + treeLeftBlocks + blockWindow), darum
+// drift-frei. ok=false, wenn der Klick nicht in die linke Spalte oder auf keinen
+// Block fällt. Single Source für Cursor-Klick UND die DD2-274-Expand/Collapse-Logik.
+func (m model) treeClickIdx(msg tea.MouseMsg) (int, bool) {
 	head, _, lw, _, innerH := m.treeLayout()
 	if msg.X >= lw {
-		return m, nil // rechte Detail-Spalte — kein Cursor-Ziel
+		return 0, false // rechte Detail-Spalte — kein Cursor-Ziel
 	}
 	// Erste Baumzeile = Header-Höhe + 1 (obere Box-Border) + 1 (Such-Kopfzeile).
 	firstRowY := lipgloss.Height(head) + 1 + 1
 	rel := msg.Y - firstRowY
 	if rel < 0 {
-		return m, nil
+		return 0, false
 	}
 	// DD2-193: Tree-Zeilen sind block-variabel (Issue = Key + umgebrochener Titel).
 	// Klick-Y → Block-Index über dieselbe Geometrie wie der Render (blockWindow +
@@ -659,17 +674,49 @@ func (m model) mouseTreeClick(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	nodes := m.treeNodes()
 	blocks := m.treeLeftBlocks(nodes, lw-2, !m.detailFocus)
 	if len(blocks) == 0 {
-		return m, nil
+		return 0, false
 	}
 	lo, hi := blockWindow(blocks, innerH-1, m.treeCursor) // innerH-1: Such-Kopfzeile
 	acc := 0
 	for i := lo; i <= hi; i++ {
 		h := len(blocks[i])
 		if rel < acc+h {
-			m.treeCursor = i
-			break
+			return i, true
 		}
 		acc += h
+	}
+	return 0, false
+}
+
+// mouseTreeClick setzt den Tree-Cursor auf die geklickte Zeile (DD2-51) und wendet
+// auf expandierbare Knoten die DD2-274-Semantik an (D03): Einzelklick auf einen
+// ZUgeklappten Knoten (Meilenstein/Sprint) klappt auf, Doppelklick auf einen
+// OFFENEN klappt zu; ein Einzelklick auf einen offenen Knoten toggelt NICHT
+// (nur Cursor). Nicht-expandierbare Knoten (Issue/Info) setzen bloß den Cursor —
+// Issue-Feld-Klicks (Priority/Status) fängt mouseTreeFieldClick bereits davor ab.
+func (m model) mouseTreeClick(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+	idx, ok := m.treeClickIdx(msg)
+	if !ok {
+		return m, nil
+	}
+	nodes := m.treeNodes()
+	m.treeCursor = idx
+	n := nodes[idx]
+
+	// Doppelklick = zweiter Klick auf DENSELBEN Knoten innerhalb des Zeitfensters.
+	// lastClickAt=zero (Zero-Value) ⇒ riesiges Delta ⇒ erster Klick nie Doppelklick.
+	now := m.now()
+	isDouble := idx == m.lastClickIdx && now.Sub(m.lastClickAt) < doubleClickInterval
+	m.lastClickIdx = idx
+	m.lastClickAt = now
+
+	if n.expand {
+		switch {
+		case n.open && isDouble:
+			return m.treeCollapse(nodes)
+		case !n.open:
+			return m.treeExpand(nodes)
+		}
 	}
 	return m, nil
 }

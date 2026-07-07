@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"time"
+
 	"devd-cli/internal/api"
 	"devd-cli/internal/config"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -296,6 +298,15 @@ type model struct {
 	// accOpen = aktuell offene Accordion-Section im Issue-Detail (DD2-50), 1-basiert,
 	// 0 = keine offen. Exklusiv (max. eine offen); Ziffer toggelt. Default 1.
 	accOpen int
+
+	// DD2-274: Doppelklick-Erkennung im Tree (bubbletea v1.3.10 liefert kein
+	// Click-Count). lastClickIdx = zuletzt links-geklickter Tree-Knoten-Index,
+	// lastClickAt = dessen Zeitpunkt. clock ist injizierbar für deterministische
+	// Tests (nil → time.Now, via m.now()). Zero-Value ist sicher: lastClickAt=zero
+	// ⇒ riesiges Delta ⇒ nie als Doppelklick gewertet (erster Klick = Single).
+	lastClickIdx int
+	lastClickAt  time.Time
+	clock        func() time.Time
 
 	// Detail-Fokus-Maschine (DD2-76): enter/l auf einem Issue-Knoten verlagert den
 	// Fokus aus dem Tree in die Detail-Pane (detailFocus). Dort wird zwei-stufig

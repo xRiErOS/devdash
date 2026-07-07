@@ -5,6 +5,7 @@ package tui
 
 import (
 	"testing"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -74,6 +75,59 @@ func TestMouseClickRightPaneIgnored(t *testing.T) {
 	mi, _ := m.handleMouse(click(lw+5, 5)) // rechte Detail-Spalte
 	if got := mi.(model).treeCursor; got != 0 {
 		t.Errorf("Klick rechts sollte Cursor nicht ändern, got %d", got)
+	}
+}
+
+// DD2-274 D03: Einzelklick auf einen expandierbaren, ZUgeklappten Knoten
+// (Meilenstein/Sprint) klappt ihn auf (Klick=expand falls zu).
+func TestMouseClickExpandsClosedNode(t *testing.T) {
+	m := treeModel() // M1 (id1) zu, expandierbar (2 Sprints)
+	m.view = viewBrowseProject
+	m.width, m.height = 90, 22
+
+	head, _, _, _, _ := m.treeLayout()
+	firstRowY := lipgloss.Height(head) + 2 // + obere Border + Such-Kopfzeile
+	mi, _ := m.handleMouse(click(2, firstRowY))
+	if !mi.(model).treeExpMile[1] {
+		t.Fatalf("Einzelklick auf zugeklappten Meilenstein muss aufklappen (treeExpMile[1] gesetzt)")
+	}
+}
+
+// DD2-274 D03: Doppelklick auf einen expandierbaren, OFFENEN Knoten klappt ihn
+// zu (Doppelklick=collapse falls offen). Clock injiziert (gleiche Zeit → Delta 0).
+func TestMouseDoubleClickCollapsesOpenNode(t *testing.T) {
+	m := treeModel()
+	m.treeExpMile[1] = true // M1 offen
+	m.view = viewBrowseProject
+	m.width, m.height = 90, 22
+	fixed := time.Unix(1000, 0)
+	m.clock = func() time.Time { return fixed }
+
+	head, _, _, _, _ := m.treeLayout()
+	firstRowY := lipgloss.Height(head) + 2
+	mi, _ := m.handleMouse(click(2, firstRowY)) // 1. Klick (registriert)
+	m = mi.(model)
+	mi2, _ := m.handleMouse(click(2, firstRowY)) // 2. Klick, gleiche Zeit → Doppelklick
+	if mi2.(model).treeExpMile[1] {
+		t.Fatalf("Doppelklick auf offenen Meilenstein muss zuklappen (treeExpMile[1] gelöscht)")
+	}
+}
+
+// DD2-274 D03: Einzelklick auf einen OFFENEN Knoten toggelt NICHT sofort (bleibt
+// offen) — nur ein Doppelklick klappt zu. Guard gegen Sofort-Toggle.
+func TestMouseSingleClickOnOpenNodeStaysOpen(t *testing.T) {
+	m := treeModel()
+	m.treeExpMile[1] = true // M1 offen
+	m.view = viewBrowseProject
+	m.width, m.height = 90, 22
+	fixed := time.Unix(1000, 0)
+	m.clock = func() time.Time { return fixed }
+
+	head, _, _, _, _ := m.treeLayout()
+	firstRowY := lipgloss.Height(head) + 2
+	mi, _ := m.handleMouse(click(2, firstRowY)) // isolierter Einzelklick
+	if !mi.(model).treeExpMile[1] {
+		t.Fatalf("Einzelklick auf offenen Knoten darf NICHT zuklappen")
 	}
 }
 
