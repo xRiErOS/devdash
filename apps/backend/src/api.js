@@ -24,6 +24,7 @@ import { validateMilestonePayload, validateStatusFilter, sendValidationError, re
 import { insertDependency, getDependenciesForMilestone } from './lib/milestoneDependencies.js'
 import { insertDependency as insertSprintDependency, getDependenciesForSprint } from './lib/sprintDependencies.js'
 import { computeSprintCompleteness } from './lib/sprintCompleteness.js'
+import { getProjectStatus } from './lib/projectStatus.js'
 import { buildSprintContextMarkdown } from './lib/sprintContext.js'
 import { serializeBacklog } from './lib/backlogExport.js'
 import { insertDodItem, patchDodItem, deleteDodItem, listDodItems, reorderDodItems } from './lib/milestoneDodItems.js'
@@ -2110,6 +2111,13 @@ app.get('/api/sprints/:id/completeness', (req, res) => {
   const exists = db.prepare('SELECT 1 FROM sprints WHERE id = ?').get(id)
   if (!exists) return res.status(404).json({ error: 'Sprint not found' })
   res.json(computeSprintCompleteness(db, id))
+})
+
+// Grill-Me-Decision-Log 2026-07-08: Ein-Call-Projekt-Snapshot fuer LLM-Session-Start
+// (offene Milestones/Sprints+Docs+Deps, Backlog nach Priority, Session-Log/Decisions).
+app.get('/api/project-status', (req, res) => {
+  const projectId = currentProjectId(req)
+  res.json(getProjectStatus(db, projectId))
 })
 
 // GF-2 Wave D / D3 (T04): Activity-Read für Sprint + Milestone (mirror GET

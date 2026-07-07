@@ -976,6 +976,12 @@ type ProjectShowArgs struct {
 	IdOrSlug any `json:"id_or_slug"`
 }
 
+// ProjectStatusArgs: Argumente für MCP-Tool devd_project_status.
+type ProjectStatusArgs struct {
+	// Project id or slug for X-Project-Id header (e.g. "7", "devd"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.
+	ProjectId any `json:"project_id,omitempty"`
+}
+
 type ReviewCreateArgsVerdict string
 
 const (

@@ -2363,6 +2363,18 @@ server.tool(
   },
 )
 
+// Grill-Me-Decision-Log 2026-07-08: Ein-Call-Projekt-Snapshot fuer LLM-Session-Start.
+server.tool(
+  'devd_project_status',
+  'READ: One-call project snapshot for session-start orientation — open milestones (with nested open sprints, non-archived doc titles, dependency graph as Mermaid edges "pred --> succ"), orphan sprints, backlog grouped by priority, last 5 session_log + last 5 architecture_decision entries (compact, created_at DESC) plus all pinned architecture_decision entries. GET /api/project-status.',
+  { project_id: PROJECT_ID_PARAM },
+  async ({ project_id }) => {
+    const pid = resolveProjectId(project_id)
+    if (typeof pid === 'object' && pid.error) return ok(pid)
+    return ok(await apiRequest('GET', '/api/project-status', null, pid))
+  },
+)
+
 // GF-2 Wave D / D3 (T04): Activity-Read für Sprint + Milestone (mirror devd_issue_activity).
 server.tool(
   'devd_sprint_activity',

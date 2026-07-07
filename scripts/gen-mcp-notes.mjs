@@ -56,7 +56,7 @@ await import(join(REPO, 'apps/cli/mcp/devd-mcp.js'))
 // MCP-Änderungen (Tool hinzu/entfernt) läuft der Generator weiter und
 // dokumentiert die reale Zahl. Nur eine leere Liste (Import fehlgeschlagen,
 // nichts erfasst) bleibt ein echter Abbruch.
-const EXPECTED_TOOLS = 111
+const EXPECTED_TOOLS = 112
 if (tools.length === 0) {
   console.error('FAIL: 0 Tools erfasst — devd-mcp.js-Import lieferte keine server.tool-Calls. Abbruch.')
   process.exit(1)

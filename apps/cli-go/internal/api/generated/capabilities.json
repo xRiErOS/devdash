@@ -1,6 +1,6 @@
 {
   "generatedFrom": "apps/cli/mcp/devd-mcp.js",
-  "toolCount": 111,
+  "toolCount": 112,
   "tools": {
     "devd_backlog_export": {
       "description": "READ: Export the project backlog in an LLM-friendly format — md (default) | json | yaml. Default status filter is new,refined (sprint-bound status excluded); narrow further via status (single or comma-list). Full triage context in one call. GET /api/backlog-export. Read-only.",
@@ -2853,6 +2853,29 @@
         "required": [
           "id_or_slug"
         ],
+        "additionalProperties": false
+      }
+    },
+    "devd_project_status": {
+      "description": "READ: One-call project snapshot for session-start orientation — open milestones (with nested open sprints, non-archived doc titles, dependency graph as Mermaid edges \"pred --> succ\"), orphan sprints, backlog grouped by priority, last 5 session_log + last 5 architecture_decision entries (compact, created_at DESC) plus all pinned architecture_decision entries. GET /api/project-status.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "description": "Project id or slug for X-Project-Id header (e.g. \"7\", \"devd\"). Falls back to DEVD_PROJECT_ID env if unset. Required when env is unset.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          }
+        },
         "additionalProperties": false
       }
     },

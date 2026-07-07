@@ -854,6 +854,16 @@ func (c *Client) ProjectShow(args generated.ProjectShowArgs) (json.RawMessage, e
 	return json.RawMessage(data), nil
 }
 
+// ProjectStatus entspricht MCP-Tool devd_project_status.
+func (c *Client) ProjectStatus(args generated.ProjectStatusArgs) (json.RawMessage, error) {
+	path := "/api/project-status"
+	data, err := c.Do("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+	return json.RawMessage(data), nil
+}
+
 // ReviewCreate entspricht MCP-Tool devd_review_create.
 func (c *Client) ReviewCreate(args generated.ReviewCreateArgs) (json.RawMessage, error) {
 	var err error
