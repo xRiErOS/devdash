@@ -4,11 +4,12 @@ package tui
 // Cursor (Tree, Y-Mapping) bzw. Pane-Fokus (Ranger-Columns, X-Mapping). Golden #3.
 
 import (
+	"strings"
 	"testing"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 )
 
 func wheel(b tea.MouseButton) tea.MouseMsg {
@@ -16,6 +17,34 @@ func wheel(b tea.MouseButton) tea.MouseMsg {
 }
 func click(x, y int) tea.MouseMsg {
 	return tea.MouseMsg{Button: tea.MouseButtonLeft, Action: tea.MouseActionPress, X: x, Y: y}
+}
+
+// screenLines rendert die VOLLE View und strippt ANSI je Zeile — echte
+// Screen-Geometrie inkl. App-Außenrahmen (outerBorder). Klick-Tests erden sich
+// daran statt an der Klick-Formel, sonst sind sie blind für die Off-by-
+// Außenrahmen-Falle (DD2-274: alle Split-Klick-Y lagen um 1 daneben).
+func screenLines(m model) []string {
+	return strings.Split(ansi.Strip(m.View()), "\n")
+}
+
+// clickAt sucht substr in der gerenderten View — wahlweise linke (right=false)
+// oder rechte (right=true) Pane, gesplittet bei lw — und liefert eine echte
+// Klick-Koordinate in der Trefferzeile (X = Token-Start + 1, Y = Zeilenindex).
+func clickAt(t *testing.T, m model, substr string, right bool) tea.MouseMsg {
+	t.Helper()
+	_, _, lw, _, _ := m.treeLayout()
+	for y, l := range screenLines(m) {
+		i := strings.Index(l, substr)
+		if i < 0 {
+			continue
+		}
+		if (i >= lw) != right {
+			continue // Treffer in der falschen Pane
+		}
+		return click(i+1, y)
+	}
+	t.Fatalf("substr %q nicht in gerenderter View gefunden (right=%v)", substr, right)
+	return tea.MouseMsg{}
 }
 
 func TestMouseWheelMovesTreeCursor(t *testing.T) {
@@ -52,16 +81,14 @@ func TestMouseWheelScrollsDetailBody(t *testing.T) {
 
 func TestMouseClickSetsTreeCursor(t *testing.T) {
 	m := treeModel()
-	m.treeExpMile[1] = true
+	m.treeExpMile[1] = true // M1(0) S1(1) S2(2)
 	m.view = viewBrowseProject
 	m.width, m.height = 90, 22
 
-	head, _, _, _, _ := m.treeLayout()
-	firstRowY := lipgloss.Height(head) + 2 // + obere Border + Such-Kopfzeile
-	// Klick auf die zweite Baumzeile (Index 1 = Sprint S1), linke Spalte.
-	mi, _ := m.handleMouse(click(2, firstRowY+1))
+	// Render-geerdet: Klick auf die S1-Zeile (Sprint DD2#1) in der linken Pane.
+	mi, _ := m.handleMouse(clickAt(t, m, "DD2#1", false))
 	if got := mi.(model).treeCursor; got != 1 {
-		t.Errorf("Klick auf Zeile 1 → cursor=%d, want 1", got)
+		t.Errorf("Klick auf S1-Zeile → cursor=%d, want 1", got)
 	}
 }
 
@@ -70,24 +97,22 @@ func TestMouseClickRightPaneIgnored(t *testing.T) {
 	m.treeExpMile[1] = true
 	m.view = viewBrowseProject
 	m.width, m.height = 90, 22
-	_, _, lw, _, _ := m.treeLayout()
 
-	mi, _ := m.handleMouse(click(lw+5, 5)) // rechte Detail-Spalte
+	// Klick auf die rechte Detail-Titelzeile (M1) darf den Tree-Cursor NICHT bewegen.
+	mi, _ := m.handleMouse(clickAt(t, m, "M1", true))
 	if got := mi.(model).treeCursor; got != 0 {
 		t.Errorf("Klick rechts sollte Cursor nicht ändern, got %d", got)
 	}
 }
 
 // DD2-274 D03: Einzelklick auf einen expandierbaren, ZUgeklappten Knoten
-// (Meilenstein/Sprint) klappt ihn auf (Klick=expand falls zu).
+// (Meilenstein/Sprint) klappt ihn auf (Klick=expand falls zu). Render-geerdet.
 func TestMouseClickExpandsClosedNode(t *testing.T) {
 	m := treeModel() // M1 (id1) zu, expandierbar (2 Sprints)
 	m.view = viewBrowseProject
 	m.width, m.height = 90, 22
 
-	head, _, _, _, _ := m.treeLayout()
-	firstRowY := lipgloss.Height(head) + 2 // + obere Border + Such-Kopfzeile
-	mi, _ := m.handleMouse(click(2, firstRowY))
+	mi, _ := m.handleMouse(clickAt(t, m, "M1", false)) // M1-Zeile, linke Pane
 	if !mi.(model).treeExpMile[1] {
 		t.Fatalf("Einzelklick auf zugeklappten Meilenstein muss aufklappen (treeExpMile[1] gesetzt)")
 	}
@@ -103,11 +128,10 @@ func TestMouseDoubleClickCollapsesOpenNode(t *testing.T) {
 	fixed := time.Unix(1000, 0)
 	m.clock = func() time.Time { return fixed }
 
-	head, _, _, _, _ := m.treeLayout()
-	firstRowY := lipgloss.Height(head) + 2
-	mi, _ := m.handleMouse(click(2, firstRowY)) // 1. Klick (registriert)
+	msg := clickAt(t, m, "M1", false)
+	mi, _ := m.handleMouse(msg) // 1. Klick (registriert, M1 bleibt offen)
 	m = mi.(model)
-	mi2, _ := m.handleMouse(click(2, firstRowY)) // 2. Klick, gleiche Zeit → Doppelklick
+	mi2, _ := m.handleMouse(msg) // 2. Klick, gleiche Zeit/Zeile → Doppelklick
 	if mi2.(model).treeExpMile[1] {
 		t.Fatalf("Doppelklick auf offenen Meilenstein muss zuklappen (treeExpMile[1] gelöscht)")
 	}
@@ -123,9 +147,7 @@ func TestMouseSingleClickOnOpenNodeStaysOpen(t *testing.T) {
 	fixed := time.Unix(1000, 0)
 	m.clock = func() time.Time { return fixed }
 
-	head, _, _, _, _ := m.treeLayout()
-	firstRowY := lipgloss.Height(head) + 2
-	mi, _ := m.handleMouse(click(2, firstRowY)) // isolierter Einzelklick
+	mi, _ := m.handleMouse(clickAt(t, m, "M1", false)) // isolierter Einzelklick
 	if !mi.(model).treeExpMile[1] {
 		t.Fatalf("Einzelklick auf offenen Knoten darf NICHT zuklappen")
 	}

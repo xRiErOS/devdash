@@ -5,15 +5,19 @@ package tui
 // genau dieses Feld — ohne vorherige Cursor-Bewegung/View-Wechsel. Geometrie wird
 // analog mouseTreeClick (DD2-51) live aus derselben Render-Quelle (backlogLayout/
 // backlogListBlocks/blockWindow bzw. treeLayout/treeLeftBlocks) abgeleitet, nicht
-// gecacht — kann so nie vom tatsächlichen Render abdriften. Tree-Parität wurde
-// nachgeliefert (Spec-Review: "Backlog-/Tree-Listen" nennt beide Listentypen).
+// gecacht — kann so nie vom tatsächlichen Render abdriften.
+//
+// DD2-274-Fix: die Feld-Hit-Tests rechnen jetzt mit den ECHTEN Screen-Koordinaten
+// (Pane-Content-Offsets X = leftContentX, Y = paneOriginY). Vorher verglichen sie
+// Screen-X/Y self-konsistent mit pane-content-relativen Spalten und übersahen so,
+// dass App-Außenrahmen + Box-Border den Klick real um (X≈2, Y≈1) verschieben —
+// exakt der "praktisch unklickbar"-Bug (memory dd2-274 B01).
 
 import (
 	"testing"
 
 	"devd-cli/internal/api"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
 // backlogMouseModel: zwei Backlog-Issues mit unterschiedlichem Typ/Status/Priority,
@@ -31,12 +35,23 @@ func backlogMouseModel() model {
 	}
 }
 
-// firstBacklogRowY liefert die Y-Koordinate der ersten Listenzeile — dieselbe
-// Geometrie wie backlogFieldHit (Kopfzeile + Suchzeile), analog
-// TestMouseClickSetsTreeCursor.
-func firstBacklogRowY(m model) int {
-	head, _, _, _, _ := m.backlogLayout()
-	return lipgloss.Height(head) + 2 // + obere Border + Suchkopfzeile
+// backlogRowY liefert die ECHTE Screen-Y der Kopfzeile der Backlog-Zeile rowIdx
+// (paneOriginY = Header + obere Box-Border + App-Außenrahmen, + Such-Kopfzeile,
+// + kumulierte Blockhöhen der vorangehenden Zeilen).
+func backlogRowY(m model, rowIdx int) int {
+	head, _, lw, _, _ := m.backlogLayout()
+	blocks := m.backlogListBlocks(m.backlogVisible(), lw-2, true)
+	y := m.paneOriginY(head) + 1 // + Such-Kopfzeile
+	for i := 0; i < rowIdx; i++ {
+		y += len(blocks[i])
+	}
+	return y
+}
+
+// backlogFieldClick übersetzt eine pane-content-relative Spalte cx (aus
+// backlogRowCols) in einen echten Screen-Klick auf Zeile rowIdx.
+func backlogFieldClick(m model, rowIdx, cx int) tea.MouseMsg {
+	return click(m.leftContentX()+cx, backlogRowY(m, rowIdx))
 }
 
 // AC1: Klick auf die Priority-Zelle der ersten Zeile öffnet den Priority-Editor
@@ -46,9 +61,8 @@ func TestBacklogPriorityClickOpensEditField(t *testing.T) {
 	m := backlogMouseModel()
 	vis := m.backlogVisible()
 	_, _, prioStart, _ := backlogRowCols(vis[0])
-	y := firstBacklogRowY(m)
 
-	mi, _ := m.handleMouse(click(prioStart, y))
+	mi, _ := m.handleMouse(backlogFieldClick(m, 0, prioStart))
 	got := mi.(model)
 
 	if got.form == nil {
@@ -70,13 +84,9 @@ func TestBacklogPriorityClickOpensEditField(t *testing.T) {
 func TestBacklogPriorityClickSecondRowHitsSecondIssue(t *testing.T) {
 	m := backlogMouseModel()
 	vis := m.backlogVisible()
-	head, _, lw, _, innerH := m.backlogLayout()
-	blocks := m.backlogListBlocks(vis, lw-2, true)
-	row0H := len(blocks[0])
 	_, _, prioStart, _ := backlogRowCols(vis[1])
-	y := lipgloss.Height(head) + 2 + row0H
 
-	mi, _ := m.handleMouse(click(prioStart, y))
+	mi, _ := m.handleMouse(backlogFieldClick(m, 1, prioStart))
 	got := mi.(model)
 	if got.form == nil {
 		t.Fatal("Klick auf Zeile 2 sollte die editField-Form öffnen")
@@ -84,7 +94,6 @@ func TestBacklogPriorityClickSecondRowHitsSecondIssue(t *testing.T) {
 	if got.editID != vis[1].ID {
 		t.Errorf("editID=%d, want %d (zweites Issue)", got.editID, vis[1].ID)
 	}
-	_ = innerH
 }
 
 // AC2: Klick auf die Status-Zelle öffnet den Status-Picker (statusPick) für
@@ -93,9 +102,8 @@ func TestBacklogStatusClickOpensStatusPick(t *testing.T) {
 	m := backlogMouseModel()
 	vis := m.backlogVisible()
 	statusStart, _, _, _ := backlogRowCols(vis[0])
-	y := firstBacklogRowY(m)
 
-	mi, _ := m.handleMouse(click(statusStart, y))
+	mi, _ := m.handleMouse(backlogFieldClick(m, 0, statusStart))
 	got := mi.(model)
 
 	if !got.statusPick {
@@ -116,9 +124,8 @@ func TestBacklogStatusClickGuardsNoTransitions(t *testing.T) {
 	m.backlog[0].Status = "no-such-status" // nicht in issueTransitions → allowedManualStatuses() leer
 	vis := m.backlogVisible()
 	statusStart, _, _, _ := backlogRowCols(vis[0])
-	y := firstBacklogRowY(m)
 
-	mi, _ := m.handleMouse(click(statusStart, y))
+	mi, _ := m.handleMouse(backlogFieldClick(m, 0, statusStart))
 	got := mi.(model)
 	if got.statusPick {
 		t.Error("ohne erlaubte Transition sollte statusPick NICHT öffnen (Guard, wie Tasten-Pfad)")
@@ -132,9 +139,10 @@ func TestBacklogStatusClickGuardsNoTransitions(t *testing.T) {
 // vor DD2-274 keinerlei Maus-Reaktion) — und mouse_test.go (Tree) bleibt unberührt.
 func TestBacklogClickOutsideHitAreasIsNoop(t *testing.T) {
 	m := backlogMouseModel()
-	y := firstBacklogRowY(m)
-	// X mitten im Titel-Text (weit rechts der Icon-Spalten, links der rechten Pane).
-	mi, _ := m.handleMouse(click(20, y))
+	vis := m.backlogVisible()
+	_, _, _, prioEnd := backlogRowCols(vis[0])
+	// Content-Spalte weit rechts der Icon-/Prio-Zonen (im Titel-Text).
+	mi, _ := m.handleMouse(backlogFieldClick(m, 0, prioEnd+6))
 	got := mi.(model)
 	if got.form != nil || got.statusPick {
 		t.Error("Klick außerhalb der Feld-Hit-Areas darf keinen Picker/Editor öffnen")
@@ -164,8 +172,7 @@ func TestPriorityKeyboardAndMousePathsAgree(t *testing.T) {
 
 	vis := base.backlogVisible()
 	_, _, prioStart, _ := backlogRowCols(vis[0])
-	y := firstBacklogRowY(base)
-	msi, _ := base.handleMouse(click(prioStart, y))
+	msi, _ := base.handleMouse(backlogFieldClick(base, 0, prioStart))
 	ms := msi.(model)
 	if ms.form == nil {
 		t.Fatal("Maus-Pfad sollte die editField-Form öffnen")
@@ -197,7 +204,23 @@ func TestToastHitStillTakesPriorityOverBacklogFieldClick(t *testing.T) {
 	}
 }
 
-// --- Tree-Parität (DD2-274 Nachlieferung: Spec nennt Backlog- UND Tree-Listen) ---
+// D05: die Lücke zwischen Status-Dot und Priority (1 Spalte Trennraum) gehört jetzt
+// zur Status-Zone (nächstgelegen) — ein Klick dorthin verfehlt nicht mehr, sondern
+// öffnet den Status-Picker. Regression gegen memory dd2-274 B01.
+func TestBacklogStatusGapClickHitsStatus(t *testing.T) {
+	m := backlogMouseModel()
+	vis := m.backlogVisible()
+	_, statusEnd, prioStart, _ := backlogRowCols(vis[0])
+	if prioStart <= statusEnd {
+		t.Skip("kein Trennraum zwischen Status und Priority in dieser Zeile")
+	}
+	mi, _ := m.handleMouse(backlogFieldClick(m, 0, statusEnd)) // die Lücken-Spalte
+	if !mi.(model).statusPick {
+		t.Errorf("Klick auf den Trennraum (col %d) sollte die Status-Zone treffen", statusEnd)
+	}
+}
+
+// --- Tree-Parität (DD2-274: Spec nennt Backlog- UND Tree-Listen) ---
 
 // treeMouseModel: ein Meilenstein → ein Sprint (beide aufgeklappt) → zwei Issues
 // mit unterschiedlichem Typ/Status/Priority, breit genug (90x22) für ein
@@ -223,19 +246,23 @@ func treeMouseModel() model {
 	}
 }
 
-// treeIssueRowY liefert die Y-Koordinate der Kopfzeile des Issue-Knotens am Index
-// nodeIdx in treeNodes() — dieselbe Geometrie wie treeFieldHit (Kopfzeile +
-// Suchzeile + kumulierte Blockhöhen der vorangehenden Knoten), analog
-// TestMouseClickSetsTreeCursor/firstBacklogRowY.
-func treeIssueRowY(m model, nodeIdx int) int {
+// treeRowY liefert die ECHTE Screen-Y der Kopfzeile des Tree-Knotens nodeIdx
+// (paneOriginY + Such-Kopfzeile + kumulierte Blockhöhen der vorangehenden Knoten).
+func treeRowY(m model, nodeIdx int) int {
 	nodes := m.treeNodes()
 	head, _, lw, _, _ := m.treeLayout()
 	blocks := m.treeLeftBlocks(nodes, lw-2, true)
-	y := lipgloss.Height(head) + 2
+	y := m.paneOriginY(head) + 1
 	for i := 0; i < nodeIdx; i++ {
 		y += len(blocks[i])
 	}
 	return y
+}
+
+// treeFieldClick übersetzt eine pane-content-relative Spalte cx (aus
+// treeIssueRowCols) in einen echten Screen-Klick auf den Tree-Knoten nodeIdx.
+func treeFieldClick(m model, nodeIdx, cx int) tea.MouseMsg {
+	return click(m.leftContentX()+cx, treeRowY(m, nodeIdx))
 }
 
 // AC1 (Tree-Parität): Klick auf die Priority-Zelle eines Tree-Issue-Knotens
@@ -245,9 +272,8 @@ func TestTreePriorityClickOpensEditField(t *testing.T) {
 	m := treeMouseModel()
 	nodes := m.treeNodes()
 	_, _, prioStart, _ := treeIssueRowCols(nodes[2])
-	y := treeIssueRowY(m, 2)
 
-	mi, _ := m.handleMouse(click(prioStart, y))
+	mi, _ := m.handleMouse(treeFieldClick(m, 2, prioStart))
 	got := mi.(model)
 
 	if got.form == nil {
@@ -270,9 +296,8 @@ func TestTreePriorityClickSecondIssueHitsSecondIssue(t *testing.T) {
 	m := treeMouseModel()
 	nodes := m.treeNodes()
 	_, _, prioStart, _ := treeIssueRowCols(nodes[3])
-	y := treeIssueRowY(m, 3)
 
-	mi, _ := m.handleMouse(click(prioStart, y))
+	mi, _ := m.handleMouse(treeFieldClick(m, 3, prioStart))
 	got := mi.(model)
 	if got.form == nil {
 		t.Fatal("Klick auf den zweiten Issue-Knoten sollte die editField-Form öffnen")
@@ -289,9 +314,8 @@ func TestTreeStatusClickOpensStatusPick(t *testing.T) {
 	m := treeMouseModel()
 	nodes := m.treeNodes()
 	statusStart, _, _, _ := treeIssueRowCols(nodes[2])
-	y := treeIssueRowY(m, 2)
 
-	mi, _ := m.handleMouse(click(statusStart, y))
+	mi, _ := m.handleMouse(treeFieldClick(m, 2, statusStart))
 	got := mi.(model)
 
 	if !got.statusPick {
@@ -312,9 +336,8 @@ func TestTreeStatusClickGuardsNoTransitions(t *testing.T) {
 	m.treeIssues[10][0].Status = "no-such-status" // nicht in issueTransitions → allowedManualStatuses() leer
 	nodes := m.treeNodes()
 	statusStart, _, _, _ := treeIssueRowCols(nodes[2])
-	y := treeIssueRowY(m, 2)
 
-	mi, _ := m.handleMouse(click(statusStart, y))
+	mi, _ := m.handleMouse(treeFieldClick(m, 2, statusStart))
 	got := mi.(model)
 	if got.statusPick {
 		t.Error("ohne erlaubte Transition sollte statusPick NICHT öffnen (Guard, wie Tasten-Pfad)")
@@ -331,10 +354,8 @@ func TestTreeClickOutsideHitAreasFallsBackToRowCursor(t *testing.T) {
 	m := treeMouseModel()
 	nodes := m.treeNodes()
 	_, _, _, prioEnd := treeIssueRowCols(nodes[2])
-	y := treeIssueRowY(m, 2)
-	x := prioEnd + 3 // im Key-Text, außerhalb der Icon-Spalten
 
-	mi, _ := m.handleMouse(click(x, y))
+	mi, _ := m.handleMouse(treeFieldClick(m, 2, prioEnd+4)) // im Key-Text, außerhalb der Icon-Spalten
 	got := mi.(model)
 	if got.form != nil || got.statusPick {
 		t.Error("Klick außerhalb der Feld-Hit-Areas darf keinen Picker/Editor öffnen")
@@ -369,8 +390,7 @@ func TestTreePriorityKeyboardAndMousePathsAgree(t *testing.T) {
 
 	nodes := base.treeNodes()
 	_, _, prioStart, _ := treeIssueRowCols(nodes[2])
-	y := treeIssueRowY(base, 2)
-	msi, _ := base.handleMouse(click(prioStart, y))
+	msi, _ := base.handleMouse(treeFieldClick(base, 2, prioStart))
 	ms := msi.(model)
 	if ms.form == nil {
 		t.Fatal("Maus-Pfad sollte die editField-Form öffnen")
@@ -401,21 +421,20 @@ func TestToastHitStillTakesPriorityOverTreeFieldClick(t *testing.T) {
 	}
 }
 
-// mouse_test.go-Regression (DD2-51, muss grün bleiben): existierende Tests laufen
-// unverändert weiter, s. mouse_test.go — hier zusätzlich eine gezielte Kontrolle,
-// dass ein Klick auf einen Nicht-Issue-Knoten (Meilenstein) weiterhin den
-// Zeilen-Cursor setzt, statt versehentlich in den neuen Feld-Dispatch zu laufen.
+// mouse_test.go-Regression (DD2-51, muss grün bleiben): ein Klick auf einen
+// Nicht-Issue-Knoten (Meilenstein) läuft nicht in den Feld-Dispatch. Meilenstein
+// ist expandierbar+offen → Einzelklick toggelt NICHT (D03), setzt nur den Cursor.
 func TestTreeClickOnMilestoneRowStillSetsCursor(t *testing.T) {
-	m := treeMouseModel()
-	head, _, _, _, _ := m.treeLayout()
-	y := lipgloss.Height(head) + 2 // Meilenstein-Zeile = erste Baumzeile (Knoten-Index 0)
-
-	mi, _ := m.handleMouse(click(2, y))
+	m := treeMouseModel() // M1 offen (treeExpMile[1]=true)
+	mi, _ := m.handleMouse(treeFieldClick(m, 0, 0)) // Content-Col 0 = Marker-Spalte der M1-Zeile
 	got := mi.(model)
 	if got.form != nil || got.statusPick {
 		t.Error("Klick auf den Meilenstein-Knoten darf keinen Feld-Picker öffnen")
 	}
 	if got.treeCursor != 0 {
 		t.Errorf("treeCursor=%d, want 0 (Meilenstein-Zeile, unverändertes Verhalten)", got.treeCursor)
+	}
+	if !got.treeExpMile[1] {
+		t.Error("Einzelklick auf offenen Meilenstein darf NICHT zuklappen (D03)")
 	}
 }

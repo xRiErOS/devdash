@@ -519,15 +519,16 @@ func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 // bestehenden Zeilen-Cursor-Klick (mouseTreeClick) zurück.
 func (m model) treeFieldHit(msg tea.MouseMsg) (it *api.Issue, sprintID int, field fieldKind, hit bool) {
 	head, _, lw, _, innerH := m.treeLayout()
-	if msg.X >= lw {
-		return nil, 0, 0, false // rechte Detail-Spalte — kein Feld-Ziel
+	relX := msg.X - m.leftContentX() // Screen-X → Pane-Content-Spalte (DD2-274 X-Fix)
+	if relX < 0 || relX >= lw {
+		return nil, 0, 0, false // außerhalb der linken Pane-Inhaltsspalten
 	}
 	nodes := m.treeNodes()
 	if len(nodes) == 0 {
 		return nil, 0, 0, false
 	}
 	blocks := m.treeLeftBlocks(nodes, lw-2, !m.detailFocus)
-	firstRowY := lipgloss.Height(head) + 1 + 1 // obere Border + Suchkopfzeile (analog mouseTreeClick)
+	firstRowY := m.paneOriginY(head) + 1 // Such-Kopfzeile (analog treeClickIdx, DD2-274-Fix)
 	rel := msg.Y - firstRowY
 	if rel < 0 {
 		return nil, 0, 0, false
@@ -544,11 +545,14 @@ func (m model) treeFieldHit(msg tea.MouseMsg) (it *api.Issue, sprintID int, fiel
 			if n.kind != tkIssue || n.issue == nil {
 				return nil, 0, 0, false // Meilenstein/Sprint/Info tragen keine Icons
 			}
-			statusStart, statusEnd, prioStart, prioEnd := treeIssueRowCols(n)
+			statusStart, _, prioStart, prioEnd := treeIssueRowCols(n)
+			// D05: lückenlose Hit-Zonen — der 1-Zeichen-Status-Dot + Trennraum ist
+			// zu schmal für reale Mausbedienung. Status frisst die Lücke bis Priority,
+			// Priority den nachfolgenden Trennraum vor dem Key (memory dd2-274 B01).
 			switch {
-			case msg.X >= statusStart && msg.X < statusEnd:
+			case relX >= statusStart && relX < prioStart:
 				return n.issue, n.sprintID, fieldStatus, true
-			case msg.X >= prioStart && msg.X < prioEnd:
+			case relX >= prioStart && relX <= prioEnd:
 				return n.issue, n.sprintID, fieldPriority, true
 			}
 			return nil, 0, 0, false
@@ -599,15 +603,16 @@ const (
 // trifft (Klick ist dann ein No-op, AC3).
 func (m model) backlogFieldHit(msg tea.MouseMsg) (it *api.Issue, field fieldKind, hit bool) {
 	head, _, lw, _, innerH := m.backlogLayout()
-	if msg.X >= lw {
-		return nil, 0, false // rechte Detail-Spalte — kein Feld-Ziel
+	relX := msg.X - m.leftContentX() // Screen-X → Pane-Content-Spalte (DD2-274 X-Fix)
+	if relX < 0 || relX >= lw {
+		return nil, 0, false // außerhalb der linken Pane-Inhaltsspalten
 	}
 	vis := m.backlogVisible()
 	if len(vis) == 0 {
 		return nil, 0, false
 	}
 	blocks := m.backlogListBlocks(vis, lw-2, !m.detailFocus)
-	firstRowY := lipgloss.Height(head) + 1 + 1 // obere Border + Suchkopfzeile (analog mouseTreeClick)
+	firstRowY := m.paneOriginY(head) + 1 // Such-Kopfzeile (analog treeFieldHit, DD2-274-Fix)
 	rel := msg.Y - firstRowY
 	if rel < 0 {
 		return nil, 0, false
@@ -620,11 +625,13 @@ func (m model) backlogFieldHit(msg tea.MouseMsg) (it *api.Issue, field fieldKind
 			if rel != acc {
 				return nil, 0, false // nicht die Kopfzeile des Blocks
 			}
-			statusStart, statusEnd, prioStart, prioEnd := backlogRowCols(vis[i])
+			statusStart, _, prioStart, prioEnd := backlogRowCols(vis[i])
+			// D05: lückenlose Hit-Zonen (analog treeFieldHit) — Status frisst die
+			// Lücke bis Priority, Priority den nachfolgenden Trennraum vor dem Key.
 			switch {
-			case msg.X >= statusStart && msg.X < statusEnd:
+			case relX >= statusStart && relX < prioStart:
 				return &vis[i], fieldStatus, true
-			case msg.X >= prioStart && msg.X < prioEnd:
+			case relX >= prioStart && relX <= prioEnd:
 				return &vis[i], fieldPriority, true
 			}
 			return nil, 0, false
@@ -653,6 +660,40 @@ func (m model) mouseBacklogClick(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// paneOriginY liefert die Bildschirm-Zeile der ERSTEN Pane-Innenzeile im Split-
+// Layout (searchLine links / detail[0] rechts): Header-Höhe + obere Box-Border,
+// PLUS die obere Zeile des App-Außenrahmens (outerBorder), falls viewBordered.
+// DD2-274-Fix: die bisherigen Klick-Formeln zählten den Außenrahmen NICHT mit,
+// obwohl termWidth()/frameH() ihn reservieren → alle Split-Klick-Y lagen um 1
+// daneben (real „praktisch unklickbar"). Single Source für ALLE Split-Klick-Maps.
+func (m model) paneOriginY(head string) int {
+	y := lipgloss.Height(head) + 1 // obere Box-Border
+	if m.viewBordered() {
+		y++ // App-Außenrahmen (outerBorder) obere Zeile
+	}
+	return y
+}
+
+// leftContentX liefert die Screen-Spalte der ERSTEN Inhaltsspalte der linken Pane
+// (Box-Border + App-Außenrahmen). DD2-274-Fix (X-Achse): die Feld-Hit-Tests
+// verglichen Screen-X direkt mit pane-content-relativen Spalten (treeIssueRowCols/
+// backlogRowCols, ab dem Zeilen-Marker gezählt) → X lag um diesen Offset daneben
+// (Klick auf Status öffnete Priority, memory dd2-274 B01). Pendant zu paneOriginY (Y).
+func (m model) leftContentX() int {
+	x := 1 // Box-Border links
+	if m.viewBordered() {
+		x++ // App-Außenrahmen linke Spalte
+	}
+	return x
+}
+
+// rightContentX liefert die Screen-Spalte der ersten Inhaltsspalte der RECHTEN
+// Detail-Pane (DD2-274): linke Pane-Content-Ursprung + linke Box-Breite (lw) +
+// rechte Box-Border. Single Source für die Meta-Strip-/Accordion-Klicks.
+func (m model) rightContentX(lw int) int {
+	return m.leftContentX() + lw + 2 // + linke Box-Rechtsborder + rechte Box-Linksborder
+}
+
 // treeClickIdx bildet Klick-Y auf den Tree-Knoten-Index ab (DD2-51) — dieselbe
 // Geometrie wie der Render (treeLayout + treeLeftBlocks + blockWindow), darum
 // drift-frei. ok=false, wenn der Klick nicht in die linke Spalte oder auf keinen
@@ -662,8 +703,8 @@ func (m model) treeClickIdx(msg tea.MouseMsg) (int, bool) {
 	if msg.X >= lw {
 		return 0, false // rechte Detail-Spalte — kein Cursor-Ziel
 	}
-	// Erste Baumzeile = Header-Höhe + 1 (obere Box-Border) + 1 (Such-Kopfzeile).
-	firstRowY := lipgloss.Height(head) + 1 + 1
+	// Erste Baumzeile = Pane-Ursprung (searchLine) + 1 (Such-Kopfzeile).
+	firstRowY := m.paneOriginY(head) + 1
 	rel := msg.Y - firstRowY
 	if rel < 0 {
 		return 0, false
