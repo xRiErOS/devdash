@@ -43,7 +43,7 @@ func buildProjectCreateForm() *huh.Form {
 			Description("Project display name").Value(&name).Validate(nonEmpty),
 		huh.NewInput().Key("prefix").Title("prefix").
 			Description("Issue-key prefix — 2-6 A-Z 0-9 (changeable later in Project settings)").Value(&prefix).Validate(validateProjectPrefix),
-		huh.NewInput().Key("description").Title("description").
+		huh.NewText().Key("description").Title("description").
 			Description("Optional").Value(&description),
 	))
 }
