@@ -1,11 +1,12 @@
 ---
-type:
-description: "data-ui Storybook->Code-Traceability: Punkt-Schema, PO-Ansprechkanal (Konvention, kein Gate)"
-tags: []
-aliases: []
-relates_to:
-uid: fefca567-04cb-4fa8-81bd-b04de252372e
-title: data-ui-Konvention
+type: Convention
+title: data-ui Convention
+description: "data-ui Storybook->Code-Traceability: Punkt-Schema, PO-Ansprechkanal (Konvention, kein Gate)."
+tags:
+  - data-ui
+  - storybook
+  - conventions
+timestamp: 2026-07-08T00:00:00Z
 ---
 
 # `data-ui` — Storybook → Code Traceability

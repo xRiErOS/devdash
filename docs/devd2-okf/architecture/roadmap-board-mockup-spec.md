@@ -1,11 +1,12 @@
 ---
-type:
-description: Mockup-Spezifikation der Roadmap-Board-UI
-tags: []
-aliases: []
-relates_to:
-uid: 3dca6941-8fc1-44ae-9e4e-3dad5775523b
-title: RoadmapBoard-Mockup-Spec
+type: Spec
+title: Roadmap Board Mockup Spec
+description: Mockup-Spezifikation der Roadmap-Board-UI.
+tags:
+  - roadmap
+  - ui
+  - spec
+timestamp: 2026-07-08T00:00:00Z
 ---
 
 # RoadmapBoard — Mockup-Spezifikation

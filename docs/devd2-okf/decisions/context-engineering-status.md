@@ -1,12 +1,11 @@
 ---
-type: SSTD
-description: Standortbestimmung der DD2-Wissensarchitektur — Konsolidierung von SOPs, Skills, Documents, GLOSSARY.md, CLAUDE.md, dd-memory zu einem leanen, zuverlässig invozierten System. Synthese aus Pococks writing-great-skills + domain-modeling. Inkl. Backend-Removal-Programm + Gate-Verschiebung auf User-Stories.
-tags: [sstd]
-aliases: []
-relates_to:
-uid: 945cffe4-86b3-4357-8088-f47db6768c09
-predecessor:
-successor:
+type: Decision
+title: Context-Engineering Consolidation Status
+description: Standortbestimmung der DD2-Wissensarchitektur — Konsolidierung von SOPs, Skills, Documents, GLOSSARY.md, CLAUDE.md, dd-memory zu einem leanen, zuverlässig invozierten System.
+tags:
+  - context-engineering
+  - architecture
+timestamp: 2026-07-08T00:00:00Z
 ---
 
 ## 1. Session Objective

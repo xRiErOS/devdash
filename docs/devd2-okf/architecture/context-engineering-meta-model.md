@@ -1,11 +1,11 @@
 ---
-type:
+type: Concept
+title: Context-Engineering Meta-Model
 description: Konzeptpapier zum DD2-Wissensarchitektur-Meta-Modell — welches Wissensstück in welche Schicht gehört und warum. Aufsatz, nicht Referenz.
-tags: []
-aliases: []
-relates_to:
-  - "[[sstd_meta-model-context-engineering]]"
-uid: dafed0d8-5479-4344-bc8b-07998de7fa99
+tags:
+  - context-engineering
+  - architecture
+timestamp: 2026-07-08T00:00:00Z
 ---
 
 # DD2 Context-Engineering — Das Meta-Modell
@@ -66,7 +66,7 @@ Wissen ordnet sich entlang zweier *orthogonaler* Achsen, nicht einer:
 - **Spatial** (Tiefe): je tiefer im Verzeichnisbaum, desto spezifischer. GLOSSARY.md und directory-CLAUDE.md folgen dem Baum. Disclosure passiert beim *Eintritt* in ein Verzeichnis — man lädt das TUI-Glossar nur, wenn man an der TUI arbeitet. Das ist die Antwort auf das 200-Regeln-Problem: nie alles, immer nur die Surface, in der man steht.
 - **Topical** (Belang): manche Regeln sind nicht ortsgebunden. Die `data-ui`-Konvention, die mdx-Norm, das Design-System — sie gelten quer über Surfaces und leben in `docs/` als Concern-Dokumente.
 
-Der **Router** (die Doku-Index-Tabelle in CLAUDE.md) ist der **Join** über beide Achsen: er zeigt sowohl auf tiefere Surfaces als auch auf topische `docs/`-Dateien. Eine `data-ui`-Frage löst sich so: die *Regel* liegt in `docs/doc-data-ui-rules.md`, der *Begriff* im Glossar, die *Fundstelle* („data-ui-Arbeit → diese Datei") im Router. Drei Dateien, jede schlank, jede mit einer Aufgabe.
+Der **Router** (die Doku-Index-Tabelle in CLAUDE.md) ist der **Join** über beide Achsen: er zeigt sowohl auf tiefere Surfaces als auch auf topische `docs/`-Dateien. Eine `data-ui`-Frage löst sich so: die *Regel* liegt in `docs/devd2-okf/architecture/data-ui-convention.md`, der *Begriff* im Glossar, die *Fundstelle* („data-ui-Arbeit → diese Datei") im Router. Drei Dateien, jede schlank, jede mit einer Aufgabe.
 
 ## 6. Das Gedächtnis — zwei Schichten, nicht drei
 

@@ -1,11 +1,11 @@
 ---
-type:
-description: Container-Focus-Ring der Element-List (Loesungsskizze/Briefing)
-tags: []
-aliases: []
-relates_to:
-uid: 8a4b3b51-18e4-4c3e-a74c-aee9f3587042
-title: Briefing ElementList Focus-Ring
+type: Concept
+title: ElementList Focus-Ring Briefing
+description: Container-Focus-Ring der Element-List (Lösungsskizze/Briefing).
+tags:
+  - ui
+  - design-system
+timestamp: 2026-07-08T00:00:00Z
 ---
 
 # Briefing — ElementList Container-Focus-Ring (Lösungsexperte)
