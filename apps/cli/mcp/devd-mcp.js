@@ -413,7 +413,7 @@ server.tool(
 
 server.tool(
   'devd_backlog_list',
-  'DD2-110: List the REAL backlog of a project — open, unplanned work only. Backlog = status "new" OR (status "planned" AND no sprint assigned), mirroring the TUI backlog view (messages.go). Unlike devd_issue_list (which returns ALL issues when unfiltered), this captures the backlog semantics in one call (two backend queries, merged + deduped). refined is excluded (roadmap/milestone-managed). Each item has `key`. Read-only.',
+  'DD2-110/DD2-276: List the REAL backlog of a project — open, unplanned work only. Backlog = status "new"/"refined" OR (status "planned" AND no sprint assigned), mirroring the TUI backlog view (messages.go). Unlike devd_issue_list (which returns ALL issues when unfiltered), this captures the backlog semantics in one call (two backend queries, merged + deduped). Each item has `key`. Read-only.',
   {
     project_id: PROJECT_ID_PARAM,
     type: z.enum(ISSUE_TYPES).optional().describe('Filter by issue type'),
@@ -424,14 +424,14 @@ server.tool(
   async ({ project_id, type, search, fields, limit }) => {
     const pid = resolveProjectId(project_id)
     if (typeof pid === 'object' && pid.error) return ok(pid)
-    // Backlog-Semantik (TUI-autoritativ): status=new ∪ (status=planned ∧ sprint=null).
+    // Backlog-Semantik (TUI-autoritativ, DD2-276): status∈{new,refined} ∪ (status=planned ∧ sprint=null).
     // Backend /api/backlog komponiert status+sprint_id mit AND → zwei Calls + Merge.
     const base = new URLSearchParams()
     if (type) base.set('type', type)
     if (search) base.set('search', search)
     if (fields) base.set('fields', fields)
     const qNew = new URLSearchParams(base)
-    qNew.set('status', 'new')
+    qNew.set('status', 'new,refined')
     const qPlanned = new URLSearchParams(base)
     qPlanned.set('status', 'planned')
     qPlanned.set('sprint_id', 'null')

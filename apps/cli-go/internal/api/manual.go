@@ -321,9 +321,9 @@ func (c *Client) DocumentDelete(args generated.DocumentDeleteArgs) (json.RawMess
 // Echte Multi-Call-Tools (apiRequest call count = 2) — DD2-207.
 // ---------------------------------------------------------------------------
 
-// BacklogList entspricht MCP-Tool devd_backlog_list. Backlog-Semantik = status=new
-// ∪ (status=planned ∧ sprint=null); Backend kombiniert status+sprint_id mit AND →
-// zwei GET-Calls + Merge/Dedup nach key (Fallback id).
+// BacklogList entspricht MCP-Tool devd_backlog_list. Backlog-Semantik (DD2-276) =
+// status∈{new,refined} ∪ (status=planned ∧ sprint=null); Backend kombiniert
+// status+sprint_id mit AND → zwei GET-Calls + Merge/Dedup nach key (Fallback id).
 func (c *Client) BacklogList(args generated.BacklogListArgs) (json.RawMessage, error) {
 	base := url.Values{}
 	if args.Type != nil {
@@ -341,7 +341,7 @@ func (c *Client) BacklogList(args generated.BacklogListArgs) (json.RawMessage, e
 		qNew[k] = v
 		qPlanned[k] = v
 	}
-	qNew.Set("status", "new")
+	qNew.Set("status", "new,refined")
 	qPlanned.Set("status", "planned")
 	qPlanned.Set("sprint_id", "null")
 

@@ -1,5 +1,5 @@
-// DD2-110: devd_backlog_list — dediziertes MCP-Tool für das ECHTE Backlog.
-// Backlog-Semantik (TUI-autoritativ, messages.go): status='new' ∪
+// DD2-110/DD2-276: devd_backlog_list — dediziertes MCP-Tool für das ECHTE Backlog.
+// Backlog-Semantik (TUI-autoritativ, messages.go): status∈{new,refined} ∪
 // (status='planned' ∧ assigned_sprint IS NULL). Backend /api/backlog komponiert
 // status+sprint_id mit AND → zwei Calls + Merge/Dedup. Parity-Check über den Quelltext
 // (Idiom wie tests/dd629), verankert die Query-Semantik gegen Regression.
@@ -22,19 +22,19 @@ describe('DD2-110 — devd_backlog_list Registrierung', () => {
     expect(mcp).toContain("'devd_backlog_list'")
   })
 
-  test('grenzt sich semantisch von devd_issue_list ab (Doc erwähnt new ∪ planned-unassigned)', () => {
+  test('grenzt sich semantisch von devd_issue_list ab (Doc erwähnt new/refined ∪ planned-unassigned)', () => {
     const block = backlogToolBlock(mcp)
-    expect(block).toMatch(/status\s+"new"/)
+    expect(block).toMatch(/status\s+"new"\/"refined"/)
     expect(block).toMatch(/planned/)
     expect(block).toMatch(/no sprint assigned|sprint=null|assigned_sprint/i)
   })
 })
 
-describe('DD2-110 — Query-Semantik', () => {
+describe('DD2-110/DD2-276 — Query-Semantik', () => {
   const block = backlogToolBlock(mcp)
 
-  test('Query 1: status=new', () => {
-    expect(block).toMatch(/\.set\(\s*['"]status['"]\s*,\s*['"]new['"]\s*\)/)
+  test('Query 1: status=new,refined', () => {
+    expect(block).toMatch(/\.set\(\s*['"]status['"]\s*,\s*['"]new,refined['"]\s*\)/)
   })
 
   test('Query 2: status=planned UND sprint_id=null (unassigned)', () => {
@@ -42,8 +42,8 @@ describe('DD2-110 — Query-Semantik', () => {
     expect(block).toMatch(/\.set\(\s*['"]sprint_id['"]\s*,\s*['"]null['"]\s*\)/)
   })
 
-  test('refined ist NICHT Teil der Backlog-Query', () => {
-    expect(block).not.toMatch(/['"]refined['"]/)
+  test('refined ist Teil der Backlog-Query (DD2-276)', () => {
+    expect(block).toMatch(/['"]new,refined['"]/)
   })
 
   test('zwei /api/backlog-Calls (parallel) + Merge/Dedup nach key', () => {
