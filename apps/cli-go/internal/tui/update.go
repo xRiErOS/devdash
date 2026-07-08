@@ -215,8 +215,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.showToast(toastInfo, msg.label, "", nil, false)
 	case projectCreatedMsg: // neues Projekt angelegt → Projektliste neu laden + Toast
 		if msg.err != "" {
-			m.errNote = msg.err
-			return m, nil
+			// DD2-271: Toast statt errNote — errNote ist sticky (nie Auto-Dismiss,
+			// nur beim nächsten Erfolg derselben Aktion geräumt). Toast(Error) hat
+			// bereits Auto-Dismiss nach 8s (toastDuration, DD2-272).
+			return m.showToast(toastError, msg.err, "", nil, false)
 		}
 		m.errNote = ""
 		name := ""
@@ -227,8 +229,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(loadProjects(m.global), toastCmd)
 	case projectUpdatedMsg: // DD2-221: Projekt-Settings gespeichert → m.project spiegeln + Toast
 		if msg.err != "" {
-			m.errNote = msg.err
-			return m, nil
+			// DD2-271: dito — Toast statt sticky errNote.
+			return m.showToast(toastError, msg.err, "", nil, false)
 		}
 		if msg.project != nil {
 			m.errNote = ""

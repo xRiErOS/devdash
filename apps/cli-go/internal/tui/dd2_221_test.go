@@ -108,13 +108,29 @@ func TestProjectSettingsSlugPrefixEditable(t *testing.T) {
 	}
 }
 
-// projectUpdatedMsg mit err setzt errNote und lässt das Projekt unangetastet.
+// DD2-271: projectCreatedMsg mit err (z.B. "prefix bereits vergeben") zeigt
+// einen Auto-Dismiss-Toast statt der vorherigen sticky errNote, die erst nach
+// TUI-Neustart bzw. nächstem Erfolg derselben Aktion verschwand.
+func TestProjectCreatedMsgErrorShowsToast(t *testing.T) {
+	m := model{}
+	mi, _ := m.Update(projectCreatedMsg{err: "prefix bereits vergeben"})
+	m2 := mi.(model)
+	if m2.toast == nil || m2.toast.kind != toastError || m2.toast.title != "prefix bereits vergeben" {
+		t.Errorf("toast=%+v, want toastError \"prefix bereits vergeben\"", m2.toast)
+	}
+	if m2.errNote != "" {
+		t.Errorf("errNote sollte leer bleiben (Toast ersetzt es), got %q", m2.errNote)
+	}
+}
+
+// projectUpdatedMsg mit err zeigt einen Auto-Dismiss-Toast (DD2-271, statt
+// sticky errNote vorher) und lässt das Projekt unangetastet.
 func TestProjectUpdatedMsgErrorKeepsProject(t *testing.T) {
 	m := model{project: &api.Project{ID: 10, Name: "Keep"}}
 	mi, _ := m.Update(projectUpdatedMsg{err: "boom"})
 	m2 := mi.(model)
-	if m2.errNote != "boom" {
-		t.Errorf("errNote=%q, want boom", m2.errNote)
+	if m2.toast == nil || m2.toast.kind != toastError || m2.toast.title != "boom" {
+		t.Errorf("toast=%+v, want toastError \"boom\"", m2.toast)
 	}
 	if m2.project == nil || m2.project.Name != "Keep" {
 		t.Errorf("Projekt sollte bei Fehler unverändert bleiben, got %+v", m2.project)
