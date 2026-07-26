@@ -22,6 +22,7 @@ devd-result-*.md
 .worktrees/
 .claude/worktrees/
 .claude/scheduled_tasks.lock
+.claude/settings.local.json
 .session-cache/
 
 # Obsidian (PO 2026-06-17): .obsidian-Config komplett aus Git (überstimmt D08/D12).

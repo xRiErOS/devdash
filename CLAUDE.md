@@ -1,5 +1,10 @@
 # DevD 2.0 (DD2) — Projekt-Kontext für KI-Agenten
 
+> **ARCHIVIERT (2026-07-26).** Aktive Entwicklung eingestellt, abgelöst durch lean-stack + OKF + beans.
+> Kein Sprint-Betrieb, keine Issues, keine Reviews mehr. Decommission-Protokoll, offene NAS-To-dos
+> und bekannte Kopplungen: [`ARCHIVE.md`](ARCHIVE.md). Die Regeln unten gelten weiter, falls doch
+> noch am Code gearbeitet wird.
+
 Sprint-/Backlog-/Review-Tool, Multi-Projekt, NAS-gehostet. Nach dem Clean-Cut (2026-06-25) bewusst schlank: **Backend ist solide und bleibt**, das Frontend wird aus dem **Storybook-Katalog** (= Design-Wahrheit) neu zusammengesetzt. Keine Plan-Kette, keine Drift-Gates, kein Heartbeat/SSTD-Zwang mehr.
 
 ## Harte Regeln (nicht verhandelbar)
