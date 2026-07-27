@@ -1,3 +1,12 @@
+---
+name: DeveloperDashboard
+class: B
+type: [tool]
+tags: [devdash, portfolio, tui]
+status: active
+stack: [node]
+related: [DeveloperDashboard-reference]
+---
 # DevD 2.0 (DD2) — Projekt-Kontext für KI-Agenten
 
 > **ARCHIVIERT (2026-07-26).** Aktive Entwicklung eingestellt, abgelöst durch lean-stack + OKF + beans.
