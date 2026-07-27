@@ -22,8 +22,8 @@ Schneller Austausch von WIP-Dateien (Wireframes, Mockups, draw.io-Drafts) zwisch
 Aliase in `~/.zshrc` (Mac), Thinkpad-Tailscale-Hostname einsetzen:
 
 ```sh
-alias ex-push='rsync -avz ~/Obsidian/tools/DeveloperDashboard/exchange/ erik@thinkpad:~/<repo-pfad>/exchange/'
-alias ex-pull='rsync -avz erik@thinkpad:~/<repo-pfad>/exchange/ ~/Obsidian/tools/DeveloperDashboard/exchange/'
+alias ex-push='rsync -avz ~/dev/DeveloperDashboard/exchange/ erik@thinkpad:~/<repo-pfad>/exchange/'
+alias ex-pull='rsync -avz erik@thinkpad:~/<repo-pfad>/exchange/ ~/dev/DeveloperDashboard/exchange/'
 ```
 
 `-avz` = archiv + komprimiert. Je Richtung ein Alias (explizit). `--delete` nur ergänzen, wenn echtes Spiegeln (inkl. Löschen auf dem Ziel) gewünscht ist.

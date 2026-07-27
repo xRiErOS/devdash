@@ -85,7 +85,7 @@ devd-cli issue update <issue-key> --sprint <sprint-key>
 claude mcp add devd-dashboard \
   -e DEVD_API_URL=http://localhost:5556 \
   -e DEVD_PROJECT_ID=<neue-project-id> \
-  node ~/Obsidian/tools/DeveloperDashboard/mcp/devd-mcp.js
+  node ~/dev/DeveloperDashboard/mcp/devd-mcp.js
 ```
 
 ### Schritt 8 — Health-Check
