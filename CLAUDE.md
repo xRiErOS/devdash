@@ -3,7 +3,7 @@ name: DeveloperDashboard
 class: B
 type: [tool]
 tags: [devdash, portfolio, tui]
-status: active
+status: dormant
 stack: [node]
 related: [DeveloperDashboard-reference]
 ---
@@ -40,7 +40,6 @@ Storybook (`src/storybook/`, kuratierte Stories) ist Design-Wahrheit **und** Bau
 ## Entwicklungs-Methodik
 
 - **TDD** für Verhalten/Logik (red→green→refactor). Reine Präsentation ausgenommen (Storybook + Augenschein). Framework: vitest (node-env, `renderToStaticMarkup`, kein jsdom).
-- Recherche/abgrenzbare Arbeit an Subagenten delegieren — mit explizitem Output-Format-Vertrag.
 
 ## Stack & ENV
 
