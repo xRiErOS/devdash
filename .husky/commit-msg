@@ -1,0 +1,11 @@
+# commit-msg -- Callback (LES-gvxs): dieses Repo shieldet core.hooksPath
+# (husky) und hatte bisher keinen commit-msg-Hook, darum sah der globale
+# ~/.claude/git-hooks/commit-msg (E1/E2, LES-9y5c) es nie. Reiner Rueckruf,
+# kein Eigenlogik-Anteil -- lehnt der globale Hook ab, bricht dieser mit
+# demselben Code ab. Fehlt er/ist nicht ausfuehrbar, wird nichts blockiert.
+GIT_HOOKS_GLOBAL_COMMIT_MSG="$HOME/.claude/git-hooks/commit-msg"
+if [ -x "$GIT_HOOKS_GLOBAL_COMMIT_MSG" ]; then
+  "$GIT_HOOKS_GLOBAL_COMMIT_MSG" "$@"
+  gh_rc=$?
+  [ "$gh_rc" -eq 0 ] || exit "$gh_rc"
+fi
