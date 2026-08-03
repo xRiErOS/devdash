@@ -2,10 +2,23 @@
 # (husky) und hatte bisher keinen commit-msg-Hook, darum sah der globale
 # ~/.claude/git-hooks/commit-msg (E1/E2, LES-9y5c) es nie. Reiner Rueckruf,
 # kein Eigenlogik-Anteil -- lehnt der globale Hook ab, bricht dieser mit
-# demselben Code ab. Fehlt er/ist nicht ausfuehrbar, wird nichts blockiert.
+# demselben Code ab.
+#
+# Fail-closed (LES-9l32, PO-Entscheidung 2026-08-03): fehlt der globale Hook
+# oder ist er nicht ausfuehrbar, wird der Commit abgelehnt statt still
+# durchgelassen. Ein frischer Klon, ein CI-Checkout oder eine Maschine ohne
+# die globalen Hooks sah E1/E2 sonst NIE durchgesetzt und bekam auch keinen
+# Hinweis darauf -- das Repo wirkte geschuetzt und war es nicht. Die
+# Durchsetzungslogik selbst bleibt ausserhalb dieses Repos; hier aendert sich
+# nur, was passiert, wenn sie fehlt. Rueckweg, falls das je blockiert: das
+# Ausfuehrbar-Bit von ~/.claude/git-hooks/commit-msg wiederherstellen, NICHT
+# core.hooksPath global entfernen -- das verschlimmert die Lage.
 GIT_HOOKS_GLOBAL_COMMIT_MSG="$HOME/.claude/git-hooks/commit-msg"
 if [ -x "$GIT_HOOKS_GLOBAL_COMMIT_MSG" ]; then
   "$GIT_HOOKS_GLOBAL_COMMIT_MSG" "$@"
   gh_rc=$?
   [ "$gh_rc" -eq 0 ] || exit "$gh_rc"
+else
+  echo "commit-msg: globaler Hook fehlt oder ist nicht ausfuehrbar: $GIT_HOOKS_GLOBAL_COMMIT_MSG -- Commit abgelehnt (fail-closed, LES-9l32)." >&2
+  exit 1
 fi
