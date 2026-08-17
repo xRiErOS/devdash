@@ -4,8 +4,8 @@
 // desc: Generiert die INDEX.md-Manifest-Tabelle eines Buckets (scripts/, docs/) mit --check-Drift-Guard
 // @end
 /**
- * gen-index.mjs — generiert die Manifest-Tabelle `<dir>/INDEX.md` für einen
- * enumerierbaren Bucket (viele Peer-Artefakte gleicher Art, z.B. scripts/, docs/).
+ * gen-index.mjs — generiert die Manifest-Tabelle `<dir>/<out>` (Default `INDEX.md`)
+ * für einen enumerierbaren Bucket (viele Peer-Artefakte gleicher Art, z.B. scripts/, docs/).
  *
  * Kontext-Model U39/U40: Discovery ohne always-on-Kosten. Die INDEX.md ist
  * KEIN auto-load-Artefakt — sie wird über eine Router-Zeile in CLAUDE.md
@@ -24,9 +24,11 @@
  *
  * Ausgabe: Tabelle `| Titel | Beschreibung | Pfad |`, alphabetisch stabil.
  *
- *   node scripts/gen-index.mjs <dir> [--check]
+ *   node scripts/gen-index.mjs <dir> [--check] [--out=<name>]
  *
- * --check: regeneriert im Speicher, difft gegen die eingecheckte INDEX.md und
+ * --out=<name>: Ziel-Dateiname statt `INDEX.md` (z.B. für eine Ebene mit
+ *          umbenanntem Index, `docs-index-map.md`).
+ * --check: regeneriert im Speicher, difft gegen die eingecheckte Ausgabedatei und
  *          exitet non-zero bei (a) Abweichung ODER (b) Code-Datei ohne Pragma
  *          (= Vollständigkeits-Guard). Kein Schreiben.
  */
@@ -36,9 +38,11 @@ import { join } from 'path'
 const args = process.argv.slice(2)
 const CHECK = args.includes('--check')
 const dirArg = args.find((a) => !a.startsWith('--'))
+const outArg = args.find((a) => a.startsWith('--out='))
+const OUT_NAME = outArg ? outArg.slice('--out='.length) : 'INDEX.md'
 
 if (!dirArg) {
-  console.error('Usage: node scripts/gen-index.mjs <dir> [--check]')
+  console.error('Usage: node scripts/gen-index.mjs <dir> [--check] [--out=<name>]')
   process.exit(2)
 }
 
@@ -52,12 +56,12 @@ if (!existsSync(DIR) || !statSync(DIR).isDirectory()) {
 const CODE_EXT = new Set(['.mjs', '.js', '.cjs', '.py', '.sh', '.bash', '.zsh'])
 // Struktur-/Daten-Dateien nie als Katalog-Eintrag:
 const EXCLUDE_NAMES = new Set([
-  'INDEX.md', 'CLAUDE.md', 'GLOSSARY.md', 'GLOSSARY-MAP.md', 'README.md', '.DS_Store',
+  'INDEX.md', OUT_NAME, 'CLAUDE.md', 'GLOSSARY.md', 'GLOSSARY-MAP.md', 'README.md', '.DS_Store',
 ])
 const EXCLUDE_DIRS = new Set(['node_modules', '.git'])
 const EXCLUDE_EXT = new Set(['.json', '.lock', '.map'])
 
-const OUT = join(DIR, 'INDEX.md')
+const OUT = join(DIR, OUT_NAME)
 
 // --- Extraktoren -------------------------------------------------------------
 function ext(name) {
@@ -152,12 +156,14 @@ entries.sort((a, b) => a.path.localeCompare(b.path))
 
 // --- Render ------------------------------------------------------------------
 const cell = (s) => String(s).replace(/\|/g, '\\|').replace(/\r?\n/g, ' ').trim()
+const OUT_TITLE = OUT_NAME.replace(/\.md$/, '')
+const REGEN_CMD = `npm run gen:index -- ${DIR}${OUT_NAME === 'INDEX.md' ? '' : ` --out=${OUT_NAME}`}`
 function render() {
   const lines = []
-  lines.push(`# INDEX — \`${DIR}/\``)
+  lines.push(`# ${OUT_TITLE} — \`${DIR}/\``)
   lines.push('')
   lines.push('> Generiert von `scripts/gen-index.mjs` — nicht von Hand editieren.')
-  lines.push('> Regenerieren: `npm run gen:index -- ' + DIR + '`. Metadaten pflegen: `@index`-Block (Code) bzw. YAML-Frontmatter (`.md`).')
+  lines.push('> Regenerieren: `' + REGEN_CMD + '`. Metadaten pflegen: `@index`-Block (Code) bzw. YAML-Frontmatter (`.md`).')
   lines.push('')
   lines.push('| Titel | Beschreibung | Pfad |')
   lines.push('|-------|--------------|------|')
@@ -181,7 +187,7 @@ if (CHECK) {
   const current = existsSync(OUT) ? readFileSync(OUT, 'utf8') : ''
   if (current !== output) {
     failed = true
-    console.error(`FAIL: ${OUT} ist veraltet (Drift). Regenerieren: npm run gen:index -- ${DIR}`)
+    console.error(`FAIL: ${OUT} ist veraltet (Drift). Regenerieren: ${REGEN_CMD}`)
   }
   if (failed) process.exit(1)
   console.log(`OK: ${OUT} aktuell (${entries.length} Einträge).`)
