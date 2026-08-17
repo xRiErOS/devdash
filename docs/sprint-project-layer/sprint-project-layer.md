@@ -28,8 +28,8 @@ Interface: MCP `devd_*` / Shell-Alias `dd`.
 - Doku-/Refinement-Sprints: Build-/Dev-Server-Schritte entfallen.
 
 ## Zeiger
-- Promote-Loop (Frontend): `docs/doc-promote-loop.md`.
-- Build/Install Go-TUI: `docs/cli-go-build.md`.
+- Promote-Loop (Frontend): `docs/doc-promote-loop/doc-promote-loop.md`.
+- Build/Install Go-TUI: `docs/cli-go-build/cli-go-build.md`.
 - Meilenstein-/Roadmap-State: Meilenstein-Documents via `devd_document_list`.
 
 ## Abschluss-Grenze

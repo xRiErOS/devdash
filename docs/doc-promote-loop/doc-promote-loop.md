@@ -54,7 +54,7 @@ Ziel-Tier in `src/ui/` (Atom/Molecule/Organism/Screen). Co-located: `ComponentNa
 **Storybook-Standard**
 
 - [ ] `status: open` gesetzt (oder `review` wenn PO-Abnahme läuft).
-- [ ] `.mdx` co-located: Zweck, Wann/Wann-nicht, a11y-Note (Norm: `docs/doc-mdx-Norm.md`).
+- [ ] `.mdx` co-located: Zweck, Wann/Wann-nicht, a11y-Note (Norm: `docs/doc-mdx-norm/doc-mdx-Norm.md`).
 - [ ] Kein `lucide-react`-Freeform — Icon-Registry `foundations/Icon.jsx`.
 - [ ] Kein inline `style={{}}`, kein Roh-Hex — Token aus `src/index.css`.
 - [ ] Render-Smoke grün: `npm test`.
@@ -95,7 +95,7 @@ Ziel-Tier in `src/ui/` (Atom/Molecule/Organism/Screen). Co-located: `ComponentNa
 | MSW-Handler (Demo) | `apps/frontend/src/ui/foundations/fixtures/sprint.handlers.js` |
 | Fetch-Layer | `apps/frontend/src/lib/` |
 | Token-Master | `apps/frontend/src/index.css` |
-| MDX-Norm | `docs/doc-mdx-Norm.md` |
+| MDX-Norm | `docs/doc-mdx-norm/doc-mdx-Norm.md` |
 
 ---
 

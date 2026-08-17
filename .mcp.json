@@ -1,15 +1,5 @@
 {
   "mcpServers": {
-    "devd-dashboard": {
-      "command": "node",
-      "args": [
-        "./apps/cli/mcp/devd-mcp.js"
-      ],
-      "env": {
-        "DEVD_API_URL": "http://100.71.39.53:3001",
-        "DEVD_PROJECT_ID": "10"
-      }
-    },
     "storybook": {
       "url": "http://localhost:6006/mcp",
       "type": "http"

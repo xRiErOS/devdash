@@ -31,7 +31,7 @@
  *          (= Vollständigkeits-Guard). Kein Schreiben.
  */
 import { readdirSync, readFileSync, writeFileSync, existsSync, statSync } from 'fs'
-import { join, basename } from 'path'
+import { join } from 'path'
 
 const args = process.argv.slice(2)
 const CHECK = args.includes('--check')
@@ -54,6 +54,7 @@ const CODE_EXT = new Set(['.mjs', '.js', '.cjs', '.py', '.sh', '.bash', '.zsh'])
 const EXCLUDE_NAMES = new Set([
   'INDEX.md', 'CLAUDE.md', 'GLOSSARY.md', 'GLOSSARY-MAP.md', 'README.md', '.DS_Store',
 ])
+const EXCLUDE_DIRS = new Set(['node_modules', '.git'])
 const EXCLUDE_EXT = new Set(['.json', '.lock', '.map'])
 
 const OUT = join(DIR, 'INDEX.md')
@@ -112,30 +113,40 @@ function parseFrontmatter(text) {
 const entries = []
 const missing = [] // Code-Dateien ohne (vollständigen) Pragma
 
-for (const name of readdirSync(DIR).sort()) {
-  if (EXCLUDE_NAMES.has(name)) continue
-  const full = join(DIR, name)
-  if (!statSync(full).isFile()) continue
-  const e = ext(name)
-  if (EXCLUDE_EXT.has(e)) continue
-
-  const relPath = `${DIR}/${name}`
-  const text = readFileSync(full, 'utf8')
-
-  if (CODE_EXT.has(e)) {
-    const p = parsePragma(text)
-    if (!p || p.partial) {
-      missing.push(relPath)
+function collect(currentDir, relativeParts = []) {
+  for (const name of readdirSync(currentDir).sort()) {
+    if (EXCLUDE_NAMES.has(name)) continue
+    const full = join(currentDir, name)
+    const relativePath = [...relativeParts, name]
+    const stat = statSync(full)
+    if (stat.isDirectory()) {
+      if (!EXCLUDE_DIRS.has(name)) collect(full, relativePath)
       continue
     }
-    entries.push({ title: p.title, desc: p.desc, path: relPath })
-  } else if (e === '.md') {
-    const fm = parseFrontmatter(text)
-    if (fm) entries.push({ title: fm.title, desc: fm.desc, path: relPath })
-    // .md ohne Frontmatter = bewusst nicht gelistet (kein missing-Fail)
+    if (!stat.isFile()) continue
+    const e = ext(name)
+    if (EXCLUDE_EXT.has(e)) continue
+
+    const relPath = `${DIR}/${relativePath.join('/')}`
+    const text = readFileSync(full, 'utf8')
+
+    if (CODE_EXT.has(e)) {
+      const p = parsePragma(text)
+      if (!p || p.partial) {
+        missing.push(relPath)
+        continue
+      }
+      entries.push({ title: p.title, desc: p.desc, path: relPath })
+    } else if (e === '.md') {
+      const fm = parseFrontmatter(text)
+      if (fm) entries.push({ title: fm.title, desc: fm.desc, path: relPath })
+      // .md ohne Frontmatter = bewusst nicht gelistet (kein missing-Fail)
+    }
+    // andere Endungen: ignoriert
   }
-  // andere Endungen: ignoriert
 }
+
+collect(DIR)
 
 entries.sort((a, b) => a.path.localeCompare(b.path))
 

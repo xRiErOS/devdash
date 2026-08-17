@@ -23,7 +23,7 @@ Veraltete/fehlende `.mdx` = Komponente unvollständig. Konvention scharf in
 
 `apps/frontend/src/storybook/CLAUDE.md` — diese Datei liefert nur das Sektions-Template.
 
-Template (Kopiervorlage): `docs/doc-mdx-Norm-Template.mdx`. Gutes Ist-Muster: `TagChip.mdx`.
+Template (Kopiervorlage): `docs/doc-mdx-norm/doc-mdx-Norm-Template.mdx`. Gutes Ist-Muster: `TagChip.mdx`.
 
 ## Schicht-Schnitt — eine Wahrheit pro Art (hart)
 
